@@ -1,0 +1,4 @@
+syntax: glob
+.svn/*
+obj/Debug/*
+bin/Debug/*
