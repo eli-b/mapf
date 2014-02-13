@@ -275,12 +275,12 @@ namespace CPF_experiment
             //this.resultsWriter.Write(cr1 + RESULTS_DELIMITER);
 
 
-            Constants.exausitveIcts = false;
+            Constants.exhaustiveIcts = false;
 
             for (int i = 0; i < solvers.Count; i++)
             {
                 //if (i == 1)
-                //    Constants.exausitveIcts = true;
+                //    Constants.exhaustiveIcts = true;
 
                 if (outOfTimeCounter[i] < Constants.MAX_FAIL_COUNT)//after "MAX_FAIL_COUNT" failures of a given algotrithm we stop running it
                 {

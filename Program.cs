@@ -66,7 +66,7 @@ namespace CPF_experiment
 
             bool continueFromLastRun = true; 
             string[] lineParts = null;
-            if (File.Exists(Directory.GetCurrentDirectory() + "\\Instances\\current problem")) //if were continuing running from last time
+            if (File.Exists(Directory.GetCurrentDirectory() + "\\Instances\\current problem")) //if we're continuing running from last time
             {
                 TextReader input = new StreamReader(Directory.GetCurrentDirectory() + "\\Instances\\current problem");
                 lineParts = input.ReadLine().Split(',');  //get the last problem
@@ -258,7 +258,7 @@ namespace CPF_experiment
             //else
             //    Console.WriteLine("You Choose To Allow Creation Of New Instances");
 
-           // Console.ReadLine();
+            // Console.ReadLine();
 
             Program.onlyReadInstances = true;
 

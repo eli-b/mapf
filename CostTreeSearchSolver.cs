@@ -273,7 +273,7 @@ namespace CPF_experiment
                     {
                         if (ans[0] != null)
                         {
-                            if (Constants.exausitveIcts == false)
+                            if (Constants.exhaustiveIcts == false)
                             {
                                 totalCost = next.costs.Sum();
                                 solution = ans;
@@ -347,7 +347,7 @@ namespace CPF_experiment
                     {
                         if (ans[0] != null)
                         {
-                            if (Constants.exausitveIcts == false)
+                            if (Constants.exhaustiveIcts == false)
                             {
                                 totalCost = next.costs.Sum();
                                 solution = ans;
@@ -430,7 +430,7 @@ namespace CPF_experiment
                     {
                         if (ans[0] != null)
                         {
-                            if (Constants.exausitveIcts == false)
+                            if (Constants.exhaustiveIcts == false)
                             {
                                 totalCost = next.costs.Sum();
                                 solution = ans;
@@ -521,7 +521,7 @@ namespace CPF_experiment
                     {
                         if (ans[0] != null)
                         {
-                            if (Constants.exausitveIcts == false)
+                            if (Constants.exhaustiveIcts == false)
                             {
                                 totalCost = next.costs.Sum();
                                 solution = ans;

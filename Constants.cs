@@ -21,7 +21,7 @@ namespace CPF_experiment
         public static int[] PRIMES_FOR_HASHING = { 1, 2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 71, 73, 79 };//22 numbers
         //group size for matching and pruning MDDs in a given ICTS node
         public static int MAX_FAIL_COUNT = 40;
-        //this determins whether the ICTS should search a solution with lowest conflicts for th ID framework
-        public static bool exausitveIcts = false;
+        //this determines whether the ICTS should search a solution with lowest conflicts for the ID framework
+        public static bool exhaustiveIcts = false;
     }
 }
