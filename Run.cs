@@ -8,8 +8,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Diagnostics;
 using System.IO;
 
@@ -32,7 +30,7 @@ namespace CPF_experiment
         public static string RESULTS_DELIMITER = ",";
 
         /// <summary>
-        /// Number of random steps performed  when generating a new problem instance for choosing a start-goal pair.
+        /// Number of random steps performed when generating a new problem instance for choosing a start-goal pair.
         /// </summary>
         public static int RANDOM_WALK_STEPS = 100000;
 
