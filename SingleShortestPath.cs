@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace CPF_experement
+namespace CPF_experiment
 {
 
     /// <summary>

@@ -6,7 +6,7 @@ using System.Collections;
 using System.IO;
 using System.Diagnostics;
 
-namespace CPF_experement
+namespace CPF_experiment
 {
     /// <summary>
     /// Runs Silver's CA*.

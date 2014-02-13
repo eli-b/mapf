@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace CPF_experement
+namespace CPF_experiment
 {
     /// <summary>
     /// This class tries to find a solution to a problem instance of a given cost. 

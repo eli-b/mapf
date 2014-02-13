@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Diagnostics;//////////////////////
 using System.IO;
-namespace CPF_experement
+namespace CPF_experiment
 {
     /// <summary>
     /// This class solves an instance of the MAPF problem using the cost tree search algorithm.

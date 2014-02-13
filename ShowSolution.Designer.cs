@@ -1,4 +1,4 @@
-﻿namespace CPF_experement
+﻿namespace CPF_experiment
 {
     partial class ShowSolution
     {

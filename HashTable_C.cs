@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace CPF_experement
+namespace CPF_experiment
 {
     /// <summary>
     /// simmilar to the given hashtable with the possability of chaining objects

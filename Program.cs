@@ -13,7 +13,7 @@ using System.Text;
 using System.Diagnostics;
 using System.IO;
 
-namespace CPF_experement
+namespace CPF_experiment
 {
     /// <summary>
     /// This is the entry point of the application. 

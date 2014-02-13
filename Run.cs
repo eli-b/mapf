@@ -13,7 +13,7 @@ using System.Text;
 using System.Diagnostics;
 using System.IO;
 
-namespace CPF_experement
+namespace CPF_experiment
 {
     /// <summary>
     /// This class is responsible for running the experiments.

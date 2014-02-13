@@ -5,7 +5,7 @@ using System.Text;
 using System.IO;
 using System.Diagnostics;
 
-namespace CPF_experement
+namespace CPF_experiment
 {
     class CBS_old : IDnCSolver
     {

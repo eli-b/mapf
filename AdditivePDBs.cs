@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Diagnostics;
 
-namespace CPF_experement
+namespace CPF_experiment
 {
     public class AdditivePDBs : HeuristicCalculator
     {

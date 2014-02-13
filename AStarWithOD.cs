@@ -5,7 +5,7 @@ using System.Text;
 using System.Diagnostics;
 
 
-namespace CPF_experement
+namespace CPF_experiment
 {
     /// <summary>
     /// A* implementation with Standley's operator decomposition (OD). See AAAI 2010 paper by Trevor Scott Standley on Cooperative Pathfinding.

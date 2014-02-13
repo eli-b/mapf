@@ -4,12 +4,12 @@ using System.Linq;
 using System.Text;
 using System.IO;
 
-namespace CPF_experement
+namespace CPF_experiment
 {
     public interface ISolver
     {
         /// <summary>
-        /// Return the name of the solver, usefull for outputing results.
+        /// Return the name of the solver, useful for outputing results.
         /// </summary>
         /// <returns>The name of the solver</returns>
         String GetName();

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
-namespace CPF_experement
+namespace CPF_experiment
 {
     /// <summary>
     /// A binary heap, useful for sorting data and priority queues.

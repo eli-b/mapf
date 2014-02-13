@@ -7,7 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Windows.Forms;
 
-namespace CPF_experement
+namespace CPF_experiment
 {
     public partial class ShowSolution : Form
     {

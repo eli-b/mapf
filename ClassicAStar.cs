@@ -6,7 +6,7 @@ using System.Collections;
 using System.IO;
 using System.Diagnostics;
 
-namespace CPF_experement
+namespace CPF_experiment
 {   
     /// <summary>
     /// This is a implementation of the classic A* algorithm for the MAPF problem.

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace CPF_experement
+namespace CPF_experiment
 {
     /// <summary>
     /// This Solver runs A* but from time to time tries to solve completely the expanded node, by using Standley's independent detection.

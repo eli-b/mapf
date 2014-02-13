@@ -5,7 +5,7 @@ using System.Text;
 using System.IO;
 using System.Diagnostics;
 
-namespace CPF_experement
+namespace CPF_experiment
 {
     /// <summary>
     /// This class represents a cooperative pathfinding problem instance. This includes:
