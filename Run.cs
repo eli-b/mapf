@@ -19,10 +19,8 @@ namespace CPF_experiment
     public class Run : IDisposable
     {
         ////////debug
-       // public static TextWriter resultsWriterdd;
+        // public static TextWriter resultsWriterdd;
         /////////////
-
-
 
         /// <summary>
         /// Delimiter character used when writing the results of the runs to the output file.
@@ -180,9 +178,9 @@ namespace CPF_experiment
         /// </summary>
         /// <param name="gridSize"></param>
         /// <param name="agentsNum"></param>
-        /// <param name="obsticalsNum"></param>
+        /// <param name="obstaclesNum"></param>
         /// <returns></returns>
-        public ProblemInstance generateProblemInstance(int gridSize, int agentsNum, int obsticalsNum)
+        public ProblemInstance generateProblemInstance(int gridSize, int agentsNum, int obstaclesNum)
         {
             /**
              * Randomization based on timer is disabled for purposes of getting
@@ -203,7 +201,7 @@ namespace CPF_experiment
                 grid[i] = new bool[gridSize];
                 goals[i] = new bool[gridSize];
             }
-            for (int i = 0; i < obsticalsNum; i++)
+            for (int i = 0; i < obstaclesNum; i++)
             {
                 x = rand.Next(gridSize);
                 y = rand.Next(gridSize);

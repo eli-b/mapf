@@ -8,7 +8,7 @@ namespace CPF_experiment
 {
     /// <summary>
     /// This class represents a cooperative pathfinding problem instance. This includes:
-    /// - The grid in which the agent are locationed
+    /// - The grid in which the agent are located
     /// - An array of initial state for every agent.
     /// </summary>
     public class ProblemInstance
@@ -490,7 +490,7 @@ namespace CPF_experiment
 
         public override string ToString()
         {
-            return "Problem instace:"+instanceId+" #Agents:" + m_vAgents.Length
+            return "Problem instance:"+instanceId+" #Agents:" + m_vAgents.Length
                     + ", GridCells:" + m_nLocations + ", #Obstacles:" + m_nObstacles;                
         }
 
@@ -513,7 +513,5 @@ namespace CPF_experiment
 
             return conflictsCount;
         }
-
-       
     }
 }

@@ -116,7 +116,7 @@ namespace CPF_experiment
                             {
                                 if (onlyReadInstances)
                                 {
-                                    Console.WriteLine("File " + instanceName + "  Dosent exists ");
+                                    Console.WriteLine("File " + instanceName + "  Dosen't exist");
                                     return;
 
                                     //Console.WriteLine("File Not Found!!!!");
