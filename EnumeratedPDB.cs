@@ -61,7 +61,7 @@ namespace CPF_experiment
         /// written to a file, and the filenames.
         /// </summary>
 
-        class Context
+        class Context : IDisposable
         {
             String m_sQueue;
             public UInt64 m_nNodes;
@@ -121,6 +121,12 @@ namespace CPF_experiment
             {
                 m_fsQueue.Close();
                 m_fsNext.Close();
+            }
+
+            public void Dispose()
+            {
+                this.m_fsQueue.Dispose();
+                this.m_fsNext.Dispose();
             }
         };
 

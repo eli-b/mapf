@@ -16,7 +16,7 @@ namespace CPF_experiment
     /// <summary>
     /// This class is responsible for running the experiments.
     /// </summary>
-    public class Run
+    public class Run : IDisposable
     {
         ////////debug
        // public static TextWriter resultsWriterdd;
@@ -50,6 +50,17 @@ namespace CPF_experiment
         /// can have deterministic results.
         /// </summary>
         static public Random rand = new Random();
+
+        /// <summary>
+        /// Calls resultsWriter.Dispose()
+        /// </summary>
+        public void Dispose() {
+            if (this.resultsWriter != null) {
+                this.resultsWriter.Dispose();
+                this.resultsWriter = null;
+            }
+            GC.SuppressFinalize(this);
+        }
 
         /// <summary>
         /// Open the results file for output. Currently the file is opened in append mode.
