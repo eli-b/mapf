@@ -87,7 +87,7 @@ namespace CPF_experiment
                     //runner.setOutOfTimeCounter();
                     for (int ag = 0; ag < agentListSizes.Length; ag++)
                     {
-                        if (gridSizes[gs] * gridSizes[gs] * (1-obstaclesProbs[obs]/100) - agentListSizes[ag] < 0)
+                        if (gridSizes[gs] * gridSizes[gs] * (1 - obstaclesProbs[obs] / 100) < agentListSizes[ag]) // Probably not enough room for all agents
                             continue;
                         for (int i = 0; i < instances; i++)
                         {
@@ -168,7 +168,7 @@ namespace CPF_experiment
 
             bool continueFromLastRun = true;
             string[] lineParts = null;
-            if (File.Exists(Directory.GetCurrentDirectory() + "\\Instances\\current problem")) //if were continuing running from last time
+            if (File.Exists(Directory.GetCurrentDirectory() + "\\Instances\\current problem")) //if we're continuing running from last time
             {
                 TextReader input = new StreamReader(Directory.GetCurrentDirectory() + "\\Instances\\current problem");
                 lineParts = input.ReadLine().Split(',');  //get the last problem
