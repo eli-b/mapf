@@ -223,7 +223,7 @@ namespace CPF_experiment
         public int getLowLevelGenerated() { return this.generatedLL; }
         public int getSolutionDepth() { return this.totalCost - initialHuristics; }
         public int getNodesPassedPruningCounter() { return passed; }
-        public long getMemuryUsed() { return Process.GetCurrentProcess().VirtualMemorySize64; }
+        public long getMemoryUsed() { return Process.GetCurrentProcess().VirtualMemorySize64; }
         public int getMaxGroupSize() { return problem.m_vAgents.Length; }
         public SinglePlan[] getSinglePlans() { return SinglePlan.getSinglePlans(solution); }
     }

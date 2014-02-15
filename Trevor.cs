@@ -405,7 +405,7 @@ namespace CPF_experiment
         public int getLowLevelGenerated() { return this.generatedLL; }
         public int getSolutionDepth() { return maxSolutionDepth; }
         public int getNodesPassedPruningCounter() { return passed; }
-        public long getMemuryUsed() { return Process.GetCurrentProcess().VirtualMemorySize64; }
+        public long getMemoryUsed() { return Process.GetCurrentProcess().VirtualMemorySize64; }
     }
 
 
@@ -458,7 +458,7 @@ namespace CPF_experiment
             this.generatedLL = solver.getLowLevelGenerated();
             this.depthOfSolution = solver.getSolutionDepth();
             this.passed = solver.getNodesPassedPruningCounter();
-            this.timeTillLastNode = solver.getMemuryUsed();
+            this.timeTillLastNode = solver.getMemoryUsed();
 
             // Clear memory
             this.solver.Clear();

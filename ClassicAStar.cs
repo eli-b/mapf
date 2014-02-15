@@ -414,7 +414,7 @@ namespace CPF_experiment
         public int getSolutionDepth() { return this.solutionDepth; }
         public virtual int getTrueNagativeCount() { return -1; }
         public virtual int getNodesPassedPruningCounter() { return expandedFullStates; }
-        public long getMemuryUsed() { return Process.GetCurrentProcess().VirtualMemorySize64; }
+        public long getMemoryUsed() { return Process.GetCurrentProcess().VirtualMemorySize64; }
 
         //DnC SOLVER
         public void Setup(ProblemInstance problemInstance, int minDepth)

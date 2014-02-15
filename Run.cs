@@ -67,7 +67,6 @@ namespace CPF_experiment
         public void openResultFile(string fileName)
         {
             this.resultsWriter = new StreamWriter(fileName,true); // 2nd arguments indicate the "append" mode
-
         }
 
         /// <summary>
@@ -289,7 +288,7 @@ namespace CPF_experiment
                 //if (i == 1)
                 //    Constants.exhaustiveIcts = true;
 
-                if (outOfTimeCounter[i] < Constants.MAX_FAIL_COUNT)//after "MAX_FAIL_COUNT" failures of a given algotrithm we stop running it
+                if (outOfTimeCounter[i] < Constants.MAX_FAIL_COUNT) //after "MAX_FAIL_COUNT" failures of a given algotrithm we stop running it
                 {
                     GC.Collect();
                     GC.WaitForPendingFinalizers();

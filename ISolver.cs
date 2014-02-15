@@ -21,13 +21,13 @@ namespace CPF_experiment
 
 
         /// <summary>
-        /// Setup the relevant datastructures for a run.
+        /// Setup the relevant data structures for a run.
         /// </summary>
         void Setup(ProblemInstance problemInstance);
 
 
         /// <summary>
-        /// Clears the relevant datastructures and variables to free memory usage.
+        /// Clears the relevant data structures and variables to free memory usage.
         /// </summary>
         void Clear();
 
@@ -53,13 +53,13 @@ namespace CPF_experiment
         void OutputStatistics(TextWriter output);
 
         /// <summary>
-        /// grts the delta of (actual solution cost - first state huristics)
+        /// gets the delta of (actual solution cost - first state heuristics)
         /// </summary>
         /// <returns></returns>
         int getSolutionDepth();
 
         int getNodesPassedPruningCounter();
-        long getMemuryUsed();
+        long getMemoryUsed();
         int getHighLeveExpanded();
         int getHighLeveGenerated();
         int getLowLevelExpanded();
