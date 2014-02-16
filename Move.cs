@@ -23,7 +23,7 @@ namespace CPF_experiment
 
         public Move() { }
 
-        public Move(int x, int y,int direction)
+        public Move(int x, int y, int direction)
         {
             this.x = x;
             this.y = y;
@@ -130,7 +130,7 @@ namespace CPF_experiment
         /// Check if the given move collides with this move.
         /// This includes:
         /// 1. Head on collision
-        /// 2. When oth moves target the same location.
+        /// 2. When other move targets the same location.
         /// </summary>
         /// <param name="other"></param>
         /// <returns></returns>
@@ -166,13 +166,13 @@ namespace CPF_experiment
         /// Check if colliding with an agent moving to the given x,y from the given direction.
         /// This includes:
         /// 1. Head on collision
-        /// 2. When oth moves target the same location.
+        /// 2. When other move targets the same location.
         /// </summary>
         /// <param name="x"></param>
         /// <param name="y"></param>
         /// <param name="direction"></param>
         /// <returns></returns>
-        public bool isColliding(int x,int y, int direction)
+        public bool isColliding(int x, int y, int direction)
         {
             if (this.x == x && this.y == y)
                 return true;
@@ -243,7 +243,5 @@ namespace CPF_experiment
         {
             return this.x + "," + this.y;
         }
-
-        
     }    
 }

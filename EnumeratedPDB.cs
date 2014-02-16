@@ -42,7 +42,6 @@ namespace CPF_experiment
         /// of free locations in the board and is used as a perfect hash 
         /// function that maps a state in the search space to an integer.
         /// </summary>
-
         UInt64[] m_vPermutations;
 
         /// <summary>

@@ -8,7 +8,7 @@ namespace CPF_experiment
 {
     /// <summary>
     /// This class represents a cooperative pathfinding problem instance. This includes:
-    /// - The grid in which the agent are located
+    /// - The grid in which the agents are located
     /// - An array of initial state for every agent.
     /// </summary>
     public class ProblemInstance
@@ -31,12 +31,11 @@ namespace CPF_experiment
         /// iteration that a new set of agents must be jointly planned due
         /// to their mutual conflicts.
         /// </summary>
-
         public AgentState[] m_vAgents;
         
         /// <summary>
         /// This is a matrix that contains the optimal path to the goal of every agent from any point in the grid.
-        /// The first dimension of the matrix is the number of the agent.
+        /// The first dimension of the matrix is the number of agents.
         /// The second dimension of the matrix is the cardinality of the location from which we want the shortest path.
         /// </summary>
         public int[][] singleAgentShortestPaths;
@@ -57,7 +56,6 @@ namespace CPF_experiment
         /// index corresponds to the x-axis and the minor index corresponds to
         /// the y-axis.
         /// </summary>
-
         public Int32[,] m_vCardinality;
 
         public Int32 maxCardinality;
@@ -128,7 +126,7 @@ namespace CPF_experiment
                 // Create initial state
                 agentState = 
                     new AgentState(this.m_vAgents[agentId].agent.Goal_X,
-                        this.m_vAgents[agentId].agent.Goal_Y,-1,-1,agentId);
+                        this.m_vAgents[agentId].agent.Goal_Y, -1, -1, agentId);
                 entry = this.getCardinality(agentState);
                 shortestPaths[entry]=0;
                 openlist.Enqueue(new WorldState(new AgentState[1] { agentState }));
@@ -149,8 +147,8 @@ namespace CPF_experiment
                             {
                                 childState = new WorldState(state);
                                 childState.allAgentsState[0].move(op);
-                                childState.g=state.g+1;
-                                shortestPaths[entry]=state.g+1;
+                                childState.g = state.g+1;
+                                shortestPaths[entry] = state.g+1;
                                 openlist.Enqueue(childState);
                             }
                         }
@@ -162,7 +160,7 @@ namespace CPF_experiment
         }
 
         /// <summary>
-        /// Returns the shortest path between a given coordinates and the goal location of the given agent.
+        /// Returns the shortest path between a given coordinate and the goal location of the given agent.
         /// </summary>
         /// <param name="agentNum"></param>
         /// <param name="x"></param>
@@ -174,7 +172,7 @@ namespace CPF_experiment
         }
 
         /// <summary>
-        /// Returns the shortest path between a given coordinates and the goal location of the given agent.
+        /// Returns the shortest path between a given coordinate and the goal location of the given agent.
         /// </summary>
         /// <param name="agentNum"></param>
         /// <param name="x"></param>
@@ -210,7 +208,7 @@ namespace CPF_experiment
         }
 
         /// <summary>
-        /// Roni: I am not sure when should this be used. It doesn't initalizes the grid, 
+        /// Roni: I am not sure when should this be used. It doesn't initialize the grid, 
         /// so I assume that this is meant to be used when a single problem instance object is used and 
         /// modified during the search. This should be used with caution, as we are talking about references
         /// (so if one will change m_vAgents, all the other references to that instance will also point to the same, changed, instance.
@@ -363,7 +361,6 @@ namespace CPF_experiment
         /// <param name="ags">An agent's current location.</param>
         /// <returns>n, where the agent is located at the nth non-obstacle
         /// location in our grid.</returns>
-
         public Int32 getCardinality(AgentState ags)
         {
             return (m_vCardinality[ags.pos_X, ags.pos_Y]);
