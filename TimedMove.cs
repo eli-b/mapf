@@ -9,7 +9,7 @@ namespace CPF_experiment
     {
         public int time;
 
-        public TimedMove(int x, int y, int direction, int time) : base(x,y,direction)
+        public TimedMove(int x, int y, int direction, int time) : base(x, y, direction)
         {
             this.time = time;
         }

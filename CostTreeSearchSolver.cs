@@ -24,7 +24,7 @@ namespace CPF_experiment
         protected int sizeOfA;
         protected int maxCost;
         protected LinkedList<Move>[] solution;
-        protected int initialHuristics;
+        protected int initialHeuristics;
         public static int passed;
         protected HashSet<TimedMove> ID_CAT;
         protected HashSet_U<TimedMove> CBS_CAT;
@@ -90,7 +90,7 @@ namespace CPF_experiment
             }
 
             openList.AddFirst(new CostTreeNode(costs));
-            this.initialHuristics = openList.First.Value.costs.Sum();
+            this.initialHeuristics = openList.First.Value.costs.Sum();
 
             // Store parameters used by Trevor's Independant Detection algorithm
             if (problemInstance.parameters.ContainsKey(Trevor.MAXIMUM_COST_KEY))
@@ -146,7 +146,7 @@ namespace CPF_experiment
             output.Write(this.generatedHL + Run.RESULTS_DELIMITER);
             output.Write("N/A" + Run.RESULTS_DELIMITER);
             output.Write("N/A" + Run.RESULTS_DELIMITER);
-            output.Write(this.totalCost - initialHuristics + Run.RESULTS_DELIMITER);
+            output.Write(this.totalCost - initialHeuristics + Run.RESULTS_DELIMITER);
              output.Write(passed + Run.RESULTS_DELIMITER);
             output.Write(/*Process.GetCurrentProcess().VirtualMemorySize64*/"NA" + Run.RESULTS_DELIMITER);
         }
@@ -221,7 +221,7 @@ namespace CPF_experiment
         public int getHighLeveGenerated() { return this.generatedHL; }
         public int getLowLevelExpanded() { return this.expandedLL; }
         public int getLowLevelGenerated() { return this.generatedLL; }
-        public int getSolutionDepth() { return this.totalCost - initialHuristics; }
+        public int getSolutionDepth() { return this.totalCost - initialHeuristics; }
         public int getNodesPassedPruningCounter() { return passed; }
         public long getMemoryUsed() { return Process.GetCurrentProcess().VirtualMemorySize64; }
         public int getMaxGroupSize() { return problem.m_vAgents.Length; }

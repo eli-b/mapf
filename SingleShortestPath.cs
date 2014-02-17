@@ -6,7 +6,7 @@ namespace CPF_experiment
 {
 
     /// <summary>
-    /// This class forms a wrapper around True_Path_Huristic, which represents
+    /// This class forms a wrapper around True_Path_Heuristic, which represents
     /// the single shortest path heuristic, precomputed for every agent.
     /// </summary>
 
@@ -16,7 +16,7 @@ namespace CPF_experiment
 
         /// <summary>
         /// Since this class simply refers via a table-lookup to the globally
-        /// available True_Path_Huristic class, we incur no memory.
+        /// available True_Path_Heuristic class, we incur no memory.
         /// </summary>
         /// <returns>0 by definition.</returns>
 
@@ -27,7 +27,7 @@ namespace CPF_experiment
 
         /// <summary>
         /// The building function for this class doesn't do anything because we
-        /// are simply wrapping the functionality of the True_Path_Huristic
+        /// are simply wrapping the functionality of the True_Path_Heuristic
         /// class.
         /// </summary>
 
@@ -35,7 +35,7 @@ namespace CPF_experiment
         {
         }
 
-        static int[][][] allTileAgentHuristics;
+        static int[][][] allTileAgentHeuristics;
         static int size_X;
         static int size_Y;
         public static bool[][] grid;
@@ -47,20 +47,20 @@ namespace CPF_experiment
             size_Y = i_size_Y;
             grid = i_grid;
             allowDiagonalMove = diagonal;
-            allTileAgentHuristics = new int[allAgents.Length][][];
+            allTileAgentHeuristics = new int[allAgents.Length][][];
             for (int i = 0; i < allAgents.Length; i++)
             {
                 int a = allAgents[i].Goal_X;
                 int b = allAgents[i].Goal_Y;
-                allTileAgentHuristics[i] = setHuristicsForTile(a, b);
+                allTileAgentHeuristics[i] = setHeuristicsForTile(a, b);
             }
         }
         public static void clear()
         {
-            allTileAgentHuristics = null;
+            allTileAgentHeuristics = null;
             grid = null;
         }
-        private static int[][] setHuristicsForTile(int X, int Y)
+        private static int[][] setHeuristicsForTile(int X, int Y)
         {
             int a;
             int b;
@@ -147,9 +147,9 @@ namespace CPF_experiment
             OL.Enqueue(Y);
             OL.Enqueue(val);
         }
-        public static int getHuristic(int agent, int X, int Y)
+        public static int getHeuristic(int agent, int X, int Y)
         {
-            return allTileAgentHuristics[agent][X][Y];
+            return allTileAgentHeuristics[agent][X][Y];
         }
         static public bool isValidTile(int X, int Y)
         {
