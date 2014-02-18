@@ -9,13 +9,13 @@ namespace CPF_experiment
     public class WorldState : IComparable<IBinaryHeapItem> , IBinaryHeapItem
     {
         /// <summary>
-        /// A list of allowed operators (currently this is a 4-connected grid, so there are 4  moves and a STAY option).
+        /// A list of allowed operators (currently this is a 4-connected grid, so there are 4 moves and a STAY option).
         /// Each tuple is composed of 
         /// 1. The delta that should be added to the x coordinate
         /// 2. The delta that should be added to the y coordinate 
         /// 3. A code that represents the direction of the move (used to discover head-on collisions)
         /// </summary>
-        static public int[,] operators = {{0,0,0},{-1,0,1},{0,1,2},{1,0,3},{0,-1,4}};
+        static public readonly int[,] operators = {{0,0,0},{-1,0,1},{0,1,2},{1,0,3},{0,-1,4}};
 
         public int makespan; // Makespan
         public int g; // Sum of agent makespans until they reach their goal
@@ -112,7 +112,7 @@ namespace CPF_experiment
         
         public Boolean GoalTest(int minDepth)
         {
-            if(makespan>=minDepth)
+            if (makespan >= minDepth)
                 return h == 0;
             return false;
         }
@@ -190,10 +190,8 @@ namespace CPF_experiment
             return new Move(allAgentsState[index].pos_X, allAgentsState[index].pos_Y, allAgentsState[index].direction);
         }
 
-
-
         /// <summary>
-        /// BH_Iteam implimatation
+        /// BH_Iteam implementation
         /// </summary>
         /// <returns></returns>
         public int getIndexInHeap() { return binaryHeapIndex; }
@@ -226,18 +224,20 @@ namespace CPF_experiment
             return true;
         }
 
-
         /// <summary>
-        /// Returns a hash value for the given state (used in Hash based datastructures).
+        /// Returns a hash value for the given state (used in Hash based data structures).
         /// </summary>
         /// <returns></returns>
         public override int GetHashCode()
         {
             int ans = 0;
-            for (int i = 0; i < allAgentsState.Length; i++)
+            unchecked
             {
-                ans += allAgentsState[i].pos_X * Constants.PRIMES_FOR_HASHING[i % 20];
-                ans += allAgentsState[i].pos_Y * Constants.PRIMES_FOR_HASHING[(i + 10) % 20];
+                for (int i = 0; i < allAgentsState.Length; i++)
+                {
+                    ans += allAgentsState[i].pos_X * Constants.PRIMES_FOR_HASHING[i % 20];
+                    ans += allAgentsState[i].pos_Y * Constants.PRIMES_FOR_HASHING[(i + 10) % 20];
+                }
             }
             return ans;
         }

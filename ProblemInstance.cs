@@ -87,14 +87,8 @@ namespace CPF_experiment
         {
             m_vAgents = agentStartStates;
             m_vGrid = grid;
-            m_nObstacles = 0;
-            m_nLocations = 0;
-            foreach (bool[] row in grid)
-                foreach (bool bObstacle in row)
-                    if (bObstacle)
-                        ++m_nObstacles;
-                    else
-                        ++m_nLocations;
+            m_nObstacles = (uint) grid.Sum(row => row.Count(x=>x));
+            m_nLocations = ((uint) (grid.Length * grid[0].Length)) - m_nObstacles;
             precomputePermutations();
             precomputeCardinality();
         }
@@ -141,7 +135,7 @@ namespace CPF_experiment
                         aMove = WorldState.MakeMove(op, currentAgentState);
                         if(IsValidForMove(aMove))
                         {
-                            entry = m_vCardinality[aMove.x,aMove.y];
+                            entry = m_vCardinality[aMove.x, aMove.y];
                             // If move will generate a new or better state - add it to the queue
                             if((shortestPaths[entry]<0)||(shortestPaths[entry]>state.g+1))
                             {
@@ -168,7 +162,7 @@ namespace CPF_experiment
         /// <returns>The shortest path from x,y to the goal of agent agentNum</returns>
         public int GetSingleAgentShortestPath(int agentNum, int x, int y)
         {
-            return this.singleAgentShortestPaths[agentNum][this.m_vCardinality[x,y]];
+            return this.singleAgentShortestPaths[agentNum][this.m_vCardinality[x, y]];
         }
 
         /// <summary>

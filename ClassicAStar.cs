@@ -58,7 +58,7 @@ namespace CPF_experiment
             this.openList.Add(root);
             this.expanded = 0;
             this.generated = 0;
-            expandedFullStates = 0;
+            this.expandedFullStates = 0;
             this.totalCost = 0;
             this.solutionDepth = 0;
             this.goal = null;
@@ -169,13 +169,6 @@ namespace CPF_experiment
                     return true;
                 }
 
-                //WorldState ff = (WorldState)openList.Peek();
-                //if (ff !=null && ff.allAgentsState[0].pos_X == 0 && ff.allAgentsState[0].pos_Y == 1 &&
-                //    ff.allAgentsState[1].pos_X == 0 && ff.allAgentsState[1].pos_Y == 0 &&
-                //    ff.allAgentsState[2].pos_X == 0 && ff.allAgentsState[2].pos_Y == 2 &&
-                //    ff.allAgentsState[3].pos_X == 0 && ff.allAgentsState[3].pos_Y == 1)
-                //    Console.ReadLine();
-
                 // Expand
                 expanded++;
                 Expand(currentNode);
@@ -196,7 +189,7 @@ namespace CPF_experiment
         public virtual bool Expand(WorldState node)
         {
             //Debug.Print("Expanding node " + node);
-            Expand(node, 0,runner, new HashSet<Move>());
+            Expand(node, 0, runner, new HashSet<Move>());
             return true;
         }
         
@@ -209,7 +202,7 @@ namespace CPF_experiment
         /// TODO: Make expand not recursive to gain speedup of runtime.
         /// </summary>
         /// <param name="currentNode"></param>
-        protected virtual void Expand(WorldState currentNode, int agentIndex,Run runner,HashSet<Move> currentMoves)
+        protected virtual void Expand(WorldState currentNode, int agentIndex, Run runner, HashSet<Move> currentMoves)
         {
             if (runner.ElapsedMilliseconds() > Constants.MAX_TIME || this.foundGoal)
                 return;
@@ -243,8 +236,19 @@ namespace CPF_experiment
                     if (this.closedList.Contains(currentNode) == true)
                     {
                         WorldState inClosedList = (WorldState)this.closedList[currentNode];
-                        //if g is smaller than remove the old world state
-                        if (inClosedList.g > currentNode.g || (inClosedList.g == currentNode.g && (inClosedList.potentialConflictsCount > currentNode.potentialConflictsCount || ( inClosedList.potentialConflictsCount == currentNode.potentialConflictsCount && inClosedList.dncInternalConflictsCount > currentNode.dncInternalConflictsCount ))))
+                        // if g is smaller or
+                        //    g is equal but current node has fewer potential conflicts or
+                        //                   current node has same number of potential conflicts but current node has fewer dnc internal conflicts than remove the old world state
+                        if (inClosedList.g > currentNode.g ||
+                            (inClosedList.g == currentNode.g && (inClosedList.potentialConflictsCount > currentNode.potentialConflictsCount ||
+                                                                 (inClosedList.potentialConflictsCount == currentNode.potentialConflictsCount && inClosedList.dncInternalConflictsCount > currentNode.dncInternalConflictsCount))))
+                        // Alternative view:
+                        // if g is smaller than remove the old world state
+                        // if g is equal but current node has fewer potential conflicts than remove the old world state
+                        // if g is equal and current node has same number of potential conflicts but current node has fewer dnc internal conflicts than remove the old world state
+                        //if (inClosedList.g > currentNode.g || 
+                        //    (inClosedList.g == currentNode.g && inClosedList.potentialConflictsCount > currentNode.potentialConflictsCount) ||
+                        //    (inClosedList.g == currentNode.g && inClosedList.potentialConflictsCount == currentNode.potentialConflictsCount && inClosedList.dncInternalConflictsCount > currentNode.dncInternalConflictsCount))
                         {
                             closedList.Remove(inClosedList); //than remove state
                             openList.Remove(inClosedList);

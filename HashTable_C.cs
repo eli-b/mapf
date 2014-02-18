@@ -1,10 +1,17 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
+
 
 namespace CPF_experiment
 {
-    /// <summary>
-    /// simmilar to the given hashtable with the possability of chaining objects
-    /// </summary>
+    // <summary>
+    // This class implements HashSet with object retrieval.
+    // This class uses a Hashtable (HashMap) "<object, ArrayList<object>>".
+    // If more than one object with the same hash is stored, the first to appear is used as a key.
+    // If object retrieval based on an object that is Equal to it is useful, it means
+    // your objects are implicitly different, which may indicate problematic design.
+    // </summary>
+    [Serializable]
     public class HashTable_C : Hashtable
     {
         public void Add(object value)
@@ -19,20 +26,21 @@ namespace CPF_experiment
                 base.Add(value, chain);
             }
         }
+
+        // <summary>
+        // Can be thought of as "ContainsSimilar", as we're clearly not justing using an object as a key to search for itself
+        // <summary>
         public override bool Contains(object key)
         {
-            if (base[key] == null)
-                return false;
-            foreach (object compare in ((ArrayList)base[key]))
-            {
-                if (key.Equals(compare))
-                    return true;
-            }
-            return false;
+            return ContainsKey(key);
         }
+
+        // <summary>
+        // Can be thought of as "ContainsSimilar", as we're clearly not justing using an object as a key to search for itself
+        // <summary>
         public override bool ContainsKey(object key)
         {
-            if (base[key] == null)
+            if (base.ContainsKey(key) == false)
                 return false;
             foreach (object compare in ((ArrayList)base[key]))
             {
@@ -41,11 +49,14 @@ namespace CPF_experiment
             }
             return false;
         }
+
+        // The get method of this property assumes the HashTable_C was alraedy checked to contain the key.
+        // Otherwise the commented trick needs to be used.
         public override object this[object key]
         {
             get
             {
-                foreach (object compare in ((ArrayList)base[key]))
+                foreach (object compare in ((ArrayList)base[key]) /*?? new ArrayList(0)*/ )
                 {
                     if (key.Equals(compare))
                         return compare;
@@ -57,23 +68,19 @@ namespace CPF_experiment
                 ((ArrayList)base[key]).Add(value);
             }
         }
+
         public override void Remove(object key)
         {
             ArrayList arr = ((ArrayList)base[key]);
             if (arr == null)
                 return;
-            ArrayList alocate = new ArrayList();
+            base.Remove(key);
             foreach (object item in arr)
             {
                 if(item.Equals(key) == false)
-                    alocate.Add(item);
+                    this.Add(item);
             }
             arr.Clear();
-            base.Remove(key);
-            foreach (object item in alocate)
-            {
-                this.Add(item);
-            }
         }
     }
 }
