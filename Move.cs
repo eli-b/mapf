@@ -4,18 +4,30 @@ namespace CPF_experiment
     /// <summary>
     /// This class represents a single move of an agent. 
     /// It includes the target location of the move and the direction of the move.
-    /// The start location can be extracted using the direction, with the method 
+    /// The start location can be extracted using the direction, with the method GetSource
     /// </summary>
     public class Move
     {
-        /// <summary>
-        /// This constant is set to the direction field to mark that this move does not hold a direction.
-        /// <remarks> 
-        /// Directionless moves are a poor design choice instead of making a class that represents a 2D point,
-        /// but will probably be more efficient.
-        /// </remarks>
-        /// </summary>
-        public static int NO_DIRECTION = -1;
+        public enum Direction : int
+        {
+            Wait = 0,
+            North,
+            East,
+            South,
+            West,
+            NorthEast,
+            SouthEast,
+            SouthWest,
+            NorthWest,
+            /// <summary>
+            /// This constant is set to the direction field to mark that this move does not hold a direction.
+            /// <remarks> 
+            /// Directionless moves are a poor design choice instead of making a class that represents a 2D point,
+            /// but will probably be more efficient.
+            /// </remarks>
+            /// </summary>
+            NO_DIRECTION = 9,
+        }
 
         public int x;
         public int y;
@@ -25,6 +37,7 @@ namespace CPF_experiment
 
         public Move(int x, int y, int direction)
         {
+            // TODO: Consider calling setup(x, y, direction) instead of this duplication
             this.x = x;
             this.y = y;
             this.direction = direction;
@@ -32,39 +45,76 @@ namespace CPF_experiment
 
         public Move(Move cpy)
         {
+            // TODO: Consider calling setup(cpy) instead of this duplication
             this.x = cpy.x;
             this.y = cpy.y;
             this.direction = cpy.direction;
         }
 
-        /// <summary>
-        /// TODO: Replace direction codes with an enum or at least a constant.
-        /// </summary>
-        /// <returns></returns>
-        public Move GetOppositeMove()
+        private static readonly int[,] directionToDeltas = {
+            {0,   0, }, // Wait
+            {-1,  0, }, // N
+            {0,   1, }, // E
+            {1,   0, }, // S
+            {0,  -1, }, // W
+            {-1,  1, }, // NE
+            {1,   1, }, // SE
+            {1,  -1, }, // SW
+            {-1, -1, }, // NW
+            {0,   0, }, // no direction
+        };
+
+        // This exists for the marginal gain of not having to lookup the opposite direction and then its deltas
+        private static readonly int[,] directionToOppositeDeltas = {
+            {0,   0, }, // Wait to Wait
+            {1,   0, }, // N to S
+            {0,  -1, }, // E to W
+            {-1,  0, }, // S to N
+            {0,   1, }, // W to E
+            {1,  -1, }, // NE to SW
+            {-1, -1, }, // SE to NW
+            {-1,  1, }, // SW to NE
+            {1,   1, }, // NW to SE
+            {0,   0, } // no direction to no direction
+        };
+
+        private static readonly Direction[] directionToOppositeDirection = {
+            Direction.Wait, // Wait to Wait
+            Direction.South, // N to S
+            Direction.West, // E to W
+            Direction.North, // S to N
+            Direction.East, // W to E
+            Direction.SouthWest, // NE to SW
+            Direction.NorthWest, // SE to NW
+            Direction.NorthEast, // SW to NE
+            Direction.SouthEast, // NW to SE
+            Direction.NO_DIRECTION // no direction to no direction
+        };
+
+        // <remarks>
+        // Deltas have to be used +1
+        // </remarks>
+        private static readonly Direction[,] deltasToDirection = {
+            {Direction.NorthWest, Direction.North, Direction.NorthEast},
+            {Direction.West, Direction.Wait, Direction.East},
+            {Direction.SouthWest, Direction.South, Direction.SouthEast}
+        };
+
+        public Move GetSource()
         {
-            switch (direction)
-            {
-                case 1:
-                    return new Move(this.x + 1, this.y, 3);
-                case 2:
-                    return new Move(this.x, this.y - 1, 4);
-                case 3:
-                    return new Move(this.x - 1, this.y, 1);
-                case 4:
-                    return new Move(this.x, this.y + 1, 2);
-                case 5:
-                    return new Move(this.x + 1, this.y - 1, 7);
-                case 6:
-                    return new Move(this.x - 1, this.y - 1, 8);
-                case 7:
-                    return new Move(this.x - 1, this.y + 1, 5);
-                case 8:
-                    return new Move(this.x + 1, this.y + 1, 6);
-            }
-            return this;
+            var source_x = this.x + directionToOppositeDeltas[direction, 0];
+            var source_y = this.y + directionToOppositeDeltas[direction, 1];
+            return new Move(source_x, source_y, (int)Direction.NO_DIRECTION);
         }
 
+        public Move GetOppositeMove()
+        {
+            if (direction == (int)Direction.Wait || direction == (int)Direction.NO_DIRECTION)
+                return this; // Not Move(this). TODO: Make sure this is correct.
+            return new Move(this.x + directionToOppositeDeltas[direction, 0],
+                            this.y + directionToOppositeDeltas[direction, 1],
+                            (int)directionToOppositeDirection[direction]);
+        }
 
         /// <summary>
         /// Returns a copy of this move, where the direction is set to -1
@@ -73,35 +123,18 @@ namespace CPF_experiment
         public Move GetMoveWithoutDirection()
         {
             Move copy =  new Move(this);
-            copy.direction = NO_DIRECTION;
+            copy.direction = (int)Direction.NO_DIRECTION;
             return copy;
         }
 
         public void setOppositeMove()
         {
-            switch (this.direction)
-            {
-                case 1:
-                    {
-                        this.x++; 
-                        this.direction = 3;
-                        break;
-                    }
-                case 2:
-                     this.y --; this.direction =4;break;
-                case 3:
-                    this.x--;this.direction = 1;break;
-                case 4:
-                    this.y ++; this.direction =2;break;
-                case 5:
-                    this.x ++; this.y --;this.direction = 7;break;
-                case 6:
-                    this.x --; this.y --; this.direction =8;break;
-                case 7:
-                    this.x --; this.y ++;this.direction = 5;break;
-                case 8:
-                    this.x ++; this.y ++; this.direction =6;break;
-            }
+            this.x += directionToOppositeDeltas[direction, 0];
+            this.y += directionToOppositeDeltas[direction, 1];
+            // Consider making directionToOppositeDeltas a jagged array,
+            // reducing the number of table lookups to one for the above lines
+            // since both entries in the sub-array are needed
+            this.direction = (int)directionToOppositeDirection[direction];
         }
 
         public void setup(int x, int y, int direction)
@@ -123,7 +156,7 @@ namespace CPF_experiment
         /// </summary>
         public void RemoveDirection()
         {
-            this.direction = NO_DIRECTION;
+            this.direction = (int)Direction.NO_DIRECTION;
         }
 
         /// <summary>
@@ -136,30 +169,16 @@ namespace CPF_experiment
         /// <returns></returns>
         public bool isColliding(Move other)
         {
+            // TODO: Consider calling isColliding(other.x, other.y, other.direction) instead of this code duplication
+            // Same target check
             if (this.x == other.x && this.y == other.y)
                 return true;
-            switch (direction)
-            {
-                case 0:
-                    return false;
-                case 1:
-                    return (other.x == this.x + 1 && other.y == this.y && other.direction == 3);
-                case 2:
-                    return (other.x == this.x && other.y == this.y-1 && other.direction == 4);
-                case 3:
-                    return (other.x == this.x - 1 && other.y == this.y && other.direction == 1);
-                case 4:
-                    return (other.x == this.x && other.y == this.y+1 && other.direction == 2);
-                case 5:
-                    return (other.x == this.x + 1 && other.y == this.y-1 && other.direction == 7);
-                case 6:
-                    return (other.x == this.x - 1 && other.y == this.y-1 && other.direction == 8);
-                case 7:
-                    return (other.x == this.x - 1 && other.y == this.y+1 && other.direction == 5);
-                case 8:
-                    return (other.x == this.x + 1 && other.y == this.y+1 && other.direction == 6);
-            }
-            return false;
+            // Head-on collision check
+            var source_x = this.x + directionToOppositeDeltas[direction, 0];
+            var source_y = this.y + directionToOppositeDeltas[direction, 1];
+            var other_source_x = other.x + directionToOppositeDeltas[other.direction, 0];
+            var other_source_y = other.y + directionToOppositeDeltas[other.direction, 1];
+            return this.x == other_source_x && this.y == other_source_y && other.x == source_x && other.y == source_y;
         }
 
         /// <summary>
@@ -172,76 +191,58 @@ namespace CPF_experiment
         /// <param name="y"></param>
         /// <param name="direction"></param>
         /// <returns></returns>
-        public bool isColliding(int x, int y, int direction)
+        public bool isColliding(int other_x, int other_y, int other_direction)
         {
-            if (this.x == x && this.y == y)
+            // Same target check
+            if (this.x == other_x && this.y == other_x)
                 return true;
-            switch (this.direction)
-            {
-                case 0:
-                    return false;
-                case 1:
-                    return (x == this.x + 1 && y == this.y && direction == 3);
-                case 2:
-                    return (x == this.x && y == this.y - 1 && direction == 4);
-                case 3:
-                    return (x == this.x - 1 && y == this.y && direction == 1);
-                case 4:
-                    return (x == this.x && y == this.y + 1 && direction == 2);
-                case 5:
-                    return (x == this.x + 1 && y == this.y - 1 && direction == 7);
-                case 6:
-                    return (x == this.x - 1 && y == this.y - 1 && direction == 8);
-                case 7:
-                    return (x == this.x - 1 && y == this.y + 1 && direction == 5);
-                case 8:
-                    return (x == this.x + 1 && y == this.y + 1 && direction == 6);
-            }
-            return false;
+            // Head-on collision check
+            var source_x = this.x + directionToOppositeDeltas[this.direction, 0];
+            var source_y = this.y + directionToOppositeDeltas[this.direction, 1];
+            var other_source_x = other_x + directionToOppositeDeltas[other_direction, 0];
+            var other_source_y = other_y + directionToOppositeDeltas[other_direction, 1];
+            return this.x == other_source_x && this.y == other_source_y && other_x == source_x && other_y == source_y;
         }
 
         public static int getDirection(int to_x, int to_y, int from_x, int from_y)
         {
-            int temp = 0;
-            temp += (to_x - from_x);
-            temp += (to_y - from_y) * 2;
-            switch (temp)
-            {
-                case 0:
-                    return 0;
-                case -1:
-                    return 1;
-                case 2:
-                    return 2;
-                case 1:
-                    return 3;
-                case -2:
-                    return 4;
-            }
-            return 0;
-        }        
+            return (int)deltasToDirection[to_x - from_x + 1, to_y - from_y + 1]; // +1 since indexing starts from 0
+        }
+
         public override int GetHashCode()
         {
-            return x + (y * 10000);
+            // TODO: Make sure the Move's x and y are never changed after it's put into a collection that uses hashes
+            unchecked // wrap-around is fine in hash functions
+            {
+                int hash = 17;
+                hash = 23 * hash + x;
+                hash = 23 * hash + y;
+                // NOT including the direction in the hash.
+                // Notice that Moves with a direction that have the same target will be 
+                // non-Equal but with the same hash. This is allowed, but may
+                // cause inefficiencies in hashtables.
+                return hash;
+            }
         }
 
         /// <summary>
         /// Compare two Move objects. 
-        /// If one of the Move objects do not have a direction that is set (i.e. direction==-1)
+        /// If one of the Move objects does not have a direction that is set (i.e. direction==-1)
         /// then the direction part of the Move is ignored.
         /// </summary>
         /// <param name="obj"></param>
         /// <returns></returns>
         public override bool Equals(object obj)
         {
-            Move that = (Move)obj;
-            return (this.x == that.x && this.y == that.y && ((this.direction == NO_DIRECTION) || (that.direction == NO_DIRECTION) || (this.direction == that.direction)));
+            Move that = (Move) obj;
+            return (this.x == that.x && this.y == that.y &&
+                    ((this.direction == (int)Direction.NO_DIRECTION) || (that.direction == (int)Direction.NO_DIRECTION) || 
+                     (this.direction == that.direction)));
         }
-
 
         public override string ToString()
         {
-            return this.x + "," + this.y;
+            return this.x + "," + this.y; // not describing the direction
         }
     }    
 }

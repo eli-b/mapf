@@ -363,7 +363,7 @@ namespace CPF_experiment
             
 
             // Check if the past move arrived at the same location (direction is not important here)
-            possibleMove.direction = Move.NO_DIRECTION;
+            possibleMove.direction = (int)Move.Direction.NO_DIRECTION;
             if (currentMoves.Contains(possibleMove))
             {
                 possibleMove.direction = moveDirection;

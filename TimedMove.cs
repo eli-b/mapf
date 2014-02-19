@@ -41,7 +41,7 @@ namespace CPF_experiment
         public TimedMove GetMoveWithoutDirection()
         {
             TimedMove copy = new TimedMove(this);
-            copy.direction = NO_DIRECTION;
+            copy.direction = (int)Direction.NO_DIRECTION;
             return copy;
         }
 
