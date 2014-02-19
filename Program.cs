@@ -225,8 +225,6 @@ namespace CPF_experiment
 
         /// <summary>
         /// This is the starting point of the program. 
-        /// Please do not commit this file due to changes in this method, 
-        /// as it will probably be different for every one us.
         /// </summary>
         static void Main(string[] args)
         {

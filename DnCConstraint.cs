@@ -17,13 +17,12 @@ namespace CPF_experiment
 
         public DnCConstraint(int agent, int posX, int posY, int timeStep, int direction)
         {
-            this.agent = new byte[1];
-            this.agent[0] = (byte)agent;
-           this.posX=(ushort)posX;
-           this.posY = (ushort)posY;
-           this.timeStep = (ushort)timeStep;
-           this.direction = (sbyte)direction;
-          // this.onVartex = onVartex;
+            this.agent = new byte[1] { (byte)agent };
+            this.posX = (ushort)posX;
+            this.posY = (ushort)posY;
+            this.timeStep = (ushort)timeStep;
+            this.direction = (sbyte)direction;
+          //this.onVartex = onVartex;
         }
 
         public DnCConstraint() {}
@@ -32,16 +31,14 @@ namespace CPF_experiment
         {
             if (agentA)
             {
-                this.agent = new byte[1];
-                this.agent[0] = (byte)instance.m_vAgents[conflict.agentA].agent.agentNum;
+                this.agent = new byte[1] { (byte)instance.m_vAgents[conflict.agentA].agent.agentNum };
                 this.posX = (ushort)conflict.agentAmove.x;
                 this.posY = (ushort)conflict.agentAmove.y;
                 this.direction = (sbyte)conflict.agentAmove.direction;
             }
             else
             {
-                this.agent = new byte[1];
-                this.agent[0] = (byte)instance.m_vAgents[conflict.agentB].agent.agentNum;
+                this.agent = new byte[1] { (byte)instance.m_vAgents[conflict.agentB].agent.agentNum };
                 this.posX = (ushort)conflict.agentBmove.x;
                 this.posY = (ushort)conflict.agentBmove.y;
                 this.direction = (sbyte)conflict.agentBmove.direction;

@@ -10,6 +10,8 @@ namespace CPF_experiment
     // If more than one object with the same hash is stored, the first to appear is used as a key.
     // If object retrieval based on an object that is Equal to it is useful, it means
     // your objects are implicitly different, which may indicate problematic design.
+    // Consider using objects as keys and their unhashed precious internal data as values, e. g.,
+    // Nodes as keys and their f as values
     // </summary>
     [Serializable]
     public class HashTable_C : Hashtable

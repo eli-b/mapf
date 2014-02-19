@@ -255,9 +255,9 @@ namespace CPF_experiment
                 for (int i = 0; i < allSingleAgentPlans.Length; i++)
                 {
                     checkMove.setup(allSingleAgentPlans[i].GetLocationsAt(time),time);
-                    if (checkMove.containd(externalCAT))
+                    if (checkMove.contained(externalCAT))
                         externalConflictsCount++;
-                    if (checkMove.containd(DnCexternalCAT))
+                    if (checkMove.contained(DnCexternalCAT))
                         externalConflictsCount++;
                     for (int j = i + 1; j < allSingleAgentPlans.Length; j++)
                     {

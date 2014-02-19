@@ -3,16 +3,18 @@
 namespace CPF_experiment
 {
     /// <summary>
-    /// Describe a move at a given timestep.
+    /// Describes a Move at a given timestep.
     /// </summary>
     public class TimedMove  : Move
     {
         public int time;
 
-        public TimedMove(int x, int y, int direction, int time) : base(x, y, direction)
+        public TimedMove(int x, int y, int direction, int time)
+            : base(x, y, direction)
         {
             this.time = time;
         }
+
         public TimedMove(Move cpy, int time)
             : base(cpy)
         {
@@ -65,10 +67,6 @@ namespace CPF_experiment
             return base.Equals(other);
         }
 
-        /// <summary>
-        /// TODO: Replace direction codes with an enum or at least a constant.
-        /// </summary>
-        /// <returns></returns>
         public TimedMove GetOppositeMove()
         {
             Move oppositeMove = base.GetOppositeMove();
@@ -91,14 +89,13 @@ namespace CPF_experiment
             this.time = time;
         }
 
-        public void setup(int x, int y, int direction,int time)
+        public void setup(int x, int y, int direction, int time)
         {
             base.setup(x, y, direction);
             this.time = time;
         }
 
-        
-        public bool containd(HashSet<TimedMove> CAT)
+        public bool contained(HashSet<TimedMove> CAT)
         {
             if (CAT == null)
                 return false;
@@ -120,7 +117,7 @@ namespace CPF_experiment
             return false;
         }
 
-    public bool containd(HashSet_U<TimedMove> CAT)
+        public bool contained(HashSet_U<TimedMove> CAT)
         {
             if (CAT == null)
                 return false;

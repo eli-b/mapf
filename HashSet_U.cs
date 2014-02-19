@@ -3,6 +3,10 @@ using System.Collections.Generic;
 
 namespace CPF_experiment
 {
+    // <summary>
+    // This class represents a union of HashSets.
+    // TODO: Make sure it's really better than using HashSet.UnionWith().
+    // </summary>
     public class HashSet_U<T>
     {
         List<HashSet<T>> Data;
@@ -13,8 +17,9 @@ namespace CPF_experiment
 
         public void Add(object value)
         {
-            throw new Exception("Ileagal Operation");
+            throw new Exception("Illegal Operation");
         }
+
         public bool Contains(T key)
         {
             foreach (HashSet<T> item in Data)
@@ -24,6 +29,7 @@ namespace CPF_experiment
             }
             return false;
         }
+
         public void Clear()
         {
             foreach (HashSet<T> item in Data)
@@ -32,15 +38,18 @@ namespace CPF_experiment
             }
             Data.Clear();
         }
+
         public void Join(HashSet<T> other)
         {
             Data.Add(other);
         }
+
         public void Seperate(HashSet<T> other)
         {
             Data.Remove(other);
         }
-        public void  print()
+
+        public void print()
         {
             foreach (HashSet<T> set in Data)
             {

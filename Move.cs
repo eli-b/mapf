@@ -127,6 +127,9 @@ namespace CPF_experiment
             return copy;
         }
 
+        /// <summary>
+        /// Changes this move to represent its opposite. Warning: Changes the hash. Not safe after the object is put in a hash table!
+        /// </summary>
         public void setOppositeMove()
         {
             this.x += directionToOppositeDeltas[direction, 0];

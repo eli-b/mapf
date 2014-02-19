@@ -53,8 +53,7 @@ namespace CPF_experiment
             this.instance = problemInstance;
             this.heuristic = this.CreateHeuristic();
             WorldState root = this.CreateSearchRoot();
-            root.h = (int)this.heuristic.h(root);
-            this.closedList.Add(root);
+            root.h = (int)this.heuristic.h(root); // g was already set to 0 in the constructor
             this.openList.Add(root);
             this.expanded = 0;
             this.generated = 0;
@@ -64,7 +63,7 @@ namespace CPF_experiment
             this.goal = null;
             this.numOfAgents = problemInstance.m_vAgents.Length;
 
-            // Store parameters used by Trevor's Independant Detection algorithm
+            // Store parameters used by Trevor's Independence Detection algorithm
             if (problemInstance.parameters.ContainsKey(Trevor.MAXIMUM_COST_KEY))
                 this.maxCost = (int)(problemInstance.parameters[Trevor.MAXIMUM_COST_KEY]);
             else

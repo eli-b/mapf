@@ -234,7 +234,7 @@ namespace CPF_experiment
             problem.init(aStart, grid);
             
             int op;
-            int deltaX, deltaY,newX,newY;
+            int deltaX, deltaY, newX, newY;
             for (int j = 0; j < RANDOM_WALK_STEPS; j++)
             {
                 for (int i = 0; i < agentsNum; i++)
@@ -329,8 +329,7 @@ namespace CPF_experiment
                 
                 Console.WriteLine();
             }
-            this.resultsWriter.WriteLine();
-            this.resultsWriter.Flush();
+            this.continueToNextLine();
           //  Debug.Assert(solvers[0].getNodesPassedPruningCounter() >= solvers[1].getNodesPassedPruningCounter(), "");
            // Console.ReadLine();
         }
@@ -347,7 +346,7 @@ namespace CPF_experiment
             this.startTime = this.ElapsedMillisecondsTotal();
             solver.Setup(instance);
             solved = solver.Solve(this);
-            this.startTime = this.ElapsedMilliseconds();
+            long elapsedTime = this.ElapsedMilliseconds();
             if (solved)
             {
                 Console.WriteLine("Total cost: {0}", solver.GetSolutionCost());
@@ -357,9 +356,9 @@ namespace CPF_experiment
                 Console.WriteLine("Failed to solve");
             }
             Console.WriteLine();
-            Console.WriteLine("Time In milliseconds: {0}", this.startTime);
-            Console.WriteLine("Total Expanded Nodes (High-Level): {0}", solver.getHighLeveExpanded());
-            Console.WriteLine("Total Generated Nodes (High-Level): {0}", solver.getHighLeveGenerated());
+            Console.WriteLine("Time In milliseconds: {0}", elapsedTime);
+            Console.WriteLine("Total Expanded Nodes (High-Level): {0}", solver.getHighLevelExpanded());
+            Console.WriteLine("Total Generated Nodes (High-Level): {0}", solver.getHighLevelGenerated());
             Console.WriteLine("Total Expanded Nodes (Low-Level): {0}", solver.getLowLevelExpanded());
             Console.WriteLine("Total Generated Nodes (Low-Level): {0}", solver.getLowLevelGenerated());
            // Console.WriteLine("Total Unique/Full Expanded Nodes: {0}", solver.getNodesPassedPruningCounter());
@@ -491,12 +490,7 @@ namespace CPF_experiment
         private long ElapsedMillisecondsTotal()
         {
             TimeSpan interval = Process.GetCurrentProcess().TotalProcessorTime;
-            long nMilliseconds = interval.Days * 24 * 60 * 60 * 1000 +
-                           interval.Hours * 60 * 60 * 1000 +
-                           interval.Minutes * 60 * 1000 +
-                           interval.Seconds * 1000 +
-                           interval.Milliseconds;
-            return nMilliseconds;
+            return (long)interval.TotalMilliseconds;
         }
 
         public long ElapsedMilliseconds()

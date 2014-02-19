@@ -15,9 +15,14 @@ namespace CPF_experiment
         /// 2. The delta that should be added to the y coordinate 
         /// 3. A code that represents the direction of the move (used to discover head-on collisions)
         /// </summary>
-        static public readonly int[,] operators = {{0,0,0},{-1,0,1},{0,1,2},{1,0,3},{0,-1,4}};
+        static public readonly int[,] operators = {{0,  0, (int)Move.Direction.Wait},
+                                                   {-1, 0, (int)Move.Direction.North},
+                                                   {0,  1, (int)Move.Direction.East},
+                                                   {1,  0, (int)Move.Direction.South},
+                                                   {0, -1, (int)Move.Direction.West}};
+        // TODO are the above really necessary?
 
-        public int makespan; // Makespan
+        public int makespan; // Total time steps passed, max(agent makespans)
         public int g; // Sum of agent makespans until they reach their goal
         public int h;
         public bool notExpanded;
