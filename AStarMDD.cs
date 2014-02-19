@@ -205,12 +205,15 @@ namespace CPF_experiment
         }
         public override int GetHashCode()
         {
-            int code = 0;
-            for (int i = 0; i < allSteps.Length; i++)
+            unchecked
             {
-                code += allSteps[i].GetHashCode() * Constants.PRIMES_FOR_HASHING[i % 22];
+                int code = 0;
+                for (int i = 0; i < allSteps.Length; i++)
+                {
+                    code += allSteps[i].GetHashCode() * Constants.PRIMES_FOR_HASHING[i % 22];
+                }
+                return code;
             }
-            return code;
         }
         public int getDepth() { return allSteps[0].level; }
         public void setConflicts(HashSet<TimedMove> ID_CAT, HashSet_U<TimedMove> CBS_CAT)

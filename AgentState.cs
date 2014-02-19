@@ -69,7 +69,6 @@ namespace CPF_experiment
                 this.arrivalTime = currentStep;
         }
 
-
         /// <summary>
         /// Checks it the agent is at its goal location
         /// </summary>
@@ -109,9 +108,13 @@ namespace CPF_experiment
             }
             return false;
         }
+
         public override int GetHashCode()
         {
-            return (this.agent.agentNum) + (this.pos_X * 5) + (this.pos_Y * 7);
+            unchecked
+            {
+                return (this.agent.agentNum) + (this.pos_X * 5) + (this.pos_Y * 7);
+            }
         }
 
         public LinkedList<Move> GetMove()

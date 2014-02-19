@@ -235,8 +235,8 @@ namespace CPF_experiment
             {
                 for (int i = 0; i < allAgentsState.Length; i++)
                 {
-                    ans += allAgentsState[i].pos_X * Constants.PRIMES_FOR_HASHING[i % 20];
-                    ans += allAgentsState[i].pos_Y * Constants.PRIMES_FOR_HASHING[(i + 10) % 20];
+                    ans += allAgentsState[i].pos_X * Constants.PRIMES_FOR_HASHING[i % Constants.PRIMES_FOR_HASHING.Length];
+                    ans += allAgentsState[i].pos_Y * Constants.PRIMES_FOR_HASHING[(i + 10) % Constants.PRIMES_FOR_HASHING.Length];
                 }
             }
             return ans;

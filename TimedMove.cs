@@ -172,7 +172,10 @@ namespace CPF_experiment
 
         public override int GetHashCode()
         {
-            return base.time * (ins.maxCardinality + 26) + base.direction * 5 + cardinality;
+            unchecked
+            {
+                return base.time * (ins.maxCardinality + 26) + base.direction * 5 + cardinality;
+            }
         }
     }
 }

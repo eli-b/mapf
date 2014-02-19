@@ -68,24 +68,26 @@
 
 //        public override int GetHashCode()
 //        {
-//            if (this.hashKey > -1)
-//                return this.hashKey;
-//            int ans = 0;
-//            for (int i = 0; i < this.allConstraints.Length; i++)
-//            {
-//                for (int j = 0; j < this.allConstraints[i].getLength(); j++)
+//            unchecked {
+//                if (this.hashKey > -1)
+//                    return this.hashKey;
+//                int ans = 0;
+//                for (int i = 0; i < this.allConstraints.Length; i++)
 //                {
-//                    if (this.allConstraints[i][j] != null)
+//                    for (int j = 0; j < this.allConstraints[i].getLength(); j++)
 //                    {
-//                        foreach (Coordinate cord in this.allConstraints[i][j])
+//                        if (this.allConstraints[i][j] != null)
 //                        {
-//                            ans += (i + 1) * (j + 1) * (cord.getX() + 1) * (cord.getY() + 1);
+//                            foreach (Coordinate cord in this.allConstraints[i][j])
+//                            {
+//                                ans += (i + 1) * (j + 1) * (cord.getX() + 1) * (cord.getY() + 1);
+//                            }
 //                        }
 //                    }
 //                }
+//                this.hashKey = ans;
+//                return ans;
 //            }
-//            this.hashKey = ans;
-//            return ans;
 //        }
 
 //        public override bool Equals(object obj)

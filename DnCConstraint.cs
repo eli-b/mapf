@@ -26,7 +26,7 @@ namespace CPF_experiment
           // this.onVartex = onVartex;
         }
 
-        public DnCConstraint(){}
+        public DnCConstraint() {}
 
         public DnCConstraint(DnCConflict conflict, ProblemInstance instance, bool agentA)
         {
@@ -117,15 +117,18 @@ namespace CPF_experiment
             return true;
         }
 
-        public override int  GetHashCode()
+        public override int GetHashCode()
         {
- 	        int ans = 0;
-            ans+= posX;
-            ans+= posY*1000;
-            ans+= timeStep*887;
-            //ans+= agent*79;
-           // ans += direction * 9;
-            return ans;
+            unchecked
+            {
+                int ans = 0;
+                ans += posX;
+                ans += posY * 1000;
+                ans += timeStep * 887;
+              //ans+= agent*79;
+              //ans += direction * 9;
+                return ans;
+            }
         }
 
         public int getX() { return this.posX; }

@@ -240,13 +240,16 @@ namespace CPF_experiment
 
         public override int GetHashCode()
         {
-            int ans = 0;
-            for (int i = 0; i < allPositions.Length; i=i+2)
+            unchecked
             {
-                ans += allPositions[i].getX() * Constants.PRIMES_FOR_HASHING[i%22];
-                ans += allPositions[i].getY() * Constants.PRIMES_FOR_HASHING[(i+1)%22];
+                int ans = 0;
+                for (int i = 0; i < allPositions.Length; i = i + 2)
+                {
+                    ans += allPositions[i].getX() * Constants.PRIMES_FOR_HASHING[i % Constants.PRIMES_FOR_HASHING.Length];
+                    ans += allPositions[i].getY() * Constants.PRIMES_FOR_HASHING[(i + 1) % Constants.PRIMES_FOR_HASHING.Length];
+                }
+                return ans;
             }
-            return ans;
         }
 
         public override bool Equals(object obj)

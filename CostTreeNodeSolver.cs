@@ -113,13 +113,16 @@ namespace CPF_experiment
         }
         public override int GetHashCode()
         {
-            int ans = 0;
-            int[] prime = { 1, 2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 71, 73, 79 };
-            for (int i = 0; i < costs.Length; i++)
+            unchecked
             {
-                ans += costs[i] * prime[i % 22];
+                int ans = 0;
+                int[] primes = { 1, 2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 71, 73, 79 };
+                for (int i = 0; i < costs.Length; i++)
+                {
+                    ans += costs[i] * primes[i % primes.Length];
+                }
+                return ans;
             }
-            return ans%10000;
         }
         public override bool Equals(object obj)
         {

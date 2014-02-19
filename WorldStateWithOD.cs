@@ -42,7 +42,10 @@ namespace CPF_experiment
         /// <returns></returns>
         public override int GetHashCode()
         {
-            return base.GetHashCode() + Constants.PRIMES_FOR_HASHING[0] * this.agentTurn;
+            unchecked
+            {
+                return base.GetHashCode() + Constants.PRIMES_FOR_HASHING[0] * this.agentTurn;
+            }
         }
 
 

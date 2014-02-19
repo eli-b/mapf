@@ -283,22 +283,25 @@ namespace CPF_experiment
 
         public override int GetHashCode()//TODO: change this
         {
-            int ans = 0;
-            for (int i = 0; i < agentsGroupAssignment.Length; i++)
+            unchecked
             {
-                ans += Constants.PRIMES_FOR_HASHING[i % 22] * agentsGroupAssignment[i];
-            }
-
-            DnCNode current = this;
-            while (current.depth > 0)
-            {
-                if ( current.prev.conflict != null && this.agentsGroupAssignment[current.prev.conflict.agentA] != this.agentsGroupAssignment[current.prev.conflict.agentB])
+                int ans = 0;
+                for (int i = 0; i < agentsGroupAssignment.Length; i++)
                 {
-                    ans += current.constraint.GetHashCode();
+                    ans += Constants.PRIMES_FOR_HASHING[i % Constants.PRIMES_FOR_HASHING.Length] * agentsGroupAssignment[i];
                 }
-                current = current.prev;
+
+                DnCNode current = this;
+                while (current.depth > 0)
+                {
+                    if (current.prev.conflict != null && this.agentsGroupAssignment[current.prev.conflict.agentA] != this.agentsGroupAssignment[current.prev.conflict.agentB])
+                    {
+                        ans += current.constraint.GetHashCode();
+                    }
+                    current = current.prev;
+                }
+                return ans;
             }
-            return ans;
         }
 
         private void normalizeGroups()

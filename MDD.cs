@@ -475,7 +475,10 @@ namespace CPF_experiment
         }
         public override int GetHashCode()
         {
-            return (pos_X + 1) * 3 + (pos_Y + 1) * 5;
+            unchecked
+            {
+                return (pos_X + 1) * 3 + (pos_Y + 1) * 5;
+            }
         }
         public override bool Equals(object obj)
         {

@@ -14,7 +14,7 @@ namespace CPF_experiment
         // The number of generated nodes after which a debug print will be given
         public static int GENERATED_PER_PRINT = 10000;
         //prime numbers for hashing
-        public static int[] PRIMES_FOR_HASHING = { 1, 2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 71, 73, 79 };//22 numbers - 1 isn't prime!
+        public static int[] PRIMES_FOR_HASHING = { 1, 2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 71, 73, 79 }; //22 numbers - 1 isn't prime!
         //group size for matching and pruning MDDs in a given ICTS node
         public static int MAX_FAIL_COUNT = 40;
         //this determines whether the ICTS should search a solution with lowest conflicts for the ID framework
