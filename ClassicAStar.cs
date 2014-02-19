@@ -444,8 +444,8 @@ namespace CPF_experiment
                 }
             }
         }
-        public int getHighLeveExpanded() { return 0; }
-        public int getHighLeveGenerated() { return 0; }
+        public int getHighLevelExpanded() { return 0; }
+        public int getHighLevelGenerated() { return 0; }
         public int getLowLevelExpanded() { return expanded; }
         public int getLowLevelGenerated() { return generated; }
         public int getMaxGroupSize() { return numOfAgents; }
