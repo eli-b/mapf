@@ -1,12 +1,4 @@
-﻿/**
- * EH: For purposes of debugging and testing, I disabled the generation of the
- * Excel spreadsheet. You can turn it back on by defining (as true), EXCEL, in
- * this file as well as in Run.cs.
- */
-
-//#define EXCEL Test
-
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -20,7 +12,7 @@ namespace CPF_experiment
     /// </summary>
     class Program
     {
-        private static string RESULTS_FILE_NAME = "CopathResults.csv";
+        private static string RESULTS_FILE_NAME = "Results.csv"; // Overridden by Main
         private static bool onlyReadInstances = false;
 
         /// <summary>
@@ -29,7 +21,7 @@ namespace CPF_experiment
         public void SimpleRun()
         {
             Run runner = new Run();
-            runner.openResultFile(RESULTS_FILE_NAME);
+            runner.openResultsFile(RESULTS_FILE_NAME);
             runner.printResultsFileHeader();
             ProblemInstance instance = runner.generateProblemInstance(10, 3, 10);
             instance.Export("Test.instance");
@@ -44,7 +36,7 @@ namespace CPF_experiment
         public void RunInstance(string fileName)
         {
             Run runner = new Run();
-            runner.openResultFile(RESULTS_FILE_NAME);
+            runner.openResultsFile(RESULTS_FILE_NAME);
             runner.printResultsFileHeader();
             ProblemInstance instance = ProblemInstance.Import(Directory.GetCurrentDirectory() + "\\Instances\\" + fileName);
             runner.solveGivenProblem(instance);
@@ -60,7 +52,7 @@ namespace CPF_experiment
             ProblemInstance instance;
             string instanceName;
             Run runner = new Run();
-            runner.openResultFile(RESULTS_FILE_NAME);
+            runner.openResultsFile(RESULTS_FILE_NAME);
             TextWriter output;
             
 
@@ -162,7 +154,7 @@ namespace CPF_experiment
             ProblemInstance instance;
             string instanceName;
             Run runner = new Run();
-            runner.openResultFile(RESULTS_FILE_NAME);
+            runner.openResultsFile(RESULTS_FILE_NAME);
             TextWriter output;
             int[] agentListSizes={5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200, 250, 300 };
 

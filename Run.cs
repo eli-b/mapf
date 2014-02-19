@@ -1,12 +1,4 @@
-﻿/**
- * EH: For purposes of debugging and testing, I disabled the generation of the
- * Excel spreadsheet. You can turn it back on by defining (as true), EXCEL, in
- * this file as well as in Program.cs.
- */
-
-//#define EXCEL
-
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -33,11 +25,10 @@ namespace CPF_experiment
         public static int RANDOM_WALK_STEPS = 100000;
 
         /// <summary>
-        /// indecates the starting time in ms for timing the different algorithms.
+        /// Indicates the starting time in ms for timing the different algorithms.
         /// </summary>
         private long startTime;
 
-        
         /// <summary>
         /// This hold an open stream to the results file.
         /// </summary>
@@ -73,9 +64,9 @@ namespace CPF_experiment
         /// Open the results file for output. Currently the file is opened in append mode.
         /// </summary>
         /// <param name="fileName">The name of the results file</param>
-        public void openResultFile(string fileName)
+        public void openResultsFile(string fileName)
         {
-            this.resultsWriter = new StreamWriter(fileName,true); // 2nd arguments indicate the "append" mode
+            this.resultsWriter = new StreamWriter(fileName, true); // 2nd arguments indicate the "append" mode
         }
 
         /// <summary>
@@ -103,9 +94,6 @@ namespace CPF_experiment
         {
             solvers = new List<ISolver>();
 
-
-
-
          //   solvers.Add(new CostTreeSearchSolverNoPruning());
             //solvers.Add(new CostTreeSearchSolverKMatch(2));
             //solvers.Add(new CostTreeSearchSolverOldMatching(2));
@@ -113,7 +101,6 @@ namespace CPF_experiment
             //solvers.Add(new CostTreeSearchSolverKMatch(3));
            // solvers.Add(new CostTreeSearchSolverOldMatching(3));
             //solvers.Add(new CostTreeSearchSolverRepatedMatch(3));
-
 
            // solvers.Add(new CostTreeSearchNoPruning());
             //solvers.Add(new CostTreeSearchKMatch(2));
@@ -151,7 +138,6 @@ namespace CPF_experiment
             //solvers.Add(new Trevor(new CBS_GlobalConflicts(new ClassicAStar(), 100, 100)));
             //solvers.Add(new Trevor(new CBS_GlobalConflicts(new ClassicAStar(), 500, 500)));
 
-
             //solvers.Add(new CBS_GlobalConflicts(new AStarWithPartialExpansion(), 1, 1));
             //solvers.Add(new CBS_GlobalConflicts(new AStarWithPartialExpansion(), 5, 5));
             //solvers.Add(new CBS_GlobalConflicts(new AStarWithPartialExpansion(), 10, 10));
@@ -162,11 +148,6 @@ namespace CPF_experiment
             //solvers.Add(new CBS_LocalConflicts(new ClassicAStar(), 1, 0));
             //solvers.Add(new CBS_LocalConflicts(new ClassicAStar(), 2, 0));
 
-
-            
-           
-            
-            
            // solvers.Add(new Trevor(new AStarWithPartialExpansionBasic()));
            // solvers.Add(new Trevor(new AStarWithPartialExpansion()));
            // solvers.Add(new Trevor(new ClassicAStar()));
@@ -268,7 +249,6 @@ namespace CPF_experiment
             problem.init(aStart, grid);
             return problem;            
         }
-
 
         /// <summary>
         /// Solve given instance with a list of algorithms 
@@ -426,7 +406,6 @@ namespace CPF_experiment
             this.resultsWriter.WriteLine();
         }
 
-
         /// <summary>
         /// Print the solver statistics to the results file.
         /// </summary>
@@ -446,14 +425,15 @@ namespace CPF_experiment
 
             this.resultsWriter.Write(runtimeInMillis + RESULTS_DELIMITER);
             this.resultsWriter.Write(solver.GetSolutionCost() + RESULTS_DELIMITER);
-            this.resultsWriter.Write(solver.getHighLeveExpanded() + RESULTS_DELIMITER);
-            this.resultsWriter.Write(solver.getHighLeveGenerated() + RESULTS_DELIMITER);
+            this.resultsWriter.Write(solver.getHighLevelExpanded() + RESULTS_DELIMITER);
+            this.resultsWriter.Write(solver.getHighLevelGenerated() + RESULTS_DELIMITER);
             this.resultsWriter.Write(solver.getLowLevelExpanded() + RESULTS_DELIMITER);
             this.resultsWriter.Write(solver.getLowLevelGenerated() + RESULTS_DELIMITER);
             this.resultsWriter.Write(solver.getMaxGroupSize() + RESULTS_DELIMITER);
 
             //solver.OutputStatistics(this.resultsWriter);
         }
+
         private void printProblemStatistics(ProblemInstance instance)
         {
             this.resultsWriter.Write(instance.m_vGrid.GetLength(0) + RESULTS_DELIMITER);
@@ -466,6 +446,7 @@ namespace CPF_experiment
             this.resultsWriter.WriteLine();
             this.resultsWriter.Flush();
         }
+
         private void printNullStatistics()
         {
             this.resultsWriter.Write(0 + RESULTS_DELIMITER);
@@ -477,6 +458,7 @@ namespace CPF_experiment
             this.resultsWriter.Write("irrelevant" + RESULTS_DELIMITER);
             this.resultsWriter.Write("irrelevant" + RESULTS_DELIMITER);
         }
+        
         public void resetOutOfTimeCounter()
         {
             for (int i = 0; i < outOfTimeCounter.Length; i++)
@@ -506,8 +488,5 @@ namespace CPF_experiment
         {
             return ElapsedMillisecondsTotal() - this.startTime;
         }
-
-       
-
     }
 }

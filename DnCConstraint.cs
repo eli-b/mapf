@@ -11,8 +11,8 @@ namespace CPF_experiment
         protected ushort posY;
         protected sbyte direction;
         protected ushort timeStep;
-        //public byte group;
-       // bool onVartex;
+      //public byte group;
+      //bool onVartex;
         public static bool fullyEqual;
 
         public DnCConstraint(int agent, int posX, int posY, int timeStep, int direction)
@@ -44,7 +44,7 @@ namespace CPF_experiment
                 this.direction = (sbyte)conflict.agentBmove.direction;
             }
             this.timeStep = (ushort)conflict.timeStep;
-          //  this.onVartex = conflict.vartex;
+          //this.onVartex = conflict.vartex;
             if (conflict.vartex)
                 this.direction = -1;
         }
