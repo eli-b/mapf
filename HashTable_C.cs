@@ -30,7 +30,7 @@ namespace CPF_experiment
         }
 
         // <summary>
-        // Can be thought of as "ContainsSimilar", as we're clearly not justing using an object as a key to search for itself
+        // Can be thought of as "ContainsSimilar", as we're clearly not just using an object as a key to search for itself
         // <summary>
         public override bool Contains(object key)
         {
@@ -38,7 +38,7 @@ namespace CPF_experiment
         }
 
         // <summary>
-        // Can be thought of as "ContainsSimilar", as we're clearly not justing using an object as a key to search for itself
+        // Can be thought of as "ContainsSimilar", as we're clearly not just using an object as a key to search for itself
         // <summary>
         public override bool ContainsKey(object key)
         {

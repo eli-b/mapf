@@ -201,7 +201,7 @@ namespace CPF_experiment
         /// <returns></returns>
         public int getIndexInHeap() { return binaryHeapIndex; }
         /// <summary>
-        /// BH_Iteam implimatation
+        /// BH_Item implementation
         /// </summary>
         /// <returns></returns>
         public void setIndexInHeap(int index) { binaryHeapIndex = index; }
@@ -231,6 +231,7 @@ namespace CPF_experiment
 
         /// <summary>
         /// Returns a hash value for the given state (used in Hash based data structures).
+        /// Only the AgentStates are used in the hash.
         /// </summary>
         /// <returns></returns>
         public override int GetHashCode()
@@ -250,6 +251,7 @@ namespace CPF_experiment
 
         /// <summary>
         /// Currently returns false even if this is the same location and smaller g.
+        /// Only the AgentStates are compared.
         /// </summary>
         /// <param name="obj"></param>
         /// <returns></returns>

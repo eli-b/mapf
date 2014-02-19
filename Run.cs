@@ -52,11 +52,20 @@ namespace CPF_experiment
         /// <summary>
         /// Calls resultsWriter.Dispose()
         /// </summary>
-        public void Dispose() {
-            if (this.resultsWriter != null) {
-                this.resultsWriter.Dispose();
-                this.resultsWriter = null;
+        protected virtual void Dispose(bool dispose_managed)
+        {
+            if (dispose_managed)
+            {
+                if (this.resultsWriter != null)
+                {
+                    this.resultsWriter.Dispose();
+                    this.resultsWriter = null;
+                }
             }
+        }
+
+        public void Dispose() {
+            this.Dispose(true);
             GC.SuppressFinalize(this);
         }
 
@@ -478,7 +487,7 @@ namespace CPF_experiment
 
         //public void setOutOfTimeCounter()
         //{
-        //    Console.WriteLine("Enter Faile Count Out Of Total - " + Constants.MAX_FAIL_COUNT);
+        //    Console.WriteLine("Enter Fail Count Out Of Total - " + Constants.MAX_FAIL_COUNT);
         //    Console.WriteLine("---------------------------------------");
         //    for (int i = 0; i < solvers.Count; i++)
         //    {

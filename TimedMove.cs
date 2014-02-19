@@ -40,7 +40,15 @@ namespace CPF_experiment
             return base.Equals(obj);
         }
 
-        public TimedMove GetMoveWithoutDirection()
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                return base.GetHashCode() * 3 + this.time;
+            }
+        }
+
+        public new TimedMove GetMoveWithoutDirection()
         {
             TimedMove copy = new TimedMove(this);
             copy.direction = (int)Direction.NO_DIRECTION;
