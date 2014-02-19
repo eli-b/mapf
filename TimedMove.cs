@@ -67,7 +67,7 @@ namespace CPF_experiment
             return base.Equals(other);
         }
 
-        public TimedMove GetOppositeMove()
+        public new TimedMove GetOppositeMove()
         {
             Move oppositeMove = base.GetOppositeMove();
 
@@ -76,11 +76,6 @@ namespace CPF_experiment
             /// Consider just copying the code.
             /// </remarks>
             return new TimedMove(oppositeMove.x, oppositeMove.y, oppositeMove.direction, this.time);
-        }
-
-        public void setup(Move cpy)
-        {
-            base.setup(cpy);
         }
 
         public void setup(Move cpy, int time)

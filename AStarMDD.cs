@@ -239,12 +239,12 @@ namespace CPF_experiment
 
 
         /// <summary>
-        /// BH_Iteam implimatation
+        /// BH_Item implementation
         /// </summary>
         /// <returns></returns>
         public int getIndexInHeap() { return binaryHeapIndex; }
         /// <summary>
-        /// BH_Iteam implimatation
+        /// BH_Item implementation
         /// </summary>
         /// <returns></returns>
         public void setIndexInHeap(int index) { binaryHeapIndex = index; }

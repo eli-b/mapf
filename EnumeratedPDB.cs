@@ -30,7 +30,6 @@ namespace CPF_experiment
         /// get the correct admissible heuristic value. We reserve Byte.MaxValue
         /// to represent an uninitialized table entry.
         /// </summary>
-
         Byte[] m_vTable;
 
         /// <summary>
@@ -48,7 +47,6 @@ namespace CPF_experiment
         /// Determines whether or not we will internally represent heuristic
         /// values as offsets from the single shortest path heuristic.
         /// </summary>
-
         bool m_bOffsetFromSingleShortestPath = true;
 
         /// <summary>
@@ -137,7 +135,6 @@ namespace CPF_experiment
         /// </summary>
         /// <returns>An estimate of the amount of memory required for this
         /// pattern database in units of bytes.</returns>
-
         public override UInt64 estimateSize()
         {
             return (m_vPermutations[0] * m_Problem.m_nLocations +
@@ -154,7 +151,6 @@ namespace CPF_experiment
         /// <param name="vAgents">The agents that we should be responsible for.
         /// Each entry in the list is an index to ProblemInstance.m_vAgents
         /// pointing to which agents we care about.</param>
-
         public override void init(ProblemInstance pi, List<uint> vAgents)
         {
             base.init(pi, vAgents);
@@ -164,7 +160,6 @@ namespace CPF_experiment
         /// <summary>
         /// Builds the pattern database, storing the heuristic table in memory.
         /// </summary>
-
         public override void build()
         {
             /**
@@ -229,12 +224,6 @@ namespace CPF_experiment
                     {
                         UInt32 nHash = hash(i);
 
-                        if (nHash == 8085)
-                        {
-                            bool b;
-                            b = true;
-                        }
-
                         /**
                          * We store only the difference in heuristic value
                          * between the single agent shortest path heuristic and
@@ -279,7 +268,6 @@ namespace CPF_experiment
         /// </summary>
         /// <param name="s">The current state.</param>
         /// <returns>The PDB entry for the given state.</returns>
-
         public override uint h(WorldState s)
         {
             var nSingleAgentShortestPath = 0;
@@ -304,7 +292,6 @@ namespace CPF_experiment
         /// <param name="s">A state which includes all of the agents in the
         /// original search problem.</param>
         /// <returns>An index into the table of heuristic values.</returns>
-
         uint hash(WorldState s)
         {
 
@@ -402,7 +389,6 @@ namespace CPF_experiment
         /// of agents. We refer to these precomputed values when we call our
         /// hash function.
         /// </summary>
-
         void computePermutations()
         {
             m_vPermutations = new UInt64[m_vAgents.Count];

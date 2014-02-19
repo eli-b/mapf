@@ -33,7 +33,6 @@ namespace CPF_experiment
         /// - Inserting them to OPEN
         /// - Insert the generated nodes to the hashtable of nodes, currently implmented together with the closed list.
         /// </summary>
-        /// <param name="parent"></param>
         override public bool Expand(WorldState node)
         {
             if (runner.ElapsedMilliseconds() > Constants.MAX_TIME)
@@ -199,10 +198,9 @@ namespace CPF_experiment
 
         /// <summary>
         /// Check if the proposed move is reserved in the plan of another agent.
-        /// This is used in Trevor's IndependantDetection.
+        /// This is used in Trevor's IndependenceDetection.
         /// </summary>
         /// <param name="aMove"></param>
-        /// <param name="time"></param>
         /// <returns>True if the move is reserved</returns>
         protected bool IsMoveReserved(Move aMove)
         {

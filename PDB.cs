@@ -15,10 +15,9 @@ namespace CPF_experiment
         /// index into the Travar_WorldState.allAgentStates array. This is
         /// ignored while we are building the pattern database (because it is
         /// assumed that we are initialized by a root node that contains only
-        /// the agents we are interested), but is used during the search effort
+        /// the agents we are interested in), but is used during the search effort
         /// in the real problem.
         /// </summary>
-
         protected List<uint> m_vAgents;
 
         /// <summary>
@@ -28,14 +27,12 @@ namespace CPF_experiment
         /// </summary>
         /// <param name="pi">The problem instance.</param>
         /// <param name="vAgents">The agents that the pattern database should keep track of.</param>
-
         public virtual void init(ProblemInstance pi, List<uint> vAgents)
         {
             m_Problem = pi;
             m_vAgents = new List<uint>(vAgents);
             m_vAgents.Sort();
         }
-
 
         /// <summary>
         /// Returns an estimate of the amount of memory in bytes that is
@@ -44,21 +41,22 @@ namespace CPF_experiment
         /// pattern database to efficiently utilize our available memory.
         /// </summary>
         /// <returns></returns>
-
         public virtual UInt64 estimateSize()
         {
             /**
              * @TODO Write an estimation function here!
              */
 
-            return (0);
+            return 0;
         }
+
         public virtual void build()
         {
         }
+
         public virtual uint h(WorldState s)
         {
-            return (0);
+            return 0;
         }
 
         /// <summary>
@@ -72,7 +70,7 @@ namespace CPF_experiment
         /// <param name="children">The generated nodes will be filled into this collection</param>
         public void Expand(WorldState currentNode, ICollection<WorldState> children)
         {
-            this.Expand(currentNode,0,children,new HashSet<Move>()); // TODO: Need to think if HashSet is the correct option here.
+            this.Expand(currentNode, 0, children, new HashSet<Move>()); // TODO: Need to think if HashSet is the correct option here.
         }
 
         /// <summary>

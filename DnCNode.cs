@@ -133,10 +133,6 @@ namespace CPF_experiment
         /// <summary>
         /// replan for a given agent (when constraints for that agent have changed)
         /// </summary>
-        /// <param name="problem"></param>
-        /// <param name="runner"></param>
-        /// <param name="agentsForRePlan"></param>
-        /// <returns></returns>
         public bool rePlan(ProblemInstance problem, Run runner, int agentForRePlan, int depthToReplan, IDnCSolver highLevelSolver, IDnCSolver lowLevelSolver, ref int highLevelExpanded, ref int highLevelGenerated, ref int loweLevelExpanded, ref int loweLevelGenerated)
         {
             HashSet<TimedMove> newInternalCAT = (HashSet<TimedMove>)problem.parameters[CBS_LocalConflicts.NEW_INTERNAL_CAT];
@@ -440,12 +436,12 @@ namespace CPF_experiment
         //}
 
         /// <summary>
-        /// BH_Iteam implimatation
+        /// BH_Item implementation
         /// </summary>
         /// <returns></returns>
         public int getIndexInHeap() { return binaryHeapIndex; }
         /// <summary>
-        /// BH_Iteam implimatation
+        /// BH_Item implementation
         /// </summary>
         /// <returns></returns>
         public void setIndexInHeap(int index) { binaryHeapIndex = index; }

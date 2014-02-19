@@ -68,10 +68,12 @@ namespace CPF_experiment
                 this.maxCost = (int)(problemInstance.parameters[Trevor.MAXIMUM_COST_KEY]);
             else
                 this.maxCost = int.MaxValue;
+
             if (problemInstance.parameters.ContainsKey(Trevor.ILLEGAL_MOVES_KEY))
                 this.illegalMoves = (HashSet<TimedMove>)(problemInstance.parameters[Trevor.ILLEGAL_MOVES_KEY]);
             else
                 this.illegalMoves = null;
+
             this.minDepth = 0;
         }
 
@@ -95,7 +97,6 @@ namespace CPF_experiment
             this.mustConstraints = null;
             this.illegalMoves = null;
         }
-
 
         /// <summary>
         /// This method creates the object that will calculate the heuristics.
@@ -330,7 +331,6 @@ namespace CPF_experiment
         /// Check if the move is valid, i.e. not colliding into walls or other agents.
         /// </summary>
         /// <param name="possibleMove">The move to check if possible</param>
-        /// <param name="agentNum">The agent for which to check the move</param>
         /// <returns>true, if the move is possible.</returns>
         protected bool IsValidMove(TimedMove possibleMove, HashSet<Move> currentMoves)
         {
@@ -355,7 +355,7 @@ namespace CPF_experiment
             }
 
             // If the tile is not free (out of the grid or with an obstacles)
-            if (instance.IsValidForMove(possibleMove)==false)
+            if (instance.IsValidForMove(possibleMove) == false)
                 return false;
 
             // If previous move of another agent will collide with this move

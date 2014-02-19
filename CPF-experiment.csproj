@@ -81,7 +81,6 @@
     <Compile Include="CBS_NoDD.cs" />
     <Compile Include="CBS_old.cs" />
     <Compile Include="DnCConstraintsTable.cs" />
-    <Compile Include="Coordinate.cs" />
     <Compile Include="DnCConflict.cs" />
     <Compile Include="AStarMDD.cs" />
     <Compile Include="DynamicArray.cs" />

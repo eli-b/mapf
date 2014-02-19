@@ -4,7 +4,8 @@ namespace CPF_experiment
     /// <summary>
     /// This class represents a single move of an agent. 
     /// It includes the target location of the move and the direction of the move.
-    /// The start location can be extracted using the direction, with the method GetSource
+    /// The start location can be extracted using the direction, with the method GetSource().
+    /// Consider adding a GetNeighbors generator instead of exposing directionToDeltas
     /// </summary>
     public class Move
     {
@@ -29,6 +30,10 @@ namespace CPF_experiment
             NO_DIRECTION = 9,
         }
 
+        public const int FIRST_NON_WAIT = (int)Direction.North;
+        public const int LAST_NON_DIAG_MOVE = (int)Direction.West;
+        public const int LAST_REAL_MOVE = (int)Direction.NorthWest;
+
         public int x;
         public int y;
         public int direction;
@@ -51,7 +56,7 @@ namespace CPF_experiment
             this.direction = cpy.direction;
         }
 
-        private static readonly int[,] directionToDeltas = {
+        public static readonly int[,] directionToDeltas = {
             {0,   0, }, // Wait
             {-1,  0, }, // N
             {0,   1, }, // E

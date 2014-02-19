@@ -18,7 +18,6 @@ namespace CPF_experiment
         /// <summary>
         /// constructor
         /// </summary>
-        /// <param name="root"></param>
          public MddMatchAndPrune(Run runner)
          {
              this.openList = new Queue<MddMatchAndPruneState>();

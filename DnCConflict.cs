@@ -40,7 +40,7 @@ namespace CPF_experiment
                     return false;
             }
             else
-            { // Compare dests and directions
+            { // Compare dests and directions (unless direction is NO_DIRECTION)
                 if (this.agentAmove.Equals(((DnCConflict)obj).agentAmove) == false)
                     return false;
                 if (this.agentBmove.Equals(((DnCConflict)obj).agentBmove) == false)
@@ -48,6 +48,5 @@ namespace CPF_experiment
             }               
             return true;
         }
-
     }
 }

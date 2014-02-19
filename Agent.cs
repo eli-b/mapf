@@ -23,7 +23,25 @@ namespace CPF_experiment
         }
         public override string ToString()
         {
-            return "Agent-"+agentNum+" Goal-("+Goal_X+","+Goal_Y+")";
+            return "Agent-" + agentNum + " Goal-(" + Goal_X + "," + Goal_Y + ")";
+        }
+
+        public override bool Equals(object other_obj)
+        {
+            Agent other = (Agent)other_obj;
+            return agentNum == other.agentNum && Goal_X == other.Goal_X && Goal_Y == other.Goal_Y;
+        }
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                int hash = 17;
+                hash = hash * 23 + agentNum;
+                hash = hash * 23 + Goal_X;
+                hash = hash * 23 + Goal_Y;
+                return hash;
+            }
         }
     }
 }

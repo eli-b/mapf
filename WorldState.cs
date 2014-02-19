@@ -196,7 +196,7 @@ namespace CPF_experiment
         }
 
         /// <summary>
-        /// BH_Iteam implementation
+        /// BH_Item implementation
         /// </summary>
         /// <returns></returns>
         public int getIndexInHeap() { return binaryHeapIndex; }

@@ -53,8 +53,6 @@ namespace CPF_experiment
         /// <summary>
         /// Actually moves the agent and recalculates its heuristic
         /// </summary>
-        /// <param name="deltaX"></param>
-        /// <param name="deltaY"></param>
         public void move(int direction)
         {
             int deltaX = WorldState.operators[direction, 0];
@@ -79,14 +77,13 @@ namespace CPF_experiment
         }
 
         /// <summary>
-        /// BH_Iteam implimatation
+        /// BH_Item implementation
         /// </summary>
-        /// <returns></returns>
         public int getIndexInHeap() { return binaryHeapIndex; }
+
         /// <summary>
-        /// BH_Iteam implimatation
+        /// BH_Item implementation
         /// </summary>
-        /// <returns></returns>
         public void setIndexInHeap(int index) { binaryHeapIndex = index; }
 
         public override bool Equals(object obj)
@@ -97,12 +94,12 @@ namespace CPF_experiment
             /// Roni: Currently Equals() also compares the direction, because this is needed for Standley's Operator Decomposition.
             /// However, this does waste time for the classic A*, so we might want to create a subclass of AgentState
             /// that is custom for Standley's OD.
-            /// 
+            /// Eli: Doesn't seem to be true anymore.
             if (CBS_LocalConflicts.isDnC == true)
                 if (this.currentStep != that.currentStep)
                     return false;
 
-            if (this.pos_X == that.pos_X && this.pos_Y == that.pos_Y && this.agent == that.agent)
+            if (this.pos_X == that.pos_X && this.pos_Y == that.pos_Y && this.agent.Equals(that.agent))
             {
                 return true;
             }
@@ -113,7 +110,7 @@ namespace CPF_experiment
         {
             unchecked
             {
-                return (this.agent.agentNum) + (this.pos_X * 5) + (this.pos_Y * 7);
+                return this.agent.GetHashCode() + (this.pos_X * 5) + (this.pos_Y * 7);
             }
         }
 

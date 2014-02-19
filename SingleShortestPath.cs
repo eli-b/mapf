@@ -13,16 +13,14 @@ namespace CPF_experiment
     [Serializable]
     class SingleShortestPath : PDB
     {
-
         /// <summary>
         /// Since this class simply refers via a table-lookup to the globally
         /// available True_Path_Heuristic class, we incur no memory.
         /// </summary>
         /// <returns>0 by definition.</returns>
-
         public override UInt64 estimateSize()
         {
-            return (0);
+            return 0;
         }
 
         /// <summary>
@@ -30,10 +28,7 @@ namespace CPF_experiment
         /// are simply wrapping the functionality of the True_Path_Heuristic
         /// class.
         /// </summary>
-
-        public override void build()
-        {
-        }
+        public override void build() {}
 
         static int[][][] allTileAgentHeuristics;
         static int size_X;
@@ -65,6 +60,11 @@ namespace CPF_experiment
             int a;
             int b;
             int val;
+            int last_direction;
+            if (allowDiagonalMove == false)
+                last_direction = Move.LAST_NON_DIAG_MOVE;
+            else
+                last_direction = Move.LAST_REAL_MOVE;
             int[][] ans = new int[size_X][];
             for (int i = 0; i < size_X; i++)
             {
@@ -74,111 +74,56 @@ namespace CPF_experiment
                     ans[i][j] = -1;
                 }
             }
-            Queue openList = new Queue();
+            var openList = new Queue<Tuple<int,int,int>>();
             HashSet<int> closedList = new HashSet<int>();
-            openList.Enqueue(X);
-            openList.Enqueue(Y);
-            openList.Enqueue(0);
+            openList.Enqueue(new Tuple<int,int,int>(X, Y, 0));
             closedList.Add(X * size_X + Y);
             while (openList.Count > 0)
             {
-                a = (int)openList.Dequeue();
-                b = (int)openList.Dequeue();
-                val = (int)openList.Dequeue();
+                var tuple = openList.Dequeue();
+                a = tuple.Item1;
+                b = tuple.Item2;
+                val = tuple.Item3;
                 ans[a][b] = val;
-                if (isValidTile(a - 1, b) && !closedList.Contains((a - 1) * size_X + b))
+                
+                // Expand tile:
+                for (int direction = Move.FIRST_NON_WAIT; direction <= last_direction; ++direction)
+                // Assuming directions that aren't Wait are consecutive
                 {
-                    insertToOpenList(a - 1, b, val + 1, openList);
-                    closedList.Add((a - 1) * size_X + b);
-                }
-
-
-                if (isValidTile(a, b + 1) && !closedList.Contains(a * size_X + b + 1))
-                {
-                    insertToOpenList(a, b + 1, val + 1, openList);
-                    closedList.Add(a * size_X + b + 1);
-                }
-
-                if (isValidTile(a + 1, b) && !closedList.Contains((a + 1) * size_X + b))
-                {
-                    insertToOpenList(a + 1, b, val + 1, openList);
-                    closedList.Add((a + 1) * size_X + b);
-                }
-
-                if (isValidTile(a, b - 1) && !closedList.Contains(a * size_X + b - 1))
-                {
-                    insertToOpenList(a, b - 1, val + 1, openList);
-                    closedList.Add(a * size_X + b - 1);
-                }
-
-                if (allowDiagonalMove)
-                {
-                    if (isValidTile(a - 1, b + 1) && !closedList.Contains((a - 1) * size_X + b + 1))
+                    int new_a = a + Move.directionToDeltas[direction,0];
+                    int new_b = b + Move.directionToDeltas[direction, 1];
+                    if (isValidTile(new_a, new_b) && !closedList.Contains(new_a * size_X + new_b))
                     {
-                        insertToOpenList(a - 1, b + 1, val + 1, openList);
-                        closedList.Add((a - 1) * size_X + b + 1);
-                    }
-
-                    if (isValidTile(a + 1, b + 1) && !closedList.Contains((a + 1) * size_X + b + 1))
-                    {
-                        insertToOpenList(a + 1, b + 1, val + 1, openList);
-                        closedList.Add((a + 1) * size_X + b + 1);
-                    }
-
-                    if (isValidTile(a + 1, b - 1) && !closedList.Contains((a + 1) * size_X + b - 1))
-                    {
-                        insertToOpenList(a + 1, b - 1, val + 1, openList);
-                        closedList.Add((a + 1) * size_X + b - 1);
-                    }
-
-                    if (isValidTile(a - 1, b - 1) && !closedList.Contains((a - 1) * size_X + b - 1))
-                    {
-                        insertToOpenList(a - 1, b - 1, val + 1, openList);
-                        closedList.Add((a - 1) * size_X + b - 1);
+                        openList.Enqueue(new Tuple<int, int, int>(new_a, new_b, val + 1));
+                        closedList.Add(new_a * size_X + new_b);
                     }
                 }
             }
             return ans;
         }
 
-        private static void insertToOpenList(int X, int Y, int val, Queue OL)
-        {
-            OL.Enqueue(X);
-            OL.Enqueue(Y);
-            OL.Enqueue(val);
-        }
         public static int getHeuristic(int agent, int X, int Y)
         {
             return allTileAgentHeuristics[agent][X][Y];
         }
+
         static public bool isValidTile(int X, int Y)
         {
             if (X < 0 || X >= size_X || Y < 0 || Y >= size_Y)
                 return false;
             return !grid[X][Y];
         }
-        public static int getGrisSize()
+
+        public static int getGridSize()
         {
             return size_X;
         }
-
-
-
-
-
-
-
-
-
-
-
 
         /// <summary>
         /// Returns the heuristic estimate.
         /// </summary>
         /// <param name="s">The current state.</param>
         /// <returns>The PDB entry for the given state.</returns>
-
         public override uint h(WorldState s)
         {
             uint nHeuristic = 0;
@@ -187,7 +132,7 @@ namespace CPF_experiment
                 nHeuristic += (uint)this.m_Problem.GetSingleAgentShortestPath(s.allAgentsState[a].agent.agentNum,
                     s.allAgentsState[a].pos_X, s.allAgentsState[a].pos_Y);
             }
-            return (nHeuristic);
+            return nHeuristic;
         }
     }
 }
