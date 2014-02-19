@@ -60,8 +60,8 @@ namespace CPF_experiment
 
         int getNodesPassedPruningCounter();
         long getMemoryUsed();
-        int getHighLeveExpanded();
-        int getHighLeveGenerated();
+        int getHighLevelExpanded();
+        int getHighLevelGenerated();
         int getLowLevelExpanded();
         int getLowLevelGenerated();
         int getMaxGroupSize();

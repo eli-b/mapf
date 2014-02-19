@@ -106,8 +106,8 @@ namespace CPF_experiment
                 solver.Setup(subProblem, depthToReplan);
                 if (solver.Solve(runner) == false)
                 {
-                    highLevelExpanded += solver.getHighLeveExpanded();
-                    highLevelGenerated += solver.getHighLeveGenerated();
+                    highLevelExpanded += solver.getHighLevelExpanded();
+                    highLevelGenerated += solver.getHighLevelGenerated();
                     loweLevelExpanded += solver.getLowLevelExpanded();
                     loweLevelGenerated += solver.getLowLevelGenerated();
 
@@ -118,8 +118,8 @@ namespace CPF_experiment
 
                 InternalCAT.Seperate(newInternalCAT);
                 Constraints.Seperate(newConstraints);
-                highLevelExpanded += solver.getHighLeveExpanded();
-                highLevelGenerated += solver.getHighLeveGenerated();
+                highLevelExpanded += solver.getHighLevelExpanded();
+                highLevelGenerated += solver.getHighLevelGenerated();
                 loweLevelExpanded += solver.getLowLevelExpanded();
                 loweLevelGenerated += solver.getLowLevelGenerated();
 
@@ -181,16 +181,16 @@ namespace CPF_experiment
             solver.Setup(subProblem, depthToReplan);
             if (solver.Solve(runner) == false)
             {
-                highLevelExpanded += solver.getHighLeveExpanded();
-                highLevelGenerated += solver.getHighLeveGenerated();
+                highLevelExpanded += solver.getHighLevelExpanded();
+                highLevelGenerated += solver.getHighLevelGenerated();
                 loweLevelExpanded += solver.getLowLevelExpanded();
                 loweLevelGenerated += solver.getLowLevelGenerated();
                 InternalCAT.Seperate(newInternalCAT);
                 Constraints.Seperate(newConstraints);
                 return false;
             }
-            highLevelExpanded += solver.getHighLeveExpanded();
-            highLevelGenerated += solver.getHighLeveGenerated();
+            highLevelExpanded += solver.getHighLevelExpanded();
+            highLevelGenerated += solver.getHighLevelGenerated();
             loweLevelExpanded += solver.getLowLevelExpanded();
             loweLevelGenerated += solver.getLowLevelGenerated();
 
@@ -646,16 +646,16 @@ namespace CPF_experiment
             solver.Setup(subProblem, depthToReplan);
             if (solver.Solve(runner) == false)
             {
-                highLevelExpanded += solver.getHighLeveExpanded();
-                highLevelGenerated += solver.getHighLeveGenerated();
+                highLevelExpanded += solver.getHighLevelExpanded();
+                highLevelGenerated += solver.getHighLevelGenerated();
                 loweLevelExpanded += solver.getLowLevelExpanded();
                 loweLevelGenerated += solver.getLowLevelGenerated();
                 InternalCAT.Seperate(newInternalCAT);
                 Constraints.Seperate(newConstraints);
                 return false;
             }
-            highLevelExpanded += solver.getHighLeveExpanded();
-            highLevelGenerated += solver.getHighLeveGenerated();
+            highLevelExpanded += solver.getHighLevelExpanded();
+            highLevelGenerated += solver.getHighLevelGenerated();
             loweLevelExpanded += solver.getLowLevelExpanded();
             loweLevelGenerated += solver.getLowLevelGenerated();
 

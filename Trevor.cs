@@ -399,8 +399,8 @@ namespace CPF_experiment
             Console.WriteLine("Generated - " + generatedHL);
             Console.WriteLine("Total cost - " + totalCost);
         }
-        public int getHighLeveExpanded() { return this.expandedHL; }
-        public int getHighLeveGenerated() { return this.generatedHL; }
+        public int getHighLevelExpanded() { return this.expandedHL; }
+        public int getHighLevelGenerated() { return this.generatedHL; }
         public int getLowLevelExpanded() { return this.expandedLL; }
         public int getLowLevelGenerated() { return this.generatedLL; }
         public int getSolutionDepth() { return maxSolutionDepth; }
@@ -452,8 +452,8 @@ namespace CPF_experiment
             // Store the plan found by the solver
             this.solutionCost = this.solver.GetSolutionCost();
             this.plan = this.solver.GetPlan();
-            this.expandedHL = solver.getHighLeveExpanded();
-            this.generatedHL = solver.getHighLeveGenerated();
+            this.expandedHL = solver.getHighLevelExpanded();
+            this.generatedHL = solver.getHighLevelGenerated();
             this.expandedLL = solver.getLowLevelExpanded();
             this.generatedLL = solver.getLowLevelGenerated();
             this.depthOfSolution = solver.getSolutionDepth();

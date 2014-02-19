@@ -215,8 +215,8 @@ namespace CPF_experiment
         {
             return goalNode.allSingleAgentPlans;
         }
-        public int getHighLeveExpanded() { return highLevelExpanded; }
-        public int getHighLeveGenerated() { return highLevelGenerated; }
+        public int getHighLevelExpanded() { return highLevelExpanded; }
+        public int getHighLevelGenerated() { return highLevelGenerated; }
         public int getLowLevelExpanded() { return loweLevelExpanded; }
         public int getLowLevelGenerated() { return loweLevelGenerated; }
         public int getMaxGroupSize()

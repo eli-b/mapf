@@ -217,8 +217,8 @@ namespace CPF_experiment
             return false;
         }
 
-        public int getHighLeveExpanded() { return this.expandedHL; }
-        public int getHighLeveGenerated() { return this.generatedHL; }
+        public int getHighLevelExpanded() { return this.expandedHL; }
+        public int getHighLevelGenerated() { return this.generatedHL; }
         public int getLowLevelExpanded() { return this.expandedLL; }
         public int getLowLevelGenerated() { return this.generatedLL; }
         public int getSolutionDepth() { return this.totalCost - initialHeuristics; }
