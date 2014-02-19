@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Collections.Generic;
 using System.IO;
 using System.Diagnostics;
@@ -106,9 +107,8 @@ namespace CPF_experiment
         {
             SingleShortestPath sic = new SingleShortestPath();
 
-            List<uint> agentList = new List<uint>();
-            for(int i=0;i<this.instance.m_vAgents.Length;i++)
-                agentList.Add((uint)i);
+            // Preparing a list of agent nums for sic's init() method
+            List<uint> agentList = this.instance.m_vAgents.Select<AgentState, uint>(state => (uint)state.agent.agentNum).ToList<uint>();
             sic.init(this.instance, agentList);
 
             sic.build();

@@ -153,11 +153,14 @@ namespace CPF_experiment
 
         public override string ToString()
         {
-            return " step-"+currentStep+" possison ("+pos_X+","+pos_Y+")";
+            return " step-" + currentStep + " position (" + pos_X + "," + pos_Y + ")";
         }
-}
- // Compares two AgentStates according to their AgentNum
-    // This method is used for Rtrevor
+    }
+
+    ///<summary>
+    /// Compares two AgentStates according to their AgentNum
+    /// This method is used for Rtrevor
+    ///</summary>
     class AgentsNumsComparator : IComparer<AgentState>
     {
         public int Compare(AgentState x, AgentState y)
