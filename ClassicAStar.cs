@@ -32,11 +32,6 @@ namespace CPF_experiment
         protected int externalConflictCount;
         protected List<DnCConstraint>[] mustConstraints;
 
-        ///// <summary>
-        ///// This variable is used for the recursive Expand() procedure, to record the moves of previous agents.
-        ///// </summary>
-        //protected HashSet<Move> currentMoves;
-
         /// <summary>
         /// Default constructor.
         /// </summary>
@@ -89,7 +84,7 @@ namespace CPF_experiment
         }
 
         /// <summary>
-        /// Clears the relevant datastructures and variables to free memory usage.
+        /// Clears the relevant data structures and variables to free memory usage.
         /// </summary>
         public void Clear()
         {
@@ -158,7 +153,9 @@ namespace CPF_experiment
                     this.Clear();
                     return false;
                 }
+
                 currentNode = (WorldState)openList.Remove();
+
                 // Check if node is the goal
                 if (currentNode.GoalTest(minDepth))
                 {
@@ -250,8 +247,8 @@ namespace CPF_experiment
                         //    (inClosedList.g == currentNode.g && inClosedList.potentialConflictsCount > currentNode.potentialConflictsCount) ||
                         //    (inClosedList.g == currentNode.g && inClosedList.potentialConflictsCount == currentNode.potentialConflictsCount && inClosedList.dncInternalConflictsCount > currentNode.dncInternalConflictsCount))
                         {
-                            closedList.Remove(inClosedList); //than remove state
-                            openList.Remove(inClosedList);
+                            closedList.Remove(currentNode);
+                            openList.Remove(currentNode);
                         }
                     }
                     if (this.closedList.Contains(currentNode) == false)
@@ -259,7 +256,7 @@ namespace CPF_experiment
                         this.closedList.Add(currentNode);
                         this.generated++;
 
-                        //if (currentNode.h + currentNode.g + currentNode.potentialConflictsCount == currentNode.prevStep.h + currentNode.prevStep.g + currentNode.prevStep.potentialConflictsCount )
+                        //if (currentNode.h + currentNode.g + currentNode.potentialConflictsCount == currentNode.prevStep.h + currentNode.prevStep.g + currentNode.prevStep.potentialConflictsCount)
                         //{
                         //    if (currentNode.h == 0)
                         //    {
@@ -273,7 +270,7 @@ namespace CPF_experiment
                         //    }
                         //}
                         //else
-                            this.openList.Add(currentNode);
+                        this.openList.Add(currentNode);
                     }
                 }
                 return;
@@ -355,7 +352,7 @@ namespace CPF_experiment
             }
 
             // If the tile is not free (out of the grid or with an obstacles)
-            if (instance.IsValidForMove(possibleMove) == false)
+            if (this.instance.IsValid(possibleMove) == false)
                 return false;
 
             // If previous move of another agent will collide with this move

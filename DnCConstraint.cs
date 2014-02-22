@@ -6,7 +6,7 @@ namespace CPF_experiment
 {
     public class DnCConstraint : IComparable
     {
-        protected byte[] agent;
+        protected byte[] agents;
         protected ushort posX;
         protected ushort posY;
         protected sbyte direction;
@@ -17,7 +17,7 @@ namespace CPF_experiment
 
         public DnCConstraint(int agent, int posX, int posY, int timeStep, int direction)
         {
-            this.agent = new byte[1] { (byte)agent };
+            this.agents = new byte[1] { (byte)agent };
             this.posX = (ushort)posX;
             this.posY = (ushort)posY;
             this.timeStep = (ushort)timeStep;
@@ -29,30 +29,32 @@ namespace CPF_experiment
 
         public DnCConstraint(DnCConflict conflict, ProblemInstance instance, bool agentA)
         {
+            Move move;
+            int agentNum;
             if (agentA)
             {
-                this.agent = new byte[1] { (byte)instance.m_vAgents[conflict.agentA].agent.agentNum };
-                this.posX = (ushort)conflict.agentAmove.x;
-                this.posY = (ushort)conflict.agentAmove.y;
-                this.direction = (sbyte)conflict.agentAmove.direction;
+                move = conflict.agentAmove;
+                agentNum = instance.m_vAgents[conflict.agentA].agent.agentNum;
             }
             else
             {
-                this.agent = new byte[1] { (byte)instance.m_vAgents[conflict.agentB].agent.agentNum };
-                this.posX = (ushort)conflict.agentBmove.x;
-                this.posY = (ushort)conflict.agentBmove.y;
-                this.direction = (sbyte)conflict.agentBmove.direction;
+                move = conflict.agentBmove;
+                agentNum = instance.m_vAgents[conflict.agentB].agent.agentNum;
             }
+            this.posX = (ushort)move.x;
+            this.posY = (ushort)move.y;
+            this.direction = (sbyte)move.direction;
+            this.agents = new byte[1] { (byte)agentNum };
+            
             this.timeStep = (ushort)conflict.timeStep;
           //this.onVartex = conflict.vartex;
             if (conflict.vartex)
-                this.direction = -1;
+                this.direction = (int)Move.Direction.NO_DIRECTION;
         }
 
         public void init(int agent, int posX, int posY, int timeStep, int direction)
         {
-            this.agent = new byte[1];
-            this.agent[0] = (byte)agent;
+            this.agents = new byte[1] { (byte)agent };
             this.posX = (ushort)posX;
             this.posY = (ushort)posY;
             this.timeStep = (ushort)timeStep;
@@ -63,22 +65,22 @@ namespace CPF_experiment
         {
             if (fullyEqual && sameAgents(obj) == false)
                 return false;
-            foreach (byte agent in this.agent)
+            foreach (byte agent in this.agents)
             {
-                if (((DnCConstraint)obj).agent.Contains(agent) == false)
+                if (((DnCConstraint)obj).agents.Contains(agent) == false)
                     return false;
             }
-            //if (this.agent != ((DnCConstraint)obj).agent)
+            //if (this.agents != ((DnCConstraint)obj).agents)
             //    return false;
-            if(this.posX != ((DnCConstraint)obj).posX)
+            if (this.posX != ((DnCConstraint)obj).posX)
                 return false;
-            if(this.posY != ((DnCConstraint)obj).posY)
+            if (this.posY != ((DnCConstraint)obj).posY)
                 return false;
-            if(this.timeStep != ((DnCConstraint)obj).timeStep)
+            if (this.timeStep != ((DnCConstraint)obj).timeStep)
                 return false;
-            if (this.direction != -1 && ((DnCConstraint)obj).direction != -1 && this.direction != ((DnCConstraint)obj).direction)
+            if (this.direction != (int)Move.Direction.NO_DIRECTION && ((DnCConstraint)obj).direction != (int)Move.Direction.NO_DIRECTION && this.direction != ((DnCConstraint)obj).direction)
                 return false;
-            //if(obj.GetType().Equals(this.GetType()))
+            //if (obj.GetType().Equals(this.GetType()))
             //    if (this.group != ((DnCConstraint)obj).group)
             //         return false;
             return true;
@@ -88,27 +90,19 @@ namespace CPF_experiment
         {
             if (addAgents.Count == 0)
                 return;
-            byte[] newAgents = new byte[agent.Length + addAgents.Count];
-            int i;
-            for (i = 0; i < agent.Length; i++)
-			{
-			    newAgents[i]=agent[i];
-			}
-            foreach (byte j in addAgents)
-            {
-                newAgents[i]=j;
-                i++;
-            }
-            agent=newAgents;
+            byte[] newAgents = new byte[agents.Length + addAgents.Count];
+            Array.Copy(agents, newAgents, agents.Length);
+            Array.Copy(addAgents.ToArray<byte>(), 0, newAgents, agents.Length, addAgents.Count);
+            agents = newAgents;
         }
 
         public bool sameAgents(object obj)
         {
-            if (this.agent.Length != ((DnCConstraint)obj).agent.Length)
+            if (this.agents.Length != ((DnCConstraint)obj).agents.Length)
                 return false;
-            //foreach (byte agent in this.agent)
+            //foreach (byte agents in this.agents)
             //{
-            //    if (((DnCConstraint)obj).agent.Contains(agent) == false)
+            //    if (((DnCConstraint)obj).agents.Contains(agents) == false)
             //        return false;
             //}
             return true;
@@ -122,7 +116,7 @@ namespace CPF_experiment
                 ans += posX;
                 ans += posY * 1000;
                 ans += timeStep * 887;
-              //ans+= agent*79;
+              //ans += agents * 79;
               //ans += direction * 9;
                 return ans;
             }
@@ -130,18 +124,25 @@ namespace CPF_experiment
 
         public int getX() { return this.posX; }
         public int getY() { return this.posY; }
-        //public int getAgentNum() { return this.agent; }
+        //public int getAgentNum() { return this.agents; }
         public int getTimeStep() { return this.timeStep; }
+
         public int getDirection()
         {
             return this.direction;
         }
+        
         public override string ToString()
         {
-            return "("+posX+","+posY+") direction-{"+direction+"} time-{"+timeStep+"}";
+            return "(" + posX + "," + posY + ") direction-{" + direction + "} time-{" + timeStep + "}";
         }
 
-        public bool allowes(DnCConstraint other)
+        /// <summary>
+        /// What's the difference between Equals and this method?
+        /// </summary>
+        /// <param name="other"></param>
+        /// <returns></returns>
+        public bool allows(DnCConstraint other)
         {
             if (this.posX != other.posX)
                 return true;
@@ -168,22 +169,26 @@ namespace CPF_experiment
             return -1;
         }
 
-        public bool vioalates(int agentO, int posXO, int posYO, int timeStepO, int directionO)
+        /// <summary>
+        /// Why is there one allows method and one violates method? Choose an interface!
+        /// </summary>
+        /// <param name="agentO"></param>
+        /// <param name="posXO"></param>
+        /// <param name="posYO"></param>
+        /// <param name="timeStepO">This param is ignored!</param>
+        /// <param name="directionO"></param>
+        /// <returns></returns>
+        public bool violates(int agentO, int posXO, int posYO, int timeStepO, int directionO)
         {
-            bool hasAgent = false;
-            foreach (byte a in agent)
-            {
-                if (agentO == a)
-                    hasAgent = true;
-            }
-            if (!hasAgent)
+            if (agents.Contains<byte>((byte)agentO) == false)
                 return false;
             if (posXO != posX)
-                return true;
+                return true; // Not false??
             if (posYO != posY)
-                return true;
-            if (direction != -1 && directionO != direction)
-                return true;
+                return true; // Not false??
+            if (direction != (int)Move.Direction.NO_DIRECTION && directionO != (int)Move.Direction.NO_DIRECTION &&
+                directionO != direction)
+                return true; // Not false??
             return false;
         }
     }

@@ -3,11 +3,10 @@ using System.IO;
 
 namespace CPF_experiment
 {
-
     class AStarWithPartialExpansionBasic : ClassicAStar
     {
         int generatedAndDiscarded;
-        bool haseMorSuc;
+        bool hasMoreSuc;
 
         public override void Setup(ProblemInstance problemInstance) 
         { 
@@ -17,7 +16,7 @@ namespace CPF_experiment
 
         override public string GetName() { return "PE-Basic "; }
 
-         override public bool Expand(WorldState node)
+        override public bool Expand(WorldState node)
         {
             //Debug.Print("Expanding node " + node);
             if (node.notExpanded)
@@ -26,16 +25,16 @@ namespace CPF_experiment
                 this.expandedFullStates++;
             }
 
-            haseMorSuc = false;
+            hasMoreSuc = false;
             node.nextFvalue = byte.MaxValue;
 
             expand(node, 0, runner, node.h + node.g, new HashSet<Move>());
             node.h = node.nextFvalue - node.g;
 
-            if (haseMorSuc && node.h + node.g <= this.maxCost)
+            if (hasMoreSuc && node.h + node.g <= this.maxCost)
                 this.openList.Add(node);
             return true;
-         }
+        }
 
          protected bool  expand(WorldState currentNode, int agentIndex, Run runner, int targetF, HashSet<Move> currentMoves)
         {
@@ -44,7 +43,7 @@ namespace CPF_experiment
             WorldState prev = currentNode.prevStep;
             if (agentIndex == 0) // If this is the first agent that moves
             {
-                haseMorSuc = false;
+                hasMoreSuc = false;
                 prev = currentNode;
                 currentMoves.Clear();  
             }
@@ -77,7 +76,7 @@ namespace CPF_experiment
                             //if g is smaller than remove the old world state
                             if (inClosedList.g > currentNode.g)
                             {
-                                closedList.Remove(inClosedList); //than remove state
+                                closedList.Remove(inClosedList);
                                 openList.Remove(inClosedList);
                             }
                         }
@@ -109,7 +108,7 @@ namespace CPF_experiment
                         generatedAndDiscarded++;
                     if (currentNode.h + currentNode.g > targetF)
                     {
-                        haseMorSuc = true;
+                        hasMoreSuc = true;
                         if (currentNode.h + currentNode.g < currentNode.prevStep.nextFvalue)
                             currentNode.prevStep.nextFvalue = (byte)(currentNode.h + currentNode.g);
                     }
@@ -154,17 +153,17 @@ namespace CPF_experiment
             return ans;
         }
 
-         public override void OutputStatistics(TextWriter output)
+        public override void OutputStatistics(TextWriter output)
         {
             output.Write(this.expanded + Run.RESULTS_DELIMITER);
             output.Write(this.generated + Run.RESULTS_DELIMITER);
             output.Write("N/A" + Run.RESULTS_DELIMITER);
             output.Write(this.generatedAndDiscarded + Run.RESULTS_DELIMITER);
             output.Write(solutionDepth + Run.RESULTS_DELIMITER);
-             output.Write(expandedFullStates + Run.RESULTS_DELIMITER);
-             output.Write("NA"/*Process.GetCurrentProcess().VirtualMemorySize64*/ + Run.RESULTS_DELIMITER);
+            output.Write(expandedFullStates + Run.RESULTS_DELIMITER);
+            output.Write("NA"/*Process.GetCurrentProcess().VirtualMemorySize64*/ + Run.RESULTS_DELIMITER);
         }
-     }
+    }
     
 
     class AStarWithPartialExpansion : ClassicAStar 
@@ -202,7 +201,7 @@ namespace CPF_experiment
         override protected WorldState CreateSearchRoot()
         {
             WorldStateForPartialExpansion root = new WorldStateForPartialExpansion(this.instance.m_vAgents);
-            //root.getNextChield(instance, closedList,true);
+            //root.getNextChild(instance, closedList, true);
             return root;
         }
 
@@ -219,30 +218,30 @@ namespace CPF_experiment
             if (node.isAllReadyExpanded() == false)
             {
                 expandedFullStates++;
-                node.allReadyExpanded = true;
+                node.alreadyExpanded = true;
             }
             //Debug.Print("Expanding node " + node);
 
 
-            sbyte[][] fLookupTable = null; // [0] - agent number ,[1] - f change, value =1 - exists successor, value = -1 not exists, value = 0 dont know
+            sbyte[][] fLookupTable = null; // [0] - agent number ,[1] - f change, value =1 - exists successor, value = -1 not exists, value = 0 don't know
 
             Expand(node, 0, runner, new HashSet<Move>(), allMoves, node.currentFChange, fLookupTable);
             node.currentFChange++;
             node.h++;
-            while ( node.hasMoreChildren(maxFchange) && existingChieldForF(allMoves, 0, node.currentFChange) == false)
+            while (node.hasMoreChildren(maxFchange) && existingChildForF(allMoves, 0, node.currentFChange) == false)
             {
                 node.currentFChange++;
                 node.h++;
             }
 
-            if (node.hasMoreChildren(maxFchange) && existingChieldForF(allMoves, 0, node.currentFChange) && node.h + node.g <= this.maxCost)
+            if (node.hasMoreChildren(maxFchange) && existingChildForF(allMoves, 0, node.currentFChange) && node.h + node.g <= this.maxCost)
                 openList.Add(node);
             return true;
         }
 
         protected bool Expand(WorldState currentNode, int agentIndex, Run runner, HashSet<Move> currentMoves, byte[][] allMoves, int targetFchange, sbyte[][] fLookupTable)
         {
-            if (existingChieldForF(allMoves, agentIndex, targetFchange) == false)
+            if (existingChildForF(allMoves, agentIndex, targetFchange) == false)
                 return false;
 
             if (targetFchange < 0)
@@ -285,7 +284,7 @@ namespace CPF_experiment
                         //if g is smaller than remove the old world state
                         if (inClosedList.g > currentNode.g || (inClosedList.g == currentNode.g && (inClosedList.potentialConflictsCount > currentNode.potentialConflictsCount || (inClosedList.potentialConflictsCount == currentNode.potentialConflictsCount && inClosedList.dncInternalConflictsCount > currentNode.dncInternalConflictsCount))))
                         {
-                            closedList.Remove(inClosedList); //than remove state
+                            closedList.Remove(inClosedList);
                             openList.Remove(inClosedList);
                         }
                     }
@@ -351,7 +350,7 @@ namespace CPF_experiment
             return ans;
         }
 
-        public bool existingChieldForF(byte[][] allMoves, int agent, int targetFchange) 
+        public bool existingChildForF(byte[][] allMoves, int agent, int targetFchange) 
         {
             // allMoves[][] = [0] - agent number [1] - direction [in table]- effecte on F)
             // fLookup[][] = [0] - agent number ,[1] - f change, value =1 - exists successor, value = -1 not exists, value = 0 dont know
@@ -396,7 +395,7 @@ namespace CPF_experiment
             {
                 if (allMoves[agent][i] > targetFchange)
                     continue;
-                if (existingChieldForF(allMoves, agent + 1, targetFchange - allMoves[agent][i]))
+                if (existingChildForF(allMoves, agent + 1, targetFchange - allMoves[agent][i]))
                 {
                     fLookup[agent][targetFchange] = 1;
                     return true;

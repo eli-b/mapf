@@ -42,7 +42,7 @@ namespace CPF_experiment
             }
         }
         /// <summary>
-        /// chield constructor
+        /// child constructor
         /// </summary>
         /// <param name="father"></param>
         public DnCNode(DnCNode father, DnCConstraint newConstraint,int agentToReplan, ProblemInstance problem)
@@ -230,10 +230,10 @@ namespace CPF_experiment
             int maxPlanSize = 0;
             int planSize = -1;
             this.conflict = null;
-            HashSet<TimedMove> externalCAT=null;
+            HashSet<TimedMove> externalCAT = null;
             HashSet_U<TimedMove> DnCexternalCAT = (HashSet_U<TimedMove>)problem.parameters[CBS_LocalConflicts.INTERNAL_CAT];
             if (problem.parameters.ContainsKey(Trevor.CONFLICT_AVOIDENCE))
-                 externalCAT = ( HashSet<TimedMove>)problem.parameters[Trevor.CONFLICT_AVOIDENCE];
+                 externalCAT = (HashSet<TimedMove>)problem.parameters[Trevor.CONFLICT_AVOIDENCE];
             TimedMove checkMove=new TimedMove();
 
             // Find the longest plan among all the groups
@@ -251,9 +251,9 @@ namespace CPF_experiment
                 for (int i = 0; i < allSingleAgentPlans.Length; i++)
                 {
                     checkMove.setup(allSingleAgentPlans[i].GetLocationsAt(time),time);
-                    if (checkMove.contained(externalCAT))
+                    if (checkMove.isColliding(externalCAT))
                         externalConflictsCount++;
-                    if (checkMove.contained(DnCexternalCAT))
+                    if (checkMove.isColliding(DnCexternalCAT))
                         externalConflictsCount++;
                     for (int j = i + 1; j < allSingleAgentPlans.Length; j++)
                     {
@@ -328,7 +328,7 @@ namespace CPF_experiment
         {
             DnCNode other = (DnCNode)obj;
             DnCNode current = this;
-            //ushort[] OtherAgentsGroupAssignment=null;
+            //ushort[] OtherAgentsGroupAssignment = null;
             //if (CBS_LocalConflicts.isGlobal == false)
             //{
             //    for (int i = 0; i < agentsGroupAssignment.Length; i++)
@@ -428,7 +428,7 @@ namespace CPF_experiment
         //    {
         //        if (this.agentsGroupAssignment[current.constraint.getAgentNum()] == group)
         //        {
-        //            if(this.agentsGroupAssignment[current.prev.conflict.agentA] != this.agentsGroupAssignment[current.prev.conflict.agentB]) 
+        //            if (this.agentsGroupAssignment[current.prev.conflict.agentA] != this.agentsGroupAssignment[current.prev.conflict.agentB]) 
         //                constraints.Add(current.constraint);
         //        }
         //        current = current.prev;
@@ -552,7 +552,7 @@ namespace CPF_experiment
             Debug.WriteLine("Plan:");
             for (int i = 0; i < allSingleAgentPlans.Length; i++)
             {
-                Debug.WriteLine("agent - " + i);
+                Debug.WriteLine("agents - " + i);
                 allSingleAgentPlans[i].PrintPlan();
             }
             Debug.WriteLine("End Plan");
@@ -587,7 +587,7 @@ namespace CPF_experiment
             DnCNode current = this;
             while (current != null)
             {
-                if (current.unConstraint != null && !current.unConstraint.allowes(check))
+                if (current.unConstraint != null && !current.unConstraint.allows(check))
                     return false;
                 current = current.prev;
             }

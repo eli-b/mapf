@@ -89,7 +89,7 @@ namespace CPF_experiment
             AgentState nextStep;
             int next_X;
             int next_Y;
-            TimedMove nextMove=new TimedMove();
+            TimedMove nextMove = new TimedMove();
             DnCConstraint nextStepLocation = new DnCConstraint();
 
             for (int direction = 0; direction < 5; direction++)
@@ -97,7 +97,7 @@ namespace CPF_experiment
                 next_X = currentNode.pos_X + WorldState.operators[direction, 0];
                 next_Y = currentNode.pos_Y + WorldState.operators[direction, 1];
                 nextMove.setup(next_X, next_Y, direction, currentNode.currentStep + 1);
-                if (instance.IsValidForMove(nextMove))
+                if (instance.IsValid(nextMove))
                 {
                     nextStepLocation.init(agentNum, next_X, next_Y, currentNode.currentStep + 1,direction);
                     if (constraintsInGroup.Contains(nextStepLocation) == false)
@@ -130,7 +130,7 @@ namespace CPF_experiment
                             if (inClosedList.potentialConflictsID > nextStep.potentialConflictsID || (inClosedList.potentialConflictsID == nextStep.potentialConflictsID &&
                                 inClosedList.potentialConflicts > nextStep.potentialConflicts))
                             {
-                                closedList.Remove(inClosedList); //than remove state
+                                closedList.Remove(inClosedList);
                                 openList.Remove(inClosedList);
                             }
                         }
@@ -172,11 +172,11 @@ namespace CPF_experiment
             this.closedList.Add(root);
             this.openList.Add(root);
             optimalSol=root.h;
-            clearCount=-1;
+            clearCount = -1;
             conflictsCount=0;
         }
 
-        public void Solve(HashSet<CoordinateForConflictRatio> reservd, int orderOfConflict)
+        public void Solve(HashSet<CoordinateForConflictRatio> reserved, int orderOfConflict)
         {
             AgentState currentNode;
             CoordinateForConflictRatio c1, c2;
@@ -185,26 +185,26 @@ namespace CPF_experiment
             {
                 currentNode = (AgentState)openList.Remove();
 
-                c1=new CoordinateForConflictRatio(instance,currentNode);
+                c1 = new CoordinateForConflictRatio(instance, currentNode);
                 c2 = new CoordinateForConflictRatio(c1);
                 c2.direction = 0;
-                if (reservd.Contains(c2))
+                if (reserved.Contains(c2))
                     conflictsCount++;
                 else
                 {
-                    reservd.Add(c2);
+                    reserved.Add(c2);
                     if (c1.direction != 0)
                     {
                         c1.setOppositeMove();
                         c1.cardinality = instance.m_vCardinality[c1.x, c1.y];
-                        if (reservd.Contains(c1))
+                        if (reserved.Contains(c1))
                             conflictsCount++;
                         else
                         {
                             clearCount++;
                             c1.setOppositeMove();
                             c1.cardinality = instance.m_vCardinality[c1.x, c1.y];
-                            reservd.Add(c1);
+                            reserved.Add(c1);
                         }
                     }
                     else
@@ -228,7 +228,7 @@ namespace CPF_experiment
                 next_X = currentNode.pos_X + WorldState.operators[direction, 0];
                 next_Y = currentNode.pos_Y + WorldState.operators[direction, 1];
                 nextMove.setup(next_X, next_Y, direction, currentNode.currentStep + 1);
-                if (instance.IsValidForMove(nextMove))
+                if (instance.IsValid(nextMove))
                 {
                     nextStep = new AgentState(currentNode);
                     nextStep.prev = currentNode;

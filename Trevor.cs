@@ -152,14 +152,14 @@ namespace CPF_experiment
         {
             if (this.allGroups.Count == 1) return null;
             int maxPlanSize = 0;
-            int planSize=-1;
+            int planSize = -1;
             
             // Find the longest plan among all the groups
             foreach (AgentsGroup group in this.allGroups)
             {
                 planSize = group.GetPlan().GetSize();
-                if(planSize>maxPlanSize)
-                    maxPlanSize=planSize;
+                if (planSize > maxPlanSize)
+                    maxPlanSize = planSize;
             }
 
             // Check in every time step that the plans do not collide
@@ -167,7 +167,7 @@ namespace CPF_experiment
             LinkedListNode<AgentsGroup> group2Iterator;
             Plan group1Plan;
             Plan group2Plan;
-            for(int time=1;time<maxPlanSize;time++)
+            for(int time = 1 ; time < maxPlanSize ; time++)
             {
                 // Check all pairs of groups if they are conflicting at the given time step
                 group1Iterator = this.allGroups.First;
@@ -189,13 +189,12 @@ namespace CPF_experiment
             return null;
         }
 
-
         /// <summary>
-        /// Search for an optimal solution using the Simple Independance Detection algorithm in Standley's paper.
+        /// Search for an optimal solution using the Simple Independence Detection algorithm in Standley's paper.
         /// </summary>
         /// <param name="runner"></param>
         /// <returns></returns>
-        public bool SimpleIndependanceDetection(Run runner)
+        public bool SimpleIndependenceDetection(Run runner)
         {
             Conflict conflict;
             bool solved;
@@ -224,11 +223,11 @@ namespace CPF_experiment
         }
 
         /// <summary>
-        /// Search for an optimal solution using the Simple Independance Detection algorithm in Standley's paper.
+        /// Search for an optimal solution using the Simple Independence Detection algorithm in Standley's paper.
         /// </summary>
         /// <param name="runner"></param>
         /// <returns></returns>
-        public bool IndependanceDetection(Run runner)
+        public bool IndependenceDetection(Run runner)
         {
             Conflict conflict;
             bool solved;
@@ -305,8 +304,6 @@ namespace CPF_experiment
                     this.totalCost = compositeGroup.solutionCost;
                     return false;
                 }
-                
-
             }
             return true;
         }
@@ -351,8 +348,8 @@ namespace CPF_experiment
                 agentGroupNode = agentGroupNode.Next;
             }
 
-            //bool solved = this.SimpleIndependanceDetection(runner);
-             bool solved = this.IndependanceDetection(runner);
+            //bool solved = this.SimpleIndependenceDetection(runner);
+             bool solved = this.IndependenceDetection(runner);
             // Record found solution
             if (solved == true)
             {

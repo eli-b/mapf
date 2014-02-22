@@ -71,7 +71,7 @@ namespace CPF_experiment
                 this.maxCost = (int)(problemInstance.parameters[Trevor.MAXIMUM_COST_KEY]);
             else
                 this.maxCost = int.MaxValue;
-            if (problemInstance.parameters.ContainsKey(CBS_LocalConflicts.NEW_INTERNAL_CAT)==false)
+            if (problemInstance.parameters.ContainsKey(CBS_LocalConflicts.NEW_INTERNAL_CAT) == false)
             {
                 problemInstance.parameters[CBS_LocalConflicts.INTERNAL_CAT] = new HashSet_U<TimedMove>();
                 problemInstance.parameters[CBS_LocalConflicts.CONSTRAINTS] = new HashSet_U<DnCConstraint>();
@@ -85,14 +85,14 @@ namespace CPF_experiment
             }
             DnCNode.allConstraintsForNode = new HashSet<DnCConstraint>();
             minCost = 0;
-            isGlobal=false;
+            isGlobal = false;
         }
 
         public void Setup(ProblemInstance problemInstance, int minDepth)
         {
             Setup(problemInstance);
             this.minCost = minDepth;
-            isGlobal=false;
+            isGlobal = false;
         }
 
         public void Clear()
@@ -193,7 +193,7 @@ namespace CPF_experiment
         {
             closedList.Remove(node);
 
-            if (this.maxThreshold!=-1 && checkMerge(node))
+            if (this.maxThreshold != -1 && checkMerge(node))
             {
                 if (closedList.Contains(node))
                     return true;
@@ -205,7 +205,7 @@ namespace CPF_experiment
                 }
                 if (node.replanSize > this.maxSizeGroup)
                     maxSizeGroup = node.replanSize;
-                if(node.totalCost<=maxCost)
+                if (node.totalCost <= maxCost)
                     openList.Add(node);
                 closedList.Add(node);
                 this.addToGlobalConflictCount(node.getConflict());
@@ -300,7 +300,7 @@ namespace CPF_experiment
         public int getNodesFailedOn3Counter() { return -1; }
         public int getNodesFailedOn4Counter() { return -1; }
         public long getMemoryUsed() { return Process.GetCurrentProcess().VirtualMemorySize64; }
-        public WorldState GetGoal() { throw new NotSupportedException("Divide & Constraint dosent have a traditional goal state as it solves the problem independetly for each agent"); }
+        public WorldState GetGoal() { throw new NotSupportedException("Divide & Constraint doesn't have a traditional goal state as it solves the problem independetly for each agent"); }
         public SinglePlan[] getSinglePlans()
         {
             return goalNode.allSingleAgentPlans;
@@ -357,7 +357,7 @@ namespace CPF_experiment
 
         protected override void addToGlobalConflictCount(DnCConflict conflict)
         {
-            if(conflict!=null)
+            if (conflict != null)
                 globalConflictsCounter[Math.Max(conflict.agentA, conflict.agentB)][Math.Min(conflict.agentA, conflict.agentB)]++;
         }
 

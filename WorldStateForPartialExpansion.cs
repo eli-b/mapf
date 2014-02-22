@@ -6,15 +6,15 @@ namespace CPF_experiment
     {
 
         public byte currentFChange;
-        public bool allReadyExpanded;
+        public bool alreadyExpanded;
 
-          /// <summary>
+        /// <summary>
         /// Create a state with the given state for every agent.
         /// </summary>
         /// <param name="allAgentsState"></param>
         public WorldStateForPartialExpansion(AgentState[] allAgentsState): base(allAgentsState)
         {
-            allReadyExpanded = false;
+            alreadyExpanded = false;
             currentFChange = 0;
         }
 
@@ -25,7 +25,7 @@ namespace CPF_experiment
         public WorldStateForPartialExpansion(WorldState cpy)
             : base(cpy)
         {
-            allReadyExpanded = false;
+            alreadyExpanded = false;
             currentFChange = 0;
         }
 
@@ -79,18 +79,16 @@ namespace CPF_experiment
 
                         if (hBefore != 0)
                             singleAgentMoves[i][direction] = (byte)(hAfter - hBefore + 1);
-                        else if (hAfter != 0) //if agent moved from its goal we must count and add all the steps he was stationd at the goal
+                        else if (hAfter != 0) //if agent moved from its goal we must count and add all the steps it was stationed at the goal
                             singleAgentMoves[i][direction] = (byte)(hAfter - hBefore + makespan - allAgentsState[i].arrivalTime + 1);
                         else
                             singleAgentMoves[i][direction] = 0;
-
                     }
                     else
                     {
                         singleAgentMoves[i][direction] = byte.MaxValue;
                     }
                 }
-
             }
             return singleAgentMoves;
         }
@@ -113,7 +111,7 @@ namespace CPF_experiment
         }
 
         /// <summary>
-        /// true if moves so far havent changed the F val by more then this step allowes
+        /// true if moves so far haven't changed the F val by more than this step allows
         /// </summary>
         /// <param name="movesList"></param>
         /// <param name="agentForNextStep"></param>
@@ -123,9 +121,9 @@ namespace CPF_experiment
             return this.currentFChange <= maxFchange;
         }
         
-        public bool isAllReadyExpanded()
+        public bool isAlreadyExpanded()
         {
-            return allReadyExpanded;
+            return alreadyExpanded;
         }
 
         override public int conflictsCount(HashSet<TimedMove> conflictAvoidence)
@@ -144,6 +142,5 @@ namespace CPF_experiment
             }
             return ans;
         }
-
     }
 }

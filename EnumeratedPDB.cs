@@ -73,12 +73,12 @@ namespace CPF_experiment
             {
                 m_sQueue = q1;
                 m_nNodes = 0;
-                if(m_fsQueue != null)
+                if (m_fsQueue != null)
                     m_fsQueue.Close();
 
                 m_sNext = q2;
                 m_nNextNodes = 0;
-                if(m_fsNext != null)
+                if (m_fsNext != null)
                     m_fsNext.Close();
                 m_fsNext = new FileStream(m_sNext, FileMode.Create);
 
@@ -101,9 +101,9 @@ namespace CPF_experiment
                 m_nNodes = m_nNextNodes;
                 m_nNextNodes = 0;
 
-                if(m_fsQueue != null)
+                if (m_fsQueue != null)
                     m_fsQueue.Close();
-                if(m_fsNext != null)
+                if (m_fsNext != null)
                     m_fsNext.Close();
 
                 m_fsQueue = new FileStream(m_sQueue, FileMode.Open, FileAccess.Read);
@@ -271,7 +271,7 @@ namespace CPF_experiment
         public override uint h(WorldState s)
         {
             var nSingleAgentShortestPath = 0;
-            if(m_bOffsetFromSingleShortestPath)
+            if (m_bOffsetFromSingleShortestPath)
                 foreach (var a in m_vAgents)
                 {
                     nSingleAgentShortestPath +=

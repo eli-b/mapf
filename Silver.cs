@@ -168,9 +168,11 @@ namespace CPF_experiment
             }
 
         }
+
+        // Why doesn't this get a move parameter?
         private bool isValidMove(int pos_X, int pos_Y, int time, int direction)
         {
-            if (this.problem.IsValidForMove(pos_X,pos_Y))
+            if (this.problem.IsValid(pos_X,pos_Y))
             {
                 if (!RT.Contains(new TimedMove(pos_X, pos_Y, -1, time)) && !RT.Contains(new TimedMove(pos_X, pos_Y, direction, time).GetOppositeMove()))
                 {
@@ -201,6 +203,7 @@ namespace CPF_experiment
             //}
             return false;
         }
+        
         //private bool safeFromCollision(int pos_x, int pos_Y, int step, short direction)
         //{
         //    Reservation res = (Reservation)RT[new Reservation(pos_x, pos_Y, step, direction)];
@@ -208,6 +211,7 @@ namespace CPF_experiment
         //        return false;
         //    return true;
         //}
+        
         private void printPath(AgentState final)
         {
             Console.WriteLine(final.agent.ToString());
@@ -219,12 +223,14 @@ namespace CPF_experiment
             }
             Console.WriteLine();
         }
+        
         private void printSum()
         {
             Console.WriteLine("Expanded - " + expanded);
             Console.WriteLine("Generated - " + generated);
             Console.WriteLine("Total cost - " + totalTime);
         }
+        
         public int getExpanded() { return this.expanded; }
         public int getGenerated() { return this.generated; }
         public int getSolutionDepth() { return -1; }

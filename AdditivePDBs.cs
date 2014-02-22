@@ -14,7 +14,6 @@ namespace CPF_experiment
          * the caller (for example, if the caller wanted to add to our
          * heuristic estimate).
          */
-
         public SortedSet<uint> m_vExcludedAgents;
 
         /// <summary>
@@ -22,8 +21,7 @@ namespace CPF_experiment
         /// the agents among them, possibly leaving some agents out.
         /// </summary>
         /// <param name="s">The root of the search tree. This is also expected
-        /// to have context parameters such as agent goal states.</param>
-
+        /// to have context parameters such as agents' goal states.</param>
         public void build(ProblemInstance pi, WorldState s)
         {
             Debug.Write("Building database...");
@@ -103,9 +101,7 @@ namespace CPF_experiment
         /// </summary>
         /// <param name="pi">The problem instance.</param>
         /// <param name="vAgents">The agents that the pattern database should keep track of.</param>
-
-        public virtual void init(ProblemInstance pi, List<uint> vAgents)
-        {}
+        public virtual void init(ProblemInstance pi, List<uint> vAgents) {}
 
         /// <summary>
         /// Simply returns the sum of each of the additive pattern database 
@@ -114,7 +110,6 @@ namespace CPF_experiment
         /// <param name="s">The state.</param>
         /// <returns>The admissible heuristic value for the additive pattern
         /// databases.</returns>
-
         public uint h(WorldState s)
         {
             uint nHeuristicValue = 0;

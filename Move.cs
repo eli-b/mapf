@@ -226,7 +226,7 @@ namespace CPF_experiment
                 hash = 23 * hash + x;
                 hash = 23 * hash + y;
                 // NOT including the direction in the hash.
-                // Notice that Moves with a direction that have the same target will be 
+                // Notice that Moves with a set direction that have the same target will be 
                 // non-Equal but with the same hash. This is allowed, but may
                 // cause inefficiencies in hashtables.
                 return hash;
@@ -235,7 +235,7 @@ namespace CPF_experiment
 
         /// <summary>
         /// Compare two Move objects. 
-        /// If one of the Move objects does not have a direction that is set (i.e. direction==-1)
+        /// If one of the Move objects does not have a direction that is set (i.e. direction == -1)
         /// then the direction part of the Move is ignored.
         /// </summary>
         /// <param name="obj"></param>

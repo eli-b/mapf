@@ -18,7 +18,7 @@ namespace CPF_experiment
             //    Console.Write("ff");
             this.problem = instance;
             this.mddNum = mddNum;
-            this.agentNum=agentNum;
+            this.agentNum = agentNum;
             levels = new LinkedList<MDDNode>[maxCostOnLevel + 1];
             Hashtable closedList = new Hashtable();
             LinkedList<MDDNode> children;
@@ -41,7 +41,7 @@ namespace CPF_experiment
                     heuristicBound = 0;
                 }
                 LinkedListNode<MDDNode> currentMddNode = levels[i].First;
-                while (currentMddNode!=null)
+                while (currentMddNode != null)
                 {
                     LinkedListNode<MDDNode> child;
                     children = this.GetAllChildren(currentMddNode.Value, heuristicBound,numOfAgents,i);
@@ -72,14 +72,13 @@ namespace CPF_experiment
                         child = child.Next;
                     }
 
-
                     currentMddNode=currentMddNode.Next;
                 }
                 closedList.Clear();
             }
             if (levels[maxCostOnLevel].Count != 0)
                 levels[maxCostOnLevel].First.Value.startOrGoal = true;
-            if (toDelete!=null)
+            if (toDelete != null)
             {
                 foreach (MDDNode remove in toDelete)
                 {
@@ -111,7 +110,8 @@ namespace CPF_experiment
                 newX = father.getX() + WorldState.operators[op, 0];
                 newY = father.getY() + WorldState.operators[op, 1];
                 move.setup(newX, newY, op, i + 1);
-                if ((this.problem.IsValidForMove(move))&&(this.problem.GetSingleAgentShortestPath(this.agentNum,newX,newY)<=heuristicBound))
+                if ((this.problem.IsValid(move)) &&
+                    (this.problem.GetSingleAgentShortestPath(this.agentNum, newX, newY) <= heuristicBound))
                 {
                     direction = WorldState.operators[op, 2];
                     child = new MDDNode(newX, newY, i+1, numOfAgents, this);
@@ -146,7 +146,7 @@ namespace CPF_experiment
             for (int i = 1; i < levels.Length; i++)
             {
                 toSetCoexisting = levels[i].First;
-                while (toSetCoexisting != null && toSetCoexisting.List!=null)
+                while (toSetCoexisting != null && toSetCoexisting.List != null)
                 {
                     if (toSetCoexisting.Value.isDeleted)
                     {
@@ -160,26 +160,26 @@ namespace CPF_experiment
                     
 
                     parent=toSetCoexisting.Value.parents.First;
-                    while (parent!=null)
+                    while (parent != null)
                     {
                         validParent = false;
                         foreach (MDDNode coexist in parent.Value.coexistLinkedList[other.mddNum])
                         {
-                            foreach (MDDNode chield in coexist.children)
+                            foreach (MDDNode child in coexist.children)
                             {
-                                if (!toSetCoexisting.Value.Equals(chield))
+                                if (!toSetCoexisting.Value.Equals(child))
                                 {
-                                    if (!parent.Value.EqualsSwitch(chield) || !toSetCoexisting.Value.EqualsSwitch(coexist))
+                                    if (!parent.Value.EqualsSwitch(child) || !toSetCoexisting.Value.EqualsSwitch(coexist))
                                     {
-                                        if (toSetCoexisting.Value.isCoexistingWithOtherMDDs(chield, other.mddNum))
+                                        if (toSetCoexisting.Value.isCoexistingWithOtherMDDs(child, other.mddNum))
                                         {
                                             validParent = true;
 
-                                            if (!coexitingForNodeHS.Contains(chield))
+                                            if (!coexitingForNodeHS.Contains(child))
                                             {
                                                 CostTreeNodeSolver.matchCounter++;
-                                                coexitingForNodeHS.Add(chield);
-                                                coexitingForNodeLL.AddFirst(chield);
+                                                coexitingForNodeHS.Add(child);
+                                                coexitingForNodeLL.AddFirst(child);
                                             }
                                         }
                                     }
@@ -250,19 +250,19 @@ namespace CPF_experiment
                         validParent = false;
                         foreach (MDDNode coexist in parent.Value.coexistLinkedList[other.mddNum])
                         {
-                            foreach (MDDNode chield in coexist.children)
+                            foreach (MDDNode child in coexist.children)
                             {
-                                if (!toSetCoexisting.Value.Equals(chield))
+                                if (!toSetCoexisting.Value.Equals(child))
                                 {
-                                    if (!parent.Value.EqualsSwitch(chield) || !toSetCoexisting.Value.EqualsSwitch(coexist))
+                                    if (!parent.Value.EqualsSwitch(child) || !toSetCoexisting.Value.EqualsSwitch(coexist))
                                     {
                                         validParent = true;
 
-                                        if (!coexitingForNodeHS.Contains(chield))
+                                        if (!coexitingForNodeHS.Contains(child))
                                         {
                                             CostTreeNodeSolver.matchCounter++;
-                                            coexitingForNodeHS.Add(chield);
-                                            coexitingForNodeLL.AddFirst(chield);
+                                            coexitingForNodeHS.Add(child);
+                                            coexitingForNodeLL.AddFirst(child);
                                         }
 
                                     }
@@ -294,7 +294,6 @@ namespace CPF_experiment
             return ans;
         }
 
-
         public int getMddNum()
         {
             return mddNum;
@@ -315,9 +314,9 @@ namespace CPF_experiment
                 foreach (MDDNode node in levels[j])
                 {
                     Console.Write("\n\n-node- (" + node.getX() + "," + node.getY() + ") children: ");
-                    foreach (MDDNode chield in node.children)
+                    foreach (MDDNode child in node.children)
                     {
-                        Console.Write("(" + chield.getX() + "," + chield.getY() + ") ");
+                        Console.Write("(" + child.getX() + "," + child.getY() + ") ");
                     }
                     Console.Write(" parents: ");
                     foreach (MDDNode parent in node.parents)
@@ -328,7 +327,7 @@ namespace CPF_experiment
                     int i = 0;
                     foreach (LinkedList<MDDNode> coexistList in node.coexistLinkedList)
                     {
-                        Console.Write(" for agent - " + i++);
+                        Console.Write(" for agents - " + i++);
                         foreach (MDDNode coexist in coexistList)
                         {
                             Console.Write("(" + coexist.getX() + "," + coexist.getY() + ") ");
@@ -339,6 +338,7 @@ namespace CPF_experiment
         }
 
     }
+
     class MDDNode
     {
         int pos_X;
@@ -352,7 +352,7 @@ namespace CPF_experiment
         LinkedListNode<MDDNode> myNode;
         public bool startOrGoal;
         public bool isDeleted; //to prevent delition loop
-        public bool leagel;
+        public bool legal;
 
         public MDDNode(int pos_X, int pos_Y,int level, int numOfAgents, MDD father)
         {
@@ -377,7 +377,7 @@ namespace CPF_experiment
             isDeleted = true;
             LinkedListNode<MDDNode> toDelete = parents.First;
             LinkedListNode<MDDNode> nextToDelete;
-            while (toDelete!=null)
+            while (toDelete != null)
             {
                 nextToDelete = toDelete.Next;
                 toDelete.Value.children.Remove(this);
@@ -394,6 +394,7 @@ namespace CPF_experiment
             }
            // myNode.List.Remove(myNode);
         }
+        
         public void checkAndDelete()
         {
             if (!isDeleted)
@@ -437,7 +438,6 @@ namespace CPF_experiment
             return true;
         }
 
-
         public void removeParent(MDDNode parent)
         {
             parent.children.Remove(this);
@@ -445,34 +445,42 @@ namespace CPF_experiment
             parent.checkAndDelete();
             this.checkAndDelete(); //remove if there is a bug
         }
+        
         public void addParent(MDDNode parent)
         {
             parents.AddLast(parent);
         }
+        
         public void addChild(MDDNode child)
         {
             children.AddLast(child);
         }
+        
         public void setCoexist(LinkedList<MDDNode> coexists, int agentNum)
         {
             coexistLinkedList[agentNum] = coexists;
         }
+        
         public void setMyNode(LinkedListNode<MDDNode> me)
         {
             myNode = me;
         }
+        
         public int getX()
         {
             return pos_X;
         }
+        
         public int getY()
         {
             return pos_Y;
         }
-        public int getVertxIndex()
+        
+        public int getVertexIndex()
         {
             return pos_X * CostTreeSearchSolver.maxY + pos_Y;
         }
+        
         public override int GetHashCode()
         {
             unchecked
@@ -480,20 +488,24 @@ namespace CPF_experiment
                 return (pos_X + 1) * 3 + (pos_Y + 1) * 5;
             }
         }
+        
         public override bool Equals(object obj)
         {
             MDDNode comp = (MDDNode)obj;
             return this.pos_X == comp.pos_X && this.pos_Y == comp.pos_Y && this.level == comp.level; //if there is a bug return the level compare
         }
+        
         public bool EqualsSwitch(object obj)
         {
             MDDNode comp = (MDDNode)obj;
             return this.pos_X == comp.pos_X && this.pos_Y == comp.pos_Y ;
         }
+        
         public int getCoexistCount(int otherAgent)
         {
             return coexistLinkedList[otherAgent].Count;
         }
+        
         public int getDirection(MDDNode other)
         {
             int ans = 0;

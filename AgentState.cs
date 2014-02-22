@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace CPF_experiment
 {
-    [Serializable] public class AgentState : IComparable<IBinaryHeapItem>,IBinaryHeapItem
+    [Serializable] public class AgentState : IComparable<IBinaryHeapItem>, IBinaryHeapItem
     {
         public int pos_X;
         public int pos_Y;
@@ -19,8 +19,8 @@ namespace CPF_experiment
 
         public AgentState(int pos_X, int pos_Y, Agent agent)
         {
-            this.pos_X=pos_X;
-            this.pos_Y=pos_Y;
+            this.pos_X = pos_X;
+            this.pos_Y = pos_Y;
             direction = 0;
             this.agent = agent;
         }
@@ -57,9 +57,9 @@ namespace CPF_experiment
         {
             int deltaX = WorldState.operators[direction, 0];
             int deltaY = WorldState.operators[direction, 1];
-            pos_X = pos_X + deltaX;
-            pos_Y = pos_Y + deltaY;
-            currentStep = currentStep + 1;
+            pos_X += deltaX;
+            pos_Y += deltaY;
+            currentStep += 1;
             this.direction = (sbyte)direction;
 
             // If performed a non STAY move and reached the agent's goal - store the arrival time
@@ -68,7 +68,7 @@ namespace CPF_experiment
         }
 
         /// <summary>
-        /// Checks it the agent is at its goal location
+        /// Checks if the agent is at its goal location
         /// </summary>
         /// <returns>True if the agent has reached its goal location</returns>
         public bool atGoal()
@@ -86,15 +86,15 @@ namespace CPF_experiment
         /// </summary>
         public void setIndexInHeap(int index) { binaryHeapIndex = index; }
 
+        /// <summary>
+        /// Checks pos_X, pos_Y, agent and, if CBS_LocalConflicts.isDnC, the currentStep too.
+        /// </summary>
+        /// <param name="obj"></param>
+        /// <returns></returns>
         public override bool Equals(object obj)
         {
             AgentState that = (AgentState)obj;
             
-            ///
-            /// Roni: Currently Equals() also compares the direction, because this is needed for Standley's Operator Decomposition.
-            /// However, this does waste time for the classic A*, so we might want to create a subclass of AgentState
-            /// that is custom for Standley's OD.
-            /// Eli: Doesn't seem to be true anymore.
             if (CBS_LocalConflicts.isDnC == true)
                 if (this.currentStep != that.currentStep)
                     return false;
@@ -106,6 +106,11 @@ namespace CPF_experiment
             return false;
         }
 
+        /// <summary>
+        /// Uses pos_X, pos_Y and agent.
+        /// </summary>
+        /// <param name="obj"></param>
+        /// <returns></returns>
         public override int GetHashCode()
         {
             unchecked

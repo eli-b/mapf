@@ -28,7 +28,7 @@ namespace CPF_experiment
             this.problem = problem;
             allMDDs = new MDD[problem.GetNumOfAgents()];
         }
-        public CostTreeNodeSolver(ProblemInstance problem, CostTreeNode costNode, Run runner) //make sure agents numbers are in the corect order
+        public CostTreeNodeSolver(ProblemInstance problem, CostTreeNode costNode, Run runner) //make sure agent numbers are in the correct order
         {
             this.runner = runner;
             AgentState agent;
@@ -40,15 +40,15 @@ namespace CPF_experiment
 
             maxCost = costNode.costs.Max();
             for (int i = 0; i < startingPos.Length; i++) 
-			{
+            {
                 agent=startingPos[i];
-			    allMDDs[i]=new MDD(i ,agent.agent.agentNum,agent.pos_X,agent.pos_Y,costNode.costs[i],maxCost,startingPos.Length,problem);
-			}
+                allMDDs[i] = new MDD(i ,agent.agent.agentNum,agent.pos_X,agent.pos_Y,costNode.costs[i],maxCost,startingPos.Length,problem);
+            }
 
             matchCounter = 0;
         }
 
-        public virtual void setup( CostTreeNode costNode)
+        public virtual void setup(CostTreeNode costNode)
         {
             AgentState agent;
             maxCost = 0;
@@ -145,7 +145,7 @@ namespace CPF_experiment
         public CostTreeNodeSolverOldMatching(ProblemInstance problem, CostTreeNode costNode, Run runner, int syncSize) : base(problem, costNode, runner) { this.syncSize = syncSize; }
         public void setup(CostTreeNode costNode, int syncSize)
         {
-            base.setup( costNode);
+            base.setup(costNode);
             this.syncSize = syncSize;
         }
         public override LinkedList<Move>[] Solve(HashSet<TimedMove> conflictTable, HashSet_U<TimedMove> CBS_CAT)
@@ -157,7 +157,7 @@ namespace CPF_experiment
                 {
                     if (syncSize == 2)
                         notConflicting = allMDDs[i].sync2GDDs(allMDDs[j]);
-                    else if(syncSize==3)
+                    else if (syncSize == 3)
                         notConflicting = allMDDs[i].sync3GDDs(allMDDs[j], j);
                     //Run.resultsWriterdd.Write(matchCounter + ",");
                     //Run.resultsWriterdd.WriteLine();
@@ -242,7 +242,7 @@ namespace CPF_experiment
                         findSolution = new AStarMDD(match, runner, conflictTable,CBS_CAT);
 
                         subCheck = findSolution.solve();
-                        if (subCheck==null || subCheck[0] == null)
+                        if (subCheck == null || subCheck[0] == null)
                         {
                             return null;
                         }

@@ -92,7 +92,7 @@ namespace CPF_experiment
             openList.AddFirst(new CostTreeNode(costs));
             this.initialHeuristics = openList.First.Value.costs.Sum();
 
-            // Store parameters used by Trevor's Independant Detection algorithm
+            // Store parameters used by Trevor's Independence Detection algorithm
             if (problemInstance.parameters.ContainsKey(Trevor.MAXIMUM_COST_KEY))
                 this.maxCost = (int)(problemInstance.parameters[Trevor.MAXIMUM_COST_KEY]);
             else
@@ -113,7 +113,7 @@ namespace CPF_experiment
         /// </summary>
         public void Clear()
         {
-            this.problem=null;
+            this.problem = null;
             this.closedList.Clear();
             this.openList.Clear();
             this.ID_CAT = null;
@@ -164,7 +164,7 @@ namespace CPF_experiment
             //LinkedList<Move>[] ans = null;
             //int sumSubGroupA;
             //int sumSubGroupB;
-            ////TODO if no suloution found the algorithem will never stop
+            ////TODO if no solution found the algorithm will never stop
             //while (runner.watch.ElapsedMilliseconds < Constants.MAX_TIME)
             //{
             //    costTreeNode = openList.First.Value;
@@ -239,7 +239,7 @@ namespace CPF_experiment
             LinkedList<Move>[] ans = null;
             int sumSubGroupA;
             int sumSubGroupB;
-            //TODO if no suloution found the algorithem will never stop
+            //TODO if no solution found the algorithm will never stop
             while (runner.ElapsedMilliseconds() < Constants.MAX_TIME)
             {
                 costTreeNode = openList.First.Value;
@@ -313,7 +313,7 @@ namespace CPF_experiment
             LinkedList<Move>[] ans = null;
             int sumSubGroupA;
             int sumSubGroupB;
-            //TODO if no suloution found the algorithem will never stop
+            //TODO if no solution found the algorithm will never stop
             while (runner.ElapsedMilliseconds() < Constants.MAX_TIME)
             {
                 costTreeNode = openList.First.Value;
@@ -396,7 +396,7 @@ namespace CPF_experiment
             LinkedList<Move>[] ans = null;
             int sumSubGroupA;
             int sumSubGroupB;
-            //TODO if no suloution found the algorithem will never stop
+            //TODO if no solution found the algorithm will never stop
             while (runner.ElapsedMilliseconds() < Constants.MAX_TIME)
             {
                 costTreeNode = openList.First.Value;
@@ -481,7 +481,7 @@ namespace CPF_experiment
             Stopwatch sw = new Stopwatch();
             int sumSubGroupA;
             int sumSubGroupB;
-            //TODO if no suloution found the algorithem will never stop
+            //TODO if no solution found the algorithm will never stop
             while (runner.ElapsedMilliseconds() < Constants.MAX_TIME)
             {
                 sw.Reset();

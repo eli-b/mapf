@@ -98,19 +98,21 @@ namespace CPF_experiment
             this.time = time;
         }
 
-        public bool contained(HashSet<TimedMove> CAT)
+        public bool isColliding(HashSet<TimedMove> CAT)
         {
             if (CAT == null)
                 return false;
+
             int saveDirection = this.direction;
-            this.direction = -1;
-
+            this.direction = (int)Move.Direction.NO_DIRECTION;
             if (CAT.Contains(this))
+            {
+                this.direction = saveDirection;
                 return true;
+            }
+            this.direction = saveDirection;
 
-            this.direction = direction;
             this.setOppositeMove();
-
             if (CAT.Contains(this))
             {
                 this.setOppositeMove();
@@ -155,8 +157,6 @@ namespace CPF_experiment
             this.ins = ins;
             this.cardinality = ins.getCardinality(state);
         }
-
-
 
         public CoordinateForConflictRatio(CoordinateForConflictRatio cpy)
             : base(cpy)

@@ -124,7 +124,7 @@ namespace CPF_experiment
         public virtual bool expand(DnCNode node, DnCConflict conflict)
         {
 
-            if (this.maxThreshold!=-1 && checkMerge(node))
+            if (this.maxThreshold != -1 && checkMerge(node))
             {
                 if (node.rePlan(instance, runner, conflict.agentA, this.minCost, solver, lowLevelSolver, ref highLevelExpanded, ref highLevelGenerated, ref loweLevelExpanded, ref loweLevelGenerated) == false)
                 {
@@ -134,7 +134,7 @@ namespace CPF_experiment
                 }
                 if (node.replanSize > this.maxSizeGroup)
                     maxSizeGroup = node.replanSize;
-                if(node.totalCost<=maxCost)
+                if (node.totalCost <= maxCost)
                     openList.Add(node);
                 this.addToGlobalConflictCount(node.getConflict());
                 return false;
@@ -215,7 +215,7 @@ namespace CPF_experiment
         public int getNodesFailedOn3Counter() { return -1; }
         public int getNodesFailedOn4Counter() { return -1; }
         public long getMemoryUsed() { return Process.GetCurrentProcess().VirtualMemorySize64; }
-        public WorldState GetGoal() { throw new NotSupportedException("Divide & Constraint dosent have a traditional goal state as it solves the problem independetly for each agent"); }
+        public WorldState GetGoal() { throw new NotSupportedException("Divide & Constraint doesn't have a traditional goal state as it solves the problem independetly for each agent"); }
         public SinglePlan[] getSinglePlans()
         {
             return goalNode.allSingleAgentPlans;
@@ -409,7 +409,6 @@ namespace CPF_experiment
 
         public virtual bool expand(DnCNode node, DnCConflict conflict)
         {
-
             if (this.maxThreshold != -1 && checkMerge(node))
             {
                 if (node.rePlan(instance, runner, conflict.agentA, this.minCost, solver, lowLevelSolver, ref highLevelExpanded, ref highLevelGenerated, ref loweLevelExpanded, ref loweLevelGenerated) == false)
@@ -522,7 +521,7 @@ namespace CPF_experiment
         public int getNodesFailedOn3Counter() { return -1; }
         public int getNodesFailedOn4Counter() { return -1; }
         public long getMemoryUsed() { return Process.GetCurrentProcess().VirtualMemorySize64; }
-        public WorldState GetGoal() { throw new NotSupportedException("Divide & Constraint dosent have a traditional goal state as it solves the problem independetly for each agent"); }
+        public WorldState GetGoal() { throw new NotSupportedException("Divide & Constraint doesn't have a traditional goal state as it solves the problem independetly for each agent"); }
         public SinglePlan[] getSinglePlans()
         {
             return goalNode.allSingleAgentPlans;

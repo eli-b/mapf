@@ -79,7 +79,7 @@ namespace CPF_experiment
             base.Remove(key);
             foreach (object item in arr)
             {
-                if(item.Equals(key) == false)
+                if (item.Equals(key) == false)
                     this.Add(item);
             }
             arr.Clear();

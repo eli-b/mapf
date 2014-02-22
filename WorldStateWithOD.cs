@@ -17,40 +17,47 @@ namespace CPF_experiment
         public int agentTurn;
         public WorldStateWithOD mirrorState;
 
-
         public WorldStateWithOD(AgentState[] states) : base(states)
         {
             this.agentTurn = 0;
             this.potentialConflictsCount = 0;
         }
+        
         public WorldStateWithOD(WorldState cpy) : base(cpy)
         {
             this.g = cpy.g;
             this.agentTurn = ((WorldStateWithOD)cpy).agentTurn;
             this.potentialConflictsCount = ((WorldStateWithOD)cpy).potentialConflictsCount;
         }
+        
         public WorldStateWithOD(AgentState[] states, List<uint> relevantAgents) : base(states, relevantAgents)
         {
             this.agentTurn = 0;
             this.potentialConflictsCount = 0;
         }
 
-
         /// <summary>
-        /// Returns a hash value for the given state (used in Hash based datastructures).
+        /// Returns a hash value for the given state (used in Hash based data structures).
         /// </summary>
         /// <returns></returns>
         public override int GetHashCode()
         {
             unchecked
             {
-                return base.GetHashCode() + Constants.PRIMES_FOR_HASHING[0] * this.agentTurn;
+                int hash = Constants.PRIMES_FOR_HASHING[0];
+                hash = hash * Constants.PRIMES_FOR_HASHING[1] + base.GetHashCode();
+                hash = hash * Constants.PRIMES_FOR_HASHING[2] + this.agentTurn;
+                for (int i = 0; i < agentTurn; i++)
+                {
+                    hash = hash * Constants.PRIMES_FOR_HASHING[(i + 3) % Constants.PRIMES_FOR_HASHING.Length] + allAgentsState[i].direction;
+                }
+                return hash;
             }
         }
 
-
         /// <summary>
-        /// Currently returns false even if this is the same location and smaller g.
+        /// Returns false even if this is the same location and smaller g, as that's the behavior we need for the closed list.
+        /// Also ignores the mirrorState, as that's also used by A*.
         /// </summary>
         /// <param name="obj"></param>
         /// <returns></returns>
@@ -60,14 +67,14 @@ namespace CPF_experiment
                 return false;
             if (base.Equals(obj) == false)
                 return false;
-            else for (int i = 0; i < agentTurn; i++)
+            for (int i = 0; i < agentTurn; i++)
+            {
+                if (allAgentsState[i].direction != ((WorldState)obj).allAgentsState[i].direction)
                 {
-                    if (allAgentsState[i].direction != ((WorldStateWithOD)obj).allAgentsState[i].direction)
-                    {
-                        if (allAgentsState[i].direction != -1 && ((WorldStateWithOD)obj).allAgentsState[i].direction != -1)
-                            return false;
-                    }
+                    if (allAgentsState[i].direction != (int)Move.Direction.NO_DIRECTION && ((WorldState)obj).allAgentsState[i].direction != (int)Move.Direction.NO_DIRECTION)
+                        return false;
                 }
+            }
             return true;
         }
 
@@ -99,7 +106,6 @@ namespace CPF_experiment
                 }
             }
         }
-
 
         override public int conflictsCount(HashSet<TimedMove> conflictAvoidence)
         {

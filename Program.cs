@@ -96,7 +96,7 @@ namespace CPF_experiment
                                 continueFromLastRun = false;
                                 continue;
                             }
-                            if ( runner.outOfTimeCounter.Length != 0 && runner.outOfTimeCounter.Sum() == runner.outOfTimeCounter.Length * Constants.MAX_FAIL_COUNT)
+                            if (runner.outOfTimeCounter.Length != 0 && runner.outOfTimeCounter.Sum() == runner.outOfTimeCounter.Length * Constants.MAX_FAIL_COUNT) // Too many failures
                                 continue;
                             instanceName = "Instance-" + gridSizes[gs] + "-" + obstaclesProbs[obs] + "-" + agentListSizes[ag] + "-" + i;
                             try
@@ -149,7 +149,7 @@ namespace CPF_experiment
         /// <param name="agentListSizes"></param>
         /// <param name="obstaclesProbs"></param>
         /// <param name="instances"></param>
-        public void RunDragonAgeExperimentSet( int instances)
+        public void RunDragonAgeExperimentSet(int instances)
         {
             ProblemInstance instance;
             string instanceName;

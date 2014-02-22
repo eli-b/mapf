@@ -9,6 +9,7 @@ namespace CPF_experiment
     {
         // Constants
         private const int DEFAULT_SIZE = 4;
+
         // Fields
         private IBinaryHeapItem[] _data;
         private int _count = 0;
@@ -18,6 +19,7 @@ namespace CPF_experiment
         {
             _data = new IBinaryHeapItem[DEFAULT_SIZE];
         }
+
         // Properties
         /// <summary>
         /// Gets the number of values in the heap. 
@@ -26,6 +28,7 @@ namespace CPF_experiment
         {
             get { return _count; }
         }
+
         /// <summary>
         /// Gets or sets the capacity of the heap.
         /// </summary>
@@ -44,6 +47,7 @@ namespace CPF_experiment
                 }
             }
         }
+
         // Methods
         /// <summary>
         /// Creates a new binary heap.
@@ -54,6 +58,7 @@ namespace CPF_experiment
             _count = count;
             Array.Copy(data, _data, count);
         }
+        
         /// <summary>
         /// Gets the first value in the heap without removing it.
         /// </summary>
@@ -71,6 +76,7 @@ namespace CPF_experiment
             this._count = 0;
             _data = new IBinaryHeapItem[_capacity];
         }
+        
         /// <summary>
         /// Adds a key and value to the heap.
         /// </summary>
@@ -103,11 +109,12 @@ namespace CPF_experiment
             _data[0] = _data[_count];
             if (_data[0] != null)
                 _data[0].setIndexInHeap(0);
-            _data[_count] = default(IBinaryHeapItem); //Clears the Last Node
+            _data[_count] = default(IBinaryHeapItem); // Clears the Last Node
             DownHeap();
-            v.setIndexInHeap(-1); /////////////ADDED set the items index to -1 
+            v.setIndexInHeap(-1); // ADDED set the item's index to -1 
             return v;
         }
+
         private void UpHeap()
         //helper function that performs up-heap bubbling
         {
@@ -126,6 +133,7 @@ namespace CPF_experiment
             if (_data[p] != null)
                 _data[p].setIndexInHeap(p);
         }
+        
         private void DownHeap()
         //helper function that performs down-heap bubbling
         {
@@ -162,22 +170,26 @@ namespace CPF_experiment
             if (_data[p] != null)
                 _data[p].setIndexInHeap(p);
         }
+        
         private void EnsureSort()
         {
             if (_sorted) return;
             Array.Sort(_data, 0, _count);
             _sorted = true;
         }
+        
         private static int Parent(int index)
         //helper function that calculates the parent of a node
         {
             return (index - 1) >> 1;
         }
+        
         private static int Child1(int index)
         //helper function that calculates the first child of a node
         {
             return (index << 1) + 1;
         }
+        
         private static int Child2(int index)
         //helper function that calculates the second child of a node
         {
@@ -220,6 +232,7 @@ namespace CPF_experiment
             EnsureSort();
             return Array.BinarySearch<IBinaryHeapItem>(_data, 0, _count, item) >= 0;
         }
+        
         /// <summary>
         /// Copies the binary heap to an array at the specified index.
         /// </summary>
@@ -230,6 +243,7 @@ namespace CPF_experiment
             EnsureSort();
             Array.Copy(_data, array, _count);
         }
+        
         /// <summary>
         /// Gets whether or not the binary heap is readonly.
         /// </summary>
@@ -237,6 +251,7 @@ namespace CPF_experiment
         {
             get { return false; }
         }
+        
         public int GetFatherIndex(int child_index)
         {
             if (child_index % 2 == 0)
@@ -244,10 +259,12 @@ namespace CPF_experiment
             else
                 return ((child_index - 1) / 2);
         }
+        
         public IBinaryHeapItem GetFirst()
         {
             return _data[0];
         }
+        
         /// <summary>
         /// Removes an item from the binary heap. 
         /// This utilizes the type T's Comparer and will not remove duplicates.
@@ -286,6 +303,5 @@ namespace CPF_experiment
             Remove();
             return true;
         }
-
     }
 }

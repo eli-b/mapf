@@ -8,8 +8,6 @@ namespace CPF_experiment
     {
         [NonSerialized] protected ProblemInstance m_Problem;
 
-        
-
         /// <summary>
         /// The agents to extract from the state. Each value in this list is an
         /// index into the Trevor_WorldState.allAgentsStates array. This is
@@ -50,9 +48,7 @@ namespace CPF_experiment
             return 0;
         }
 
-        public virtual void build()
-        {
-        }
+        public virtual void build() {}
 
         public virtual uint h(WorldState s)
         {
@@ -62,7 +58,7 @@ namespace CPF_experiment
         /// <summary>
         /// Expands a node. This is done recursively - generating agent possibilities one at a time.
         /// This includes:
-        /// - Generating the childern
+        /// - Generating the children
         /// - Inserting them into OPEN
         /// - Insert node into CLOSED
         /// </summary>
@@ -76,7 +72,7 @@ namespace CPF_experiment
         /// <summary>
         /// Expands a node. This is done recursively - generating agent possibilities one at a time.
         /// This includes:
-        /// - Generating the childern
+        /// - Generating the children
         /// - Inserting them into OPEN
         /// - Insert node into CLOSED
         /// </summary>
@@ -113,7 +109,7 @@ namespace CPF_experiment
                 deltaX = WorldState.operators[op, 0];
                 deltaY = WorldState.operators[op, 1];
                 agentLocation = new Move(posX + deltaX, posY + deltaY, WorldState.operators[op, 3]);
-                if (IsValidMove(agentLocation, agentIndex,previousMoves))
+                if (IsValid(agentLocation, agentIndex,previousMoves))
                 {
                     previousMoves.Add(agentLocation);
                     childNode = new WorldState(currentNode);
@@ -133,17 +129,16 @@ namespace CPF_experiment
         /// <param name="agentNum">The index of the agent that is proposed to perform the move</param>
         /// <param name="previousAgentMoves">A collection of moves that will be done by the other agents</param>
         /// <returns></returns>
-        private bool IsValidMove(Move possibleMove, int agentNum, ICollection<Move> previousAgentMoves)
+        private bool IsValid(Move possibleMove, int agentNum, ICollection<Move> previousAgentMoves)
         {
             // If the tile is not free (out of the grid or with an obstacles)
-            if (m_Problem.IsValidForMove(possibleMove)==false)
+            if (m_Problem.IsValid(possibleMove) == false)
                 return false;
 
             // If previous move of another agent will collide with this move
             if (previousAgentMoves.Contains(possibleMove) || previousAgentMoves.Contains(possibleMove.GetOppositeMove()))
-	    	    return false;
+                return false;
             return true;
         }
-
     }
 }

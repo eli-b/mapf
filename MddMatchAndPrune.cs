@@ -11,8 +11,8 @@ namespace CPF_experiment
          HashTable_C closedList;
          int solutionDepth; //the depth is the cost + 1 because the root also counts as a level
          MddMatchAndPruneState goal; // This will contain the goal node if such was found
-         bool leagel; //indicates if all single MDDs are leagel
-         public bool[] conflicted;//indicated if the matching proccess foud any ileagel nodes/edges and pruned any of the MDDs
+         bool legal; //indicates if all single MDDs are legal
+         public bool[] conflicted; //indicates if the matching process found any illegal nodes/edges and pruned any of the MDDs
          Run runner;
 
         /// <summary>
@@ -36,7 +36,7 @@ namespace CPF_experiment
              {
                  if (allMDDs[i].levels == null)
                  {
-                     leagel = false;
+                     legal = false;
                      return;
                  }
                  rootPositions[i] = allMDDs[i].levels[0].First.Value;
@@ -45,7 +45,7 @@ namespace CPF_experiment
              MddMatchAndPruneState root = new MddMatchAndPruneState(rootPositions);
              this.solutionDepth = root.allPositions[0].father.levels.Length;
              openList.Enqueue(root);
-             leagel = true;
+             legal = true;
          }
 
         /// <summary>
@@ -110,7 +110,7 @@ namespace CPF_experiment
              {
                  for (int i = 0; i < toExpand.allPositions.Length; i++)
                  {
-                     CostTreeSearchSolver.edgesMatrix[i, parent.allPositions[i].getVertxIndex(), parent.allPositions[i].getDirection(toExpand.allPositions[i])] = CostTreeSearchSolver.edgesMatrixCounter + 1;
+                     CostTreeSearchSolver.edgesMatrix[i, parent.allPositions[i].getVertexIndex(), parent.allPositions[i].getDirection(toExpand.allPositions[i])] = CostTreeSearchSolver.edgesMatrixCounter + 1;
                  }
                  if (closedList.Contains(parent) == false)
                  {
@@ -143,8 +143,8 @@ namespace CPF_experiment
 
                      foreach (MDDNode parent in node.parents)
                      {
-                         //if not leagel
-                         if ((int)CostTreeSearchSolver.edgesMatrix[i, parent.getVertxIndex(), parent.getDirection(node)] != CostTreeSearchSolver.edgesMatrixCounter + 1)
+                         //if not legal
+                         if ((int)CostTreeSearchSolver.edgesMatrix[i, parent.getVertexIndex(), parent.getDirection(node)] != CostTreeSearchSolver.edgesMatrixCounter + 1)
                          {
                              parentsToDelte[parentI] = parent;
                              this.conflicted[i] = true;
@@ -152,7 +152,7 @@ namespace CPF_experiment
                          parentI++;
                      }
                      foreach (MDDNode delteParent in parentsToDelte)
-                         if(delteParent!=null)
+                         if (delteParent != null)
                             node.removeParent(delteParent);
                  }    
              }
@@ -163,7 +163,7 @@ namespace CPF_experiment
         /// </summary>
          public bool pruneMDDs()
          {
-             if (leagel==false || buildGeneralMDD() == false)
+             if (legal == false || buildGeneralMDD() == false)
                  return false;
 
              //Run.resultsWriterdd.Write(CostTreeNodeSolver.matchCounter + ",");
@@ -218,9 +218,9 @@ namespace CPF_experiment
         {
             allPositions=new MDDNode[allSuccessors.Length];
             for (int i = 0; i < allPositions.Length; i++)
-			{
-			    allPositions[i]=allSuccessors[i].Value;
-			}
+            {
+                allPositions[i] = allSuccessors[i].Value;
+            }
             this.stateLevel = allPositions[0].level;
             this.parents = new LinkedList<MddMatchAndPruneState>();
             this.childrens = new LinkedList<MddMatchAndPruneState>();
@@ -282,82 +282,82 @@ namespace CPF_experiment
                 if (nodesFromChildrenList[i] == null)
                     this.hasNext = false;
             }
-            while (hasNext == true && isLeagel(0) == false)
+            while (hasNext == true && isLegal(0) == false)
             {
                 getNext();
             }
         }
 
         /// <summary>
-        /// return the next generated chield
+        /// Return the next generated child.
         /// </summary>
         /// <returns></returns>
         public MddMatchAndPruneState getNext()
         {
             //first return than iterate
-            MddMatchAndPruneState ans=new MddMatchAndPruneState(nodesFromChildrenList);
-            if(nextChield(0)==false)
+            MddMatchAndPruneState ans = new MddMatchAndPruneState(nodesFromChildrenList);
+            if (nextChild(0) == false)
             {
-                hasNext=false;
+                hasNext = false;
             }
             return ans;
         }
 
         /// <summary>
-        /// sets the next chield in line for a given agent, if its the last chield returns the first in order (closed loop). if reseted returns false
+        /// Sets the next child in line for a given agent, if it's the last child returns the first in order (closed loop). If reset returns false.
         /// </summary>
         /// <param name="agent"></param>
         private bool nextSuccessor(int agent)
         {
             if (nodesFromChildrenList[agent].Next == null)
             {
-                nodesFromChildrenList[agent]=nodesFromChildrenList[agent].List.First;
+                nodesFromChildrenList[agent] = nodesFromChildrenList[agent].List.First;
                 return false;
             }
 
-            nodesFromChildrenList[agent]=nodesFromChildrenList[agent].Next;
+            nodesFromChildrenList[agent] = nodesFromChildrenList[agent].Next;
             return true;
         }
 
         /// <summary>
-        /// recorsive function, try to proceed the first agent if it is at the end of its children resets him and proceeds the second agent and so on
+        /// Recursive function, try to proceed the first agent if it is at the end of its children resets him and proceeds the second agent and so on
         /// </summary>
         /// <param name="agent"></param>
-        private bool nextChield(int agent)
+        private bool nextChild(int agent)
         {
-            if(agent==nodesFromChildrenList.Length)
+            if (agent == nodesFromChildrenList.Length)
                 return false;
-            if(nextSuccessor(agent)==false)
-                return nextChield(agent+1);
-            while (isLeagel(agent)==false)
+            if (nextSuccessor(agent) == false)
+                return nextChild(agent+1);
+            while (isLegal(agent) == false)
             {
-	            if(nextSuccessor(agent)==false)
-                    return nextChield(agent+1);
+                if (nextSuccessor(agent) == false)
+                    return nextChild(agent+1);
             }
 
-            if (agent > 0 && isLeagel(0) == false)
-                return nextChield(0);
-	        return true;
+            if (agent > 0 && isLegal(0) == false)
+                return nextChild(0);
+            return true;
         }
 
         /// <summary>
-        /// if we move the i'st agent we check whether it is leagel with all agents that moved before i.e. from that point forword
+        /// if we move the i'st agent we check whether it is legal with all agents that moved before, i.e. from that point forward
         /// </summary>
         /// <param name="checkFrom"></param>
         /// <returns></returns>
-         private bool isLeagel(int checkFrom)
+         private bool isLegal(int checkFrom)
         {
-            // check if all moves are leagel from the i agent forword (collisons+had on collisons)
+            // check if all moves are legal from the i agents forward (collisons+head on collisions)
              for (int i = checkFrom; i < nodesFromChildrenList.Length - 1; i++)
-			{
-			    for (int j = i+1; j < nodesFromChildrenList.Length; j++)
-			    {
-			        if(nodesFromChildrenList[i].Value.Equals(nodesFromChildrenList[j].Value))
+            {
+                for (int j = i+1; j < nodesFromChildrenList.Length; j++)
+                {
+                    if (nodesFromChildrenList[i].Value.Equals(nodesFromChildrenList[j].Value))
                         return false;
-                    if (nodesFromChildrenList[i].Value.getVertxIndex()==prevStep.allPositions[j].getVertxIndex() && nodesFromChildrenList[j].Value.getVertxIndex()==prevStep.allPositions[i].getVertxIndex())
+                    if (nodesFromChildrenList[i].Value.getVertexIndex() == prevStep.allPositions[j].getVertexIndex() && nodesFromChildrenList[j].Value.getVertexIndex() == prevStep.allPositions[i].getVertexIndex())
                         return false;
-			    }
-			}
+                }
+            }
             return true;
         }
 

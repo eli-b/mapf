@@ -32,7 +32,7 @@ namespace CPF_experiment
             for (int i = 0; i < problem.Length; i++)
             {
                 sRoot[i] = problem[i].levels[0].First.Value;
-                sRoot[i].leagel = true;
+                sRoot[i].legal = true;
             }
             root = new MDDStep(sRoot, null);
             openList.Add(root);
@@ -45,7 +45,7 @@ namespace CPF_experiment
             MDDStep currentNode;
             ExpandedNode toExpand = new ExpandedNode();
 
-            while (openList.Count>0)
+            while (openList.Count > 0)
             {
                  if (runner.ElapsedMilliseconds() > Constants.MAX_TIME)
                 {
@@ -69,48 +69,48 @@ namespace CPF_experiment
 
         public void expand(ExpandedNode currentNode)
         {
-            MDDStep chield = currentNode.getNextChield();
-            while (chield != null)
+            MDDStep child = currentNode.getNextChild();
+            while (child != null)
             {
-                if (isLeagelMove(chield))
+                if (isLegalMove(child))
                 {
-                        chield.conflicts = currentNode.parent.conflicts;
-                        chield.setConflicts(ID_CAT, CBS_CAT);
+                        child.conflicts = currentNode.parent.conflicts;
+                        child.setConflicts(ID_CAT, CBS_CAT);
 
-                    if (this.closedList.Contains(chield) == true)
+                    if (this.closedList.Contains(child) == true)
                     {
-                        MDDStep inClosedList = (MDDStep)this.closedList[chield];
+                        MDDStep inClosedList = (MDDStep)this.closedList[child];
 
-                        if (inClosedList.conflicts > chield.conflicts)
+                        if (inClosedList.conflicts > child.conflicts)
                         {
-                            closedList.Remove(inClosedList); //than remove state
+                            closedList.Remove(inClosedList);
                             openList.Remove(inClosedList);
                         }
                     }
-                    if (this.closedList.Contains(chield) == false)
+                    if (this.closedList.Contains(child) == false)
                     {
-                        this.openList.Add(chield);
-                        this.closedList.Add(chield);
+                        this.openList.Add(child);
+                        this.closedList.Add(child);
                         generated++;
                     }
                 }
-                chield = currentNode.getNextChield();
+                child = currentNode.getNextChild();
             }
         }
-        public void clearIleagel()
+        public void clearIllegal()
         {
             foreach (MDD mdd in problem)
                 foreach (LinkedList<MDDNode> level in mdd.levels)
                     foreach (MDDNode node in level)
-                        if (node.leagel == false)
+                        if (node.legal == false)
                             node.delete();
         }
-        public void resetIleagel()
+        public void resetIllegal()
         {
             foreach (MDD mdd in problem)
                 for (int i = 1; i < mdd.levels.Length; i++)
                     foreach (MDDNode node in mdd.levels[i])
-                            node.leagel = false;
+                            node.legal = false;
         }
         public int getGenerated() { return closedList.Count; }
         public int getExpanded() { return this.expanded; }
@@ -122,7 +122,7 @@ namespace CPF_experiment
         }
         private LinkedList<Move>[] getAnswear(MDDStep finish)
         {
-            if (finish==null)
+            if (finish == null)
                 return new LinkedList<Move>[1];
             LinkedList<Move>[] ans = new LinkedList<Move>[problem.Length];
             int direction;
@@ -144,7 +144,7 @@ namespace CPF_experiment
             }
             return ans;
         }
-        private bool checkIfLeagel(MDDNode from1, MDDNode to1, MDDNode from2, MDDNode to2)
+        private bool checkIfLegal(MDDNode from1, MDDNode to1, MDDNode from2, MDDNode to2)
         {
             if (to1.getX() == to2.getX() && to1.getY() == to2.getY())
                 return false;
@@ -152,17 +152,17 @@ namespace CPF_experiment
                 return false;
             return true;
         }
-        private bool isLeagelMove(MDDStep to)
+        private bool isLegalMove(MDDStep to)
         {
             if (to == null)
                 return false;
-            if(to.prevStep==null)
+            if (to.prevStep == null)
                 return true;
             for (int i = 0; i < problem.Length; i++)
             {
                 for (int j = i+1; j < to.allSteps.Length; j++)
                 {
-                    if (checkIfLeagel(to.prevStep.allSteps[i], to.allSteps[i], to.prevStep.allSteps[j], to.allSteps[j]) == false)
+                    if (checkIfLegal(to.prevStep.allSteps[i], to.allSteps[i], to.prevStep.allSteps[j], to.allSteps[j]) == false)
                         return false;
                 }
             }
@@ -265,59 +265,65 @@ namespace CPF_experiment
             return 0;
         }
     }
+
     class ExpandedNode
     {
         public MDDStep parent;
-        int[] chosenChield;
+        int[] chosenChild;
+
         public ExpandedNode() { }
+
         public ExpandedNode(MDDStep parent)
         {
             this.parent = parent;
-            chosenChield = new int[parent.allSteps.Length];
+            chosenChild = new int[parent.allSteps.Length];
             foreach (MDDNode node in parent.allSteps)
             {
                 if (node.children.Count == 0)
                 {
-                    chosenChield[0] = -1;
+                    chosenChild[0] = -1;
                     break;
                 }
             }
         }
+
         public void setup(MDDStep parent)
         {
             this.parent = parent;
-            chosenChield = new int[parent.allSteps.Length];
+            chosenChild = new int[parent.allSteps.Length];
             foreach (MDDNode node in parent.allSteps)
             {
                 if (node.children.Count == 0)
                 {
-                    chosenChield[0] = -1;
+                    chosenChild[0] = -1;
                     break;
                 }
             }
         }
-        public MDDStep getNextChield()
+
+        public MDDStep getNextChild()
         {
-            if (chosenChield[0] == -1)
+            if (chosenChild[0] == -1)
                 return null;
             MDDNode[] ans=new MDDNode[parent.allSteps.Length];
             for (int i = 0; i < ans.Length; i++)
-			{
-			    ans[i]=parent.allSteps[i].children.ElementAt(chosenChield[i]);
-			}
-            setNextChield(chosenChield.Length-1);
+            {
+                ans[i] = parent.allSteps[i].children.ElementAt(chosenChild[i]);
+            }
+            setNextChild(chosenChild.Length-1);
             return new MDDStep(ans, parent);
         }
-        private void setNextChield(int agentNum)
+
+        private void setNextChild(int agentNum)
         {
-            if(agentNum==-1)
-                chosenChield[0] = -1;
-            else if (chosenChield[agentNum] < parent.allSteps[agentNum].children.Count - 1)
-                chosenChield[agentNum]++;
+            if (agentNum == -1)
+                chosenChild[0] = -1;
+            else if (chosenChild[agentNum] < parent.allSteps[agentNum].children.Count - 1)
+                chosenChild[agentNum]++;
             else
             {
-                chosenChield[agentNum] = 0;
-                setNextChield(agentNum - 1);
+                chosenChild[agentNum] = 0;
+                setNextChild(agentNum - 1);
             }
         }
     }

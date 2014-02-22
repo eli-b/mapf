@@ -219,7 +219,7 @@ namespace CPF_experiment
                 aStart[i] = new AgentState(aGoals[i].Goal_X, aGoals[i].Goal_Y, aGoals[i]);
             }
 
-            // Initialzied here only for the IsValidForMove() call. TODO: Think how this can be sidestepped elegantly.
+            // Initialzied here only for the IsValid() call. TODO: Think how this can be sidestepped elegantly.
             ProblemInstance problem = new ProblemInstance();
             problem.init(aStart, grid);
             
@@ -234,7 +234,7 @@ namespace CPF_experiment
                     deltaY = WorldState.operators[op, 1];
                     newX = aStart[i].pos_X + deltaX;
                     newY = aStart[i].pos_Y + deltaY;
-                    if (problem.IsValidForMove(newX, newY) && !goals[newX][newY])
+                    if (problem.IsValid(newX, newY) && !goals[newX][newY])
                     {
                         goals[newX][newY] = true;
                         goals[aStart[i].pos_X][aStart[i].pos_Y] = false;
@@ -264,7 +264,7 @@ namespace CPF_experiment
             //double cr1 = instance.getConflictRation(1);
             CBS_LocalConflicts.isDnC = false;
 
-            //Debug.WriteLine("Conflict ratio (first order): " + cr0 );
+            //Debug.WriteLine("Conflict ratio (first order): " + cr0);
             //Debug.WriteLine("Conflict ratio (second order): " + cr1);
             //this.resultsWriter.Write(cr0 + RESULTS_DELIMITER);
             //this.resultsWriter.Write(cr1 + RESULTS_DELIMITER);

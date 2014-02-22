@@ -43,7 +43,7 @@ namespace CPF_experiment
         public uint m_nObstacles;
         public uint m_nLocations;
         public UInt64 m_nPermutations;
-        public UInt64[] m_vPermutations;
+        public UInt64[] m_vPermutations; // What are these?
         
         /// <summary>
         /// This field is used to identify an instance when running a set of experiments
@@ -118,11 +118,10 @@ namespace CPF_experiment
                 openlist.Clear();
 
                 // Create initial state
-                agentState = 
-                    new AgentState(this.m_vAgents[agentId].agent.Goal_X,
+                agentState = new AgentState(this.m_vAgents[agentId].agent.Goal_X,
                         this.m_vAgents[agentId].agent.Goal_Y, -1, -1, agentId);
                 entry = this.getCardinality(agentState);
-                shortestPaths[entry]=0;
+                shortestPaths[entry] = 0;
                 openlist.Enqueue(new WorldState(new AgentState[1] { agentState }));
                 while (openlist.Count > 0)
                 {
@@ -133,11 +132,11 @@ namespace CPF_experiment
                     for (int op = 0; op < WorldState.operators.GetLength(0); op++)
                     {
                         aMove = WorldState.MakeMove(op, currentAgentState);
-                        if(IsValidForMove(aMove))
+                        if (IsValid(aMove))
                         {
                             entry = m_vCardinality[aMove.x, aMove.y];
                             // If move will generate a new or better state - add it to the queue
-                            if((shortestPaths[entry]<0)||(shortestPaths[entry]>state.g+1))
+                            if ((shortestPaths[entry] < 0) || (shortestPaths[entry] > state.g+1))
                             {
                                 childState = new WorldState(state);
                                 childState.allAgentsState[0].move(op);
@@ -318,7 +317,7 @@ namespace CPF_experiment
             {
                 for (int j = 0; j < this.m_vGrid.GetLength(0); j++)
                 {
-                    if(this.m_vGrid[i][j]==true)
+                    if (this.m_vGrid[i][j] == true)
                         output.Write('@');
                     else
                         output.Write('.');
@@ -391,12 +390,13 @@ namespace CPF_experiment
         }
 
         /// <summary>
-        /// Check if the tile is valid, i.e. in the grid and without an obstacle
+        /// Check if the tile is valid, i.e. in the grid and without an obstacle.
+        /// NOT checking the direction. A Move could be declared valid even if it came to an edge tile from outside the grid!
         /// </summary>
         /// <param name="x"></param>
         /// <param name="y"></param>
-        /// <returns>True if the give location is a valid grid location with no obstacles</returns>
-        public bool IsValidForMove(Move aMove)
+        /// <returns>True if the given location is a valid grid location with no obstacles</returns>
+        public bool IsValid(Move aMove)
         {
             int x = aMove.x;
             int y = aMove.y;
@@ -413,12 +413,13 @@ namespace CPF_experiment
         }
 
         /// <summary>
-        /// Check if the tile is valid, i.e. in the grid and without an obstacle and in sum cases that the step is not reserved
+        /// Check if the tile is valid, i.e. in the grid and without an obstacle and in some cases that the step is not reserved.
+        /// NOT checking the direction or the time!
         /// </summary>
         /// <param name="x"></param>
         /// <param name="y"></param>
-        /// <returns>True if the give location is a valid grid location with no obstacles</returns>
-        public bool IsValidForMove(int x, int y, int time = 0, int direction = -1)
+        /// <returns>True if the given location is a valid grid location with no obstacles</returns>
+        public bool IsValid(int x, int y, int time = 0, int direction = (int)Move.Direction.NO_DIRECTION)
         {
             if ((x >= m_vGrid.Length) || (x < 0))
                 return false;
@@ -439,7 +440,7 @@ namespace CPF_experiment
             return true;
         }
 
-        public bool IsValidForMove(TimedMove toCheck)
+        public bool IsValid(TimedMove toCheck)
         {
             if ((toCheck.x >= m_vGrid.Length) || (toCheck.x < 0))
                 return false;
@@ -460,6 +461,7 @@ namespace CPF_experiment
                     return false;
                 toCheck.setOppositeMove();
             }
+
             //if (parameters.ContainsKey(CBS_LocalConflicts.CONSTRAINTS))
             //{
             //    DnCConstraint nextStepLocation = new DnCConstraint();
@@ -488,17 +490,16 @@ namespace CPF_experiment
         public double getConflictRation(int orderOfConflict)
         {
             HashSet<CoordinateForConflictRatio> potentialConflicts = new HashSet<CoordinateForConflictRatio>();
-            SetPotentialConflictsForAgent set=new SetPotentialConflictsForAgent();
+            SetPotentialConflictsForAgent set = new SetPotentialConflictsForAgent();
             int conflictsCount = 0;
             int clearCount = 0;
-
 
             for (int i = 0; i < m_vAgents.Length; i++)
             {
                 set.Setup(this, i);
                 set.Solve(potentialConflicts, orderOfConflict);
                 conflictsCount += set.conflictsCount;
-                if(i!=0)
+                if (i != 0)
                     clearCount += set.clearCount;
             }
 

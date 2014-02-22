@@ -9,12 +9,8 @@ namespace CPF_experiment
     /// </summary>
     public class AStarWithOD : ClassicAStar
     {
-
-
-
         override public void Setup(ProblemInstance problemInstance)
         {
-            
             base.Setup(problemInstance);
         }
 
@@ -86,20 +82,15 @@ namespace CPF_experiment
                         childNode.makespan = parent.makespan + 1;
 
 
-                    // g of child is equal to g of parent only when newMove is a STAY move and agent has already been at his goal location
+                    // g of child is equal to g of parent only when newMove is a STAY move and agent has already arrived at his goal location
                     childNode.CalculateG();  
 
                     if (childNode.h + childNode.g <= this.maxCost)
                     {
                         //if in closed list
                         //if ( childNode.agentTurn==0 && this.closedList.Contains(childNode) == true)
-                        if (this.closedList.Contains(childNode) == true)
+                        if (this.closedList.ContainsKey(childNode) == true)
                         {
-                            //if (childNode.agentTurn != 0)
-                            //{
-                            //    Console.WriteLine("A* with OD LN 96");
-                            //    Console.ReadLine();
-                            //}
                             WorldStateWithOD inClosedList = (WorldStateWithOD)this.closedList[childNode];
                             if (inClosedList.mirrorState != null)
                                 inClosedList = inClosedList.mirrorState;
@@ -148,32 +139,33 @@ namespace CPF_experiment
         {
             WorldStateWithOD cpy = new WorldStateWithOD(toAdd);
             cpy.mirrorState = toAdd;
-            bool ristricting;
-            bool shouldAdd=false;
+            bool restricting;
+            bool shouldAdd = false;
             for (int i = 0; i < cpy.agentTurn; i++)
             {
-                ristricting = false;
-                for (int j = cpy.agentTurn; j < cpy.allAgentsState.Length && ristricting==false ; j++)
-			    {
-			        if ( cpy.allAgentsState[i].pos_X == cpy.allAgentsState[j].pos_X && cpy.allAgentsState[i].pos_Y == cpy.allAgentsState[j].pos_Y)
-	                {
-		                ristricting = true;
-	                }
-			    }
-                if (ristricting == false)
+                restricting = false;
+                for (int j = cpy.agentTurn; j < cpy.allAgentsState.Length && restricting == false ; j++)
                 {
-                    cpy.allAgentsState[i].direction = -1;
+                    if (cpy.allAgentsState[i].pos_X == cpy.allAgentsState[j].pos_X && 
+                        cpy.allAgentsState[i].pos_Y == cpy.allAgentsState[j].pos_Y)
+                    {
+                        restricting = true;
+                    }
+                }
+                if (restricting == false)
+                {
+                    cpy.allAgentsState[i].direction = (int)Move.Direction.NO_DIRECTION;
                     shouldAdd = true;
                 }
             }
-            if (toAdd.agentTurn==0 || shouldAdd)
+            if (toAdd.agentTurn == 0 || shouldAdd)
             {
-                closedList.Add(cpy);
+                closedList.Add(cpy,cpy);
             }
         }
 
         /// <summary>
-        /// Check if a move is valid. This checks agains:
+        /// Check if a move is valid. This checks against:
         /// - Hitting a wall or an obstacle
         /// - Colliding with other agents
         /// </summary>
@@ -183,12 +175,12 @@ namespace CPF_experiment
         /// <returns>true if the move is valid</returns>
         protected bool IsValidMove(TimedMove aMove, int agentIndex, WorldStateWithOD node)
         {
-            if (this.instance.IsValidForMove(aMove) == false)
+            if (this.instance.IsValid(aMove) == false)
                 return false;
 
-            // Check against all the agents that have already moved to see if current move collides with this move
-            for(int i=0;i<agentIndex;i++)
-                if(aMove.isColliding(node.allAgentsState[i].pos_X,
+            // Check against all the agents that have already moved to see if current move collides with their move
+            for (int i = 0 ; i < agentIndex ; i++)
+                if (aMove.isColliding(node.allAgentsState[i].pos_X,
                     node.allAgentsState[i].pos_Y,
                     node.allAgentsState[i].direction))
                     return false;

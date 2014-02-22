@@ -147,7 +147,7 @@ namespace CPF_experiment
                 }
             }
 
-            if ( node.totalCost + conflict.timeStep + stepLength - node.pathLength(conflict.agentB) <= fBound)
+            if (node.totalCost + conflict.timeStep + stepLength - node.pathLength(conflict.agentB) <= fBound)
                 {
                     ok2 = true;
                     if (node.isAllowedConstraint(con2))
@@ -210,7 +210,7 @@ namespace CPF_experiment
         public int getNodesFailedOn3Counter() { return -1; }
         public int getNodesFailedOn4Counter() { return -1; }
         public long getMemoryUsed() { return Process.GetCurrentProcess().VirtualMemorySize64; }
-        public WorldState GetGoal() { throw new NotSupportedException("Divide & Constraint dosent have a traditional goal state as it solves the problem independetly for each agent"); }
+        public WorldState GetGoal() { throw new NotSupportedException("Divide & Constraint doesn't have a traditional goal state as it solves the problem independetly for each agent"); }
         public SinglePlan[] getSinglePlans()
         {
             return goalNode.allSingleAgentPlans;
