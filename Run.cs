@@ -352,7 +352,7 @@ namespace CPF_experiment
             Console.WriteLine("Total Generated Nodes (Low-Level): {0}", solver.getLowLevelGenerated());
            // Console.WriteLine("Total Unique/Full Expanded Nodes: {0}", solver.getNodesPassedPruningCounter());
 
-            this.printStatistics(instance, solver, this.startTime);
+            this.printStatistics(instance, solver, elapsedTime);
             solver.Clear();
         }
 
