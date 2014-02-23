@@ -252,8 +252,8 @@ namespace CPF_experiment
                         //    (g_inClosedList == currentNode.g && potentialConflictsCount_inClosedList > currentNode.potentialConflictsCount) ||
                         //    (g_inClosedList == currentNode.g && potentialConflictsCount_inClosedList == currentNode.potentialConflictsCount && dncInternalConflictsCount_inClosedList > currentNode.dncInternalConflictsCount))
                         {
-                            closedList.Remove(currentNode);
-                            openList.Remove(currentNode);
+                            closedList.Remove(inClosedList); // Why is this alternative causing errors: closedList.Remove(currentNode); They're supposed to be equal in hash and in Equals
+                            openList.Remove(inClosedList);
                         }
                     }
 
