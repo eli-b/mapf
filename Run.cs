@@ -27,7 +27,7 @@ namespace CPF_experiment
         /// <summary>
         /// Indicates the starting time in ms for timing the different algorithms.
         /// </summary>
-        private long startTime;
+        private double startTime;
 
         /// <summary>
         /// This hold an open stream to the results file.
@@ -335,7 +335,7 @@ namespace CPF_experiment
             this.startTime = this.ElapsedMillisecondsTotal();
             solver.Setup(instance);
             solved = solver.Solve(this);
-            long elapsedTime = this.ElapsedMilliseconds();
+            double elapsedTime = this.ElapsedMilliseconds();
             if (solved)
             {
                 Console.WriteLine("Total cost: {0}", solver.GetSolutionCost());
@@ -412,7 +412,7 @@ namespace CPF_experiment
         /// <param name="instance">The problem instance that was solved</param>
         /// <param name="solver">The solver that solved the problem instance</param>
         /// <param name="runtimeInMillis">The time it took the given solver to solve the given instance</param>
-        private void printStatistics(ProblemInstance instance, ISolver solver, long runtimeInMillis)
+        private void printStatistics(ProblemInstance instance, ISolver solver, double runtimeInMillis)
         {
             if (solver.GetSolutionCost() < 0)
             {
@@ -478,13 +478,13 @@ namespace CPF_experiment
         //    }
         //}
 
-        private long ElapsedMillisecondsTotal()
+        private double ElapsedMillisecondsTotal()
         {
             TimeSpan interval = Process.GetCurrentProcess().TotalProcessorTime;
-            return (long)interval.TotalMilliseconds;
+            return (double)interval.TotalMilliseconds;
         }
 
-        public long ElapsedMilliseconds()
+        public double ElapsedMilliseconds()
         {
             return ElapsedMillisecondsTotal() - this.startTime;
         }

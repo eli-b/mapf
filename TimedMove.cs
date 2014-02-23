@@ -134,6 +134,11 @@ namespace CPF_experiment
             this.cardinality = cpy.cardinality;
         }
 
+        /// <summary>
+        /// Probably the intended implementation
+        /// </summary>
+        /// <param name="obj"></param>
+        /// <returns></returns>
         public override bool Equals(object obj)
         {
             return base.Equals(obj);
