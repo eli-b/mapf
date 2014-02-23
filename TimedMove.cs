@@ -33,10 +33,6 @@ namespace CPF_experiment
             if (this.time != ((TimedMove)obj).time)
                 return false;
 
-            /// <remarks>
-            /// Calling the base class might cause a problem in the efficiency (adds another function call).
-            /// Consider just copying the code.
-            /// </remarks>
             return base.Equals(obj);
         }
 
@@ -68,10 +64,6 @@ namespace CPF_experiment
             if (this.time != other.time)
                 return false;
 
-            /// <remarks>
-            /// Calling the base class might cause a problem in the efficiency (adds another function call).
-            /// Consider just copying the code.
-            /// </remarks>
             return base.Equals(other);
         }
 
@@ -79,10 +71,6 @@ namespace CPF_experiment
         {
             Move oppositeMove = base.GetOppositeMove();
 
-            /// <remarks>
-            /// Calling the base class might cause a problem in the efficiency (adds another function call).
-            /// Consider just copying the code.
-            /// </remarks>
             return new TimedMove(oppositeMove.x, oppositeMove.y, oppositeMove.direction, this.time);
         }
 
@@ -100,6 +88,8 @@ namespace CPF_experiment
 
         public bool isColliding(HashSet<TimedMove> CAT)
         {
+            // Sadly, since there's currently no System.Collections.Generic.IReadOnlySet, Move.isColliding accepts an ISet<Move>,
+            // so the compiler doesn't let us just call base.isColliding(CAT) because base might put a Move that isn't a TimedMove in CAT,
             if (CAT == null)
                 return false;
 
@@ -119,28 +109,7 @@ namespace CPF_experiment
                 return true;
             }
             this.setOppositeMove();
-            return false;
-        }
 
-        public bool contained(HashSet_U<TimedMove> CAT)
-        {
-            if (CAT == null)
-                return false;
-            int saveDirection = this.direction;
-            this.direction = -1;
-
-            if (CAT.Contains(this))
-                return true;
-
-            this.direction = direction;
-            this.setOppositeMove();
-
-            if (CAT.Contains(this))
-            {
-                this.setOppositeMove();
-                return true;
-            }
-            this.setOppositeMove();
             return false;
         }
     }

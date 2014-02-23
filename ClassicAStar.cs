@@ -186,7 +186,7 @@ namespace CPF_experiment
         public virtual bool Expand(WorldState node)
         {
             //Debug.Print("Expanding node " + node);
-            Expand(node, 0, runner, new HashSet<Move>());
+            Expand(node, 0, runner, new HashSet<TimedMove>());
             return true;
         }
         
@@ -199,7 +199,7 @@ namespace CPF_experiment
         /// TODO: Make expand not recursive to gain speedup of runtime.
         /// </summary>
         /// <param name="currentNode"></param>
-        protected virtual void Expand(WorldState currentNode, int agentIndex, Run runner, HashSet<Move> currentMoves)
+        protected virtual void Expand(WorldState currentNode, int agentIndex, Run runner, HashSet<TimedMove> currentMoves)
         {
             if (runner.ElapsedMilliseconds() > Constants.MAX_TIME || this.foundGoal)
                 return;
@@ -291,7 +291,7 @@ namespace CPF_experiment
                 deltaY = WorldState.operators[op, 1];
 
                 agentLocation.setup(posX + deltaX, posY + deltaY, WorldState.operators[op, 2], currentNode.makespan + 1);
-                if (IsValidMove(agentLocation, currentMoves) == false)
+                if (IsValid(agentLocation, currentMoves) == false)
                     continue;
                 if (this.constraintList != null)
                 {
@@ -329,53 +329,21 @@ namespace CPF_experiment
         /// </summary>
         /// <param name="possibleMove">The move to check if possible</param>
         /// <returns>true, if the move is possible.</returns>
-        protected bool IsValidMove(TimedMove possibleMove, HashSet<Move> currentMoves)
+        protected bool IsValid(TimedMove possibleMove, HashSet<TimedMove> currentMoves)
         {
             int moveDirection = possibleMove.direction;
             if (this.illegalMoves != null) 
             {
-                
-                possibleMove.direction = -1;
-                if (this.illegalMoves.Contains(possibleMove))
-                {
-                    possibleMove.direction = moveDirection;
+                if (possibleMove.isColliding(illegalMoves))
                     return false;
-                }
-                possibleMove.direction = moveDirection;
-                possibleMove.setOppositeMove();
-                if (this.illegalMoves.Contains(possibleMove))
-                {
-                    possibleMove.setOppositeMove();
-                    return false;
-                }
-                possibleMove.setOppositeMove();
             }
 
             // If the tile is not free (out of the grid or with an obstacles)
             if (this.instance.IsValid(possibleMove) == false)
                 return false;
 
-            // If previous move of another agent will collide with this move
-            
-
-            // Check if the past move arrived at the same location (direction is not important here)
-            possibleMove.direction = (int)Move.Direction.NO_DIRECTION;
-            if (currentMoves.Contains(possibleMove))
-            {
-                possibleMove.direction = moveDirection;
-                return false;
-            }
-            possibleMove.direction = moveDirection;
-            // Check if the past move arrived in the opposite direction (direction here is improtant)
-            possibleMove.setOppositeMove();
-            if (currentMoves.Contains(possibleMove))
-            {
-                possibleMove.setOppositeMove();
-                return false;
-            }
-            possibleMove.setOppositeMove();
-
-            return true;
+            // Check if previous move of another agent will collide with this move:
+            return (possibleMove.isColliding(currentMoves) == false);
         }
 
         /// <summary>

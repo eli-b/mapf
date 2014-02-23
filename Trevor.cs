@@ -240,7 +240,7 @@ namespace CPF_experiment
                     break;
                 
                 // Check if can solve the current conflict by replanning one of the groups
-                if(this.allConflicts.Contains(conflict)==false)
+                if (this.allConflicts.Contains(conflict) == false)
                 {
                     // Add to all conflicts to prevent trying to replan this conflict again
                     this.allConflicts.Add(conflict);
@@ -325,7 +325,7 @@ namespace CPF_experiment
         /// <returns>true if optimal solution has been found</returns>
         public bool Solve(Run runner)
         {
-            // Solve the single agent problems independantly
+            // Solve the single agent problems independently
             LinkedListNode<AgentsGroup> agentGroupNode = this.allGroups.First;
             maxDepth=0;
 
@@ -480,7 +480,7 @@ namespace CPF_experiment
         {
             AgentState[] joinedAgentStates = new AgentState[allAgentsState.Length + other.allAgentsState.Length];
             int i;
-            for ( i = 0; i < allAgentsState.Length; i++)
+            for (i = 0; i < allAgentsState.Length; i++)
             {
                 joinedAgentStates[i] = allAgentsState[i];
             }
@@ -505,7 +505,7 @@ namespace CPF_experiment
             AgentsGroup other = (AgentsGroup)obj;
             for (int i = 0; i < allAgentsState.Length; i++)
             {
-                if(allAgentsState[i].Equals(other.allAgentsState[i]) == false)
+                if (allAgentsState[i].Equals(other.allAgentsState[i]) == false)
                     return false;
             }
             return true;

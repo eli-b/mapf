@@ -79,7 +79,7 @@ namespace CPF_experiment
         /// <param name="currentNode">The node to expand</param>
         /// <param name="agentIndex">The index of the agent to expand children for</param>
         /// <param name="children">A list in which to set the children states</param>
-        /// <param name="previousMoves">A collection of moves preformed by the previous agents in this time step (needed to verify that no collisions occur)</param>
+        /// <param name="previousMoves">A collection of moves performed by the previous agents in this time step (needed to verify that no collisions occur)</param>
         public void Expand(WorldState currentNode, int agentIndex, ICollection<WorldState> children, ICollection<Move> previousMoves)
         {
             WorldState prev = currentNode.prevStep;
@@ -103,7 +103,7 @@ namespace CPF_experiment
             }
 
 
-            // Try all legal moves of the agents
+            // Try all legal moves of the agent
             for (int op = 0; op < WorldState.operators.GetLength(0); op++)
             {
                 deltaX = WorldState.operators[op, 0];

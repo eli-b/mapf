@@ -4,14 +4,14 @@ namespace CPF_experiment
 {
     /// <summary>
     /// This class represents a state in the A* search with operator decomposition, as proposed by Trevor Scott Standley's AAAI paper in 2010.
-    /// More specifically, states can represent a partial move, in which only some of the agents has moved
+    /// More specifically, states can represent a partial move, in which only some of the agents have moved
     /// and the other have not yet moved in this turn. 
     /// </summary>
     public class WorldStateWithOD : WorldState
     {
         /// <summary>
         /// Marks the index of the agent that will move next. 
-        /// All agents with index less than agentTurn are assume to have already chosen their move for this time step,
+        /// All agents with index less than agentTurn are assumed to have already chosen their move for this time step,
         /// while agents with higher index have not chosen their move yet.
         /// </summary>
         public int agentTurn;
@@ -92,7 +92,7 @@ namespace CPF_experiment
                     g += singleAgentState.arrivalTime;
                 ///
                 /// <remark> 
-                /// The agents that have moved in this timestamp is all the agents until parent.agentTurn.
+                /// The agents that have moved in this timestamp are all the agents until parent.agentTurn.
                 /// Therefore, we add the makespan only to these agents, and the previous timestamp to the others.
                 /// </remark>
                 ///

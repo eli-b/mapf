@@ -1,4 +1,5 @@
-﻿
+﻿using System.Collections.Generic;
+
 namespace CPF_experiment
 {
     /// <summary>
@@ -177,16 +178,7 @@ namespace CPF_experiment
         /// <returns></returns>
         public bool isColliding(Move other)
         {
-            // TODO: Consider calling isColliding(other.x, other.y, other.direction) instead of this code duplication
-            // Same target check
-            if (this.x == other.x && this.y == other.y)
-                return true;
-            // Head-on collision check
-            var source_x = this.x + directionToOppositeDeltas[direction, 0];
-            var source_y = this.y + directionToOppositeDeltas[direction, 1];
-            var other_source_x = other.x + directionToOppositeDeltas[other.direction, 0];
-            var other_source_y = other.y + directionToOppositeDeltas[other.direction, 1];
-            return this.x == other_source_x && this.y == other_source_y && other.x == source_x && other.y == source_y;
+            return isColliding(other.x, other.y, other.direction);
         }
 
         /// <summary>
@@ -210,6 +202,28 @@ namespace CPF_experiment
             var other_source_x = other_x + directionToOppositeDeltas[other_direction, 0];
             var other_source_y = other_y + directionToOppositeDeltas[other_direction, 1];
             return this.x == other_source_x && this.y == other_source_y && other_x == source_x && other_y == source_y;
+        }
+
+        public bool isColliding(ISet<Move> group)
+        {
+            // Same target check
+            int saved_direction = direction;
+            direction = (int)Direction.NO_DIRECTION;
+            if (group.Contains(this))
+            {
+                direction = saved_direction;
+                return true;
+            }
+            direction = saved_direction;
+
+            setOppositeMove();
+            if (group.Contains(this))
+            {
+                setOppositeMove();
+                return true;
+            }
+            setOppositeMove();
+            return false;
         }
 
         public static int getDirection(int to_x, int to_y, int from_x, int from_y)

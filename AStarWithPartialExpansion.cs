@@ -28,7 +28,7 @@ namespace CPF_experiment
             hasMoreSuc = false;
             node.nextFvalue = byte.MaxValue;
 
-            expand(node, 0, runner, node.h + node.g, new HashSet<Move>());
+            expand(node, 0, runner, node.h + node.g, new HashSet<TimedMove>());
             node.h = node.nextFvalue - node.g;
 
             if (hasMoreSuc && node.h + node.g <= this.maxCost)
@@ -36,7 +36,16 @@ namespace CPF_experiment
             return true;
         }
 
-         protected bool  expand(WorldState currentNode, int agentIndex, Run runner, int targetF, HashSet<Move> currentMoves)
+        /// <summary>
+        /// Another recursive implementation!
+        /// </summary>
+        /// <param name="currentNode"></param>
+        /// <param name="agentIndex"></param>
+        /// <param name="runner"></param>
+        /// <param name="targetF"></param>
+        /// <param name="currentMoves"></param>
+        /// <returns></returns>
+        protected bool expand(WorldState currentNode, int agentIndex, Run runner, int targetF, HashSet<TimedMove> currentMoves)
         {
             if (runner.ElapsedMilliseconds() > Constants.MAX_TIME || this.foundGoal)
                 return true;
@@ -139,7 +148,7 @@ namespace CPF_experiment
                         continue;
                 }
                 agentLocation.setup(posX + deltaX, posY + deltaY, WorldState.operators[op, 2], currentNode.makespan + 1);
-                if (IsValidMove(agentLocation,currentMoves))
+                if (IsValid(agentLocation, currentMoves))
                 {
                     currentMoves.Add(agentLocation);
                     childNode = new WorldState(currentNode);
@@ -215,7 +224,7 @@ namespace CPF_experiment
             byte[][] allMoves = node.getSingleAgentMoves(instance);
             int maxFchange = node.getMaxFchange(allMoves);
 
-            if (node.isAllReadyExpanded() == false)
+            if (node.isAlreadyExpanded() == false)
             {
                 expandedFullStates++;
                 node.alreadyExpanded = true;
@@ -225,7 +234,7 @@ namespace CPF_experiment
 
             sbyte[][] fLookupTable = null; // [0] - agent number ,[1] - f change, value =1 - exists successor, value = -1 not exists, value = 0 don't know
 
-            Expand(node, 0, runner, new HashSet<Move>(), allMoves, node.currentFChange, fLookupTable);
+            Expand(node, 0, runner, new HashSet<TimedMove>(), allMoves, node.currentFChange, fLookupTable);
             node.currentFChange++;
             node.h++;
             while (node.hasMoreChildren(maxFchange) && existingChildForF(allMoves, 0, node.currentFChange) == false)
@@ -239,7 +248,7 @@ namespace CPF_experiment
             return true;
         }
 
-        protected bool Expand(WorldState currentNode, int agentIndex, Run runner, HashSet<Move> currentMoves, byte[][] allMoves, int targetFchange, sbyte[][] fLookupTable)
+        protected bool Expand(WorldState currentNode, int agentIndex, Run runner, HashSet<TimedMove> currentMoves, byte[][] allMoves, int targetFchange, sbyte[][] fLookupTable)
         {
             if (existingChildForF(allMoves, agentIndex, targetFchange) == false)
                 return false;
@@ -336,7 +345,7 @@ namespace CPF_experiment
                         continue;
                 }
                 agentLocation.setup(posX + deltaX, posY + deltaY, WorldState.operators[op, 2], currentNode.makespan + 1);
-                if (IsValidMove(agentLocation, currentMoves))
+                if (IsValid(agentLocation, currentMoves))
                 {
                     currentMoves.Add(agentLocation);
                     childNode = new WorldStateForPartialExpansion(currentNode);
@@ -355,7 +364,7 @@ namespace CPF_experiment
             // allMoves[][] = [0] - agent number [1] - direction [in table]- effecte on F)
             // fLookup[][] = [0] - agent number ,[1] - f change, value =1 - exists successor, value = -1 not exists, value = 0 dont know
 
-            if (targetFchange<0)
+            if (targetFchange < 0)
             {
                 return false;
             }

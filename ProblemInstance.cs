@@ -74,7 +74,9 @@ namespace CPF_experiment
         {
             ProblemInstance subproblemInstance = new ProblemInstance();
             subproblemInstance.init(selectedAgents, this.m_vGrid);
+            // Not checking whether selectedAgents are really a subset of our agents?
             subproblemInstance.singleAgentShortestPaths = this.singleAgentShortestPaths;
+            // Passing all of singleAgentShortestPaths to the subproblem?
             return subproblemInstance;
         }
 
@@ -268,7 +270,7 @@ namespace CPF_experiment
             line = input.ReadLine();
             int numOfAgents = int.Parse(line);
 
-            // Read the agent's start and goal states
+            // Read the agents' start and goal states
             AgentState[] states = new AgentState[numOfAgents];
             AgentState state;
             Agent agent;
@@ -398,18 +400,7 @@ namespace CPF_experiment
         /// <returns>True if the given location is a valid grid location with no obstacles</returns>
         public bool IsValid(Move aMove)
         {
-            int x = aMove.x;
-            int y = aMove.y;
-
-            if ((x >= m_vGrid.Length) || (x < 0))
-            {
-                return false;
-            }
-            if ((y >= m_vGrid[x].Length) || (y < 0))
-            {
-                return false;
-            }
-            return !m_vGrid[x][y];
+            return isValidTile(aMove.x, aMove.y);
         }
 
         /// <summary>

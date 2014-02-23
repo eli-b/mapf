@@ -51,7 +51,8 @@ namespace CPF_experiment
         }
 
         /// <summary>
-        /// Actually moves the agent and recalculates its heuristic
+        /// Actually moves the agent and recalculates its heuristic.
+        /// Does NOT recalculates the heuristic!
         /// </summary>
         public void move(int direction)
         {

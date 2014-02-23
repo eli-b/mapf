@@ -109,20 +109,11 @@ namespace CPF_experiment
                         nextStep.potentialConflicts = currentNode.potentialConflicts;
                         nextStep.potentialConflictsID = currentNode.potentialConflictsID;
 
-                        nextMove.direction = -1;
-                        if (conflictTableThisGroup.Contains(nextMove))
+                        if (nextMove.isColliding(conflictTableThisGroup))
                             nextStep.potentialConflicts++;
-                        if (conflictTableOtherGroups!=null && conflictTableOtherGroups.Contains(nextMove))
+                        if (nextMove.isColliding(conflictTableOtherGroups))
                             nextStep.potentialConflictsID++;
-
-                        nextMove.direction = direction;
-                        nextMove.setOppositeMove();
-
-                        if (conflictTableThisGroup.Contains(nextMove))
-                            nextStep.potentialConflicts++;
-                        if (conflictTableOtherGroups != null && conflictTableOtherGroups.Contains(nextMove))
-                            nextStep.potentialConflictsID++;
-
+                        
                         if (this.closedList.Contains(nextStep) == true)
                         {
                             AgentState inClosedList = (AgentState)this.closedList[nextStep];

@@ -7,7 +7,7 @@ namespace CPF_experiment
     // This class represents a union of HashSets.
     // TODO: Make sure it's really better than using HashSet.UnionWith().
     // </summary>
-    public class HashSet_U<T>
+    public class HashSet_U<T> : HashSet<T>
     {
         List<HashSet<T>> Data;
         public HashSet_U()
@@ -15,12 +15,13 @@ namespace CPF_experiment
             this.Data = new List<HashSet<T>>();
         }
 
-        public void Add(object value)
+        public new void Add(T value)
         {
             throw new Exception("Illegal Operation");
         }
+        // TODO: illegalify the rest of the unwanted inherited methods of HashSet
 
-        public bool Contains(T key)
+        public new bool Contains(T key)
         {
             foreach (HashSet<T> item in Data)
             {
@@ -30,7 +31,7 @@ namespace CPF_experiment
             return false;
         }
 
-        public void Clear()
+        public new void Clear()
         {
             foreach (HashSet<T> item in Data)
             {

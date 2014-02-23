@@ -56,7 +56,7 @@ namespace CPF_experiment
                 deltaX = WorldState.operators[op, 0];
                 deltaY = WorldState.operators[op, 1];
                 newMove.setup(posX + deltaX, posY + deltaY, WorldState.operators[op, 2],step);
-                if (this.IsValidMove(newMove, agentTurn, parent))
+                if (this.IsValid(newMove, agentTurn, parent))
                 {
                   
                     childNode = new WorldStateWithOD(parent);
@@ -88,14 +88,14 @@ namespace CPF_experiment
                     if (childNode.h + childNode.g <= this.maxCost)
                     {
                         //if in closed list
-                        //if ( childNode.agentTurn==0 && this.closedList.Contains(childNode) == true)
+                        //if (childNode.agentTurn==0 && this.closedList.Contains(childNode) == true)
                         if (this.closedList.ContainsKey(childNode) == true)
                         {
                             WorldStateWithOD inClosedList = (WorldStateWithOD)this.closedList[childNode];
                             if (inClosedList.mirrorState != null)
                                 inClosedList = inClosedList.mirrorState;
                             //if g is smaller than remove the old world state than remove state
-                            if (inClosedList != null && (inClosedList.g > childNode.g || (inClosedList.g == childNode.g && (inClosedList.potentialConflictsCount > childNode.potentialConflictsCount || ( inClosedList.potentialConflictsCount == childNode.potentialConflictsCount && inClosedList.dncInternalConflictsCount > childNode.dncInternalConflictsCount )))))
+                            if (inClosedList != null && (inClosedList.g > childNode.g || (inClosedList.g == childNode.g && (inClosedList.potentialConflictsCount > childNode.potentialConflictsCount || (inClosedList.potentialConflictsCount == childNode.potentialConflictsCount && inClosedList.dncInternalConflictsCount > childNode.dncInternalConflictsCount)))))
                             {
                                 closedList.Remove(inClosedList);
                                 openList.Remove(inClosedList);
@@ -173,7 +173,7 @@ namespace CPF_experiment
         /// <param name="agentIndex">The index of the agent that wants to perform the move</param>
         /// <param name="node"></param>
         /// <returns>true if the move is valid</returns>
-        protected bool IsValidMove(TimedMove aMove, int agentIndex, WorldStateWithOD node)
+        protected bool IsValid(TimedMove aMove, int agentIndex, WorldStateWithOD node)
         {
             if (this.instance.IsValid(aMove) == false)
                 return false;
@@ -194,18 +194,11 @@ namespace CPF_experiment
         /// </summary>
         /// <param name="aMove"></param>
         /// <returns>True if the move is reserved</returns>
-        protected bool IsMoveReserved(Move aMove)
+        protected bool IsMoveReserved(TimedMove aMove)
         {
             if (this.illegalMoves != null)
             {
-                int moveDirection = aMove.direction;
-                aMove.direction = -1;
-                if (this.illegalMoves.Contains(aMove))
-                    return true;
-                aMove.direction = moveDirection;
-                aMove.setOppositeMove();
-                if (this.illegalMoves.Contains(aMove))
-                    return true;
+                return aMove.isColliding(this.illegalMoves);
             }
             return false;
         }
