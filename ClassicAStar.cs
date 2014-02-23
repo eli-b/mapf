@@ -14,7 +14,7 @@ namespace CPF_experiment
         protected ProblemInstance instance;
         protected HeuristicCalculator heuristic;
         public BinaryHeap openList;
-        public HashTable_C closedList;
+        public Dictionary<WorldState, WorldState> closedList;
         public int solutionDepth;
         public int expanded;
         public int generated;
@@ -37,7 +37,7 @@ namespace CPF_experiment
         /// </summary>
         public ClassicAStar()
         {
-            this.closedList = new HashTable_C();
+            this.closedList = new Dictionary<WorldState, WorldState>();
             this.openList = new BinaryHeap();
         }
 
@@ -51,6 +51,7 @@ namespace CPF_experiment
             WorldState root = this.CreateSearchRoot();
             root.h = (int)this.heuristic.h(root); // g was already set to 0 in the constructor
             this.openList.Add(root);
+            this.closedList.Add(root, root);
             this.expanded = 0;
             this.generated = 0;
             this.expandedFullStates = 0;
@@ -148,7 +149,7 @@ namespace CPF_experiment
                 if (runner.ElapsedMilliseconds() > Constants.MAX_TIME)
                 {
                     totalCost = Constants.TIMEOUT_COST;
-                    this.generated = this.closedList.Count;
+                    this.generated = this.closedList.Count; // TODO: Is this accurate? We do take nodes out of the list
                     Console.WriteLine("Out of time");
                     this.Clear();
                     return false;
@@ -171,7 +172,7 @@ namespace CPF_experiment
                 Expand(currentNode);
             }
             totalCost = Constants.NO_SOLUTION_COST;
-            this.generated = this.closedList.Count;
+            this.generated = this.closedList.Count; // Is this accurate? We actually do remove nodes from the closed list.
             this.Clear();
             return false;
         }
@@ -180,7 +181,7 @@ namespace CPF_experiment
         /// Expand a given node. This includes:
         /// - Generating all possible children
         /// - Inserting them to OPEN
-        /// - Insert the generated nodes to the hashtable of nodes, currently implmented together with the closed list.
+        /// - Insert the generated nodes to the hashtable of nodes, currently implemented together with the closed list.
         /// </summary>
         /// <param name="node"></param>
         public virtual bool Expand(WorldState node)
@@ -230,30 +231,35 @@ namespace CPF_experiment
                     }
 
                     //if in closed list
-                    if (this.closedList.Contains(currentNode) == true)
+                    if (this.closedList.ContainsKey(currentNode) == true)
                     {
-                        WorldState inClosedList = (WorldState)this.closedList[currentNode];
+                        var inClosedList = this.closedList[currentNode];
+                        var g_inClosedList = inClosedList.g;
+                        var potentialConflictsCount_inClosedList = inClosedList.potentialConflictsCount;
+                        var dncInternalConflictsCount_inClosedList = inClosedList.dncInternalConflictsCount;
+
                         // if g is smaller or
                         //    g is equal but current node has fewer potential conflicts or
                         //                   current node has same number of potential conflicts but current node has fewer dnc internal conflicts than remove the old world state
-                        if (inClosedList.g > currentNode.g ||
-                            (inClosedList.g == currentNode.g && (inClosedList.potentialConflictsCount > currentNode.potentialConflictsCount ||
-                                                                 (inClosedList.potentialConflictsCount == currentNode.potentialConflictsCount && inClosedList.dncInternalConflictsCount > currentNode.dncInternalConflictsCount))))
+                        if (g_inClosedList > currentNode.g ||
+                            (g_inClosedList == currentNode.g && (potentialConflictsCount_inClosedList > currentNode.potentialConflictsCount ||
+                                                                    (potentialConflictsCount_inClosedList == currentNode.potentialConflictsCount && dncInternalConflictsCount_inClosedList > currentNode.dncInternalConflictsCount))))
                         // Alternative view:
                         // if g is smaller than remove the old world state
                         // if g is equal but current node has fewer potential conflicts than remove the old world state
                         // if g is equal and current node has same number of potential conflicts but current node has fewer dnc internal conflicts than remove the old world state
-                        //if (inClosedList.g > currentNode.g || 
-                        //    (inClosedList.g == currentNode.g && inClosedList.potentialConflictsCount > currentNode.potentialConflictsCount) ||
-                        //    (inClosedList.g == currentNode.g && inClosedList.potentialConflictsCount == currentNode.potentialConflictsCount && inClosedList.dncInternalConflictsCount > currentNode.dncInternalConflictsCount))
+                        //if (g_inClosedList > currentNode.g || 
+                        //    (g_inClosedList == currentNode.g && potentialConflictsCount_inClosedList > currentNode.potentialConflictsCount) ||
+                        //    (g_inClosedList == currentNode.g && potentialConflictsCount_inClosedList == currentNode.potentialConflictsCount && dncInternalConflictsCount_inClosedList > currentNode.dncInternalConflictsCount))
                         {
                             closedList.Remove(currentNode);
                             openList.Remove(currentNode);
                         }
                     }
-                    if (this.closedList.Contains(currentNode) == false)
+
+                    if (this.closedList.ContainsKey(currentNode) == false)
                     {
-                        this.closedList.Add(currentNode);
+                        this.closedList.Add(currentNode, currentNode);
                         this.generated++;
 
                         //if (currentNode.h + currentNode.g + currentNode.potentialConflictsCount == currentNode.prevStep.h + currentNode.prevStep.g + currentNode.prevStep.potentialConflictsCount)
@@ -298,19 +304,14 @@ namespace CPF_experiment
                     nextStepLocation.init(instance.m_vAgents[agentIndex].agent.agentNum, posX + deltaX, posY + deltaY, currentNode.makespan + 1, WorldState.operators[op, 2]);
                     if (constraintList.Contains(nextStepLocation))
                         continue;
-                    if (mustConstraints != null && mustConstraints.Length > currentNode.makespan + 1 && mustConstraints[currentNode.makespan + 1] != null)
+                    if (mustConstraints != null && mustConstraints.Length > currentNode.makespan + 1 && // Not >=?
+                        mustConstraints[currentNode.makespan + 1] != null)
                     {
-                        ileagel = false;
-                        foreach (DnCConstraint con in mustConstraints[currentNode.makespan + 1])
-                        {
-                            if (con.vioalates(instance.m_vAgents[agentIndex].agent.agentNum, posX + deltaX, posY + deltaY, currentNode.makespan + 1, WorldState.operators[op, 2]))
-                            {
-                                ileagel = true;
-                                break;
-                            }
-                        }
-                        if (ileagel)
-                            continue;
+                        if (this.mustConstraints[currentNode.makespan + 1].Any<DnCConstraint>(
+                                con => con.violates(
+                                    instance.m_vAgents[agentIndex].agent.agentNum, posX + deltaX, posY + deltaY,
+                                    currentNode.makespan + 1, WorldState.operators[op, 2])))
+                                continue;
                     }
                 }
 

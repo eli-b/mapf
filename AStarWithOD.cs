@@ -102,7 +102,7 @@ namespace CPF_experiment
                             }
                         }
                         //if (childNode.agentTurn != 0 || (childNode.agentTurn == 0 && this.closedList.Contains(childNode) == false))
-                        if (this.closedList.Contains(childNode) == false)
+                        if (this.closedList.ContainsKey(childNode) == false)
                         {
                             this.generated++;
                             //if (childNode.agentTurn == 0)

@@ -79,9 +79,10 @@ namespace CPF_experiment
                         }
 
                         //if in closed list
-                        if (this.closedList.Contains(currentNode) == true)
+                        if (this.closedList.ContainsKey(currentNode) == true)
                         {
-                            WorldState inClosedList = (WorldState)this.closedList[currentNode];
+                            WorldState inClosedList = this.closedList[currentNode];
+
                             //if g is smaller than remove the old world state
                             if (inClosedList.g > currentNode.g)
                             {
@@ -89,11 +90,11 @@ namespace CPF_experiment
                                 openList.Remove(inClosedList);
                             }
                         }
-                        if (this.closedList.Contains(currentNode) == false)
+                        if (this.closedList.ContainsKey(currentNode) == false)
                         {
 
                             this.generated++;
-                            this.closedList.Add(currentNode);
+                            this.closedList.Add(currentNode, currentNode);
 
 
                             //if (currentNode.h + currentNode.g + currentNode.potentialConflictsCount == targetF + currentNode.prevStep.potentialConflictsCount)
@@ -185,7 +186,7 @@ namespace CPF_experiment
             this.heuristic = this.CreateHeuristic();
             WorldState root = this.CreateSearchRoot();
             root.h = (int)this.heuristic.h(root);
-            this.closedList.Add(root);
+            this.closedList.Add(root, root);
             this.openList.Add(root);
             this.expanded = 0;
             expandedFullStates = 0;
@@ -287,7 +288,7 @@ namespace CPF_experiment
                     }
 
                     //if in closed list
-                    if (this.closedList.Contains(currentNode) == true)
+                    if (this.closedList.ContainsKey(currentNode) == true)
                     {
                         WorldStateForPartialExpansion inClosedList = (WorldStateForPartialExpansion)this.closedList[currentNode];
                         //if g is smaller than remove the old world state
@@ -297,10 +298,10 @@ namespace CPF_experiment
                             openList.Remove(inClosedList);
                         }
                     }
-                    if (this.closedList.Contains(currentNode) == false)
+                    if (this.closedList.ContainsKey(currentNode) == false)
                     {
                         this.generated++;
-                        this.closedList.Add(currentNode);
+                        this.closedList.Add(currentNode, currentNode);
 
                         //if (currentNode.h + currentNode.g + currentNode.potentialConflictsCount == currentNode.prevStep.h + currentNode.prevStep.g + currentNode.prevStep.potentialConflictsCount)
                         //{
