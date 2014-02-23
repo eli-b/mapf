@@ -412,11 +412,7 @@ namespace CPF_experiment
         /// <returns>True if the given location is a valid grid location with no obstacles</returns>
         public bool IsValid(int x, int y, int time = 0, int direction = (int)Move.Direction.NO_DIRECTION)
         {
-            if ((x >= m_vGrid.Length) || (x < 0))
-                return false;
-            if ((y >= m_vGrid[x].Length) || (y < 0))
-                return false;
-            if (m_vGrid[x][y] == true)
+            if (isValidTile(x, y) == false)
                 return false;
             //if (parameters.ContainsKey(Trevor.ILLEGAL_MOVES_KEY))
             //{
@@ -433,24 +429,14 @@ namespace CPF_experiment
 
         public bool IsValid(TimedMove toCheck)
         {
-            if ((toCheck.x >= m_vGrid.Length) || (toCheck.x < 0))
+            if (isValidTile(toCheck.x, toCheck.y) == false)
                 return false;
-            if ((toCheck.y >= m_vGrid[toCheck.x].Length) || (toCheck.y < 0))
-                return false;
-            if (m_vGrid[toCheck.x][toCheck.y] == true)
-                return false;
+
             if (parameters.ContainsKey(Trevor.ILLEGAL_MOVES_KEY))
             {
                 HashSet<TimedMove> reserved = (HashSet<TimedMove>)parameters[Trevor.ILLEGAL_MOVES_KEY];
-                int direction = toCheck.direction;
-                toCheck.direction = -1;
-                if (reserved.Contains(toCheck))
-                    return false;
-                toCheck.direction = direction;
-                toCheck.setOppositeMove();
-                if (reserved.Contains(toCheck))
-                    return false;
-                toCheck.setOppositeMove();
+
+                return (toCheck.isColliding(reserved) == false);
             }
 
             //if (parameters.ContainsKey(CBS_LocalConflicts.CONSTRAINTS))
