@@ -187,35 +187,27 @@ namespace CPF_experiment
         public virtual bool Expand(WorldState node)
         {
             //Debug.Print("Expanding node " + node);
-            Expand(node, 0, runner, new HashSet<TimedMove>());
-            return true;
-        }
-        
-        /// <summary>
-        /// Expands a node. This is done recursively - generating agent possibilities one at a time.
-        /// This includes:
-        /// - Generating the childern
-        /// - Inserting them into OPEN
-        /// - Insert node into CLOSED
-        /// TODO: Make expand not recursive to gain speedup of runtime.
-        /// </summary>
-        /// <param name="currentNode"></param>
-        protected virtual void Expand(WorldState currentNode, int agentIndex, Run runner, HashSet<TimedMove> currentMoves)
-        {
-            if (runner.ElapsedMilliseconds() > Constants.MAX_TIME || this.foundGoal)
-                return;
-            WorldState prev = currentNode.prevStep;
-            if (agentIndex == 0) // If this is the first agent that moves
-            {
-                prev = currentNode; 
-            }
-            if (agentIndex == instance.m_vAgents.Length) // If all the agents have moved
-            {
+            var intermediateNodes = new List<WorldState>();
+            intermediateNodes.Add(node);
 
+            for (int agentIndex = 0; agentIndex < this.instance.m_vAgents.Length ; ++agentIndex)
+            {
+                if (runner.ElapsedMilliseconds() > Constants.MAX_TIME || this.foundGoal) // how can I find the goal in the middle of expanding a node?
+                    return true;
+
+                intermediateNodes = ExpandOneAgent(intermediateNodes, agentIndex, this.runner);
+            }
+            var finalGeneratedNodes = intermediateNodes;
+
+            foreach (var currentNode in finalGeneratedNodes)
+            {
                 currentNode.h = (int)this.heuristic.h(currentNode);
                 currentNode.makespan++;
                 currentNode.CalculateG();
+
                 if (currentNode.h + currentNode.g <= this.maxCost)
+                // Assuming h is an admissable heuristic, no need to generate nodes that won't get us to the goal
+                // within the budget
                 {
 
                     if (instance.parameters.ContainsKey(Trevor.CONFLICT_AVOIDENCE))
@@ -278,55 +270,86 @@ namespace CPF_experiment
                         //else
                         this.openList.Add(currentNode);
                     }
+
+                    // What if in open list?? It seems this impl immediately puts _generated_ nodes in the closed list,
+                    // so it only needs to check it and not the open list.
+                    // That actually makes a lot of sense: membership tests in heaps are expensive, and in hashtables are cheap.
+                    // This way we only need to _search_ the open list if we encounter a node that was already visited.
                 }
-                return;
             }
-
-            // Try all legal moves of the agents
-            TimedMove agentLocation = new TimedMove();
+            
+            return true;
+        }
+        
+        /// <summary>
+        /// Expands a single agent in the nodes.
+        /// This includes:
+        /// - Generating the children
+        /// - Inserting them into OPEN
+        /// - Insert node into CLOSED
+        /// Returns the child nodes
+        /// </summary>
+        protected virtual List<WorldState> ExpandOneAgent(List<WorldState> intermediateNodes, int agentIndex, Run runner)
+        {
+            var GeneratedNodes = new List<WorldState>();
             DnCConstraint nextStepLocation = new DnCConstraint();
-            int deltaX;
-            int deltaY;
-            int posX = currentNode.allAgentsState[agentIndex].pos_X;
-            int posY = currentNode.allAgentsState[agentIndex].pos_Y;
             WorldState childNode;
-            bool ileagel;
-            for (int op = 0; op < WorldState.operators.GetLength(0); op++)
-            {
-                deltaX = WorldState.operators[op, 0];
-                deltaY = WorldState.operators[op, 1];
+            bool illegal;
 
-                agentLocation.setup(posX + deltaX, posY + deltaY, WorldState.operators[op, 2], currentNode.makespan + 1);
-                if (IsValid(agentLocation, currentMoves) == false)
-                    continue;
-                if (this.constraintList != null)
+            foreach (var currentNode in intermediateNodes)
+            {
+                int posX = currentNode.allAgentsState[agentIndex].pos_X;
+                int posY = currentNode.allAgentsState[agentIndex].pos_Y;
+                
+                // Try all legal moves of the agents
+                for (int op = 0; op < WorldState.operators.GetLength(0); op++)
                 {
-                    nextStepLocation.init(instance.m_vAgents[agentIndex].agent.agentNum, posX + deltaX, posY + deltaY, currentNode.makespan + 1, WorldState.operators[op, 2]);
-                    if (constraintList.Contains(nextStepLocation))
+                    int deltaX = WorldState.operators[op, 0];
+                    int deltaY = WorldState.operators[op, 1];
+
+                    TimedMove agentLocation = new TimedMove(
+                        posX + deltaX, posY + deltaY, WorldState.operators[op, 2], currentNode.makespan + 1);
+
+                    if (IsValid(agentLocation, currentNode.currentMoves) == false)
                         continue;
-                    if (mustConstraints != null && mustConstraints.Length > currentNode.makespan + 1 && // Not >=?
-                        mustConstraints[currentNode.makespan + 1] != null)
+
+                    if (this.constraintList != null)
                     {
-                        if (this.mustConstraints[currentNode.makespan + 1].Any<DnCConstraint>(
+                        nextStepLocation.init(instance.m_vAgents[agentIndex].agent.agentNum, posX + deltaX, posY + deltaY,
+                            currentNode.makespan + 1, WorldState.operators[op, 2]);
+                        
+                        if (this.constraintList.Contains(nextStepLocation))
+                            continue;
+                        if (this.mustConstraints != null && this.mustConstraints.Length > currentNode.makespan + 1 && // not >=?
+                            this.mustConstraints[currentNode.makespan + 1] != null)
+                        {
+                            if (this.mustConstraints[currentNode.makespan + 1].Any<DnCConstraint>(
                                 con => con.violates(
                                     instance.m_vAgents[agentIndex].agent.agentNum, posX + deltaX, posY + deltaY,
                                     currentNode.makespan + 1, WorldState.operators[op, 2])))
                                 continue;
+                        }
                     }
-                }
 
-                currentMoves.Add(agentLocation);
-                childNode = new WorldState(currentNode);
-                childNode.allAgentsState[agentIndex].move(op);
-                childNode.prevStep = prev;
-                Expand(childNode, agentIndex + 1, runner, currentMoves);
-                currentMoves.Remove(agentLocation);
+                    childNode = new WorldState(currentNode);
+                    childNode.allAgentsState[agentIndex].move(op);
+                    childNode.prevStep = currentNode;
+                    if (agentIndex == 0) {
+                        childNode.currentMoves.Clear();
+                        childNode.currentMoves = new HashSet<TimedMove>();
+                    }
+                    childNode.currentMoves.Add(agentLocation);
+                    GeneratedNodes.Add(childNode);
+                }
             }
-            
+            intermediateNodes.Clear();
+            return GeneratedNodes;
         }
 
         /// <summary>
         /// Check if the move is valid, i.e. not colliding into walls or other agents.
+        /// This method should be in WorldState or ProblemInstance or something.
+        /// It has nothing to do with A*.
         /// </summary>
         /// <param name="possibleMove">The move to check if possible</param>
         /// <returns>true, if the move is possible.</returns>
@@ -349,6 +372,7 @@ namespace CPF_experiment
 
         /// <summary>
         /// Returns the found plan, or null if no plan was found.
+        /// This never returns null, don't lie to me.
         /// </summary>
         /// <returns></returns>
         public virtual Plan GetPlan()

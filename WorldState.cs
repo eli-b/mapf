@@ -32,7 +32,8 @@ namespace CPF_experiment
         private int binaryHeapIndex;
         public int potentialConflictsCount;
         public int dncInternalConflictsCount;
-        public byte nextFvalue;
+        public byte nextFvalue; // Used only by AStarWithPartialExpansionBasic. Consider moving.
+        public HashSet<TimedMove> currentMoves;
 
         /// <summary>
         /// Create a state with the given state for every agent.
@@ -41,11 +42,12 @@ namespace CPF_experiment
         public WorldState(AgentState[] allAgentsState)
         {
             this.allAgentsState = allAgentsState;
-            makespan = 0;
-            g = 0;
-            potentialConflictsCount = 0;
-            dncInternalConflictsCount = 0;
-            notExpanded = true;
+            this.makespan = 0;
+            this.g = 0;
+            this.potentialConflictsCount = 0;
+            this.dncInternalConflictsCount = 0;
+            this.notExpanded = true;
+            this.currentMoves = new HashSet<TimedMove>();
         }
 
         /// <summary>
@@ -61,7 +63,8 @@ namespace CPF_experiment
             {
                 this.allAgentsState[i] = new AgentState(cpy.allAgentsState[i]);
             }
-            notExpanded = true;
+            this.notExpanded = true; // Not cpy.notExpanded?
+            this.currentMoves = new HashSet<TimedMove>(cpy.currentMoves);
         }
 
         /// <summary>
@@ -77,7 +80,8 @@ namespace CPF_experiment
             {
                 this.allAgentsState[i] = new AgentState(cpy.allAgentsState[i]);
             }
-            notExpanded = true;
+            this.notExpanded = true;
+            //TODO: Copy the relevant parts of cpy.currentMoves
         }
 
         /// <summary>

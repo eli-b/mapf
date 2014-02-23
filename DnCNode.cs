@@ -263,7 +263,7 @@ namespace CPF_experiment
                             {
                                 Move first = allSingleAgentPlans[i].GetLocationsAt(time);
                                 Move second = allSingleAgentPlans[j].GetLocationsAt(time);
-                                this.conflict = new DnCConflict(i, j,first, second, time);
+                                this.conflict = new DnCConflict(i, j, first, second, time);
                             }
                             internalConflictsCount++;
                         }
