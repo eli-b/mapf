@@ -143,7 +143,12 @@ namespace CPF_experiment
         {
             unchecked
             {
-                return base.time * (ins.maxCardinality + 26) + base.direction * 5 + cardinality;
+                int hash = 17;
+                hash = 23 * hash + base.GetHashCode();
+                // Until Equals checks these fields, we can't use them in the hash :(
+                //hash = 23 * hash + ins.GetHashCode();
+                //hash = 23 * hash + cardinality;
+                return hash;
             }
         }
     }
