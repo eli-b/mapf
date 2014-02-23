@@ -152,9 +152,9 @@ namespace CPF_experiment
                 return true;
             if (this.direction != other.direction)
                 return true;
-            foreach (byte agent in other.agent)
+            foreach (byte agent in other.agents)
             {
-                if (this.agent.Contains(agent))
+                if (this.agents.Contains(agent))
                     return false;
             }
             return true;
