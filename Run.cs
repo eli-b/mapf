@@ -376,31 +376,32 @@ namespace CPF_experiment
 
             for (int i = 0; i < solvers.Count; i++)
             {
-                this.resultsWriter.Write(solvers[i].GetName() + "success");
+                var name = solvers[i].GetName();
+                this.resultsWriter.Write(name + " success");
                 this.resultsWriter.Write(Run.RESULTS_DELIMITER);
-                this.resultsWriter.Write(solvers[i].GetName() + "Runtime");
+                this.resultsWriter.Write(name + " Runtime");
                 this.resultsWriter.Write(Run.RESULTS_DELIMITER);
-                this.resultsWriter.Write(solvers[i].GetName() + "SolutionCost");
+                this.resultsWriter.Write(name + " SolutionCost");
                 this.resultsWriter.Write(Run.RESULTS_DELIMITER);
-                this.resultsWriter.Write(solvers[i].GetName() + "Expanded-HL");
+                this.resultsWriter.Write(name + " Expanded-HL");
                 this.resultsWriter.Write(Run.RESULTS_DELIMITER);
-                this.resultsWriter.Write(solvers[i].GetName() + "Generated-HL");
+                this.resultsWriter.Write(name + " Generated-HL");
                 this.resultsWriter.Write(Run.RESULTS_DELIMITER);
-                this.resultsWriter.Write(solvers[i].GetName() + "Expanded-LL");
+                this.resultsWriter.Write(name + " Expanded-LL");
                 this.resultsWriter.Write(Run.RESULTS_DELIMITER);
-                this.resultsWriter.Write(solvers[i].GetName() + "Generated-LL");
+                this.resultsWriter.Write(name + " Generated-LL");
                 this.resultsWriter.Write(Run.RESULTS_DELIMITER);
-                this.resultsWriter.Write(solvers[i].GetName() + "Max Group");
+                this.resultsWriter.Write(name + " Max Group");
                 this.resultsWriter.Write(Run.RESULTS_DELIMITER);
 
 
-                //this.resultsWriter.Write(solvers[i].GetName() + "Min Group / G&D");
+                //this.resultsWriter.Write(name + "Min Group / G&D");
                 //this.resultsWriter.Write(Run.RESULTS_DELIMITER);
-                //this.resultsWriter.Write(solvers[i].GetName() + "Max depth");
+                //this.resultsWriter.Write(name + "Max depth");
                 //this.resultsWriter.Write(Run.RESULTS_DELIMITER);
-                //this.resultsWriter.Write(solvers[i].GetName() + "Passed Nodes/Expanded Full States");
+                //this.resultsWriter.Write(name + "Passed Nodes/Expanded Full States");
                 //this.resultsWriter.Write(Run.RESULTS_DELIMITER);
-                //this.resultsWriter.Write(solvers[i].GetName() + "Memory Used");
+                //this.resultsWriter.Write(name + "Memory Used");
                 //this.resultsWriter.Write(Run.RESULTS_DELIMITER);
             }
             this.resultsWriter.WriteLine();
