@@ -171,6 +171,7 @@ namespace CPF_experiment
                 expanded++;
                 Expand(currentNode);
             }
+
             totalCost = Constants.NO_SOLUTION_COST;
             this.generated = this.closedList.Count; // Is this accurate? We actually do remove nodes from the closed list.
             this.Clear();
@@ -244,8 +245,12 @@ namespace CPF_experiment
                         //    (g_inClosedList == currentNode.g && potentialConflictsCount_inClosedList > currentNode.potentialConflictsCount) ||
                         //    (g_inClosedList == currentNode.g && potentialConflictsCount_inClosedList == currentNode.potentialConflictsCount && dncInternalConflictsCount_inClosedList > currentNode.dncInternalConflictsCount))
                         {
-                            closedList.Remove(inClosedList); // Why is this alternative causing errors: closedList.Remove(currentNode); They're supposed to be equal in hash and in Equals
+                            closedList.Remove(inClosedList);
                             openList.Remove(inClosedList);
+                            // Items are searched for in the heap using their binaryHeapIndex, which is only intialized when they're put into it,
+                            // and not their hash or their Equals or CompareTo methods, so it's important to call Remove with inClosedList,
+                            // which might be in the heap, and not currentNode, which may be Equal to it, but was never in the heap so it
+                            // doesn't have a binaryHeapIndex initialized.
                         }
                     }
 
