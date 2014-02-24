@@ -112,7 +112,9 @@ namespace CPF_experiment
                     foreach (MDDNode node in mdd.levels[i])
                             node.legal = false;
         }
-        public int getGenerated() { return closedList.Count; }
+
+        public int getGenerated() { return this.generated; }
+        
         public int getExpanded() { return this.expanded; }
         private bool goalTest(MDDStep toCheck)
         {

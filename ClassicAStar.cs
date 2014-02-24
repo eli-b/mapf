@@ -149,7 +149,6 @@ namespace CPF_experiment
                 if (runner.ElapsedMilliseconds() > Constants.MAX_TIME)
                 {
                     totalCost = Constants.TIMEOUT_COST;
-                    this.generated = this.closedList.Count; // TODO: Is this accurate? We do take nodes out of the list
                     Console.WriteLine("Out of time");
                     this.Clear();
                     return false;
@@ -173,7 +172,6 @@ namespace CPF_experiment
             }
 
             totalCost = Constants.NO_SOLUTION_COST;
-            this.generated = this.closedList.Count; // Is this accurate? We actually do remove nodes from the closed list.
             this.Clear();
             return false;
         }
