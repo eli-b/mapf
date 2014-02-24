@@ -89,7 +89,7 @@ namespace CPF_experiment
                 return;
             
             if (_count == _capacity)
-                Capacity *= 2;
+                Capacity *= 2; // Automatically grows the array!
 
             item.setIndexInHeap(_count);
             _data[_count] = item;
@@ -104,17 +104,17 @@ namespace CPF_experiment
         public IBinaryHeapItem Remove()
         {
             if (this._count == 0)
-            {
                 throw new InvalidOperationException("Cannot remove item, heap is empty.");
-            }
 
             IBinaryHeapItem v = _data[0];
-            _count--;
-            _data[0] = _data[_count];
-            _data[0].setIndexInHeap(0);
-            _data[_count] = default(IBinaryHeapItem); // Clear the last node
-            DownHeap();
             v.setIndexInHeap(REMOVED_FROM_HEAP);
+            _count--;
+            if (this._count != 0)
+            {
+                _data[0] = _data[_count];
+                DownHeap();
+            }
+            _data[_count] = default(IBinaryHeapItem); // Clear the last node
             return v;
         }
 
