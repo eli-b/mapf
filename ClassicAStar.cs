@@ -227,6 +227,7 @@ namespace CPF_experiment
                     if (this.closedList.ContainsKey(currentNode) == true)
                     {
                         var inClosedList = this.closedList[currentNode];
+                        // TODO: Some code dup with CompareTo method of WorldState, not sure if avoidable
                         var g_inClosedList = inClosedList.g;
                         var potentialConflictsCount_inClosedList = inClosedList.potentialConflictsCount;
                         var dncInternalConflictsCount_inClosedList = inClosedList.dncInternalConflictsCount;

@@ -4,20 +4,32 @@ namespace CPF_experiment
     /// <summary>
     /// A binary heap, useful for sorting data and priority queues.
     /// </summary>
-    /// <typeparam name="T"><![CDATA[IComparable<BH_item> type of item in the heap]]>.</typeparam>
     public class BinaryHeap
     {
         // Constants
         private const int DEFAULT_SIZE = 4;
+        private const int REMOVED_FROM_HEAP = -1;
 
         // Fields
         private IBinaryHeapItem[] _data;
         private int _count = 0;
         private int _capacity = DEFAULT_SIZE;
         private bool _sorted;
+
+        // Constructors
         public BinaryHeap()
         {
             _data = new IBinaryHeapItem[DEFAULT_SIZE];
+        }
+
+        /// <summary>
+        /// Creates a new binary heap.
+        /// </summary>
+        private BinaryHeap(IBinaryHeapItem[] data, int count)
+        {
+            Capacity = count;
+            _count = count;
+            Array.Copy(data, _data, count);
         }
 
         // Properties
@@ -50,16 +62,6 @@ namespace CPF_experiment
 
         // Methods
         /// <summary>
-        /// Creates a new binary heap.
-        /// </summary>
-        private BinaryHeap(IBinaryHeapItem[] data, int count)
-        {
-            Capacity = count;
-            _count = count;
-            Array.Copy(data, _data, count);
-        }
-        
-        /// <summary>
         /// Gets the first value in the heap without removing it.
         /// </summary>
         /// <returns>The lowest value of type TValue.</returns>
@@ -83,15 +85,16 @@ namespace CPF_experiment
         /// <param name="item">The item to add to the heap.</param>
         public void Add(IBinaryHeapItem item)
         {
+            if (item == null)
+                return;
+            
             if (_count == _capacity)
-            {
                 Capacity *= 2;
-            }
+
+            item.setIndexInHeap(_count);
             _data[_count] = item;
-            if (_data[_count] != null)
-                _data[_count].setIndexInHeap(_count);
-            UpHeap();
             _count++;
+            UpHeap();
         }
 
         /// <summary>
@@ -104,38 +107,45 @@ namespace CPF_experiment
             {
                 throw new InvalidOperationException("Cannot remove item, heap is empty.");
             }
+
             IBinaryHeapItem v = _data[0];
             _count--;
             _data[0] = _data[_count];
-            if (_data[0] != null)
-                _data[0].setIndexInHeap(0);
-            _data[_count] = default(IBinaryHeapItem); // Clears the Last Node
+            _data[0].setIndexInHeap(0);
+            _data[_count] = default(IBinaryHeapItem); // Clear the last node
             DownHeap();
-            v.setIndexInHeap(-1); // ADDED set the item's index to -1 
+            v.setIndexInHeap(REMOVED_FROM_HEAP);
             return v;
         }
 
         private void UpHeap()
-        //helper function that performs up-heap bubbling
+        //helper function that performs up-heap bubbling - bubbles the last item up to its correct place
+        // This is up if you imagine the heap as a down-growing tree:
+        //             0
+        //       1           2
+        //   3       4   5       6
         {
             _sorted = false;
-            int p = _count;
+            int p = _count - 1;
             IBinaryHeapItem item = _data[p];
             int par = Parent(p);
             while (par > -1 && item.CompareTo(_data[par]) < 0)
             {
-                _data[p] = _data[par]; //Swap nodes
+                _data[p] = _data[par]; // Swap parent down
                 _data[p].setIndexInHeap(p);
                 p = par;
                 par = Parent(p);
             }
-            _data[p] = item;
-            if (_data[p] != null)
-                _data[p].setIndexInHeap(p);
+            _data[p] = item; // Finally, place item at the base of the bubble-up chain
+            _data[p].setIndexInHeap(p);
         }
         
         private void DownHeap()
-        //helper function that performs down-heap bubbling
+        //helper function that performs down-heap bubbling - bubbles the root down to its correct place
+        // This is down if you imagine the heap as a down-growing tree:
+        //             0
+        //       1           2
+        //   3       4   5       6
         {
             _sorted = false;
             int n;
@@ -144,21 +154,19 @@ namespace CPF_experiment
             while (true)
             {
                 int ch1 = Child1(p);
-                if (ch1 >= _count) break;
+                if (ch1 >= _count)
+                    break;
+                
                 int ch2 = Child2(p);
                 if (ch2 >= _count)
-                {
                     n = ch1;
-                }
                 else
-                {
                     n = _data[ch1].CompareTo(_data[ch2]) < 0 ? ch1 : ch2;
-                }
+
                 if (item.CompareTo(_data[n]) > 0)
                 {
-                    _data[p] = _data[n]; //Swap nodes
-                    if (_data[p] != null)
-                        _data[p].setIndexInHeap(p);
+                    _data[p] = _data[n]; // Swap child up
+                    _data[p].setIndexInHeap(p);
                     p = n;
                 }
                 else
@@ -166,9 +174,8 @@ namespace CPF_experiment
                     break;
                 }
             }
-            _data[p] = item;
-            if (_data[p] != null)
-                _data[p].setIndexInHeap(p);
+            _data[p] = item; // Finally, place item at the base of the bubble-down chain
+            _data[p].setIndexInHeap(p);
         }
         
         private void EnsureSort()
@@ -178,20 +185,32 @@ namespace CPF_experiment
             _sorted = true;
         }
         
+        /// <summary>
+        /// helper function that calculates the parent of a node
+        /// </summary>
+        /// <param name="index"></param>
+        /// <returns>-1 if there's no parent (index==0)</returns>
         private static int Parent(int index)
-        //helper function that calculates the parent of a node
         {
             return (index - 1) >> 1;
         }
         
+        /// <summary>
+        /// helper function that calculates the first child of a node
+        /// </summary>
+        /// <param name="index"></param>
+        /// <returns></returns>
         private static int Child1(int index)
-        //helper function that calculates the first child of a node
         {
             return (index << 1) + 1;
         }
         
+        /// <summary>
+        /// helper function that calculates the second child of a node
+        /// </summary>
+        /// <param name="index"></param>
+        /// <returns></returns>
         private static int Child2(int index)
-        //helper function that calculates the second child of a node
         {
             return (index << 1) + 2;
         }
@@ -224,6 +243,8 @@ namespace CPF_experiment
 
         /// <summary>
         /// Checks to see if the binary heap contains the specified item.
+        /// Uses CompareTo, not the item's binary heap index.
+        /// First call runs in O(nlogn) time. Next calls are O(logn).
         /// </summary>
         /// <param name="item">The item to search the binary heap for.</param>
         /// <returns>A boolean, true if binary heap contains item.</returns>
@@ -245,19 +266,11 @@ namespace CPF_experiment
         }
         
         /// <summary>
-        /// Gets whether or not the binary heap is readonly.
+        /// Returns whether or not the binary heap is readonly.
         /// </summary>
         public bool IsReadOnly
         {
             get { return false; }
-        }
-        
-        public int GetFatherIndex(int child_index)
-        {
-            if (child_index % 2 == 0)
-                return ((child_index - 2) / 2);
-            else
-                return ((child_index - 1) / 2);
         }
         
         public IBinaryHeapItem GetFirst()
@@ -267,7 +280,8 @@ namespace CPF_experiment
         
         /// <summary>
         /// Removes an item from the binary heap. 
-        /// This utilizes the type T's Comparer and will not remove duplicates.
+        /// Assumes item is or was in the heap. Doesn't use Equality checks.
+        /// This will not remove duplicates.
         /// </summary>
         /// <param name="item">The item to be removed.</param>
         /// <returns>Boolean true if the item was removed.</returns>
@@ -275,28 +289,29 @@ namespace CPF_experiment
         {
             if (item == null)
                 return false;
-            //int child_index = Array.BinarySearch<BH_item>(_data, 0, _count, item);
             int child_index = item.getIndexInHeap();
-
-            if (child_index == -1)
+            
+            if (child_index == REMOVED_FROM_HEAP)
                 return false;
 
-            _data[child_index].setIndexInHeap(-1);
+            _data[child_index].setIndexInHeap(REMOVED_FROM_HEAP);
             if (child_index == 0)
             {
                 Remove();
                 return true;
             }
-            if (child_index < 0) //not in heap
-                return false;
-            int father_index = GetFatherIndex(child_index);
+
             IBinaryHeapItem to_remove = _data[child_index];
+            // Bubble to_remove up the heap
+            // If UpHeap received an index parameter instead of always starting from the last element,
+            // we could maybe remove some code duplication.
+            int father_index = Parent(child_index);
             while (child_index != 0)
             {
-                _data[child_index] = _data[father_index];
+                _data[child_index] = _data[father_index]; // Swap parent down
                 _data[child_index].setIndexInHeap(child_index);
                 child_index = father_index;
-                father_index = GetFatherIndex(child_index);
+                father_index = Parent(child_index);
             }
             //we got to 0
             _data[0] = to_remove;
