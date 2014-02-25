@@ -103,8 +103,8 @@ namespace CPF_experiment
         {
             SingleShortestPath sic = new SingleShortestPath();
 
-            // Preparing a list of agent nums for sic's init() method
-            List<uint> agentList = this.instance.m_vAgents.Select<AgentState, uint>(state => (uint)state.agent.agentNum).ToList<uint>();
+            // Preparing a list of agent indices (not agent nums) for sic's init() method
+            List<uint> agentList = this.instance.m_vAgents.Select<AgentState, uint>((state, index) => (uint)index).ToList<uint>();
             sic.init(this.instance, agentList);
 
             sic.build();
