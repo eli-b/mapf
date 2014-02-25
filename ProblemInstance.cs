@@ -42,7 +42,6 @@ namespace CPF_experiment
 
         public uint m_nObstacles;
         public uint m_nLocations;
-        public UInt64 m_nPermutations;
         public UInt64[] m_vPermutations; // What are these?
         
         /// <summary>
@@ -58,8 +57,6 @@ namespace CPF_experiment
         /// </summary>
         public Int32[,] m_vCardinality;
 
-        public Int32 maxCardinality;
-
         public ProblemInstance()
         {
             this.parameters = new Dictionary<String, Object>();
@@ -72,11 +69,12 @@ namespace CPF_experiment
         /// <returns></returns>
         public ProblemInstance Subproblem(AgentState[] selectedAgents)
         {
+            // Not explicitly checking whether selectedAgents are really a subset of our agents?
+            // Not copying instance id?
             ProblemInstance subproblemInstance = new ProblemInstance();
-            subproblemInstance.init(selectedAgents, this.m_vGrid);
-            // Not checking whether selectedAgents are really a subset of our agents?
-            subproblemInstance.singleAgentShortestPaths = this.singleAgentShortestPaths;
-            // Passing all of singleAgentShortestPaths to the subproblem?
+            subproblemInstance.init(selectedAgents, this.m_vGrid, (int)this.m_nObstacles, (int)this.m_nLocations, this.m_vPermutations, this.m_vCardinality);
+            subproblemInstance.singleAgentShortestPaths = this.singleAgentShortestPaths; // Each subproblem holds every agent's single shortest paths just so this.singleAgentShortestPaths[agent_num] would easily work
+            // TODO: For a very large number of agents this may not be feasible. Consider not assuming agent x is in row x but instead having a dictionary mapping from agent nums to their paths
             return subproblemInstance;
         }
 
@@ -85,14 +83,30 @@ namespace CPF_experiment
         /// </summary>
         /// <param name="agentStartStates"></param>
         /// <param name="grid"></param>
-        public void init(AgentState[] agentStartStates, bool[][] grid)
+        public void init(AgentState[] agentStartStates, bool[][] grid, int nObstacles=-1, int nLocations=-1, ulong[] permutations=null, int[,] cardinality=null)
         {
             m_vAgents = agentStartStates;
             m_vGrid = grid;
-            m_nObstacles = (uint) grid.Sum(row => row.Count(x=>x));
-            m_nLocations = ((uint) (grid.Length * grid[0].Length)) - m_nObstacles;
-            precomputePermutations();
-            precomputeCardinality();
+            
+            if (nObstacles == -1)
+                m_nObstacles = (uint)grid.Sum(row => row.Count(x => x));
+            else
+                m_nObstacles = (uint)nObstacles;
+
+            if (nLocations == -1)
+                m_nLocations = ((uint)(grid.Length * grid[0].Length)) - m_nObstacles;
+            else
+                m_nLocations = (uint)nLocations;
+            
+            if (permutations == null)
+                precomputePermutations();
+            else
+                m_vPermutations = permutations;
+
+            if (cardinality == null)
+                precomputeCardinality();
+            else
+                m_vCardinality = cardinality;
         }
         
         /// <summary>
@@ -313,7 +327,7 @@ namespace CPF_experiment
 
             // Output the grid
             output.WriteLine("Grid:");
-            output.WriteLine(this.m_vGrid.GetLength(0)+","+this.m_vGrid[0].GetLength(0));
+            output.WriteLine(this.m_vGrid.GetLength(0) + "," + this.m_vGrid[0].GetLength(0));
                         
             for (int i = 0; i < this.m_vGrid.GetLength(0); i++)
             {
@@ -331,7 +345,7 @@ namespace CPF_experiment
             output.WriteLine("Agents:");
             output.WriteLine(this.m_vAgents.Length);
             AgentState state;
-            for(int i=0;i<this.m_vAgents.Length;i++)
+            for(int i = 0 ; i < this.m_vAgents.Length ; i++)
             {
                 state = this.m_vAgents[i];
                 output.Write(state.agent.agentNum);
@@ -367,7 +381,7 @@ namespace CPF_experiment
             m_vPermutations[m_vPermutations.Length - 1] = 1;
             for (int i = m_vPermutations.Length - 2; i >= 0; --i)
                 m_vPermutations[i] = m_vPermutations[i + 1] * ((UInt64)(m_nLocations - (i + 1)));
-            m_nPermutations = 1;
+            UInt64 m_nPermutations = 1;
             uint nCurrentCounter = m_nLocations;
             for (uint i = 0; i < m_vAgents.Length; ++i)
             {
@@ -380,7 +394,7 @@ namespace CPF_experiment
         private void precomputeCardinality()
         {
             m_vCardinality = new Int32[m_vGrid.Length, m_vGrid[0].Length];
-            maxCardinality = 0;
+            Int32 maxCardinality = 0;
             for (uint i = 0; i < m_vGrid.Length; ++i)
                 for (uint j = 0; j < m_vGrid[i].Length; ++j)
                 {
