@@ -58,12 +58,12 @@ namespace CPF_experiment
             this.posX = (ushort)posX;
             this.posY = (ushort)posY;
             this.timeStep = (ushort)timeStep;
-           this.direction = (sbyte)direction;
+            this.direction = (sbyte)direction;
         }
 
         public override bool Equals(object obj)
         {
-            if (fullyEqual && sameAgents(obj) == false)
+            if (fullyEqual && (sameAgents(obj) == false))
                 return false;
             foreach (byte agent in this.agents)
             {
@@ -78,7 +78,9 @@ namespace CPF_experiment
                 return false;
             if (this.timeStep != ((DnCConstraint)obj).timeStep)
                 return false;
-            if (this.direction != (int)Move.Direction.NO_DIRECTION && ((DnCConstraint)obj).direction != (int)Move.Direction.NO_DIRECTION && this.direction != ((DnCConstraint)obj).direction)
+            if (this.direction != (int)Move.Direction.NO_DIRECTION && 
+                ((DnCConstraint)obj).direction != (int)Move.Direction.NO_DIRECTION && 
+                this.direction != ((DnCConstraint)obj).direction)
                 return false;
             //if (obj.GetType().Equals(this.GetType()))
             //    if (this.group != ((DnCConstraint)obj).group)
@@ -164,9 +166,7 @@ namespace CPF_experiment
         {
             DnCConstraint other = (DnCConstraint)item;
 
-            if (this.timeStep > other.timeStep)
-                return 1;
-            return -1;
+            return this.timeStep.CompareTo(other.timeStep);
         }
 
         /// <summary>
