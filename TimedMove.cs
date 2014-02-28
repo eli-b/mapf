@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 
 namespace CPF_experiment
 {
@@ -9,10 +10,35 @@ namespace CPF_experiment
     {
         public int time;
 
-        public TimedMove(int x, int y, int direction, int time)
+        public TimedMove(int x, int y, Move.Direction direction, int time)
             : base(x, y, direction)
         {
             this.time = time;
+        }
+
+        /// <summary>
+        /// A generator yielding new adjacent TimedMoves. Reimplemented to avoid creating temporary Moves.
+        /// </summary>
+        /// <param name="allowDiag"></param>
+        /// <returns></returns>
+        public IEnumerable<TimedMove> GetNextMoves(bool allowDiag = false)
+        {
+            int count;
+            if (allowDiag)
+                count = Move.NUM_DIRECTIONS;
+            else
+                count = Move.NUM_NON_DIAG_MOVES;
+            foreach (Direction op in System.Enum.GetValues(typeof(Move.Direction)).OfType<Direction>().Take<Direction>(count))
+            {
+                yield return new TimedMove(this.x + Move.directionToDeltas[(int)op, 0],
+                                           this.y + Move.directionToDeltas[(int)op, 1], op, this.time + 1);
+            }
+        }
+
+        public override void Update(Direction direction)
+        {
+            base.Update(direction);
+            this.time += 1;
         }
 
         public TimedMove(Move cpy, int time)
@@ -47,24 +73,30 @@ namespace CPF_experiment
         public new TimedMove GetMoveWithoutDirection()
         {
             TimedMove copy = new TimedMove(this);
-            copy.direction = (int)Direction.NO_DIRECTION;
+            copy.direction = Direction.NO_DIRECTION;
             return copy;
         }
 
         /// <summary>
         /// Check if the given move collides with this move.
         /// This includes:
+        /// 0. Same time
         /// 1. Head on collision
-        /// 2. When oth moves target the same location.
+        /// 2. When other moves target the same location.
         /// </summary>
         /// <param name="other"></param>
         /// <returns></returns>
         public bool isColliding(TimedMove other)
         {
-            if (this.time != other.time)
+            return isColliding(other.x, other.y, other.direction, other.time);
+        }
+
+        public bool isColliding(int other_x, int other_y, Direction other_direction, int time)
+        {
+            if (this.time != time)
                 return false;
 
-            return base.Equals(other);
+            return base.isColliding(other_x, other_y, other_direction);
         }
 
         public new TimedMove GetOppositeMove()
@@ -80,7 +112,13 @@ namespace CPF_experiment
             this.time = time;
         }
 
-        public void setup(int x, int y, int direction, int time)
+        public void setup(TimedMove cpy)
+        {
+            base.setup(cpy);
+            this.time = cpy.time;
+        }
+
+        public void setup(int x, int y, Move.Direction direction, int time)
         {
             base.setup(x, y, direction);
             this.time = time;
@@ -93,8 +131,8 @@ namespace CPF_experiment
             if (CAT == null)
                 return false;
 
-            int saveDirection = this.direction;
-            this.direction = (int)Move.Direction.NO_DIRECTION;
+            Move.Direction saveDirection = this.direction;
+            this.direction = Move.Direction.NO_DIRECTION;
             if (CAT.Contains(this))
             {
                 this.direction = saveDirection;
@@ -121,7 +159,7 @@ namespace CPF_experiment
         public int cardinality;
 
         public CoordinateForConflictRatio(ProblemInstance ins, AgentState state)
-            : base(state.pos_X,state.pos_Y,state.direction,state.currentStep)
+            : base(state.last_move.x, state.last_move.y, state.last_move.direction, state.last_move.time)
         {
             this.ins = ins;
             this.cardinality = ins.getCardinality(state);

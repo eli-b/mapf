@@ -12,7 +12,7 @@ namespace CPF_experiment
         private int mddNum;
         public ProblemInstance problem;
 
-        public MDD(int mddNum, int agentNum, int start_Pos_X, int start_pos_y, int cost,int maxCostOnLevel, int numOfAgents, ProblemInstance instance)
+        public MDD(int mddNum, int agentNum, Move start_pos, int cost, int maxCostOnLevel, int numOfAgents, ProblemInstance instance)
         {
             //if (agentNum == 2 && maxCostOnLevel == 4)
             //    Console.Write("ff");
@@ -28,7 +28,7 @@ namespace CPF_experiment
             {
                 levels[i] = new LinkedList<MDDNode>();
             }
-            MDDNode toAdd = new MDDNode(start_Pos_X, start_pos_y,0 , numOfAgents, this);
+            MDDNode toAdd = new MDDNode(new TimedMove(start_pos, 0) , numOfAgents, this);
             LinkedListNode<MDDNode> llNode = new LinkedListNode<MDDNode>(toAdd);
             toAdd.setMyNode(llNode);
             llNode.Value.startOrGoal = true;
@@ -85,7 +85,7 @@ namespace CPF_experiment
                     remove.delete();
                 }
             }
-            if (levels[maxCostOnLevel].Count == 0 || levels[0].First.Value.isDeleted == true) //if no possibale rout mark levels as null
+            if (levels[maxCostOnLevel].Count == 0 || levels[0].First.Value.isDeleted == true) //if no possible route mark levels as null
                 levels = null;
         }
 
@@ -96,25 +96,15 @@ namespace CPF_experiment
         /// <param name="heuristicBound"></param>
         /// <param name="numOfAgents">The number of agents in the MDD node</param>
         /// <returns>A list of relevant MDD nodes</returns>
-        private LinkedList<MDDNode> GetAllChildren(MDDNode father, int heuristicBound,int numOfAgents,int i)
+        private LinkedList<MDDNode> GetAllChildren(MDDNode father, int heuristicBound, int numOfAgents, int i)
         {
-            int newX;
-            int newY;
-            int direction;
-            MDDNode child;
-            TimedMove move = new TimedMove();
-
             LinkedList<MDDNode> children = new LinkedList<MDDNode>(); 
-            for (int op = 0; op < 5; op++)
+            foreach (TimedMove move in father.move.GetNextMoves(Constants.ALLOW_DIAGONAL_MOVE))
             {
-                newX = father.getX() + WorldState.operators[op, 0];
-                newY = father.getY() + WorldState.operators[op, 1];
-                move.setup(newX, newY, op, i + 1);
                 if ((this.problem.IsValid(move)) &&
-                    (this.problem.GetSingleAgentShortestPath(this.agentNum, newX, newY) <= heuristicBound))
+                    (this.problem.GetSingleAgentShortestPath(this.agentNum, move.x, move.y) <= heuristicBound))
                 {
-                    direction = WorldState.operators[op, 2];
-                    child = new MDDNode(newX, newY, i+1, numOfAgents, this);
+                    MDDNode child = new MDDNode(move, numOfAgents, this);
                     children.AddFirst(child);
                 }
             }
@@ -341,9 +331,7 @@ namespace CPF_experiment
 
     class MDDNode
     {
-        int pos_X;
-        int pos_Y;
-        public int level;
+        public TimedMove move;
         public int setUntil;
         public LinkedList<MDDNode> children;
         public LinkedList<MDDNode> parents;
@@ -354,11 +342,9 @@ namespace CPF_experiment
         public bool isDeleted; //to prevent delition loop
         public bool legal;
 
-        public MDDNode(int pos_X, int pos_Y,int level, int numOfAgents, MDD father)
+        public MDDNode(TimedMove move, int numOfAgents, MDD father)
         {
-            this.pos_X = pos_X;
-            this.pos_Y = pos_Y;
-            this.level = level;
+            this.move = move;
             this.father = father;
             setUntil = 0;
             children = new LinkedList<MDDNode>();
@@ -468,37 +454,52 @@ namespace CPF_experiment
         
         public int getX()
         {
-            return pos_X;
+            return move.x;
         }
         
         public int getY()
         {
-            return pos_Y;
+            return move.y;
         }
         
         public int getVertexIndex()
         {
-            return pos_X * CostTreeSearchSolver.maxY + pos_Y;
+            return move.x * CostTreeSearchSolver.maxY + move.y;
         }
         
+        /// <summary>
+        /// Only uses the move
+        /// </summary>
+        /// <returns></returns>
         public override int GetHashCode()
         {
             unchecked
             {
-                return (pos_X + 1) * 3 + (pos_Y + 1) * 5;
+                return move.GetHashCode();
             }
         }
         
+        /// <summary>
+        /// Only uses the move
+        /// </summary>
+        /// <param name="obj"></param>
+        /// <returns></returns>
         public override bool Equals(object obj)
         {
             MDDNode comp = (MDDNode)obj;
-            return this.pos_X == comp.pos_X && this.pos_Y == comp.pos_Y && this.level == comp.level; //if there is a bug return the level compare
+            return this.move.Equals(comp.move); //if there is a bug return the level compare
+                                                // Behavior change: used to not compare the direction
         }
         
+        /// <summary>
+        /// Only uses the move
+        /// </summary>
+        /// <param name="obj"></param>
+        /// <returns></returns>
         public bool EqualsSwitch(object obj)
         {
             MDDNode comp = (MDDNode)obj;
-            return this.pos_X == comp.pos_X && this.pos_Y == comp.pos_Y ;
+            return this.move.Equals(comp.move); // Behavior change: used to not compare the time and the direction
         }
         
         public int getCoexistCount(int otherAgent)
@@ -506,11 +507,16 @@ namespace CPF_experiment
             return coexistLinkedList[otherAgent].Count;
         }
         
+        /// <summary>
+        /// TODO: This doesn't seem... correct. Also, there's a similar static method in class Move
+        /// </summary>
+        /// <param name="other"></param>
+        /// <returns></returns>
         public int getDirection(MDDNode other)
         {
             int ans = 0;
-            ans += this.pos_X - other.pos_X + 1;
-            ans += 2 * (this.pos_Y - other.pos_Y + 1);
+            ans += this.move.x - other.move.x + 1;
+            ans += 2 * (this.move.y - other.move.y + 1);
             return ans - 1;
         }
     }

@@ -127,7 +127,7 @@ namespace CPF_experiment
             if (finish == null)
                 return new LinkedList<Move>[1];
             LinkedList<Move>[] ans = new LinkedList<Move>[problem.Length];
-            int direction;
+            Move.Direction direction;
             for (int i = 0; i < ans.Length; i++)
                 ans[i] = new LinkedList<Move>();
             MDDStep current = finish;
@@ -217,7 +217,9 @@ namespace CPF_experiment
                 return code;
             }
         }
-        public int getDepth() { return allSteps[0].level; }
+
+        public int getDepth() { return allSteps[0].move.time; }
+
         public void setConflicts(HashSet<TimedMove> ID_CAT, HashSet_U<TimedMove> CBS_CAT)
         {
             TimedMove m2 = new TimedMove();
@@ -225,7 +227,7 @@ namespace CPF_experiment
                 return;
             for (int i = 0; i < allSteps.Length; i++)
             {
-                    m2.setup(allSteps[i].getX(), allSteps[i].getY(), -1, getDepth());
+                    m2.setup(allSteps[i].getX(), allSteps[i].getY(), Move.Direction.NO_DIRECTION, getDepth());
                     if (ID_CAT != null && ID_CAT.Contains(m2))
                         conflicts++;
                     if (CBS_CAT != null && CBS_CAT.Contains(m2))

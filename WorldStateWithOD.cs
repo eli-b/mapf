@@ -49,7 +49,7 @@ namespace CPF_experiment
                 hash = hash * Constants.PRIMES_FOR_HASHING[2] + this.agentTurn;
                 for (int i = 0; i < agentTurn; i++)
                 {
-                    hash = hash * Constants.PRIMES_FOR_HASHING[(i + 3) % Constants.PRIMES_FOR_HASHING.Length] + allAgentsState[i].direction;
+                    hash = hash * Constants.PRIMES_FOR_HASHING[(i + 3) % Constants.PRIMES_FOR_HASHING.Length] + allAgentsState[i].last_move.GetHashCode();
                 }
                 return hash;
             }
@@ -67,11 +67,12 @@ namespace CPF_experiment
                 return false;
             if (base.Equals(obj) == false)
                 return false;
-            for (int i = 0; i < agentTurn; i++)
+            for (int i = 0 ; i < agentTurn; i++)
             {
-                if (allAgentsState[i].direction != ((WorldState)obj).allAgentsState[i].direction)
+                if (allAgentsState[i].last_move.direction != ((WorldState)obj).allAgentsState[i].last_move.direction)
                 {
-                    if (allAgentsState[i].direction != (int)Move.Direction.NO_DIRECTION && ((WorldState)obj).allAgentsState[i].direction != (int)Move.Direction.NO_DIRECTION)
+                    if (allAgentsState[i].last_move.direction != Move.Direction.NO_DIRECTION && 
+                        ((WorldState)obj).allAgentsState[i].last_move.direction != Move.Direction.NO_DIRECTION)
                         return false;
                 }
             }
@@ -107,18 +108,18 @@ namespace CPF_experiment
             }
         }
 
+        /// <summary>
+        /// Returns count for last agent to move only.
+        /// </summary>
+        /// <param name="conflictAvoidence"></param>
+        /// <returns></returns>
         override public int conflictsCount(HashSet<TimedMove> conflictAvoidence)
         {
             int ans = 0;
             int lastMove = agentTurn - 1;
             if (agentTurn == 0)
-                lastMove = allAgentsState.Length - 1;
-            TimedMove check = new TimedMove(allAgentsState[lastMove].pos_X, allAgentsState[lastMove].pos_Y, -1 , allAgentsState[lastMove].currentStep);
-            if (conflictAvoidence.Contains(check))
-                ans++;
-            check.direction=allAgentsState[lastMove].direction;
-            check.setOppositeMove();
-            if (conflictAvoidence.Contains(check))
+                lastMove = allAgentsState.Length - 1; // Not return 0?
+            if (allAgentsState[lastMove].last_move.isColliding(conflictAvoidence)) // Behavior change: this didn't check for head-on collisions
                 ans++;
             return ans;
         }

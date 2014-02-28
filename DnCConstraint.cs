@@ -7,21 +7,15 @@ namespace CPF_experiment
     public class DnCConstraint : IComparable
     {
         protected byte[] agents;
-        protected ushort posX;
-        protected ushort posY;
-        protected sbyte direction;
-        protected ushort timeStep;
+        protected TimedMove move;
       //public byte group;
       //bool onVartex;
         public static bool fullyEqual;
 
-        public DnCConstraint(int agent, int posX, int posY, int timeStep, int direction)
+        public DnCConstraint(int agent, int posX, int posY, Move.Direction direction, int timeStep)
         {
             this.agents = new byte[1] { (byte)agent };
-            this.posX = (ushort)posX;
-            this.posY = (ushort)posY;
-            this.timeStep = (ushort)timeStep;
-            this.direction = (sbyte)direction;
+            this.move = new TimedMove(posX, posY, direction, timeStep);
           //this.onVartex = onVartex;
         }
 
@@ -41,55 +35,54 @@ namespace CPF_experiment
                 move = conflict.agentBmove;
                 agentNum = instance.m_vAgents[conflict.agentB].agent.agentNum;
             }
-            this.posX = (ushort)move.x;
-            this.posY = (ushort)move.y;
-            this.direction = (sbyte)move.direction;
             this.agents = new byte[1] { (byte)agentNum };
-            
-            this.timeStep = (ushort)conflict.timeStep;
+
+            this.move = new TimedMove(move, conflict.timeStep);
           //this.onVartex = conflict.vartex;
             if (conflict.vartex)
-                this.direction = (int)Move.Direction.NO_DIRECTION;
+                this.move.direction = Move.Direction.NO_DIRECTION;
         }
 
-        public void init(int agent, int posX, int posY, int timeStep, int direction)
+        public void init(int agent, int posX, int posY, Move.Direction direction, int timeStep)
         {
             this.agents = new byte[1] { (byte)agent };
-            this.posX = (ushort)posX;
-            this.posY = (ushort)posY;
-            this.timeStep = (ushort)timeStep;
-            this.direction = (sbyte)direction;
+            this.move.setup(posX, posY, direction, timeStep);
         }
 
+        public void init(int agent, TimedMove move)
+        {
+            this.agents = new byte[1] { (byte)agent };
+            this.move.setup(move);
+        }
+
+        /// <summary>
+        /// If fullyEqual, checks that the agent sets are equal, otherwise checks that this.agents is a subset of obj.agents.
+        /// If not fullyEqual, this doesn't implement commutativity!
+        /// Always compares the move.
+        /// </summary>
+        /// <param name="obj"></param>
+        /// <returns></returns>
         public override bool Equals(object obj)
         {
-            if (fullyEqual && (sameAgents(obj) == false))
+            DnCConstraint other = (DnCConstraint)obj;
+            if (fullyEqual && (sameAgents(other) == false))
                 return false;
+
+            // This only checks that this.agents is a subset of other.agents!
             foreach (byte agent in this.agents)
             {
-                if (((DnCConstraint)obj).agents.Contains(agent) == false)
+                if (other.agents.Contains(agent) == false)
                     return false;
             }
-            //if (this.agents != ((DnCConstraint)obj).agents)
-            //    return false;
-            if (this.posX != ((DnCConstraint)obj).posX)
-                return false;
-            if (this.posY != ((DnCConstraint)obj).posY)
-                return false;
-            if (this.timeStep != ((DnCConstraint)obj).timeStep)
-                return false;
-            if (this.direction != (int)Move.Direction.NO_DIRECTION && 
-                ((DnCConstraint)obj).direction != (int)Move.Direction.NO_DIRECTION && 
-                this.direction != ((DnCConstraint)obj).direction)
-                return false;
             //if (obj.GetType().Equals(this.GetType()))
             //    if (this.group != ((DnCConstraint)obj).group)
             //         return false;
-            return true;
+            return this.move.Equals(other.move);
         }
 
         public void addAgents(List<byte> addAgents)
         {
+            // Because manually fiddling with arrays is the best!
             if (addAgents.Count == 0)
                 return;
             byte[] newAgents = new byte[agents.Length + addAgents.Count];
@@ -98,9 +91,14 @@ namespace CPF_experiment
             agents = newAgents;
         }
 
-        public bool sameAgents(object obj)
+        /// <summary>
+        /// Only actually compares the number of agents :(
+        /// </summary>
+        /// <param name="obj"></param>
+        /// <returns></returns>
+        public bool sameAgents(DnCConstraint other)
         {
-            if (this.agents.Length != ((DnCConstraint)obj).agents.Length)
+            if (this.agents.Length != other.agents.Length)
                 return false;
             //foreach (byte agents in this.agents)
             //{
@@ -115,44 +113,35 @@ namespace CPF_experiment
             unchecked
             {
                 int ans = 0;
-                ans += posX;
-                ans += posY * 1000;
-                ans += timeStep * 887;
+                ans += move.GetHashCode() * 3;
               //ans += agents * 79;
-              //ans += direction * 9;
                 return ans;
             }
         }
 
-        public int getX() { return this.posX; }
-        public int getY() { return this.posY; }
+        public int getX() { return this.move.x; }
+        public int getY() { return this.move.y; }
         //public int getAgentNum() { return this.agents; }
-        public int getTimeStep() { return this.timeStep; }
+        public int getTimeStep() { return this.move.time; }
 
-        public int getDirection()
+        public Move.Direction getDirection()
         {
-            return this.direction;
+            return this.move.direction;
         }
         
         public override string ToString()
         {
-            return "(" + posX + "," + posY + ") direction-{" + direction + "} time-{" + timeStep + "}";
+            return move.ToString() + " direction-{" + move.direction + "} time-{" + move.time + "}";
         }
 
         /// <summary>
-        /// What's the difference between Equals and this method?
+        /// Kind of the opposite of Equals: checks that the moves are unequal or that not one of the other's agents appears in this.agents.
         /// </summary>
         /// <param name="other"></param>
         /// <returns></returns>
         public bool allows(DnCConstraint other)
         {
-            if (this.posX != other.posX)
-                return true;
-            if (this.posY != other.posY)
-                return true;
-            if (this.timeStep != other.timeStep)
-                return true;
-            if (this.direction != other.direction)
+            if (this.move.Equals(other.move) == false) // Minor behavior change: if exactly one move has a set direction, and they're otherwise equal the method used to return true.
                 return true;
             foreach (byte agent in other.agents)
             {
@@ -166,30 +155,27 @@ namespace CPF_experiment
         {
             DnCConstraint other = (DnCConstraint)item;
 
-            return this.timeStep.CompareTo(other.timeStep);
+            return this.move.time.CompareTo(other.move.time);
         }
 
         /// <summary>
-        /// Why is there one allows method and one violates method? Choose an interface!
         /// </summary>
-        /// <param name="agentO"></param>
-        /// <param name="posXO"></param>
-        /// <param name="posYO"></param>
-        /// <param name="timeStepO">This param is ignored!</param>
-        /// <param name="directionO"></param>
+        /// <param name="agent"></param>
+        /// <param name="posX"></param>
+        /// <param name="posY"></param>
+        /// <param name="timeStep"></param>
+        /// <param name="direction"></param>
         /// <returns></returns>
-        public bool violates(int agentO, int posXO, int posYO, int timeStepO, int directionO)
+        public bool violatesMustCond(byte agent, int posX, int posY, Move.Direction direction, int timeStep)
         {
-            if (agents.Contains<byte>((byte)agentO) == false)
+            return this.violatesMustCond(agent, new TimedMove(posX, posY, direction, timeStep));
+        }
+
+        public bool violatesMustCond(byte agent, TimedMove move)
+        {
+            if (agents.Contains<byte>(agent) == false)
                 return false;
-            if (posXO != posX)
-                return true; // Not false??
-            if (posYO != posY)
-                return true; // Not false??
-            if (direction != (int)Move.Direction.NO_DIRECTION && directionO != (int)Move.Direction.NO_DIRECTION &&
-                directionO != direction)
-                return true; // Not false??
-            return false;
+            return this.move.Equals(move) == false;
         }
     }
 }

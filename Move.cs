@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 
 namespace CPF_experiment
 {
@@ -6,7 +7,6 @@ namespace CPF_experiment
     /// This class represents a single move of an agent. 
     /// It includes the target location of the move and the direction of the move.
     /// The start location can be extracted using the direction, with the method GetSource().
-    /// Consider adding a GetNeighbors generator instead of exposing directionToDeltas
     /// </summary>
     public class Move
     {
@@ -32,16 +32,16 @@ namespace CPF_experiment
         }
 
         public const int FIRST_NON_WAIT = (int)Direction.North;
-        public const int LAST_NON_DIAG_MOVE = (int)Direction.West;
-        public const int LAST_REAL_MOVE = (int)Direction.NorthWest;
+        public const int NUM_NON_DIAG_MOVES = 5;
+        public const int NUM_DIRECTIONS = 9;
 
         public int x;
         public int y;
-        public int direction;
+        public Direction direction;
 
         public Move() { }
 
-        public Move(int x, int y, int direction)
+        public Move(int x, int y, Direction direction)
         {
             // TODO: Consider calling setup(x, y, direction) instead of this duplication
             this.x = x;
@@ -57,7 +57,7 @@ namespace CPF_experiment
             this.direction = cpy.direction;
         }
 
-        public static readonly int[,] directionToDeltas = {
+        protected static readonly int[,] directionToDeltas = {
             {0,   0, }, // Wait
             {-1,  0, }, // N
             {0,   1, }, // E
@@ -106,30 +106,55 @@ namespace CPF_experiment
             {Direction.SouthWest, Direction.South, Direction.SouthEast}
         };
 
+        /// <summary>
+        /// A generator yielding new adjacent Moves
+        /// </summary>
+        /// <param name="allowDiag"></param>
+        /// <returns></returns>
+        public IEnumerable<Move> GetNextMoves(bool allowDiag = false)
+        {
+            int count;
+            if (allowDiag)
+                count = Move.NUM_DIRECTIONS;
+            else
+                count = Move.NUM_NON_DIAG_MOVES;
+            foreach (Direction op in System.Enum.GetValues(typeof(Move.Direction)).OfType<Direction>().Take<Direction>(count))
+            {
+                yield return new Move(this.x + Move.directionToDeltas[(int)op, 0], this.y + Move.directionToDeltas[(int)op, 1], op);
+            }
+        }
+
+        public virtual void Update(Direction direction)
+        {
+            this.x += Move.directionToDeltas[(int)direction, 0];
+            this.y += Move.directionToDeltas[(int)direction, 1];
+            this.direction = direction;
+        }
+
         public Move GetSource()
         {
-            var source_x = this.x + directionToOppositeDeltas[direction, 0];
-            var source_y = this.y + directionToOppositeDeltas[direction, 1];
-            return new Move(source_x, source_y, (int)Direction.NO_DIRECTION);
+            var source_x = this.x + directionToOppositeDeltas[(int)direction, 0];
+            var source_y = this.y + directionToOppositeDeltas[(int)direction, 1];
+            return new Move(source_x, source_y, Direction.NO_DIRECTION);
         }
 
         public Move GetOppositeMove()
         {
-            if (direction == (int)Direction.Wait || direction == (int)Direction.NO_DIRECTION)
+            if (direction == Direction.Wait || direction == Direction.NO_DIRECTION)
                 return this; // Not Move(this). TODO: Make sure this is correct.
-            return new Move(this.x + directionToOppositeDeltas[direction, 0],
-                            this.y + directionToOppositeDeltas[direction, 1],
-                            (int)directionToOppositeDirection[direction]);
+            return new Move(this.x + directionToOppositeDeltas[(int)direction, 0],
+                            this.y + directionToOppositeDeltas[(int)direction, 1],
+                            directionToOppositeDirection[(int)direction]);
         }
 
         /// <summary>
-        /// Returns a copy of this move, where the direction is set to -1
+        /// Returns a copy of this move, where the direction is set to Move.Direction.NO_DIRECTION
         /// </summary>
         /// <returns></returns>
         public Move GetMoveWithoutDirection()
         {
             Move copy =  new Move(this);
-            copy.direction = (int)Direction.NO_DIRECTION;
+            copy.direction = Direction.NO_DIRECTION;
             return copy;
         }
 
@@ -138,15 +163,15 @@ namespace CPF_experiment
         /// </summary>
         public void setOppositeMove()
         {
-            this.x += directionToOppositeDeltas[direction, 0];
-            this.y += directionToOppositeDeltas[direction, 1];
+            this.x += directionToOppositeDeltas[(int)direction, 0];
+            this.y += directionToOppositeDeltas[(int)direction, 1];
             // Consider making directionToOppositeDeltas a jagged array,
             // reducing the number of table lookups to one for the above lines
             // since both entries in the sub-array are needed
-            this.direction = (int)directionToOppositeDirection[direction];
+            this.direction = directionToOppositeDirection[(int)direction];
         }
 
-        public void setup(int x, int y, int direction)
+        public void setup(int x, int y, Direction direction)
         {
             this.x = x;
             this.y = y;
@@ -165,7 +190,7 @@ namespace CPF_experiment
         /// </summary>
         public void RemoveDirection()
         {
-            this.direction = (int)Direction.NO_DIRECTION;
+            this.direction = Direction.NO_DIRECTION;
         }
 
         /// <summary>
@@ -191,24 +216,24 @@ namespace CPF_experiment
         /// <param name="y"></param>
         /// <param name="direction"></param>
         /// <returns></returns>
-        public bool isColliding(int other_x, int other_y, int other_direction)
+        public bool isColliding(int other_x, int other_y, Direction other_direction)
         {
             // Same target check
             if (this.x == other_x && this.y == other_x)
                 return true;
             // Head-on collision check
-            var source_x = this.x + directionToOppositeDeltas[this.direction, 0];
-            var source_y = this.y + directionToOppositeDeltas[this.direction, 1];
-            var other_source_x = other_x + directionToOppositeDeltas[other_direction, 0];
-            var other_source_y = other_y + directionToOppositeDeltas[other_direction, 1];
+            var source_x = this.x + directionToOppositeDeltas[(int)this.direction, 0];
+            var source_y = this.y + directionToOppositeDeltas[(int)this.direction, 1];
+            var other_source_x = other_x + directionToOppositeDeltas[(int)other_direction, 0];
+            var other_source_y = other_y + directionToOppositeDeltas[(int)other_direction, 1];
             return this.x == other_source_x && this.y == other_source_y && other_x == source_x && other_y == source_y;
         }
 
         public bool isColliding(ISet<Move> group)
         {
             // Same target check
-            int saved_direction = direction;
-            direction = (int)Direction.NO_DIRECTION;
+            Direction saved_direction = direction;
+            direction = Direction.NO_DIRECTION;
             if (group.Contains(this))
             {
                 direction = saved_direction;
@@ -226,9 +251,9 @@ namespace CPF_experiment
             return false;
         }
 
-        public static int getDirection(int to_x, int to_y, int from_x, int from_y)
+        public static Direction getDirection(int to_x, int to_y, int from_x, int from_y)
         {
-            return (int)deltasToDirection[to_x - from_x + 1, to_y - from_y + 1]; // +1 since indexing starts from 0
+            return deltasToDirection[to_x - from_x + 1, to_y - from_y + 1]; // +1 since indexing starts from 0
         }
 
         public override int GetHashCode()
@@ -240,16 +265,15 @@ namespace CPF_experiment
                 hash = 23 * hash + x;
                 hash = 23 * hash + y;
                 // NOT including the direction in the hash.
-                // Notice that Moves with a set direction that have the same target will be 
-                // non-Equal but with the same hash. This is allowed, but may
-                // cause inefficiencies in hashtables.
+                // We want moves with no direction to be equal to moves with direction on the same coordinate,
+                // so they need to have the same hash. Thus, even if this move has a direction it mustn't use it in the hash.
                 return hash;
             }
         }
 
         /// <summary>
         /// Compare two Move objects. 
-        /// If one of the Move objects does not have a direction that is set (i.e. direction == -1)
+        /// If one of the Move objects does not have a direction that is set (i.e. direction == Move.Direction.NO_DIRECTION)
         /// then the direction part of the Move is ignored.
         /// </summary>
         /// <param name="obj"></param>
@@ -258,13 +282,13 @@ namespace CPF_experiment
         {
             Move that = (Move) obj;
             return (this.x == that.x && this.y == that.y &&
-                    ((this.direction == (int)Direction.NO_DIRECTION) || (that.direction == (int)Direction.NO_DIRECTION) || 
+                    ((this.direction == Direction.NO_DIRECTION) || (that.direction == Direction.NO_DIRECTION) || 
                      (this.direction == that.direction)));
         }
 
         public override string ToString()
         {
-            return this.x + "," + this.y; // not describing the direction
+            return "(" + this.x + "," + this.y + ")"; // not describing the direction
         }
     }    
 }

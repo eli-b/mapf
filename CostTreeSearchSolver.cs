@@ -52,7 +52,7 @@ namespace CPF_experiment
         public virtual void Setup(ProblemInstance problemInstance) { Setup(problemInstance, 0); }
 
         /// <summary>
-        /// Setup the relevant datastructures for a run.
+        /// Setup the relevant data structures for a run.
         /// </summary>
         public virtual void Setup(ProblemInstance problemInstance, int minDepth)
         {
@@ -86,7 +86,7 @@ namespace CPF_experiment
             for (int i = 0; i < problem.GetNumOfAgents(); i++)
             {
                 temp=problem.m_vAgents[i];
-                costs[i] = Math.Max(problem.GetSingleAgentShortestPath(temp.agent.agentNum, temp.pos_X, temp.pos_Y), minDepth);
+                costs[i] = Math.Max(problem.GetSingleAgentShortestPath(temp.agent.agentNum, temp.last_move.x, temp.last_move.y), minDepth);
             }
 
             openList.AddFirst(new CostTreeNode(costs));
@@ -109,7 +109,7 @@ namespace CPF_experiment
         }
 
         /// <summary>
-        /// Clears the relevant datastructures and variables to free memory usage.
+        /// Clears the relevant data structures and variables to free memory usage.
         /// </summary>
         public void Clear()
         {
@@ -385,7 +385,7 @@ namespace CPF_experiment
         public override void Setup(ProblemInstance problemInstance) { Setup(problemInstance, 0); }
         public override void Setup(ProblemInstance problemInstance, int minDepth)
         {
-            edgesMatrix = new int[problemInstance.m_vAgents.Length, problemInstance.GetMaxX() * problemInstance.GetMaxY() + problemInstance.GetMaxY(), 5];
+            edgesMatrix = new int[problemInstance.m_vAgents.Length, problemInstance.GetMaxX() * problemInstance.GetMaxY() + problemInstance.GetMaxY(), Move.NUM_NON_DIAG_MOVES];
             edgesMatrixCounter = 0;
             maxY = problemInstance.GetMaxY();
             base.Setup(problemInstance, minDepth);
@@ -468,7 +468,7 @@ namespace CPF_experiment
         public override void Setup(ProblemInstance problemInstance) { Setup(problemInstance, 0); }
         public override void Setup(ProblemInstance problemInstance, int minDepth)
         {
-            edgesMatrix = new int[problemInstance.m_vAgents.Length, problemInstance.GetMaxX() * problemInstance.GetMaxY() + problemInstance.GetMaxY(), 5];
+            edgesMatrix = new int[problemInstance.m_vAgents.Length, problemInstance.GetMaxX() * problemInstance.GetMaxY() + problemInstance.GetMaxY(), Move.NUM_NON_DIAG_MOVES];
             edgesMatrixCounter = 0;
             maxY = problemInstance.GetMaxY();
             base.Setup(problemInstance, minDepth);

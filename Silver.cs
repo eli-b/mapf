@@ -73,7 +73,6 @@ namespace CPF_experiment
             this.runner = aRunner;
             foreach (AgentState agent in allAgentsState)
             {
-                agent.currentStep = 0;
                 if (!singleAgentA_Star(agent))
                 {
                     totalTime = -1;
@@ -104,17 +103,17 @@ namespace CPF_experiment
                 if (temp.h == 0)
                 {
                     valid = true;
-                    for (int i = temp.currentStep; i <= maxPathCost; i++)
+                    for (int i = temp.last_move.time ; i <= maxPathCost; i++)
                     {
-                        if (RT.Contains(new TimedMove(temp.pos_X, temp.pos_Y, -1, i)))
+                        if (RT.Contains(new TimedMove(temp.last_move.x, temp.last_move.y, Move.Direction.NO_DIRECTION, i)))
                             valid = false;
                     }
                     if (valid)
                     {
                         reservePath(temp);
-                        totalTime += temp.currentStep;
+                        totalTime += temp.last_move.time;
                         //printPath(temp);
-                        parked.Add(new Move(temp.pos_X, temp.pos_Y, -1), temp.currentStep);
+                        parked.Add(new Move(temp.last_move.x, temp.last_move.y, Move.Direction.NO_DIRECTION), temp.last_move.time);
                         return true;
                     }
                 }
@@ -128,7 +127,7 @@ namespace CPF_experiment
             AgentState temp = end;
             while (temp != null)
             {
-                RT.Add(new TimedMove(temp.pos_X, temp.pos_Y, temp.direction, temp.currentStep));
+                RT.Add(new TimedMove(temp.last_move.x, temp.last_move.y, temp.last_move.direction, temp.last_move.time));
                 allPathCost[temp.agent.agentNum]++;
                 temp = temp.prev;
             }
@@ -137,30 +136,22 @@ namespace CPF_experiment
         }
         private void expendNode(AgentState node, BinaryHeap openList, HashSet<AgentState> closedList)
         {
-            int before_X = node.pos_X;
-            int before_Y = node.pos_Y;
-            int time = node.currentStep + 1;
-            int deltaX;
-            int deltaY;
-            for (int i = 0; i < WorldState.operators.GetLength(0); i++)
+            foreach (TimedMove move in node.last_move.GetNextMoves(Constants.ALLOW_DIAGONAL_MOVE))
             {
-                deltaX = WorldState.operators[i,0];
-                deltaY = WorldState.operators[i,1];
-                if (isValidMove(before_X + deltaX, before_Y + deltaY, time, 0))
+                if (isValidMove(move))
                 {
                     AgentState temp = new AgentState(node);
                     AgentState tempCL = temp;
-                    temp.currentStep = time;
                     temp.prev = node;
-                    if (time > maxPathCost)
+                    if (move.time > maxPathCost)
                     {
                         tempCL = new AgentState(temp);
-                        tempCL.currentStep = maxPathCost;
+                        tempCL.last_move.time = maxPathCost;
                     }
                     if (!closedList.Contains(tempCL))
                     {
                         closedList.Add(tempCL);
-                        temp.currentStep = time;
+                        temp.last_move.time = move.time;
                         openList.Add(temp);
                         generated++;
                     }
@@ -169,14 +160,14 @@ namespace CPF_experiment
 
         }
 
-        // Why doesn't this get a move parameter?
-        private bool isValidMove(int pos_X, int pos_Y, int time, int direction)
+        private bool isValidMove(TimedMove move)
         {
-            if (this.problem.IsValid(pos_X,pos_Y))
+            if (this.problem.IsValid(move))
             {
-                if (!RT.Contains(new TimedMove(pos_X, pos_Y, -1, time)) && !RT.Contains(new TimedMove(pos_X, pos_Y, direction, time).GetOppositeMove()))
+                if (move.isColliding(RT) == false)
                 {
-                    if (!parked.Contains(new TimedMove(pos_X, pos_Y, -1,time)) || (int)(parked[new TimedMove(pos_X, pos_Y, 0,time)]) > time)
+                    Move key = new Move(move.x, move.y, Move.Direction.NO_DIRECTION);
+                    if (!parked.Contains(key) || (int)(parked[key]) > move.time)
                         return true;
                 }
             }

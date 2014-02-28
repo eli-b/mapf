@@ -45,8 +45,8 @@ namespace CPF_experiment
             allTileAgentHeuristics = new int[allAgents.Length][][];
             for (int i = 0; i < allAgents.Length; i++)
             {
-                int a = allAgents[i].Goal_X;
-                int b = allAgents[i].Goal_Y;
+                int a = allAgents[i].Goal.x;
+                int b = allAgents[i].Goal.y;
                 allTileAgentHeuristics[i] = setHeuristicsForTile(a, b);
             }
         }
@@ -57,14 +57,7 @@ namespace CPF_experiment
         }
         private static int[][] setHeuristicsForTile(int X, int Y)
         {
-            int a;
-            int b;
             int val;
-            int last_direction;
-            if (allowDiagonalMove == false)
-                last_direction = Move.LAST_NON_DIAG_MOVE;
-            else
-                last_direction = Move.LAST_REAL_MOVE;
             int[][] ans = new int[size_X][];
             for (int i = 0; i < size_X; i++)
             {
@@ -74,28 +67,24 @@ namespace CPF_experiment
                     ans[i][j] = -1;
                 }
             }
-            var openList = new Queue<Tuple<int,int,int>>();
+            var openList = new Queue<Tuple<Move, int>>();
             HashSet<int> closedList = new HashSet<int>();
-            openList.Enqueue(new Tuple<int,int,int>(X, Y, 0));
+            openList.Enqueue(new Tuple<Move, int>(new Move(X, Y, Move.Direction.NO_DIRECTION), 0));
             closedList.Add(X * size_X + Y);
             while (openList.Count > 0)
             {
                 var tuple = openList.Dequeue();
-                a = tuple.Item1;
-                b = tuple.Item2;
-                val = tuple.Item3;
-                ans[a][b] = val;
+                Move move = tuple.Item1;
+                val = tuple.Item2;
+                ans[move.x][move.y] = val;
                 
                 // Expand tile:
-                for (int direction = Move.FIRST_NON_WAIT; direction <= last_direction; ++direction)
-                // Assuming directions that aren't Wait are consecutive
+                foreach (Move nextMove in move.GetNextMoves(allowDiagonalMove))
                 {
-                    int new_a = a + Move.directionToDeltas[direction,0];
-                    int new_b = b + Move.directionToDeltas[direction, 1];
-                    if (isValidTile(new_a, new_b) && !closedList.Contains(new_a * size_X + new_b))
+                    if (isValidTile(nextMove.x, nextMove.y) && !closedList.Contains(nextMove.x * size_X + nextMove.y))
                     {
-                        openList.Enqueue(new Tuple<int, int, int>(new_a, new_b, val + 1));
-                        closedList.Add(new_a * size_X + new_b);
+                        openList.Enqueue(new Tuple<Move, int>(nextMove, val + 1));
+                        closedList.Add(nextMove.x * size_X + nextMove.y);
                     }
                 }
             }
@@ -130,7 +119,7 @@ namespace CPF_experiment
             foreach (var a in m_vAgents)
             {
                 nHeuristic += (uint)this.m_Problem.GetSingleAgentShortestPath(s.allAgentsState[a].agent.agentNum,
-                    s.allAgentsState[a].pos_X, s.allAgentsState[a].pos_Y);
+                    s.allAgentsState[a].last_move.x, s.allAgentsState[a].last_move.y);
             }
             return nHeuristic;
         }

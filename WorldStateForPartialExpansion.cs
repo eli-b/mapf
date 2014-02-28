@@ -38,55 +38,41 @@ namespace CPF_experiment
             //init
             for (int i = 0; i < singleAgentMoves.Length; i++)
             {
-                singleAgentMoves[i] = new byte[5];
+                singleAgentMoves[i] = new byte[Move.NUM_NON_DIAG_MOVES];
             }
 
-            int hBefore, hAfter, deltaX, deltaY, pos_X, pos_Y;
-
+            int hBefore, hAfter;
 
             //set values
-            TimedMove check = new TimedMove();
             for (int i = 0; i < allAgentsState.Length; i++)
             {
-                pos_X = allAgentsState[i].pos_X;
-                pos_Y = allAgentsState[i].pos_Y;
-                hBefore = problem.GetSingleAgentShortestPath(allAgentsState[i].agent.agentNum, pos_X, pos_Y);
+                hBefore = problem.GetSingleAgentShortestPath(allAgentsState[i].agent.agentNum, allAgentsState[i].last_move.x, allAgentsState[i].last_move.y);
 
-                for (byte direction = 0; direction < 5; direction++)
+                foreach (TimedMove check in allAgentsState[i].last_move.GetNextMoves(Constants.ALLOW_DIAGONAL_MOVE))
                 {
-                    deltaX = WorldState.operators[direction, 0];
-                    deltaY = WorldState.operators[direction, 1];
                     if (problem.parameters.ContainsKey(Trevor.ILLEGAL_MOVES_KEY))
                     {
                         HashSet<TimedMove> reserved = (HashSet<TimedMove>)(problem.parameters[Trevor.ILLEGAL_MOVES_KEY]);
-                        check.setup(pos_X + deltaX, pos_Y + deltaY, -1, g + 1);
-                        if (reserved.Contains(check))
+                        if (check.isColliding(reserved))
                         {
-                            singleAgentMoves[i][direction] = byte.MaxValue;
-                            continue;
-                        }
-                        check.direction = direction;
-                        check.setOppositeMove();
-                        if (reserved.Contains(check))
-                        {
-                            singleAgentMoves[i][direction] = byte.MaxValue;
+                            singleAgentMoves[i][(int)check.direction] = byte.MaxValue;
                             continue;
                         }
                     }
-                    else if (problem.isValidTile(pos_X + deltaX, pos_Y + deltaY))
+                    else if (problem.isValidTile(check.x, check.y))
                     {
-                        hAfter = problem.GetSingleAgentShortestPath(allAgentsState[i].agent.agentNum, pos_X + deltaX, pos_Y + deltaY);
+                        hAfter = problem.GetSingleAgentShortestPath(allAgentsState[i].agent.agentNum, check.x, check.y);
 
                         if (hBefore != 0)
-                            singleAgentMoves[i][direction] = (byte)(hAfter - hBefore + 1);
+                            singleAgentMoves[i][(int)check.direction] = (byte)(hAfter - hBefore + 1);
                         else if (hAfter != 0) //if agent moved from its goal we must count and add all the steps it was stationed at the goal
-                            singleAgentMoves[i][direction] = (byte)(hAfter - hBefore + makespan - allAgentsState[i].arrivalTime + 1);
+                            singleAgentMoves[i][(int)check.direction] = (byte)(hAfter - hBefore + makespan - allAgentsState[i].arrivalTime + 1);
                         else
-                            singleAgentMoves[i][direction] = 0;
+                            singleAgentMoves[i][(int)check.direction] = 0;
                     }
                     else
                     {
-                        singleAgentMoves[i][direction] = byte.MaxValue;
+                        singleAgentMoves[i][(int)check.direction] = byte.MaxValue;
                     }
                 }
             }
@@ -128,16 +114,10 @@ namespace CPF_experiment
 
         override public int conflictsCount(HashSet<TimedMove> conflictAvoidence)
         {
-            TimedMove check = new TimedMove();
             int ans = 0;
             for (int i = 0; i < allAgentsState.Length; i++)
             {
-                check.setup(allAgentsState[i].pos_X,allAgentsState[i].pos_Y,-1,allAgentsState[i].currentStep);
-                if (conflictAvoidence.Contains(check))
-                    ans++;
-                check.direction = allAgentsState[i].direction;
-                check.setOppositeMove();
-                if (conflictAvoidence.Contains(check))
+                if (allAgentsState[i].last_move.isColliding(conflictAvoidence)) // Behavior change: this didn't check for head-on collisions
                     ans++;
             }
             return ans;

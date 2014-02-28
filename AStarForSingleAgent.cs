@@ -68,9 +68,9 @@ namespace CPF_experiment
                 }
                 currentNode = (AgentState)openList.Remove();
                 // Check if node is the goal
-                if (currentNode.atGoal() && currentNode.currentStep > this.minDepth)
+                if (currentNode.atGoal() && currentNode.last_move.time > this.minDepth)
                 {
-                    this.solutionCost = currentNode.currentStep;
+                    this.solutionCost = currentNode.last_move.time;
                     this.plan = new Plan(currentNode);
                     this.externalConflicts = currentNode.potentialConflictsID;
                     return true;
@@ -87,25 +87,19 @@ namespace CPF_experiment
         private void expand(AgentState currentNode)
         {
             AgentState nextStep;
-            int next_X;
-            int next_Y;
-            TimedMove nextMove = new TimedMove();
             DnCConstraint nextStepLocation = new DnCConstraint();
 
-            for (int direction = 0; direction < 5; direction++)
+            foreach (TimedMove nextMove in currentNode.last_move.GetNextMoves(Constants.ALLOW_DIAGONAL_MOVE))
             {
-                next_X = currentNode.pos_X + WorldState.operators[direction, 0];
-                next_Y = currentNode.pos_Y + WorldState.operators[direction, 1];
-                nextMove.setup(next_X, next_Y, direction, currentNode.currentStep + 1);
                 if (instance.IsValid(nextMove))
                 {
-                    nextStepLocation.init(agentNum, next_X, next_Y, currentNode.currentStep + 1,direction);
                     if (constraintsInGroup.Contains(nextStepLocation) == false)
                     {
                         nextStep = new AgentState(currentNode);
                         nextStep.prev = currentNode;
-                        nextStep.move(direction);
-                        nextStep.h = Math.Max(instance.GetSingleAgentShortestPath(nextStep),(minDepth - nextStep.currentStep));
+                        nextStep.move(nextMove);
+                        nextStep.h = Math.Max(instance.GetSingleAgentShortestPath(nextStep),
+                                              minDepth - nextStep.last_move.time);
                         nextStep.potentialConflicts = currentNode.potentialConflicts;
                         nextStep.potentialConflictsID = currentNode.potentialConflictsID;
 
@@ -162,7 +156,7 @@ namespace CPF_experiment
             this.openList.Clear();
             this.closedList.Add(root);
             this.openList.Add(root);
-            optimalSol=root.h;
+            optimalSol = root.h;
             clearCount = -1;
             conflictsCount=0;
         }
@@ -210,23 +204,17 @@ namespace CPF_experiment
         private void expand(AgentState currentNode, int orderOfConflict)
         {
             AgentState nextStep;
-            int next_X;
-            int next_Y;
-            TimedMove nextMove = new TimedMove();
 
-            for (int direction = 0; direction < 5; direction++)
+            foreach (TimedMove nextMove in currentNode.last_move.GetNextMoves(Constants.ALLOW_DIAGONAL_MOVE))
             {
-                next_X = currentNode.pos_X + WorldState.operators[direction, 0];
-                next_Y = currentNode.pos_Y + WorldState.operators[direction, 1];
-                nextMove.setup(next_X, next_Y, direction, currentNode.currentStep + 1);
                 if (instance.IsValid(nextMove))
                 {
                     nextStep = new AgentState(currentNode);
                     nextStep.prev = currentNode;
-                    nextStep.move(direction);
+                    nextStep.move(nextMove);
                     nextStep.h = instance.GetSingleAgentShortestPath(nextStep);
 
-                    if (nextStep.currentStep + nextStep.h <= optimalSol + orderOfConflict)
+                    if (nextStep.last_move.time + nextStep.h <= optimalSol + orderOfConflict)
                     {
                         if (this.closedList.Contains(nextStep) == true)
                         {

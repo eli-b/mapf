@@ -9,16 +9,9 @@ namespace CPF_experiment
     /// </summary>
     public class AStarWithOD : ClassicAStar
     {
-        override public void Setup(ProblemInstance problemInstance)
-        {
-            base.Setup(problemInstance);
-        }
-
         override protected WorldState CreateSearchRoot()
         {
-            WorldStateWithOD root = new WorldStateWithOD(this.instance.m_vAgents);
-           // root.makespan = 1;
-            return root;
+            return new WorldStateWithOD(this.instance.m_vAgents);
         }
 
         override public string GetName() { return "A*+OD"; }
@@ -37,30 +30,21 @@ namespace CPF_experiment
                 expandedFullStates++;
             //Debug.Print("Expanding node " + node);
             WorldStateWithOD parent = (WorldStateWithOD)node;
-            int deltaX;
-            int deltaY;
             int agentTurn = parent.agentTurn;
-            int posX = parent.allAgentsState[agentTurn].pos_X;
-            int posY = parent.allAgentsState[agentTurn].pos_Y;
             WorldStateWithOD childNode;
-            TimedMove newMove=new TimedMove();
             int childAgentTurn = ((parent.agentTurn + 1) % (this.instance.m_vAgents.Length));
             int step = node.makespan;
             if (parent.agentTurn == 0)
                 step++;
             
             // Try all legal moves of the agents
-            for (int op = 0; op < WorldState.operators.GetLength(0); op++)//{{0,0,0},{-1,0,1},{0,1,2},{1,0,3},{0,-1,4}}
+            foreach (TimedMove newMove in parent.allAgentsState[agentTurn].last_move.GetNextMoves(Constants.ALLOW_DIAGONAL_MOVE))
             {
                // this.generated++;
-                deltaX = WorldState.operators[op, 0];
-                deltaY = WorldState.operators[op, 1];
-                newMove.setup(posX + deltaX, posY + deltaY, WorldState.operators[op, 2],step);
                 if (this.IsValid(newMove, agentTurn, parent))
                 {
-                  
                     childNode = new WorldStateWithOD(parent);
-                    childNode.allAgentsState[agentTurn].move(op);
+                    childNode.allAgentsState[agentTurn].move(newMove);
                     childNode.prevStep = parent;
                     childNode.agentTurn = childAgentTurn;
                     childNode.h = (int)this.heuristic.h(childNode);
@@ -81,7 +65,6 @@ namespace CPF_experiment
                     if (parent.agentTurn == 0)
                         childNode.makespan = parent.makespan + 1;
 
-
                     // g of child is equal to g of parent only when newMove is a STAY move and agent has already arrived at his goal location
                     childNode.CalculateG();  
 
@@ -93,11 +76,13 @@ namespace CPF_experiment
                         {
                             WorldStateWithOD inClosedList = (WorldStateWithOD)this.closedList[childNode];
                             if (inClosedList.mirrorState != null)
-                                inClosedList = inClosedList.mirrorState;
+                                inClosedList = inClosedList.mirrorState; // Is mirror state guaranteed to also be in the closed list?
                             //if g is smaller than remove the old world state than remove state
-                            if (inClosedList != null && (inClosedList.g > childNode.g || (inClosedList.g == childNode.g && (inClosedList.potentialConflictsCount > childNode.potentialConflictsCount || (inClosedList.potentialConflictsCount == childNode.potentialConflictsCount && inClosedList.dncInternalConflictsCount > childNode.dncInternalConflictsCount)))))
+                            if (inClosedList.g > childNode.g || 
+                                (inClosedList.g == childNode.g && (inClosedList.potentialConflictsCount > childNode.potentialConflictsCount ||
+                                (inClosedList.potentialConflictsCount == childNode.potentialConflictsCount && inClosedList.dncInternalConflictsCount > childNode.dncInternalConflictsCount))))
                             {
-                                closedList.Remove(inClosedList);
+                                closedList.Remove(inClosedList); // Not removing the original, non-mirror state?
                                 openList.Remove(inClosedList);
                             }
                         }
@@ -121,13 +106,6 @@ namespace CPF_experiment
                             }
                             else
                                 this.openList.Add(childNode);
-
-                            //if (childNode != null &&
-                            //    childNode.allAgentsState[0].pos_X == 1 && childNode.allAgentsState[0].pos_Y == 0 &&
-                            //    childNode.allAgentsState[1].pos_X == 2 && childNode.allAgentsState[1].pos_Y == 0 &&
-                            //    childNode.allAgentsState[2].pos_X == 0 && childNode.allAgentsState[2].pos_Y == 2 &&
-                            //    childNode.allAgentsState[3].pos_X == 1 && childNode.allAgentsState[3].pos_Y == 1)
-                            //    Console.ReadLine();
                         }
                     }
                 }
@@ -146,21 +124,21 @@ namespace CPF_experiment
                 restricting = false;
                 for (int j = cpy.agentTurn; j < cpy.allAgentsState.Length && restricting == false ; j++)
                 {
-                    if (cpy.allAgentsState[i].pos_X == cpy.allAgentsState[j].pos_X && 
-                        cpy.allAgentsState[i].pos_Y == cpy.allAgentsState[j].pos_Y)
+                    if (cpy.allAgentsState[i].last_move.isColliding(cpy.allAgentsState[j].last_move)) // Behavior change: this didn't check for head-on collisions
                     {
                         restricting = true;
+                        break;
                     }
                 }
                 if (restricting == false)
                 {
-                    cpy.allAgentsState[i].direction = (int)Move.Direction.NO_DIRECTION;
+                    cpy.allAgentsState[i].last_move.direction = Move.Direction.NO_DIRECTION; // ??
                     shouldAdd = true;
                 }
             }
-            if (toAdd.agentTurn == 0 || shouldAdd)
+            if (shouldAdd || (toAdd.agentTurn == 0))
             {
-                closedList.Add(cpy,cpy);
+                closedList.Add(cpy, cpy);
             }
         }
 
@@ -179,11 +157,11 @@ namespace CPF_experiment
                 return false;
 
             // Check against all the agents that have already moved to see if current move collides with their move
-            for (int i = 0 ; i < agentIndex ; i++)
-                if (aMove.isColliding(node.allAgentsState[i].pos_X,
-                    node.allAgentsState[i].pos_Y,
-                    node.allAgentsState[i].direction))
+            for (int i = 0; i < agentIndex; i++)
+            {
+                if (aMove.isColliding(node.allAgentsState[i].last_move))
                     return false;
+            }
                
             return !IsMoveReserved(aMove);            
         }
@@ -212,9 +190,5 @@ namespace CPF_experiment
         {
             return new Plan(((WorldStateWithOD)(this.GetGoal())));
         }
-
     }
-
-
-
 }

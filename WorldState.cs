@@ -9,20 +9,6 @@ namespace CPF_experiment
     /// </summary>
     public class WorldState : IComparable<IBinaryHeapItem> , IBinaryHeapItem
     {
-        /// <summary>
-        /// A list of allowed operators (currently this is a 4-connected grid, so there are 4 moves and a STAY option).
-        /// Each tuple is composed of 
-        /// 1. The delta that should be added to the x coordinate
-        /// 2. The delta that should be added to the y coordinate 
-        /// 3. A code that represents the direction of the move (used to discover head-on collisions)
-        /// </summary>
-        static public readonly int[,] operators = {{0,  0, (int)Move.Direction.Wait},
-                                                   {-1, 0, (int)Move.Direction.North},
-                                                   {0,  1, (int)Move.Direction.East},
-                                                   {1,  0, (int)Move.Direction.South},
-                                                   {0, -1, (int)Move.Direction.West}};
-        // TODO are the above really necessary in addition to Move's tables?
-
         public int makespan; // Total time steps passed, max(agent makespans)
         public int g; // Sum of agent makespans until they reach their goal
         public int h;
@@ -85,32 +71,17 @@ namespace CPF_experiment
         }
 
         /// <summary>
-        /// Make a move object with the given operator.
-        /// TODO: Find a better place for this
-        /// </summary>
-        /// <param name="opIndex">The index of the operator (corresponding to the first index of WorldState.operators) </param>
-        /// <param name="state">The state of a single agent that want to perform the move</param>
-        /// <returns></returns>
-        public static Move MakeMove(int opIndex, AgentState state)
-        {
-            int deltaX = WorldState.operators[opIndex, 0];
-            int deltaY = WorldState.operators[opIndex, 1];
-            return new Move(state.pos_X + deltaX, state.pos_Y + deltaY, WorldState.operators[opIndex, 2]);
-        }
-
-        /// <summary>
         /// Creates a new state by extracting a subset of the agents from
         /// the original Travor_WorldState. We overload the constructor because
-        /// while building our pattern databass, we rewrite the problem and
+        /// while building our pattern database, we rewrite the problem and
         /// therefore need to make a deep copy of the state data structures so
         /// as to not overwrite the original problem. The ultimate solution
         /// would be to rework the code to remove static variables so that we
         /// can instantiate subproblems without affecting the original data
         /// structures.
         /// </summary>
-        /// <param name="allAgentsStatesrc">A set of agent states in the original problem.</param>
+        /// <param name="allAgentsState">A set of agent states in the original problem.</param>
         /// <param name="vAgents">A list of indices referring to the subset of agents we want to extract.</param>
-
         public WorldState(AgentState[] allAgentsState, List<uint> vAgents)
         {
             // Copy specified agents:
@@ -119,13 +90,19 @@ namespace CPF_experiment
             g = 0;
         }        
         
-        public Boolean GoalTest(int minDepth)
+        public bool GoalTest(int minDepth)
         {
             if (makespan >= minDepth)
-                return h == 0;
+                return h == 0; // That's crazy! A node that is close to the goal might also get h==0.
+                               // Our specific heuristic doesn't behave that way, though.
             return false;
         }
 
+        /// <summary>
+        /// Used when WorldState objects are put in the open list priority queue
+        /// </summary>
+        /// <param name="other"></param>
+        /// <returns></returns>
         public virtual int CompareTo(IBinaryHeapItem other)
         {
             WorldState that = (WorldState)other;
@@ -175,7 +152,7 @@ namespace CPF_experiment
             string ans = "makespan: " + makespan + " h: " + h + " g: " + g + "\n";
             foreach (AgentState temp in allAgentsState)
             {
-                ans +=" agent" + temp.agent.agentNum + ": (" + temp.pos_X + "," + temp.pos_Y + ")\n";
+                ans +=" agent" + temp.agent.agentNum + ": " + temp.last_move + "\n";
             }
             return ans;
         }
@@ -189,14 +166,14 @@ namespace CPF_experiment
             LinkedList<Move> ans = new LinkedList<Move>();
             for (int i = 0; i < allAgentsState.Length; i++)
             {
-                ans.AddFirst(new Move(allAgentsState[i].pos_X, allAgentsState[i].pos_Y, allAgentsState[i].direction));
+                ans.AddFirst(new Move(allAgentsState[i].last_move));
             }
             return ans;
         }
 
         public Move getSingleAgentMove(int index)
         {
-            return new Move(allAgentsState[index].pos_X, allAgentsState[index].pos_Y, allAgentsState[index].direction);
+            return new Move(allAgentsState[index].last_move);
         }
 
         /// <summary>
@@ -212,42 +189,26 @@ namespace CPF_experiment
         public void setIndexInHeap(int index) { binaryHeapIndex = index; }
 
         /// <summary>
-        /// true if given a valid successor
+        /// Checks for internal conflicts
         /// </summary>
-        /// <param name="nextStep"></param>
         /// <returns></returns>
-        public bool isValidSuccessor(WorldState nextStep)
+        public bool isValid()
         {
-            if (nextStep == null)
-                return false;
-
             for (int i = 0; i < this.allAgentsState.Length; i++)
             {
-                for (int j = i+1; j < nextStep.allAgentsState.Length; j++)
+                for (int j = i+1; j < this.allAgentsState.Length; j++)
                 {
-                    // This block duplicates logic found in class Move.
-                    // Internal conflict in nextStep: two agents with same move target
-                    if (nextStep.allAgentsState[i].pos_X == nextStep.allAgentsState[j].pos_X && 
-                        nextStep.allAgentsState[i].pos_Y == nextStep.allAgentsState[j].pos_Y)
+                    // Internal conflict
+                    if (this.allAgentsState[i].last_move.isColliding(this.allAgentsState[j].last_move))
                         return false;
-
-                    // Internal conflict in nextStep: head-on collision
-                    if (this.allAgentsState[i].pos_X == nextStep.allAgentsState[j].pos_X && 
-                        this.allAgentsState[i].pos_Y == nextStep.allAgentsState[j].pos_Y &&
-                        this.allAgentsState[j].pos_X == nextStep.allAgentsState[i].pos_X && 
-                        this.allAgentsState[j].pos_Y == nextStep.allAgentsState[i].pos_Y)
-                        return false;
-
-                    // Internal conflicts in nextStep should probably be checked for using one of nextStep's methods.
-                    // Not actually checking that nextStep is a successor to this step: that all agents can get from
-                    // their current to the next
                 }
             }
             return true;
         }
 
         /// <summary>
-        /// Only the agents positions are used in the hash. The directions, g, makespan, h, potentialConflictsCount, dncInternalConflictsCount and others are ignored.
+        /// Only the agent states are used in the hash.
+        /// The g, makespan, h, potentialConflictsCount, dncInternalConflictsCount and others are ignored, as neccesary.
         /// </summary>
         /// <returns></returns>
         public override int GetHashCode()
@@ -255,18 +216,17 @@ namespace CPF_experiment
             int ans = 0;
             unchecked
             {
-                for (int i = 0; i < allAgentsState.Length; i++)
+                for (int i = 0 ; i < allAgentsState.Length; i++)
                 {
-                    ans += allAgentsState[i].pos_X * Constants.PRIMES_FOR_HASHING[i % Constants.PRIMES_FOR_HASHING.Length];
-                    ans += allAgentsState[i].pos_Y * Constants.PRIMES_FOR_HASHING[(i + 10) % Constants.PRIMES_FOR_HASHING.Length];
+                    ans += allAgentsState[i].GetHashCode() * Constants.PRIMES_FOR_HASHING[i % Constants.PRIMES_FOR_HASHING.Length];
                 }
             }
             return ans;
         }
 
-
         /// <summary>
-        /// Only the AgentStates are compared. g, makespan, h, potentialConflictsCount, dncInternalConflictsCount and others are ignored.
+        /// Only the AgentStates are compared.
+        /// g, makespan, h, potentialConflictsCount, dncInternalConflictsCount and others are ignored, as necessary.
         /// </summary>
         /// <param name="obj"></param>
         /// <returns></returns>
@@ -277,7 +237,7 @@ namespace CPF_experiment
             WorldState that = (WorldState)obj;
             if (this.allAgentsState.Length != that.allAgentsState.Length)
                 return false;
-            for (int i = 0; i < allAgentsState.Length; i++)
+            for (int i = 0; i < this.allAgentsState.Length; i++)
             {
                 if (!this.allAgentsState[i].Equals(that.allAgentsState[i]))
                     return false;
@@ -288,15 +248,9 @@ namespace CPF_experiment
         public virtual int conflictsCount(HashSet<TimedMove> conflictAvoidence)
         {
             int ans = 0;
-            TimedMove check = new TimedMove();
             for (int i = 0; i < allAgentsState.Length; i++)
             {
-                check.setup(allAgentsState[i].pos_X, allAgentsState[i].pos_Y, -1, allAgentsState[i].currentStep);
-                if (conflictAvoidence.Contains(check))
-                    ans++;
-                check.direction = allAgentsState[i].direction;
-                check.setOppositeMove();
-                if (conflictAvoidence.Contains(check))
+                if (allAgentsState[i].last_move.isColliding(conflictAvoidence))
                     ans++;
             }
             return ans;
@@ -305,15 +259,9 @@ namespace CPF_experiment
         public virtual int conflictsCount(HashSet_U<TimedMove> conflictAvoidence)
         {
             int ans = 0;
-            TimedMove check = new TimedMove();
             for (int i = 0; i < allAgentsState.Length; i++)
             {
-                check.setup(allAgentsState[i].pos_X, allAgentsState[i].pos_Y, -1, allAgentsState[i].currentStep);
-                if (conflictAvoidence.Contains(check))
-                    ans++;
-                check.direction = allAgentsState[i].direction;
-                check.setOppositeMove();
-                if (conflictAvoidence.Contains(check))
+                if (allAgentsState[i].last_move.isColliding(conflictAvoidence))
                     ans++;
             }
             return ans;

@@ -128,32 +128,24 @@ namespace CPF_experiment
             }
 
             // Try all legal moves of the agents
-            TimedMove agentLocation = new TimedMove();
             DnCConstraint nextStepLocation = new DnCConstraint();
-            int deltaX;
-            int deltaY;
-            int posX = currentNode.allAgentsState[agentIndex].pos_X;
-            int posY = currentNode.allAgentsState[agentIndex].pos_Y;
-            WorldState childNode;
             bool ans = false;
-            for (int op = 0; op < WorldState.operators.GetLength(0); op++)
+
+            foreach (TimedMove agentLocation in currentNode.allAgentsState[agentIndex].last_move.GetNextMoves(Constants.ALLOW_DIAGONAL_MOVE))
             {
                 if (foundGoal)
                     return true;
-                deltaX = WorldState.operators[op,0];
-                deltaY = WorldState.operators[op,1];
                 if (this.constraintList != null)
                 {
-                    nextStepLocation.init(instance.m_vAgents[agentIndex].agent.agentNum, posX + deltaX, posY + deltaY, currentNode.makespan + 1, WorldState.operators[op, 2]);
+                    nextStepLocation.init(instance.m_vAgents[agentIndex].agent.agentNum, agentLocation);
                     if (constraintList.Contains(nextStepLocation))
                         continue;
                 }
-                agentLocation.setup(posX + deltaX, posY + deltaY, WorldState.operators[op, 2], currentNode.makespan + 1);
                 if (IsValid(agentLocation, currentMoves))
                 {
                     currentMoves.Add(agentLocation);
-                    childNode = new WorldState(currentNode);
-                    childNode.allAgentsState[agentIndex].move(op);
+                    WorldState childNode = new WorldState(currentNode);
+                    childNode.allAgentsState[agentIndex].move(agentLocation);
                     childNode.prevStep = prev;
                     if (expand(childNode, agentIndex + 1, runner, targetF, currentMoves))
                         ans = true;
@@ -325,34 +317,26 @@ namespace CPF_experiment
             }
 
             // Try all legal moves of the agents
-            TimedMove agentLocation = new TimedMove();
             DnCConstraint nextStepLocation = new DnCConstraint();
-            int deltaX;
-            int deltaY;
-            int posX = currentNode.allAgentsState[agentIndex].pos_X;
-            int posY = currentNode.allAgentsState[agentIndex].pos_Y;
             WorldStateForPartialExpansion childNode;
             bool ans = false;
-            for (int op = 0; op < 5; op++)
+            foreach (TimedMove agentLocation in currentNode.allAgentsState[agentIndex].last_move.GetNextMoves(Constants.ALLOW_DIAGONAL_MOVE))
             {
                 if (foundGoal)
                     return true;
-                deltaX = WorldState.operators[op, 0];
-                deltaY = WorldState.operators[op, 1];
                 if (this.constraintList != null)
                 {
-                    nextStepLocation.init(instance.m_vAgents[agentIndex].agent.agentNum, posX + deltaX, posY + deltaY, currentNode.makespan + 1, WorldState.operators[op, 2]);
+                    nextStepLocation.init(instance.m_vAgents[agentIndex].agent.agentNum, agentLocation);
                     if (constraintList.Contains(nextStepLocation))
                         continue;
                 }
-                agentLocation.setup(posX + deltaX, posY + deltaY, WorldState.operators[op, 2], currentNode.makespan + 1);
                 if (IsValid(agentLocation, currentMoves))
                 {
                     currentMoves.Add(agentLocation);
                     childNode = new WorldStateForPartialExpansion(currentNode);
-                    childNode.allAgentsState[agentIndex].move(op);
+                    childNode.allAgentsState[agentIndex].move(agentLocation);
                     childNode.prevStep = prev;
-                    if (Expand(childNode, agentIndex + 1, runner, currentMoves, allMoves, targetFchange - allMoves[agentIndex][op],fLookupTable))
+                    if (Expand(childNode, agentIndex + 1, runner, currentMoves, allMoves, targetFchange - allMoves[agentIndex][(int)agentLocation.direction], fLookupTable))
                         ans = true;
                     currentMoves.Remove(agentLocation);
                 }

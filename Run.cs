@@ -216,35 +216,33 @@ namespace CPF_experiment
             // Select random start/goal locations for every agent by performing a random walk
             for (int i = 0; i < agentsNum; i++)
             {
-                aStart[i] = new AgentState(aGoals[i].Goal_X, aGoals[i].Goal_Y, aGoals[i]);
+                aStart[i] = new AgentState(aGoals[i].Goal.x, aGoals[i].Goal.y, aGoals[i]);
             }
 
             // Initialzied here only for the IsValid() call. TODO: Think how this can be sidestepped elegantly.
             ProblemInstance problem = new ProblemInstance();
             problem.init(aStart, grid);
             
-            int op;
-            int deltaX, deltaY, newX, newY;
             for (int j = 0; j < RANDOM_WALK_STEPS; j++)
             {
                 for (int i = 0; i < agentsNum; i++)
                 {
-                    op = rand.Next(0, WorldState.operators.GetLength(0));
-                    deltaX = WorldState.operators[op, 0];
-                    deltaY = WorldState.operators[op, 1];
-                    newX = aStart[i].pos_X + deltaX;
-                    newY = aStart[i].pos_Y + deltaY;
-                    if (problem.IsValid(newX, newY) && !goals[newX][newY])
+                    goals[aStart[i].last_move.x][aStart[i].last_move.y] = false; // We're going to move the goal somewhere else
+                    while (true)
                     {
-                        goals[newX][newY] = true;
-                        goals[aStart[i].pos_X][aStart[i].pos_Y] = false;
-                        aStart[i].pos_X += deltaX;
-                        aStart[i].pos_Y += deltaY;
+                        Move.Direction op = (Move.Direction)rand.Next(0, 5); // TODO: fixme
+                        aStart[i].last_move.Update(op);
+                        if (problem.IsValid(aStart[i].last_move.x, aStart[i].last_move.y) &&
+                            !goals[aStart[i].last_move.x][aStart[i].last_move.y]) // this spot isn't another agent's goal
+                            break;
+                        else
+                            aStart[i].last_move.Update(op); // Rollback
                     }
+                    goals[aStart[i].last_move.x][aStart[i].last_move.y] = true; // Claim agent's new goal
                 }
             }
 
-            // TODO: There is some repetetition here of previous instansiation of ProblemInstance. Think how to elegantly bypass this.
+            // TODO: There is some repetition here of previous instantiation of ProblemInstance. Think how to elegantly bypass this.
             problem = new ProblemInstance();
             problem.init(aStart, grid);
             return problem;            

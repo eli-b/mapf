@@ -42,7 +42,7 @@ namespace CPF_experiment
         }
 
         /// <summary>
-        /// Setup the relevant datastructures for a run.
+        /// Setup the relevant data structures for a run.
         /// </summary>
         public virtual void Setup(ProblemInstance problemInstance)
         {
@@ -101,7 +101,7 @@ namespace CPF_experiment
         /// <returns></returns>
         protected HeuristicCalculator CreateHeuristic()
         {
-            SingleShortestPath sic = new SingleShortestPath();
+            var sic = new SingleShortestPath();
 
             // Preparing a list of agent indices (not agent nums) for sic's init() method
             List<uint> agentList = this.instance.m_vAgents.Select<AgentState, uint>((state, index) => (uint)index).ToList<uint>();
@@ -302,25 +302,15 @@ namespace CPF_experiment
 
             foreach (var currentNode in intermediateNodes)
             {
-                int posX = currentNode.allAgentsState[agentIndex].pos_X;
-                int posY = currentNode.allAgentsState[agentIndex].pos_Y;
-                
                 // Try all legal moves of the agents
-                for (int op = 0; op < WorldState.operators.GetLength(0); op++)
+                foreach (TimedMove agentLocation in currentNode.allAgentsState[agentIndex].last_move.GetNextMoves(Constants.ALLOW_DIAGONAL_MOVE))
                 {
-                    int deltaX = WorldState.operators[op, 0];
-                    int deltaY = WorldState.operators[op, 1];
-
-                    TimedMove agentLocation = new TimedMove(
-                        posX + deltaX, posY + deltaY, WorldState.operators[op, 2], currentNode.makespan + 1);
-
                     if (IsValid(agentLocation, currentNode.currentMoves) == false)
                         continue;
 
                     if (this.constraintList != null)
                     {
-                        nextStepLocation.init(instance.m_vAgents[agentIndex].agent.agentNum, posX + deltaX, posY + deltaY,
-                            currentNode.makespan + 1, WorldState.operators[op, 2]);
+                        nextStepLocation.init(instance.m_vAgents[agentIndex].agent.agentNum, agentLocation);
                         
                         if (this.constraintList.Contains(nextStepLocation))
                             continue;
@@ -328,15 +318,13 @@ namespace CPF_experiment
                             this.mustConstraints[currentNode.makespan + 1] != null)
                         {
                             if (this.mustConstraints[currentNode.makespan + 1].Any<DnCConstraint>(
-                                con => con.violates(
-                                    instance.m_vAgents[agentIndex].agent.agentNum, posX + deltaX, posY + deltaY,
-                                    currentNode.makespan + 1, WorldState.operators[op, 2])))
+                                con => con.violatesMustCond((byte)instance.m_vAgents[agentIndex].agent.agentNum, agentLocation)))
                                 continue;
                         }
                     }
 
                     childNode = new WorldState(currentNode);
-                    childNode.allAgentsState[agentIndex].move(op);
+                    childNode.allAgentsState[agentIndex].move(agentLocation);
                     childNode.prevStep = currentNode;
                     if (agentIndex == 0) {
                         childNode.currentMoves.Clear();
@@ -359,7 +347,6 @@ namespace CPF_experiment
         /// <returns>true, if the move is possible.</returns>
         protected bool IsValid(TimedMove possibleMove, HashSet<TimedMove> currentMoves)
         {
-            int moveDirection = possibleMove.direction;
             if (this.illegalMoves != null) 
             {
                 if (possibleMove.isColliding(illegalMoves))

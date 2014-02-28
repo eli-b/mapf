@@ -118,7 +118,6 @@ namespace CPF_experiment
             Debug.WriteLine("Computing the single agent shortest path for all agents...");
             int[] shortestPaths;
             int entry;
-            Move aMove;
             WorldState state, childState;
             AgentState agentState;
             AgentState currentAgentState;
@@ -127,15 +126,15 @@ namespace CPF_experiment
             this.singleAgentShortestPaths = new int[this.GetNumOfAgents()][];
             for (int agentId = 0; agentId < this.GetNumOfAgents(); agentId++)
             {
-                // Run a single source shortest path algorithm from the goal of the agent                
+                // Run a single source shortest path algorithm from the _goal_ of the agent
                 shortestPaths = new int[this.m_nLocations];
                 for (int i = 0; i < m_nLocations; i++)
                     shortestPaths[i] = -1;
                 openlist.Clear();
 
                 // Create initial state
-                agentState = new AgentState(this.m_vAgents[agentId].agent.Goal_X,
-                        this.m_vAgents[agentId].agent.Goal_Y, -1, -1, agentId);
+                agentState = new AgentState(this.m_vAgents[agentId].agent.Goal.x,
+                        this.m_vAgents[agentId].agent.Goal.y, -1, -1, agentId);
                 entry = this.getCardinality(agentState);
                 shortestPaths[entry] = 0;
                 openlist.Enqueue(new WorldState(new AgentState[1] { agentState }));
@@ -145,19 +144,18 @@ namespace CPF_experiment
                     currentAgentState = state.allAgentsState[0];
 
                     // Generate child states
-                    for (int op = 0; op < WorldState.operators.GetLength(0); op++)
+                    foreach (TimedMove aMove in currentAgentState.last_move.GetNextMoves(Constants.ALLOW_DIAGONAL_MOVE))
                     {
-                        aMove = WorldState.MakeMove(op, currentAgentState);
                         if (IsValid(aMove))
                         {
                             entry = m_vCardinality[aMove.x, aMove.y];
                             // If move will generate a new or better state - add it to the queue
-                            if ((shortestPaths[entry] < 0) || (shortestPaths[entry] > state.g+1))
+                            if ((shortestPaths[entry] < 0) || (shortestPaths[entry] > state.g + 1))
                             {
                                 childState = new WorldState(state);
-                                childState.allAgentsState[0].move(op);
-                                childState.g = state.g+1;
-                                shortestPaths[entry] = state.g+1;
+                                childState.allAgentsState[0].move(aMove);
+                                childState.g = state.g + 1;
+                                shortestPaths[entry] = state.g + 1;
                                 openlist.Enqueue(childState);
                             }
                         }
@@ -183,13 +181,11 @@ namespace CPF_experiment
         /// <summary>
         /// Returns the shortest path between a given coordinate and the goal location of the given agent.
         /// </summary>
-        /// <param name="agentNum"></param>
-        /// <param name="x"></param>
-        /// <param name="y"></param>
+        /// <param name="agent"></param>
         /// <returns>The shortest path from x,y to the goal of agent agentNum</returns>
         public int GetSingleAgentShortestPath(AgentState agent)
         {
-            return this.singleAgentShortestPaths[agent.agent.agentNum][this.m_vCardinality[agent.pos_X, agent.pos_Y]];
+            return this.singleAgentShortestPaths[agent.agent.agentNum][this.m_vCardinality[agent.last_move.x, agent.last_move.y]];
         }
 
         /// <summary>
@@ -350,13 +346,13 @@ namespace CPF_experiment
                 state = this.m_vAgents[i];
                 output.Write(state.agent.agentNum);
                 output.Write(EXPORT_DELIMITER);
-                output.Write(state.agent.Goal_X);
+                output.Write(state.agent.Goal.x);
                 output.Write(EXPORT_DELIMITER);
-                output.Write(state.agent.Goal_Y);
+                output.Write(state.agent.Goal.y);
                 output.Write(EXPORT_DELIMITER);
-                output.Write(state.pos_X);
+                output.Write(state.last_move.x);
                 output.Write(EXPORT_DELIMITER);
-                output.Write(state.pos_Y);
+                output.Write(state.last_move.y);
                 output.WriteLine();
             }
             output.Flush();
@@ -372,7 +368,7 @@ namespace CPF_experiment
         /// location in our grid.</returns>
         public Int32 getCardinality(AgentState ags)
         {
-            return (m_vCardinality[ags.pos_X, ags.pos_Y]);
+            return (m_vCardinality[ags.last_move.x, ags.last_move.y]);
         }
         
         private void precomputePermutations()

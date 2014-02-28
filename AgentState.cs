@@ -5,13 +5,16 @@ namespace CPF_experiment
 {
     [Serializable] public class AgentState : IComparable<IBinaryHeapItem>, IBinaryHeapItem
     {
-        public int pos_X;
-        public int pos_Y;
+        /// <summary>
+        /// Only used when AgentState objects are put in the open list priority queue - mainly in AStarForSingleAgent, I think.
+        /// </summary>
         public int h;
         public Agent agent;
+        /// <summary>
+        /// At goal
+        /// </summary>
         public int arrivalTime;
-        public int currentStep;
-        public sbyte direction;
+        public TimedMove last_move;
         private int binaryHeapIndex;
         public int potentialConflicts;
         public ushort potentialConflictsID;
@@ -19,9 +22,7 @@ namespace CPF_experiment
 
         public AgentState(int pos_X, int pos_Y, Agent agent)
         {
-            this.pos_X = pos_X;
-            this.pos_Y = pos_Y;
-            direction = 0;
+            this.last_move = new TimedMove(pos_X, pos_Y, Move.Direction.NO_DIRECTION, 0);
             this.agent = agent;
         }
 
@@ -31,41 +32,32 @@ namespace CPF_experiment
 
         public AgentState(AgentState copy)
         {
-            this.pos_X = copy.pos_X;
-            this.pos_Y = copy.pos_Y;
             this.agent = copy.agent;
             this.h = copy.h;
             this.arrivalTime = copy.arrivalTime;
-            this.direction = copy.direction;
-            this.currentStep = copy.currentStep;
+            this.last_move = new TimedMove(copy.last_move); // Can we just do this.last_move = copy.last_move?
         }
 
         public void swapCurrentWithGoal()
         {
-            int nTemp = pos_X;
-            pos_X = agent.Goal_X;
-            agent.Goal_X = nTemp;
-            nTemp = pos_Y;
-            pos_Y = agent.Goal_Y;
-            agent.Goal_Y = nTemp;
+            int nTemp = last_move.x;
+            last_move.x = agent.Goal.x;
+            agent.Goal.x = nTemp;
+            nTemp = last_move.y;
+            last_move.y = agent.Goal.y;
+            agent.Goal.y = nTemp;
         }
 
         /// <summary>
-        /// Actually moves the agent and recalculates its heuristic.
-        /// Does NOT recalculates the heuristic!
+        /// Updates the agent's last move with the given move and set arrivalTime (at goal) if necessary.
         /// </summary>
-        public void move(int direction)
+        public void move(TimedMove move)
         {
-            int deltaX = WorldState.operators[direction, 0];
-            int deltaY = WorldState.operators[direction, 1];
-            pos_X += deltaX;
-            pos_Y += deltaY;
-            currentStep += 1;
-            this.direction = (sbyte)direction;
+            last_move = move;
 
             // If performed a non STAY move and reached the agent's goal - store the arrival time
-            if (((deltaX != 0) || (deltaY != 0)) && (this.atGoal()))
-                this.arrivalTime = currentStep;
+            if ((move.direction != Move.Direction.Wait) && (this.atGoal()))
+                this.arrivalTime = last_move.time;
         }
 
         /// <summary>
@@ -74,7 +66,7 @@ namespace CPF_experiment
         /// <returns>True if the agent has reached its goal location</returns>
         public bool atGoal()
         {
-            return ((this.pos_X == this.agent.Goal_X) && (this.pos_Y == this.agent.Goal_Y));
+            return this.agent.Goal.Equals(this.last_move); // Comparing Move to TimedMove is allowed, the reverse isn't.
         }
 
         /// <summary>
@@ -88,7 +80,7 @@ namespace CPF_experiment
         public void setIndexInHeap(int index) { binaryHeapIndex = index; }
 
         /// <summary>
-        /// Checks pos_X, pos_Y, agent and, if CBS_LocalConflicts.isDnC, the currentStep too.
+        /// Checks last_move and agent
         /// </summary>
         /// <param name="obj"></param>
         /// <returns></returns>
@@ -96,11 +88,7 @@ namespace CPF_experiment
         {
             AgentState that = (AgentState)obj;
             
-            if (CBS_LocalConflicts.isDnC == true)
-                if (this.currentStep != that.currentStep)
-                    return false;
-
-            if (this.pos_X == that.pos_X && this.pos_Y == that.pos_Y && this.agent.Equals(that.agent))
+            if (this.last_move.Equals(that.last_move) /*behavior change! now checks time too*/ && this.agent.Equals(that.agent))
             {
                 return true;
             }
@@ -108,7 +96,7 @@ namespace CPF_experiment
         }
 
         /// <summary>
-        /// Uses pos_X, pos_Y and agent.
+        /// Uses last_move and agent.
         /// </summary>
         /// <param name="obj"></param>
         /// <returns></returns>
@@ -116,50 +104,50 @@ namespace CPF_experiment
         {
             unchecked
             {
-                return this.agent.GetHashCode() + (this.pos_X * 5) + (this.pos_Y * 7);
+                return 3 * this.agent.GetHashCode() + 5 * this.last_move.GetHashCode(); // Behavior change: now uses currentStep too.
             }
         }
 
         public LinkedList<Move> GetMove()
         {
             LinkedList<Move> ans = new LinkedList<Move>();
-            ans.AddFirst(new Move(pos_X, pos_Y, direction));
+            ans.AddFirst(new Move(this.last_move));
             return ans;
         }
 
+        /// <summary>
+        /// Used when AgentState objects are put in the open list priority queue - mainly in AStarForSingleAgent, I think.
+        /// </summary>
+        /// <param name="other"></param>
+        /// <returns></returns>
         public int CompareTo(IBinaryHeapItem other)
         {
             AgentState that = (AgentState)other;
-            if (this.h + this.currentStep < that.h + that.currentStep)
+            if (this.h + this.last_move.time < that.h + that.last_move.time)
                 return -1;
-            if (this.h + this.currentStep > that.h + that.currentStep)
+            if (this.h + this.last_move.time > that.h + that.last_move.time)
                 return 1;
-
-
 
             if (this.potentialConflictsID < that.potentialConflictsID)
                 return -1;
             if (this.potentialConflictsID > that.potentialConflictsID)
                 return 1;
 
-
-            if (this.potentialConflicts < that.potentialConflicts)
+            if (this.potentialConflicts < that.potentialConflicts) // Doesn't this come before the potentialConflictsID in other places?
                 return -1;
             if (this.potentialConflicts > that.potentialConflicts)
                 return 1;
 
-
-
-            if (this.currentStep < that.currentStep)
+            if (this.last_move.time < that.last_move.time)
                 return 1;
-            if (this.currentStep > that.currentStep)
+            if (this.last_move.time > that.last_move.time) // Prefer larger g
                 return -1;
             return 0;
         }
 
         public override string ToString()
         {
-            return " step-" + currentStep + " position (" + pos_X + "," + pos_Y + ")";
+            return " step-" + last_move.time + " position " + this.last_move;
         }
     }
 
@@ -171,12 +159,7 @@ namespace CPF_experiment
     {
         public int Compare(AgentState x, AgentState y)
         {
-            if (x.agent.agentNum > y.agent.agentNum)
-                return 1;
-            else if (x.agent.agentNum < y.agent.agentNum)
-                return -1;
-            else
-                return 0;
+            return x.agent.agentNum.CompareTo(y.agent.agentNum);
         }
     }
 }

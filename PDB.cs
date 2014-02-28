@@ -61,6 +61,7 @@ namespace CPF_experiment
         /// - Generating the children
         /// - Inserting them into OPEN
         /// - Insert node into CLOSED
+        /// Why does a PDB need to know how to expand nodes? Seems like someone else's job
         /// </summary>
         /// <param name="currentNode">The node to expand</param>
         /// <param name="children">The generated nodes will be filled into this collection</param>
@@ -83,11 +84,6 @@ namespace CPF_experiment
         public void Expand(WorldState currentNode, int agentIndex, ICollection<WorldState> children, ICollection<Move> previousMoves)
         {
             WorldState prev = currentNode.prevStep;
-            Move agentLocation;
-            int deltaX;
-            int deltaY;
-            int posX = currentNode.allAgentsState[agentIndex].pos_X;
-            int posY = currentNode.allAgentsState[agentIndex].pos_Y;
             WorldState childNode;
 
             if (agentIndex == 0) // If this is the first agent that moves
@@ -102,20 +98,16 @@ namespace CPF_experiment
                 return;
             }
 
-
             // Try all legal moves of the agent
-            for (int op = 0; op < WorldState.operators.GetLength(0); op++)
+            foreach (TimedMove agentLocation in currentNode.allAgentsState[agentIndex].last_move.GetNextMoves(Constants.ALLOW_DIAGONAL_MOVE))
             {
-                deltaX = WorldState.operators[op, 0];
-                deltaY = WorldState.operators[op, 1];
-                agentLocation = new Move(posX + deltaX, posY + deltaY, WorldState.operators[op, 3]);
-                if (IsValid(agentLocation, agentIndex,previousMoves))
+                if (IsValid(agentLocation, agentIndex, previousMoves))
                 {
                     previousMoves.Add(agentLocation);
                     childNode = new WorldState(currentNode);
-                    childNode.allAgentsState[agentIndex].move(op);
+                    childNode.allAgentsState[agentIndex].move(agentLocation);
                     childNode.prevStep = prev;
-                    Expand(childNode, agentIndex + 1,children,previousMoves);
+                    Expand(childNode, agentIndex + 1,children, previousMoves);
                     previousMoves.Remove(agentLocation);
                 }
             }

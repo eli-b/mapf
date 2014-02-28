@@ -209,7 +209,7 @@ namespace CPF_experiment
         public MddMatchAndPruneState(MDDNode[] allPositions)
         {
             this.allPositions = allPositions;
-            this.stateLevel = allPositions[0].level;
+            this.stateLevel = allPositions[0].move.time;
             this.parents = new LinkedList<MddMatchAndPruneState>();
             this.childrens = new LinkedList<MddMatchAndPruneState>();
         }
@@ -221,7 +221,7 @@ namespace CPF_experiment
             {
                 allPositions[i] = allSuccessors[i].Value;
             }
-            this.stateLevel = allPositions[0].level;
+            this.stateLevel = allPositions[0].move.time;
             this.parents = new LinkedList<MddMatchAndPruneState>();
             this.childrens = new LinkedList<MddMatchAndPruneState>();
         }

@@ -19,5 +19,7 @@ namespace CPF_experiment
         public static int MAX_FAIL_COUNT = 40;
         // This determines whether the ICTS should search a solution with lowest conflicts for the ID framework
         public static bool exhaustiveIcts = false;
+
+        public const bool ALLOW_DIAGONAL_MOVE = false;
     }
 }

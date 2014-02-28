@@ -42,7 +42,7 @@ namespace CPF_experiment
             for (int i = 0; i < startingPos.Length; i++) 
             {
                 agent=startingPos[i];
-                allMDDs[i] = new MDD(i ,agent.agent.agentNum,agent.pos_X,agent.pos_Y,costNode.costs[i],maxCost,startingPos.Length,problem);
+                allMDDs[i] = new MDD(i, agent.agent.agentNum, agent.last_move, costNode.costs[i], maxCost, startingPos.Length, problem);
             }
 
             matchCounter = 0;
@@ -59,7 +59,7 @@ namespace CPF_experiment
             for (int i = 0; i < startingPos.Length; i++)
             {
                 agent = startingPos[i];
-                allMDDs[i] = new MDD(i, agent.agent.agentNum, agent.pos_X, agent.pos_Y, costNode.costs[i], maxCost, startingPos.Length, problem);
+                allMDDs[i] = new MDD(i, agent.agent.agentNum, agent.last_move, costNode.costs[i], maxCost, startingPos.Length, problem);
             }
             generated = 0;
             matchCounter = 0;

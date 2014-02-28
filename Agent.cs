@@ -5,31 +5,28 @@ namespace CPF_experiment
     [Serializable] public class Agent
     {
         public int agentNum;
-        public int Goal_X;
-        public int Goal_Y;
+        public Move Goal; // TODO: Make it a coordinate
 
         public Agent(Agent a)
         {
             agentNum = a.agentNum;
-            Goal_X = a.Goal_X;
-            Goal_Y = a.Goal_Y;
+            Goal = new Move(a.Goal);
         }
 
         public Agent(int Goal_X, int Goal_Y, int agentNum)
         {
             this.agentNum = agentNum;
-            this.Goal_X = Goal_X;
-            this.Goal_Y = Goal_Y;
+            Goal = new Move(Goal_X, Goal_Y, Move.Direction.NO_DIRECTION);
         }
         public override string ToString()
         {
-            return "Agent-" + agentNum + " Goal-(" + Goal_X + "," + Goal_Y + ")";
+            return "Agent-" + agentNum + " Goal-" + Goal;
         }
 
         public override bool Equals(object other_obj)
         {
             Agent other = (Agent)other_obj;
-            return agentNum == other.agentNum && Goal_X == other.Goal_X && Goal_Y == other.Goal_Y;
+            return agentNum == other.agentNum && Goal.Equals(other.Goal);
         }
 
         public override int GetHashCode()
@@ -38,8 +35,7 @@ namespace CPF_experiment
             {
                 int hash = 17;
                 hash = hash * 23 + agentNum;
-                hash = hash * 23 + Goal_X;
-                hash = hash * 23 + Goal_Y;
+                hash = hash * 23 + Goal.GetHashCode();
                 return hash;
             }
         }
