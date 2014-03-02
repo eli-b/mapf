@@ -19,7 +19,7 @@ namespace CPF_experiment
           //this.onVartex = onVartex;
         }
 
-        public DnCConstraint() {}
+        public DnCConstraint() : this(-1, -1, -1, Move.Direction.NO_DIRECTION, -1) {} // Nonsense values until init, just allocate move
 
         public DnCConstraint(DnCConflict conflict, ProblemInstance instance, bool agentA)
         {
@@ -45,13 +45,13 @@ namespace CPF_experiment
 
         public void init(int agent, int posX, int posY, Move.Direction direction, int timeStep)
         {
-            this.agents = new byte[1] { (byte)agent };
+            this.agents = new byte[1] { (byte)agent }; // Must allocate a new array to make sure its size didn't change
             this.move.setup(posX, posY, direction, timeStep);
         }
 
         public void init(int agent, TimedMove move)
         {
-            this.agents = new byte[1] { (byte)agent };
+            this.agents = new byte[1] { (byte)agent }; // Must allocate a new array to make sure its size didn't change
             this.move.setup(move);
         }
 
@@ -82,7 +82,7 @@ namespace CPF_experiment
 
         public void addAgents(List<byte> addAgents)
         {
-            // Because manually fiddling with arrays is the best!
+            // TODO: Consider just using a List<int> and removing this method.
             if (addAgents.Count == 0)
                 return;
             byte[] newAgents = new byte[agents.Length + addAgents.Count];
