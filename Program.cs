@@ -94,7 +94,7 @@ namespace CPF_experiment
                                     runner.outOfTimeCounter[j - 4] = int.Parse(lineParts[j]);
                                 }
                                 continueFromLastRun = false;
-                                continue;
+                                continue; // "current problem" file describes last solved problem, no need to solve it again
                             }
                             if (runner.outOfTimeCounter.Length != 0 && runner.outOfTimeCounter.Sum() == runner.outOfTimeCounter.Length * Constants.MAX_FAIL_COUNT) // Too many failures
                                 continue;

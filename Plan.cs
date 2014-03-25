@@ -41,17 +41,17 @@ namespace CPF_experiment
             }
         }
 
-        public Plan(LinkedList<Move>[] rout)
+        public Plan(LinkedList<Move>[] route)
         {
             this.locationsAtTime = new List<LinkedList<Move>>();
-            for (int i = 0; i < rout[0].Count; i++)
+            for (int i = 0; i < route[0].Count; i++)
             {
                 locationsAtTime.Add(new LinkedList<Move>());
             }
             LinkedListNode<Move> move;
-            foreach (LinkedList<Move> routPerAgent in rout)
+            foreach (LinkedList<Move> routePerAgent in route)
             {
-                move = routPerAgent.First;
+                move = routePerAgent.First;
                 for (int i = 0; i < locationsAtTime.Count; i++)
                 {
                     this.locationsAtTime[i].AddLast(move.Value);
@@ -59,6 +59,7 @@ namespace CPF_experiment
                 }
             }
         }
+
         /// <summary>
         /// Reconstructs a plan by going backwards from a goal state, returning only moves in a full states
         /// and ignoring intermediate states.
@@ -140,10 +141,10 @@ namespace CPF_experiment
 
         public SinglePlan[] getSinglePlans()
         {
-            LinkedList<Move>[] allrouts = new LinkedList<Move>[this.locationsAtTime.First().Count];
-            for (int i = 0; i < allrouts.Length; i++)
+            LinkedList<Move>[] allroutes = new LinkedList<Move>[this.locationsAtTime.First().Count];
+            for (int i = 0; i < allroutes.Length; i++)
             {
-                allrouts[i] = new LinkedList<Move>();
+                allroutes[i] = new LinkedList<Move>();
             }
             SinglePlan[] ans = new SinglePlan[this.locationsAtTime.First().Count];
             int j;
@@ -152,20 +153,20 @@ namespace CPF_experiment
                 j = 0;
                 foreach (Move agentStep in timeStep)
                 {
-                    allrouts[j].AddLast(agentStep);
+                    allroutes[j].AddLast(agentStep);
                     j++;
                 }
             }
-            for (int i = 0; i < allrouts.Length; i++)
+            for (int i = 0; i < allroutes.Length; i++)
             {
-                ans[i] = new SinglePlan(allrouts[i], i);
+                ans[i] = new SinglePlan(allroutes[i], i);
             }
             return ans;
         }
 
         /// <summary>
         /// Returns the location of the agents at a given time. 
-        /// It the requested time is after the last step of the plan,
+        /// If the requested time is after the last step of the plan,
         /// the agents are assumed to stay at their final location.
         /// </summary>
         /// <param name="time">The requested time</param>
@@ -251,7 +252,7 @@ namespace CPF_experiment
             }
         }
 
-          public SinglePlan(AgentState goalState)
+        public SinglePlan(AgentState goalState)
         {
             this.agentIndex = 0;
             AgentState currentNode = goalState;
@@ -264,12 +265,11 @@ namespace CPF_experiment
             this.locationsAtTime = locations.ToArray();
         }
 
-          public SinglePlan(LinkedList<Move> rout, int agentIndex)
+        public SinglePlan(LinkedList<Move> route, int agentIndex)
         {
             this.agentIndex = agentIndex;
-            locationsAtTime = rout.ToArray();
+            locationsAtTime = route.ToArray();
         }
-
 
         ///// <summary>
         ///// Reconstructs a plan by going backwards from a goal state, returning only moves in a full states

@@ -152,7 +152,7 @@ namespace CPF_experiment
             string ans = "makespan: " + makespan + " h: " + h + " g: " + g + "\n";
             foreach (AgentState temp in allAgentsState)
             {
-                ans +=" agent" + temp.agent.agentNum + ": " + temp.last_move + "\n";
+                ans +=" agent " + temp.agent.agentNum + ": " + temp.last_move + "\n";
             }
             return ans;
         }
