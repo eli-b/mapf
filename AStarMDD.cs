@@ -97,6 +97,7 @@ namespace CPF_experiment
                 child = currentNode.getNextChild();
             }
         }
+
         public void clearIllegal()
         {
             foreach (MDD mdd in problem)
@@ -105,6 +106,7 @@ namespace CPF_experiment
                         if (node.legal == false)
                             node.delete();
         }
+
         public void resetIllegal()
         {
             foreach (MDD mdd in problem)
@@ -116,12 +118,14 @@ namespace CPF_experiment
         public int getGenerated() { return this.generated; }
         
         public int getExpanded() { return this.expanded; }
+        
         private bool goalTest(MDDStep toCheck)
         {
             if (toCheck.getDepth() == problem[0].levels.Length - 1)
                 return true;
             return false;
         }
+
         private LinkedList<Move>[] getAnswear(MDDStep finish)
         {
             if (finish == null)
@@ -146,6 +150,7 @@ namespace CPF_experiment
             }
             return ans;
         }
+        
         private bool checkIfLegal(MDDNode from1, MDDNode to1, MDDNode from2, MDDNode to2)
         {
             if (to1.getX() == to2.getX() && to1.getY() == to2.getY())
@@ -154,6 +159,7 @@ namespace CPF_experiment
                 return false;
             return true;
         }
+        
         private bool isLegalMove(MDDStep to)
         {
             if (to == null)
@@ -170,9 +176,9 @@ namespace CPF_experiment
             }
             return true;
         }
-
-
     }
+
+
     class MDDStep : IComparable<IBinaryHeapItem>, IBinaryHeapItem
     {
         public MDDNode[] allSteps;
@@ -186,6 +192,7 @@ namespace CPF_experiment
             this.allSteps = allSteps;
             this.prevStep = prevStep;
         }
+
         public MDDStep(MDDStep cpy)
         {
             this.allSteps = new MDDNode[cpy.allSteps.Length];
@@ -195,6 +202,12 @@ namespace CPF_experiment
             }
             this.prevStep = cpy.prevStep;
         }
+
+        /// <summary>
+        /// Only compares the steps.
+        /// </summary>
+        /// <param name="obj"></param>
+        /// <returns></returns>
         public override bool Equals(object obj)
         {
             MDDStep comp = (MDDStep)obj;
@@ -205,6 +218,11 @@ namespace CPF_experiment
             }
             return true;
         }
+
+        /// <summary>
+        /// Only uses the steps
+        /// </summary>
+        /// <returns></returns>
         public override int GetHashCode()
         {
             unchecked
@@ -212,7 +230,7 @@ namespace CPF_experiment
                 int code = 0;
                 for (int i = 0; i < allSteps.Length; i++)
                 {
-                    code += allSteps[i].GetHashCode() * Constants.PRIMES_FOR_HASHING[i % 22];
+                    code += allSteps[i].GetHashCode() * Constants.PRIMES_FOR_HASHING[i % Constants.PRIMES_FOR_HASHING.Length];
                 }
                 return code;
             }
@@ -241,12 +259,12 @@ namespace CPF_experiment
             }
         }
 
-
         /// <summary>
         /// BH_Item implementation
         /// </summary>
         /// <returns></returns>
         public int getIndexInHeap() { return binaryHeapIndex; }
+        
         /// <summary>
         /// BH_Item implementation
         /// </summary>
@@ -314,7 +332,7 @@ namespace CPF_experiment
             {
                 ans[i] = parent.allSteps[i].children.ElementAt(chosenChild[i]);
             }
-            setNextChild(chosenChild.Length-1);
+            setNextChild(chosenChild.Length - 1);
             return new MDDStep(ans, parent);
         }
 

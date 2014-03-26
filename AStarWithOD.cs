@@ -57,8 +57,8 @@ namespace CPF_experiment
 
                     if (instance.parameters.ContainsKey(CBS_LocalConflicts.INTERNAL_CAT))
                     {
-                        childNode.dncInternalConflictsCount = parent.prevStep.dncInternalConflictsCount;
-                        childNode.dncInternalConflictsCount += parent.conflictsCount(((HashSet<TimedMove>)instance.parameters[CBS_LocalConflicts.INTERNAL_CAT]));
+                        childNode.cbsInternalConflictsCount = parent.prevStep.cbsInternalConflictsCount;
+                        childNode.cbsInternalConflictsCount += parent.conflictsCount(((HashSet<TimedMove>)instance.parameters[CBS_LocalConflicts.INTERNAL_CAT]));
                     }
 
                     // Makespan increases only if this is the move of the first agent
@@ -80,7 +80,7 @@ namespace CPF_experiment
                             //if g is smaller than remove the old world state than remove state
                             if (inClosedList.g > childNode.g || 
                                 (inClosedList.g == childNode.g && (inClosedList.potentialConflictsCount > childNode.potentialConflictsCount ||
-                                (inClosedList.potentialConflictsCount == childNode.potentialConflictsCount && inClosedList.dncInternalConflictsCount > childNode.dncInternalConflictsCount))))
+                                (inClosedList.potentialConflictsCount == childNode.potentialConflictsCount && inClosedList.cbsInternalConflictsCount > childNode.cbsInternalConflictsCount))))
                             {
                                 closedList.Remove(inClosedList); // Not removing the original, non-mirror state?
                                 openList.Remove(inClosedList);

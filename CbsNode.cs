@@ -1,40 +1,39 @@
 ﻿using System;
+using System.Linq;
 using System.Collections.Generic;
 using System.Diagnostics;
 
 namespace CPF_experiment
 {
-    class DnCNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem
+    class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem
     {
         public ushort totalCost;
         public ushort externalConflictsCount;
         public ushort internalConflictsCount;
         public SinglePlan[] allSingleAgentPlans;
-        //DnCConstraintsTable constraintTable;
         private int binaryHeapIndex;
-        DnCConflict conflict;
-        DnCConstraint constraint;
-        DnCConstraint unConstraint;
-        DnCNode prev;
+        CbsConflict conflict;
+        CbsConstraint constraint;
+        CbsConstraint unConstraint;
+        CbsNode prev;
         public ushort depth;
         public ushort[] agentsGroupAssignment;
-        public static HashSet<DnCConstraint> allConstraintsForNode;
+        public static HashSet<CbsConstraint> allConstraintsForNode;
         public ushort replanSize;
-        public byte colapse; // 0 - not expanded. 1 - only A not expanded. 2 - only B not expanded
+        public byte collapse; // 0 - not expanded. 1 - only A not expanded. 2 - only B not expanded
 
         /// <summary>
-        /// defult constructor
+        /// default constructor
         /// </summary>
-        public DnCNode(int numberOfAgents)
+        public CbsNode(int numberOfAgents)
         {
-            //constraintTable = new DnCConstraintsTable(numberOfAgents);
             allSingleAgentPlans = new SinglePlan[numberOfAgents];
             totalCost = 0;
             depth = 0;
             replanSize = 1;
             externalConflictsCount = 0;
             internalConflictsCount = 0;
-            colapse = 0;
+            collapse = 0;
             agentsGroupAssignment = new ushort[numberOfAgents];
             for (ushort i = 0; i < numberOfAgents; i++)
             {
@@ -45,11 +44,10 @@ namespace CPF_experiment
         /// child constructor
         /// </summary>
         /// <param name="father"></param>
-        public DnCNode(DnCNode father, DnCConstraint newConstraint,int agentToReplan, ProblemInstance problem)
+        public CbsNode(CbsNode father, CbsConstraint newConstraint,int agentToReplan, ProblemInstance problem)
         {
             this.totalCost = father.totalCost;
             this.allSingleAgentPlans = new SinglePlan[father.allSingleAgentPlans.Length];
-            //this.constraintTable = new DnCConstraintsTable(cpy.constraintTable);
             for (int i = 0; i < this.allSingleAgentPlans.Length; i++)
             {
                 this.allSingleAgentPlans[i] = father.allSingleAgentPlans[i];
@@ -71,45 +69,46 @@ namespace CPF_experiment
             this.depth = (ushort)(prev.depth + 1);
             externalConflictsCount = 0;
             internalConflictsCount = 0;
-            colapse = 0;
+            collapse = 0;
             replanSize = 1;
         }
 
         /// <summary>
-        /// solve a give problem according to given constraints, sets the plans array (plan per agent)
+        /// solve a given problem according to given constraints, sets the plans array (plan per agent)
         /// </summary>
         /// <param name="problem"></param>
         /// <param name="runner"></param>
         /// <returns></returns>
-        public bool solve(ProblemInstance problem, Run runner, int depthToReplan, IDnCSolver solver, ref int highLevelExpanded, ref int highLevelGenerated, ref int loweLevelExpanded, ref int loweLevelGenerated)
+        public bool solve(ProblemInstance problem, Run runner, int depthToReplan, ICbsSolver solver, ref int highLevelExpanded, ref int highLevelGenerated, ref int loweLevelExpanded, ref int loweLevelGenerated)
         {
             totalCost = 0;
             HashSet<TimedMove> newInternalCAT = (HashSet<TimedMove>)problem.parameters[CBS_LocalConflicts.NEW_INTERNAL_CAT];
-            HashSet<DnCConstraint> newConstraints = (HashSet<DnCConstraint>)problem.parameters[CBS_LocalConflicts.NEW_CONSTRAINTS];
+            HashSet<CbsConstraint> newConstraints = (HashSet<CbsConstraint>)problem.parameters[CBS_LocalConflicts.NEW_CONSTRAINTS];
             HashSet_U<TimedMove> InternalCAT = (HashSet_U<TimedMove>)problem.parameters[CBS_LocalConflicts.INTERNAL_CAT];
-            HashSet_U<DnCConstraint> Constraints = (HashSet_U<DnCConstraint>)problem.parameters[CBS_LocalConflicts.CONSTRAINTS];
+            HashSet_U<CbsConstraint> Constraints = (HashSet_U<CbsConstraint>)problem.parameters[CBS_LocalConflicts.CONSTRAINTS];
 
             newInternalCAT.Clear();
             newConstraints.Clear();
-            AgentState[] subGroup= new AgentState[1];
             ProblemInstance subProblem;
 
             for (int i = 0; i < problem.m_vAgents.Length; i++)
             {
-                subGroup[0] = problem.m_vAgents[i];
+                AgentState[] subGroup = new AgentState[] { problem.m_vAgents[i] };
                 subProblem = problem.Subproblem(subGroup);
-                subProblem.parameters = problem.parameters;
+                subProblem.parameters = problem.parameters; // Why isn't this done in Subproblem()? Perhaps there's a good reason.
 
                 InternalCAT.Join(newInternalCAT);
                 Constraints.Join(newConstraints);
 
                 solver.Setup(subProblem, depthToReplan);
-                if (solver.Solve(runner) == false)
+                bool success = solver.Solve(runner);
+                
+                highLevelExpanded += solver.getHighLevelExpanded();
+                highLevelGenerated += solver.getHighLevelGenerated();
+                loweLevelExpanded += solver.getLowLevelExpanded();
+                loweLevelGenerated += solver.getLowLevelGenerated();
+                if (!success)
                 {
-                    highLevelExpanded += solver.getHighLevelExpanded();
-                    highLevelGenerated += solver.getHighLevelGenerated();
-                    loweLevelExpanded += solver.getLowLevelExpanded();
-                    loweLevelGenerated += solver.getLowLevelGenerated();
 
                     InternalCAT.Seperate(newInternalCAT);
                     Constraints.Seperate(newConstraints);
@@ -118,10 +117,6 @@ namespace CPF_experiment
 
                 InternalCAT.Seperate(newInternalCAT);
                 Constraints.Seperate(newConstraints);
-                highLevelExpanded += solver.getHighLevelExpanded();
-                highLevelGenerated += solver.getHighLevelGenerated();
-                loweLevelExpanded += solver.getLowLevelExpanded();
-                loweLevelGenerated += solver.getLowLevelGenerated();
 
                 allSingleAgentPlans[i] = solver.getSinglePlans()[0];
                 totalCost += (ushort)solver.GetSolutionCost();
@@ -133,13 +128,13 @@ namespace CPF_experiment
         /// <summary>
         /// replan for a given agent (when constraints for that agent have changed)
         /// </summary>
-        public bool rePlan(ProblemInstance problem, Run runner, int agentForRePlan, int depthToReplan, IDnCSolver highLevelSolver, IDnCSolver lowLevelSolver, ref int highLevelExpanded, ref int highLevelGenerated, ref int loweLevelExpanded, ref int loweLevelGenerated)
+        public bool rePlan(ProblemInstance problem, Run runner, int agentForRePlan, int depthToReplan, ICbsSolver highLevelSolver, ICbsSolver lowLevelSolver, ref int highLevelExpanded, ref int highLevelGenerated, ref int loweLevelExpanded, ref int loweLevelGenerated)
         {
             HashSet<TimedMove> newInternalCAT = (HashSet<TimedMove>)problem.parameters[CBS_LocalConflicts.NEW_INTERNAL_CAT];
-            HashSet<DnCConstraint> newConstraints = (HashSet<DnCConstraint>)problem.parameters[CBS_LocalConflicts.NEW_CONSTRAINTS];
+            HashSet<CbsConstraint> newConstraints = (HashSet<CbsConstraint>)problem.parameters[CBS_LocalConflicts.NEW_CONSTRAINTS];
             HashSet_U<TimedMove> InternalCAT = (HashSet_U<TimedMove>)problem.parameters[CBS_LocalConflicts.INTERNAL_CAT];
-            HashSet_U<DnCConstraint> Constraints = (HashSet_U<DnCConstraint>)problem.parameters[CBS_LocalConflicts.CONSTRAINTS];
-            IDnCSolver solver = highLevelSolver;
+            HashSet_U<CbsConstraint> Constraints = (HashSet_U<CbsConstraint>)problem.parameters[CBS_LocalConflicts.CONSTRAINTS];
+            ICbsSolver solver = highLevelSolver;
 
             //this.setInvalid(newConstraints, this.agentsGroupAssignment[agentForRePlan]);
             this.setInvalid(newConstraints);
@@ -231,7 +226,7 @@ namespace CPF_experiment
             int planSize = -1;
             this.conflict = null;
             HashSet<TimedMove> externalCAT = null;
-            HashSet_U<TimedMove> DnCexternalCAT = (HashSet_U<TimedMove>)problem.parameters[CBS_LocalConflicts.INTERNAL_CAT];
+            HashSet_U<TimedMove> CbsExternalCAT = (HashSet_U<TimedMove>)problem.parameters[CBS_LocalConflicts.INTERNAL_CAT];
             if (problem.parameters.ContainsKey(Trevor.CONFLICT_AVOIDENCE))
                  externalCAT = (HashSet<TimedMove>)problem.parameters[Trevor.CONFLICT_AVOIDENCE];
             TimedMove checkMove=new TimedMove();
@@ -253,7 +248,7 @@ namespace CPF_experiment
                     checkMove.setup(allSingleAgentPlans[i].GetLocationsAt(time),time);
                     if (checkMove.isColliding(externalCAT))
                         externalConflictsCount++;
-                    if (checkMove.isColliding(DnCexternalCAT))
+                    if (checkMove.isColliding(CbsExternalCAT))
                         externalConflictsCount++;
                     for (int j = i + 1; j < allSingleAgentPlans.Length; j++)
                     {
@@ -263,7 +258,7 @@ namespace CPF_experiment
                             {
                                 Move first = allSingleAgentPlans[i].GetLocationsAt(time);
                                 Move second = allSingleAgentPlans[j].GetLocationsAt(time);
-                                this.conflict = new DnCConflict(i, j, first, second, time);
+                                this.conflict = new CbsConflict(i, j, first, second, time);
                             }
                             internalConflictsCount++;
                         }
@@ -272,7 +267,7 @@ namespace CPF_experiment
             }
         }
 
-        public DnCConflict getConflict()
+        public CbsConflict getConflict()
         {
             return this.conflict;
         }
@@ -287,7 +282,7 @@ namespace CPF_experiment
                     ans += Constants.PRIMES_FOR_HASHING[i % Constants.PRIMES_FOR_HASHING.Length] * agentsGroupAssignment[i];
                 }
 
-                DnCNode current = this;
+                CbsNode current = this;
                 while (current.depth > 0)
                 {
                     if (current.prev.conflict != null && this.agentsGroupAssignment[current.prev.conflict.agentA] != this.agentsGroupAssignment[current.prev.conflict.agentB])
@@ -326,8 +321,8 @@ namespace CPF_experiment
 
         public override bool Equals(object obj) 
         {
-            DnCNode other = (DnCNode)obj;
-            DnCNode current = this;
+            CbsNode other = (CbsNode)obj;
+            CbsNode current = this;
             //ushort[] OtherAgentsGroupAssignment = null;
             //if (CBS_LocalConflicts.isGlobal == false)
             //{
@@ -342,20 +337,20 @@ namespace CPF_experiment
             //    OtherAgentsGroupAssignment = other.agentsGroupAssignment;
             //    other.agentsGroupAssignment = this.agentsGroupAssignment;
             //}
-            DnCConstraint.fullyEqual = true;
+            CbsConstraint.fullyEqual = true;
             other.setInvalid(allConstraintsForNode);
 
             while (current.depth > 0)
             {
                   
-                //if (this.agentsGroupAssignment[current.prev.conflict.agentA] != this.agentsGroupAssignment[current.prev.conflict.agentB])
+                //if (this.agentsGroupAssignment[current.prev.conflict.agentAMove] != this.agentsGroupAssignment[current.prev.conflict.agentBMove])
                 //{
                     //current.constraint.group = (byte)this.agentsGroupAssignment[current.constraint.getAgentNum()];
                     if (allConstraintsForNode.Contains(current.constraint) == false)
                     {
                         //if (OtherAgentsGroupAssignment != null)
                         //    other.agentsGroupAssignment = OtherAgentsGroupAssignment;
-                        DnCConstraint.fullyEqual = false;
+                        CbsConstraint.fullyEqual = false;
                         return false;
                     }
                 //}
@@ -363,7 +358,7 @@ namespace CPF_experiment
             }
             //if (OtherAgentsGroupAssignment != null)
             //    other.agentsGroupAssignment = OtherAgentsGroupAssignment;
-            DnCConstraint.fullyEqual = false;
+            CbsConstraint.fullyEqual = false;
             return true;
         }
 
@@ -374,7 +369,7 @@ namespace CPF_experiment
 
         public int CompareTo(IBinaryHeapItem item)
         {
-            DnCNode other = (DnCNode)item;
+            CbsNode other = (CbsNode)item;
 
             if (this.totalCost < other.totalCost)
                 return -1;
@@ -395,10 +390,10 @@ namespace CPF_experiment
             return 0;
         }
 
-        private void setInvalid(HashSet<DnCConstraint> constraints)
+        private void setInvalid(HashSet<CbsConstraint> constraints)
         {
             constraints.Clear();
-            DnCNode current = this;
+            CbsNode current = this;
             while (current.depth > 0)
             {
                 //current.constraint.group = (byte)this.agentsGroupAssignment[current.constraint.getAgentNum()];
@@ -407,10 +402,10 @@ namespace CPF_experiment
             }
         }
 
-        private void setMustConstraints(List<DnCConstraint> constraints)
+        private void setMustConstraints(List<CbsConstraint> constraints)
         {
             constraints.Clear();
-            DnCNode current = this;
+            CbsNode current = this;
             while (current.depth > 0)
             {
                 if (current.unConstraint != null)
@@ -420,15 +415,15 @@ namespace CPF_experiment
             constraints.Sort();
         }
 
-        //private void setInvalid(HashSet<DnCConstraint> constraints, int group, ProblemInstance problem)
+        //private void setInvalid(HashSet<CbsConstraint> constraints, int group, ProblemInstance problem)
         //{
         //    constraints.Clear();
-        //    DnCNode current = this;
+        //    CbsNode current = this;
         //    while (current.depth > 0)
         //    {
         //        if (this.agentsGroupAssignment[current.constraint.getAgentNum()] == group)
         //        {
-        //            if (this.agentsGroupAssignment[current.prev.conflict.agentA] != this.agentsGroupAssignment[current.prev.conflict.agentB]) 
+        //            if (this.agentsGroupAssignment[current.prev.conflict.agentAMove] != this.agentsGroupAssignment[current.prev.conflict.agentBMove]) 
         //                constraints.Add(current.constraint);
         //        }
         //        current = current.prev;
@@ -478,7 +473,7 @@ namespace CPF_experiment
                     secondGroup.Add(i);
             }
 
-            DnCNode current = this.prev;
+            CbsNode current = this.prev;
             int a,b;
             while (current != null)
             {
@@ -582,9 +577,9 @@ namespace CPF_experiment
             return 0;
         }
 
-        public bool isAllowedConstraint(DnCConstraint check)
+        public bool isAllowedConstraint(CbsConstraint check)
         {
-            DnCNode current = this;
+            CbsNode current = this;
             while (current != null)
             {
                 if (current.unConstraint != null && !current.unConstraint.allows(check))
@@ -594,19 +589,19 @@ namespace CPF_experiment
             return true;
         }
 
-        public void setUnConstraint(DnCConstraint set)
+        public void setUnConstraint(CbsConstraint set)
         {
             this.unConstraint = set;
         }
 
-        public bool rePlan3b(ProblemInstance problem, Run runner, int agentForRePlan, int depthToReplan, IDnCSolver highLevelSolver, IDnCSolver lowLevelSolver, ref int highLevelExpanded, ref int highLevelGenerated, ref int loweLevelExpanded, ref int loweLevelGenerated)
+        public bool rePlan3b(ProblemInstance problem, Run runner, int agentForRePlan, int depthToReplan, ICbsSolver highLevelSolver, ICbsSolver lowLevelSolver, ref int highLevelExpanded, ref int highLevelGenerated, ref int loweLevelExpanded, ref int loweLevelGenerated)
         {
             HashSet<TimedMove> newInternalCAT = (HashSet<TimedMove>)problem.parameters[CBS_LocalConflicts.NEW_INTERNAL_CAT];
-            HashSet<DnCConstraint> newConstraints = (HashSet<DnCConstraint>)problem.parameters[CBS_LocalConflicts.NEW_CONSTRAINTS];
+            HashSet<CbsConstraint> newConstraints = (HashSet<CbsConstraint>)problem.parameters[CBS_LocalConflicts.NEW_CONSTRAINTS];
             HashSet_U<TimedMove> InternalCAT = (HashSet_U<TimedMove>)problem.parameters[CBS_LocalConflicts.INTERNAL_CAT];
-            HashSet_U<DnCConstraint> Constraints = (HashSet_U<DnCConstraint>)problem.parameters[CBS_LocalConflicts.CONSTRAINTS];
-            List<DnCConstraint> mustConstraints = (List<DnCConstraint>)problem.parameters[CBS_LocalConflicts.CONSTRAINTSP];
-            IDnCSolver solver = highLevelSolver;
+            HashSet_U<CbsConstraint> Constraints = (HashSet_U<CbsConstraint>)problem.parameters[CBS_LocalConflicts.CONSTRAINTS];
+            List<CbsConstraint> mustConstraints = (List<CbsConstraint>)problem.parameters[CBS_LocalConflicts.CONSTRAINTSP];
+            ICbsSolver solver = highLevelSolver;
 
             //this.setInvalid(newConstraints, this.agentsGroupAssignment[agentForRePlan]);
             this.setInvalid(newConstraints);

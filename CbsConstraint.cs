@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace CPF_experiment
 {
-    public class DnCConstraint : IComparable
+    public class CbsConstraint : IComparable
     {
         protected byte[] agents;
         protected TimedMove move;
@@ -12,16 +12,16 @@ namespace CPF_experiment
       //bool onVartex;
         public static bool fullyEqual;
 
-        public DnCConstraint(int agent, int posX, int posY, Move.Direction direction, int timeStep)
+        public CbsConstraint(int agent, int posX, int posY, Move.Direction direction, int timeStep)
         {
             this.agents = new byte[1] { (byte)agent };
             this.move = new TimedMove(posX, posY, direction, timeStep);
           //this.onVartex = onVartex;
         }
 
-        public DnCConstraint() : this(-1, -1, -1, Move.Direction.NO_DIRECTION, -1) {} // Nonsense values until init, just allocate move
+        public CbsConstraint() : this(-1, -1, -1, Move.Direction.NO_DIRECTION, -1) {} // Nonsense values until init, just allocate move
 
-        public DnCConstraint(DnCConflict conflict, ProblemInstance instance, bool agentA)
+        public CbsConstraint(CbsConflict conflict, ProblemInstance instance, bool agentA)
         {
             Move move;
             int agentNum;
@@ -64,7 +64,7 @@ namespace CPF_experiment
         /// <returns></returns>
         public override bool Equals(object obj)
         {
-            DnCConstraint other = (DnCConstraint)obj;
+            CbsConstraint other = (CbsConstraint)obj;
             if (fullyEqual && (sameAgents(other) == false))
                 return false;
 
@@ -75,7 +75,7 @@ namespace CPF_experiment
                     return false;
             }
             //if (obj.GetType().Equals(this.GetType()))
-            //    if (this.group != ((DnCConstraint)obj).group)
+            //    if (this.group != ((CbsConstraint)obj).group)
             //         return false;
             return this.move.Equals(other.move);
         }
@@ -96,13 +96,13 @@ namespace CPF_experiment
         /// </summary>
         /// <param name="obj"></param>
         /// <returns></returns>
-        public bool sameAgents(DnCConstraint other)
+        public bool sameAgents(CbsConstraint other)
         {
             if (this.agents.Length != other.agents.Length)
                 return false;
             //foreach (byte agents in this.agents)
             //{
-            //    if (((DnCConstraint)obj).agents.Contains(agents) == false)
+            //    if (((CbsConstraint)obj).agents.Contains(agents) == false)
             //        return false;
             //}
             return true;
@@ -139,7 +139,7 @@ namespace CPF_experiment
         /// </summary>
         /// <param name="other"></param>
         /// <returns></returns>
-        public bool allows(DnCConstraint other)
+        public bool allows(CbsConstraint other)
         {
             if (this.move.Equals(other.move) == false) // Minor behavior change: if exactly one move has a set direction, and they're otherwise equal the method used to return true.
                 return true;
@@ -153,7 +153,7 @@ namespace CPF_experiment
 
         public int CompareTo(object item)
         {
-            DnCConstraint other = (DnCConstraint)item;
+            CbsConstraint other = (CbsConstraint)item;
 
             return this.move.time.CompareTo(other.move.time);
         }

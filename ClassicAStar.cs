@@ -9,7 +9,7 @@ namespace CPF_experiment
     /// <summary>
     /// This is an implementation of the classic A* algorithm for the MAPF problem.
     /// </summary>
-    public class ClassicAStar : IDnCSolver 
+    public class ClassicAStar : ICbsSolver 
     {
         protected ProblemInstance instance;
         protected HeuristicCalculator heuristic;
@@ -23,13 +23,13 @@ namespace CPF_experiment
         protected int maxCost;
         protected int expandedFullStates;
         protected HashSet<TimedMove> illegalMoves;
-        protected HashSet_U<DnCConstraint> constraintList;
+        protected HashSet_U<CbsConstraint> constraintList;
         protected Run runner;
         public WorldState goal; // This will contain the goal node if such was found
         protected int minDepth;
         protected int internalConflictCount;
         protected int externalConflictCount;
-        protected List<DnCConstraint>[] mustConstraints;
+        protected List<CbsConstraint>[] mustConstraints;
 
         /// <summary>
         /// Default constructor.
@@ -215,8 +215,8 @@ namespace CPF_experiment
 
                     if (instance.parameters.ContainsKey(CBS_LocalConflicts.INTERNAL_CAT))
                     {
-                        currentNode.dncInternalConflictsCount = currentNode.prevStep.dncInternalConflictsCount;
-                        currentNode.dncInternalConflictsCount += currentNode.conflictsCount(((HashSet_U<TimedMove>)instance.parameters[CBS_LocalConflicts.INTERNAL_CAT]));
+                        currentNode.cbsInternalConflictsCount = currentNode.prevStep.cbsInternalConflictsCount;
+                        currentNode.cbsInternalConflictsCount += currentNode.conflictsCount(((HashSet_U<TimedMove>)instance.parameters[CBS_LocalConflicts.INTERNAL_CAT]));
                     }
 
                     //if in closed list
@@ -226,21 +226,21 @@ namespace CPF_experiment
                         // TODO: Some code dup with CompareTo method of WorldState, not sure if avoidable
                         var g_inClosedList = inClosedList.g;
                         var potentialConflictsCount_inClosedList = inClosedList.potentialConflictsCount;
-                        var dncInternalConflictsCount_inClosedList = inClosedList.dncInternalConflictsCount;
+                        var cbsInternalConflictsCount_inClosedList = inClosedList.cbsInternalConflictsCount;
 
                         // if g is smaller or
                         //    g is equal but current node has fewer potential conflicts or
-                        //                   current node has same number of potential conflicts but current node has fewer dnc internal conflicts than remove the old world state
+                        //                   current node has same number of potential conflicts but current node has fewer CBS internal conflicts than remove the old world state
                         if (g_inClosedList > currentNode.g ||
                             (g_inClosedList == currentNode.g && (potentialConflictsCount_inClosedList > currentNode.potentialConflictsCount ||
-                                                                    (potentialConflictsCount_inClosedList == currentNode.potentialConflictsCount && dncInternalConflictsCount_inClosedList > currentNode.dncInternalConflictsCount))))
+                                                                    (potentialConflictsCount_inClosedList == currentNode.potentialConflictsCount && cbsInternalConflictsCount_inClosedList > currentNode.cbsInternalConflictsCount))))
                         // Alternative view:
                         // if g is smaller than remove the old world state
                         // if g is equal but current node has fewer potential conflicts than remove the old world state
-                        // if g is equal and current node has same number of potential conflicts but current node has fewer dnc internal conflicts than remove the old world state
+                        // if g is equal and current node has same number of potential conflicts but current node has fewer CBS internal conflicts than remove the old world state
                         //if (g_inClosedList > currentNode.g || 
                         //    (g_inClosedList == currentNode.g && potentialConflictsCount_inClosedList > currentNode.potentialConflictsCount) ||
-                        //    (g_inClosedList == currentNode.g && potentialConflictsCount_inClosedList == currentNode.potentialConflictsCount && dncInternalConflictsCount_inClosedList > currentNode.dncInternalConflictsCount))
+                        //    (g_inClosedList == currentNode.g && potentialConflictsCount_inClosedList == currentNode.potentialConflictsCount && cbsInternalConflictsCount_inClosedList > currentNode.cbsInternalConflictsCount))
                         {
                             closedList.Remove(inClosedList);
                             openList.Remove(inClosedList);
@@ -280,7 +280,7 @@ namespace CPF_experiment
         protected virtual List<WorldState> ExpandOneAgent(List<WorldState> intermediateNodes, int agentIndex, Run runner)
         {
             var GeneratedNodes = new List<WorldState>();
-            DnCConstraint nextStepLocation = new DnCConstraint();
+            CbsConstraint nextStepLocation = new CbsConstraint();
             WorldState childNode;
             bool illegal;
 
@@ -302,7 +302,7 @@ namespace CPF_experiment
                     if (this.mustConstraints != null && this.mustConstraints.Length > currentNode.makespan + 1 && // not >=?
                         this.mustConstraints[currentNode.makespan + 1] != null)
                     {
-                        if (this.mustConstraints[currentNode.makespan + 1].Any<DnCConstraint>(
+                        if (this.mustConstraints[currentNode.makespan + 1].Any<CbsConstraint>(
                             con => con.violatesMustCond((byte)instance.m_vAgents[agentIndex].agent.agentNum, agentLocation)))
                             continue;
                     }
@@ -384,7 +384,7 @@ namespace CPF_experiment
         public virtual int getNodesPassedPruningCounter() { return expandedFullStates; }
         public long getMemoryUsed() { return Process.GetCurrentProcess().VirtualMemorySize64; }
 
-        //DnC SOLVER
+        //CBS SOLVER
         public void Setup(ProblemInstance problemInstance, int minDepth)
         {
             this.Setup(problemInstance);
@@ -392,17 +392,17 @@ namespace CPF_experiment
             this.internalConflictCount = 0;
             this.externalConflictCount = 0;
             if (problemInstance.parameters.ContainsKey(CBS_LocalConflicts.CONSTRAINTS))
-                this.constraintList = (HashSet_U<DnCConstraint>)problemInstance.parameters[CBS_LocalConflicts.CONSTRAINTS];
+                this.constraintList = (HashSet_U<CbsConstraint>)problemInstance.parameters[CBS_LocalConflicts.CONSTRAINTS];
             if (problemInstance.parameters.ContainsKey(CBS_LocalConflicts.CONSTRAINTSP))
             {
-                List<DnCConstraint> lc = (List<DnCConstraint>)problemInstance.parameters[CBS_LocalConflicts.CONSTRAINTSP];
+                List<CbsConstraint> lc = (List<CbsConstraint>)problemInstance.parameters[CBS_LocalConflicts.CONSTRAINTSP];
                 if (lc != null && lc.Count > 0)
                 {
-                    mustConstraints = new List<DnCConstraint>[lc[lc.Count - 1].getTimeStep() + 1];
-                    foreach (DnCConstraint con in lc)
+                    mustConstraints = new List<CbsConstraint>[lc[lc.Count - 1].getTimeStep() + 1];
+                    foreach (CbsConstraint con in lc)
                     {
                         if (mustConstraints[con.getTimeStep()] == null)
-                            mustConstraints[con.getTimeStep()] = new List<DnCConstraint>();
+                            mustConstraints[con.getTimeStep()] = new List<CbsConstraint>();
                         mustConstraints[con.getTimeStep()].Add(con);
                     }
                 }

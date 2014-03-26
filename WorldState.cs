@@ -17,7 +17,7 @@ namespace CPF_experiment
         public WorldState prevStep;
         private int binaryHeapIndex;
         public int potentialConflictsCount;
-        public int dncInternalConflictsCount;
+        public int cbsInternalConflictsCount;
         public byte nextFvalue; // Used only by AStarWithPartialExpansionBasic. Consider moving.
         public HashSet<TimedMove> currentMoves;
 
@@ -31,7 +31,7 @@ namespace CPF_experiment
             this.makespan = 0;
             this.g = 0;
             this.potentialConflictsCount = 0;
-            this.dncInternalConflictsCount = 0;
+            this.cbsInternalConflictsCount = 0;
             this.notExpanded = true;
             this.currentMoves = new HashSet<TimedMove>();
         }
@@ -116,9 +116,9 @@ namespace CPF_experiment
             if (this.potentialConflictsCount > that.potentialConflictsCount)
                 return 1;
 
-            if (this.dncInternalConflictsCount < that.dncInternalConflictsCount)
+            if (this.cbsInternalConflictsCount < that.cbsInternalConflictsCount)
                 return -1;
-            if (this.dncInternalConflictsCount > that.dncInternalConflictsCount)
+            if (this.cbsInternalConflictsCount > that.cbsInternalConflictsCount)
                 return 1;
 
             // f, conflicts and internal conflicts being equal, prefer nodes with a larger g
@@ -149,7 +149,7 @@ namespace CPF_experiment
 
         public override string ToString()
         {
-            string ans = "makespan: " + makespan + " h: " + h + " g: " + g + "\n";
+            string ans = "makespan: " + makespan + ", h: " + h + ", g: " + g + "\n";
             foreach (AgentState temp in allAgentsState)
             {
                 ans +=" agent " + temp.agent.agentNum + ": " + temp.last_move + "\n";
@@ -208,7 +208,7 @@ namespace CPF_experiment
 
         /// <summary>
         /// Only the agent states are used in the hash.
-        /// The g, makespan, h, potentialConflictsCount, dncInternalConflictsCount and others are ignored, as neccesary.
+        /// The g, makespan, h, potentialConflictsCount, cbsInternalConflictsCount and others are ignored, as neccesary.
         /// </summary>
         /// <returns></returns>
         public override int GetHashCode()
@@ -226,7 +226,7 @@ namespace CPF_experiment
 
         /// <summary>
         /// Only the AgentStates are compared.
-        /// g, makespan, h, potentialConflictsCount, dncInternalConflictsCount and others are ignored, as necessary.
+        /// g, makespan, h, potentialConflictsCount, cbsInternalConflictsCount and others are ignored, as necessary.
         /// </summary>
         /// <param name="obj"></param>
         /// <returns></returns>

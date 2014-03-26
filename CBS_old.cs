@@ -5,15 +5,15 @@ using System.Diagnostics;
 
 namespace CPF_experiment
 {
-    class CBS_old : IDnCSolver
+    class CBS_old : ICbsSolver
     {
-          // The key of the constraints list used for each D&C node
+          // The key of the constraints list used for each CBS node
         public static string CONSTRAINTS = "constraints";
-        // The key of the internal CAT for DnC
+        // The key of the internal CAT for CBS
         public static string INTERNAL_CAT = "internalCAT";
         // The key of recent constraints
         public static string NEW_CONSTRAINTS = "newConstraints";
-        // The key of recent internal CAT for DnC
+        // The key of recent internal CAT for CBS
         public static string NEW_INTERNAL_CAT = "newInternalCAT";
         public static bool isGlobal;
 
@@ -24,14 +24,14 @@ namespace CPF_experiment
         public int highLevelGenerated;
         public int totalCost;
         protected Run runner;
-        protected DnCNode goalNode;
+        protected CbsNode goalNode;
         protected Plan solution;
-        public static bool isDnC;
+        public static bool isCbs;
         protected int maxCost;
         protected int loweLevelExpanded;
         protected int loweLevelGenerated;
-        protected IDnCSolver solver;
-        protected IDnCSolver lowLevelSolver;
+        protected ICbsSolver solver;
+        protected ICbsSolver lowLevelSolver;
         protected int mergeThreshold;
         protected int minCost;
         protected int maxThreshold;
@@ -39,7 +39,7 @@ namespace CPF_experiment
 
         public CBS_old() { }
 
-        public CBS_old(IDnCSolver solver, int maxThreshold = -1, int currentThreshold = -1)
+        public CBS_old(ICbsSolver solver, int maxThreshold = -1, int currentThreshold = -1)
         {
             this.closedList = new HashTable_C();
             this.openList = new BinaryHeap();
@@ -56,7 +56,7 @@ namespace CPF_experiment
         public virtual void Setup(ProblemInstance problemInstance)
         {
             this.instance = problemInstance;
-            DnCNode root = new DnCNode(instance.m_vAgents.Length);
+            CbsNode root = new CbsNode(instance.m_vAgents.Length);
             this.openList.Add(root);
             this.highLevelExpanded = 0;
             this.highLevelGenerated = 1;
@@ -71,16 +71,16 @@ namespace CPF_experiment
             if (problemInstance.parameters.ContainsKey(CBS_LocalConflicts.NEW_INTERNAL_CAT) == false)
             {
                 problemInstance.parameters[CBS_LocalConflicts.INTERNAL_CAT] = new HashSet_U<TimedMove>();
-                problemInstance.parameters[CBS_LocalConflicts.CONSTRAINTS] = new HashSet_U<DnCConstraint>();
-                problemInstance.parameters[CBS_LocalConflicts.NEW_CONSTRAINTS] = new HashSet<DnCConstraint>();
+                problemInstance.parameters[CBS_LocalConflicts.CONSTRAINTS] = new HashSet_U<CbsConstraint>();
+                problemInstance.parameters[CBS_LocalConflicts.NEW_CONSTRAINTS] = new HashSet<CbsConstraint>();
                 problemInstance.parameters[CBS_LocalConflicts.NEW_INTERNAL_CAT] = new HashSet<TimedMove>();
             }
             else
             {
                 problemInstance.parameters[CBS_LocalConflicts.NEW_INTERNAL_CAT] = new HashSet<TimedMove>();
-                problemInstance.parameters[CBS_LocalConflicts.NEW_CONSTRAINTS] = new HashSet<DnCConstraint>();
+                problemInstance.parameters[CBS_LocalConflicts.NEW_CONSTRAINTS] = new HashSet<CbsConstraint>();
             }
-            DnCNode.allConstraintsForNode = new HashSet<DnCConstraint>();
+            CbsNode.allConstraintsForNode = new HashSet<CbsConstraint>();
             minCost = 0;
             isGlobal = false;
         }
@@ -98,7 +98,7 @@ namespace CPF_experiment
             this.closedList.Clear();
             this.instance = null;
             this.solver.Clear();
-            DnCNode.allConstraintsForNode.Clear();
+            CbsNode.allConstraintsForNode.Clear();
         }
 
         public virtual String GetName() 
@@ -126,10 +126,10 @@ namespace CPF_experiment
             //Debug.WriteLine("Solving Sub-problem On Level - " + mergeThreshold);
             //Console.ReadLine();
 
-            isDnC = true;
-            DnCConflict conflict;
+            isCbs = true;
+            CbsConflict conflict;
             this.runner = runner;
-            DnCNode currentNode = (DnCNode)openList.Remove();
+            CbsNode currentNode = (CbsNode)openList.Remove();
             highLevelExpanded++;
             if (currentNode.solve(instance,runner,minCost , lowLevelSolver ,ref highLevelExpanded,ref highLevelGenerated, ref loweLevelExpanded,ref loweLevelGenerated) == false)
             {
@@ -148,11 +148,11 @@ namespace CPF_experiment
                 {
                     totalCost = Constants.TIMEOUT_COST;
                     Console.WriteLine("Out of time");
-                    isDnC = false;
+                    isCbs = false;
                     this.Clear();
                     return false;
                 }
-                currentNode = (DnCNode)openList.Remove();
+                currentNode = (CbsNode)openList.Remove();
                 conflict = currentNode.getConflict();
                 // Check if node is the goal
                 if (conflict == null)
@@ -160,28 +160,28 @@ namespace CPF_experiment
                     this.totalCost = currentNode.totalCost;
                     this.goalNode = currentNode;
                     this.solution = currentNode.CalculateJointPlan();
-                    isDnC = false;
+                    isCbs = false;
                     this.Clear();
                     return true;
                 }
                 // Expand
                 highLevelExpanded++;
                 if (expand(currentNode, conflict))
-                    if (currentNode.colapse != 0)
+                    if (currentNode.collapse != 0)
                         currentNode.clear();
             }
             totalCost = Constants.NO_SOLUTION_COST;
-            isDnC = false;
+            isCbs = false;
             this.Clear();
             return false;
         }
 
-        protected virtual bool checkMerge(DnCNode node)
+        protected virtual bool checkMerge(CbsNode node)
         {
             return node.checkMergeCondition(mergeThreshold);
         }
 
-        public virtual bool expand(DnCNode node, DnCConflict conflict)
+        public virtual bool expand(CbsNode node,CbsConflict conflict)
         {
             closedList.Remove(node);
 
@@ -206,11 +206,11 @@ namespace CPF_experiment
 
             closedList.Add(node);
 
-            DnCConstraint con;
-            DnCNode toAdd;
+            CbsConstraint con;
+            CbsNode toAdd;
 
-            con = new DnCConstraint(conflict, instance, true);
-            toAdd = new DnCNode(node, con, conflict.agentA, instance);
+            con = new CbsConstraint(conflict, instance, true);
+            toAdd = new CbsNode(node, con, conflict.agentA, instance);
 
             if (closedList.Contains(toAdd) == false)
             {
@@ -229,8 +229,8 @@ namespace CPF_experiment
 
 
 
-            con = new DnCConstraint(conflict, instance, false);
-            toAdd = new DnCNode(node, con, conflict.agentB, instance);
+            con = new CbsConstraint(conflict, instance, false);
+            toAdd = new CbsNode(node, con, conflict.agentB, instance);
 
             if (closedList.Contains(toAdd) == false)
             {
@@ -249,7 +249,7 @@ namespace CPF_experiment
             return true;
         }
 
-        protected virtual void addToGlobalConflictCount(DnCConflict conflict) { }
+        protected virtual void addToGlobalConflictCount(CbsConflict conflict) { }
 
         public virtual Plan GetPlan()
         {
@@ -284,7 +284,7 @@ namespace CPF_experiment
     {
         int[][] globalConflictsCounter;
 
-        public CBS_GlobalConflicts_OLD(IDnCSolver solver, int maxThreshold, int currentThreshold)
+        public CBS_GlobalConflicts_OLD(ICbsSolver solver, int maxThreshold, int currentThreshold)
         {
             this.closedList = new HashTable_C();
             this.openList = new BinaryHeap();
@@ -298,7 +298,7 @@ namespace CPF_experiment
             }
         }
 
-        public CBS_GlobalConflicts_OLD(IDnCSolver solver) : base(solver) { }
+        public CBS_GlobalConflicts_OLD(ICbsSolver solver) : base(solver) { }
 
         public override void Setup(ProblemInstance problemInstance)
         {
@@ -315,12 +315,12 @@ namespace CPF_experiment
             isGlobal = true;
         }
 
-        protected override bool checkMerge(DnCNode node)
+        protected override bool checkMerge(CbsNode node)
         {
             return node.checkMergeCondition(mergeThreshold, globalConflictsCounter);
         }
 
-        protected override void addToGlobalConflictCount(DnCConflict conflict)
+        protected override void addToGlobalConflictCount(CbsConflict conflict)
         {
             if (conflict != null)
                 globalConflictsCounter[Math.Max(conflict.agentA, conflict.agentB)][Math.Min(conflict.agentA, conflict.agentB)]++;

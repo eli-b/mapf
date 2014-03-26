@@ -74,8 +74,8 @@ namespace CPF_experiment
 
                         if (instance.parameters.ContainsKey(CBS_LocalConflicts.INTERNAL_CAT))
                         {
-                            currentNode.dncInternalConflictsCount = currentNode.prevStep.dncInternalConflictsCount;
-                            currentNode.dncInternalConflictsCount = currentNode.conflictsCount(((HashSet<TimedMove>)instance.parameters[CBS_LocalConflicts.INTERNAL_CAT]));
+                            currentNode.cbsInternalConflictsCount = currentNode.prevStep.cbsInternalConflictsCount;
+                            currentNode.cbsInternalConflictsCount = currentNode.conflictsCount(((HashSet<TimedMove>)instance.parameters[CBS_LocalConflicts.INTERNAL_CAT]));
                         }
 
                         //if in closed list
@@ -114,7 +114,7 @@ namespace CPF_experiment
             }
 
             // Try all legal moves of the agents
-            DnCConstraint nextStepLocation = new DnCConstraint();
+            CbsConstraint nextStepLocation = new CbsConstraint();
             bool ans = false;
 
             foreach (TimedMove agentLocation in currentNode.allAgentsState[agentIndex].last_move.GetNextMoves(Constants.ALLOW_DIAGONAL_MOVE))
@@ -259,8 +259,8 @@ namespace CPF_experiment
 
                     if (instance.parameters.ContainsKey(CBS_LocalConflicts.INTERNAL_CAT))
                     {
-                        currentNode.dncInternalConflictsCount = currentNode.prevStep.dncInternalConflictsCount;
-                        currentNode.dncInternalConflictsCount += currentNode.conflictsCount(((HashSet_U<TimedMove>)instance.parameters[CBS_LocalConflicts.INTERNAL_CAT]));
+                        currentNode.cbsInternalConflictsCount = currentNode.prevStep.cbsInternalConflictsCount;
+                        currentNode.cbsInternalConflictsCount += currentNode.conflictsCount(((HashSet_U<TimedMove>)instance.parameters[CBS_LocalConflicts.INTERNAL_CAT]));
                     }
 
                     //if in closed list
@@ -268,7 +268,7 @@ namespace CPF_experiment
                     {
                         WorldStateForPartialExpansion inClosedList = (WorldStateForPartialExpansion)this.closedList[currentNode];
                         //if g is smaller than remove the old world state
-                        if (inClosedList.g > currentNode.g || (inClosedList.g == currentNode.g && (inClosedList.potentialConflictsCount > currentNode.potentialConflictsCount || (inClosedList.potentialConflictsCount == currentNode.potentialConflictsCount && inClosedList.dncInternalConflictsCount > currentNode.dncInternalConflictsCount))))
+                        if (inClosedList.g > currentNode.g || (inClosedList.g == currentNode.g && (inClosedList.potentialConflictsCount > currentNode.potentialConflictsCount || (inClosedList.potentialConflictsCount == currentNode.potentialConflictsCount && inClosedList.cbsInternalConflictsCount > currentNode.cbsInternalConflictsCount))))
                         {
                             closedList.Remove(inClosedList);
                             openList.Remove(inClosedList);
@@ -287,7 +287,7 @@ namespace CPF_experiment
             }
 
             // Try all legal moves of the agents
-            DnCConstraint nextStepLocation = new DnCConstraint();
+            CbsConstraint nextStepLocation = new CbsConstraint();
             WorldStateForPartialExpansion childNode;
             bool ans = false;
             foreach (TimedMove agentLocation in currentNode.allAgentsState[agentIndex].last_move.GetNextMoves(Constants.ALLOW_DIAGONAL_MOVE))

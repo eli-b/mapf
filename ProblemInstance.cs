@@ -451,9 +451,9 @@ namespace CPF_experiment
 
             //if (parameters.ContainsKey(CBS_LocalConflicts.CONSTRAINTS))
             //{
-            //    DnCConstraint nextStepLocation = new DnCConstraint();
+            //    CbsConstraint nextStepLocation = new CbsConstraint();
             //    nextStepLocation.init(-1, toCheck.x, toCheck.y, toCheck.time, toCheck.direction);
-            //    if (((HashSet_U<DnCConstraint>)parameters[CBS_LocalConflicts.CONSTRAINTS]).Contains(nextStepLocation))
+            //    if (((HashSet_U<CbsConstraint>)parameters[CBS_LocalConflicts.CONSTRAINTS]).Contains(nextStepLocation))
             //        return false;
             //}
             return true;

@@ -10,7 +10,7 @@ namespace CPF_experiment
         BinaryHeap openList;
         HashTable_C closedList;
         int solutionCost;
-        HashSet<DnCConstraint> constraintsInGroup;
+        HashSet<CbsConstraint> constraintsInGroup;
         Plan plan;
         int minDepth;
         HashSet<TimedMove> conflictTableThisGroup;
@@ -24,7 +24,7 @@ namespace CPF_experiment
             this.closedList = new HashTable_C();
         }
 
-        public virtual void Setup(ProblemInstance problemInstance, int agentNum, HashSet<DnCConstraint> constraints, HashSet<TimedMove> avoid, int minDepth = -1)
+        public virtual void Setup(ProblemInstance problemInstance, int agentNum, HashSet<CbsConstraint> constraints, HashSet<TimedMove> avoid, int minDepth = -1)
         {
             this.agentNum = agentNum;
             this.instance = problemInstance;
@@ -87,7 +87,7 @@ namespace CPF_experiment
         private void expand(AgentState currentNode)
         {
             AgentState nextStep;
-            DnCConstraint nextStepLocation = new DnCConstraint();
+            CbsConstraint nextStepLocation = new CbsConstraint();
 
             foreach (TimedMove nextMove in currentNode.last_move.GetNextMoves(Constants.ALLOW_DIAGONAL_MOVE))
             {
@@ -112,8 +112,8 @@ namespace CPF_experiment
                         {
                             AgentState inClosedList = (AgentState)this.closedList[nextStep];
                             //if g is smaller then remove the old world state
-                            if (inClosedList.potentialConflictsID > nextStep.potentialConflictsID || (inClosedList.potentialConflictsID == nextStep.potentialConflictsID &&
-                                inClosedList.potentialConflicts > nextStep.potentialConflicts))
+                            if (inClosedList.potentialConflictsID > nextStep.potentialConflictsID ||
+                                (inClosedList.potentialConflictsID == nextStep.potentialConflictsID && inClosedList.potentialConflicts > nextStep.potentialConflicts))
                             {
                                 closedList.Remove(inClosedList);
                                 openList.Remove(inClosedList);

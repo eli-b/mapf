@@ -8,7 +8,7 @@ namespace CPF_experiment
     /// <summary>
     /// This class solves an instance of the MAPF problem using the cost tree search algorithm.
     /// </summary>
-    class CostTreeSearchSolver : IDnCSolver
+    class CostTreeSearchSolver : ICbsSolver
     {
         protected LinkedList<CostTreeNode> openList;
         protected HashSet<CostTreeNode> closedList;

@@ -68,7 +68,7 @@ namespace CPF_experiment
 
     }
 
-    public interface IDnCSolver : ISolver
+    public interface ICbsSolver : ISolver
     {
         void Setup(ProblemInstance problemInstance, int minDepth);
         SinglePlan[] getSinglePlans();
