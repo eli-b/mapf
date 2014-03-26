@@ -7,7 +7,7 @@ namespace CPF_experiment
     class AStarMDD
     {
         MDD[] problem;
-        HashTable_C closedList;
+        Dictionary<MDDStep, MDDStep> closedList;
         Run runner;
         BinaryHeap openList;
         public int expanded;
@@ -26,7 +26,7 @@ namespace CPF_experiment
             this.runner = runner;
             this.ID_CAT = conflicts;
             this.CBS_CAT = CBS_CAT;
-            this.closedList = new HashTable_C();
+            this.closedList = new Dictionary<MDDStep, MDDStep>();
             this.openList = new BinaryHeap();
             MDDNode[] sRoot = new MDDNode[problem.Length];
             for (int i = 0; i < problem.Length; i++)
@@ -77,9 +77,9 @@ namespace CPF_experiment
                         child.conflicts = currentNode.parent.conflicts;
                         child.setConflicts(ID_CAT, CBS_CAT);
 
-                    if (this.closedList.Contains(child) == true)
+                    if (this.closedList.ContainsKey(child) == true)
                     {
-                        MDDStep inClosedList = (MDDStep)this.closedList[child];
+                        MDDStep inClosedList = this.closedList[child];
 
                         if (inClosedList.conflicts > child.conflicts)
                         {
@@ -87,10 +87,10 @@ namespace CPF_experiment
                             openList.Remove(inClosedList);
                         }
                     }
-                    if (this.closedList.Contains(child) == false)
+                    if (this.closedList.ContainsKey(child) == false)
                     {
                         this.openList.Add(child);
-                        this.closedList.Add(child);
+                        this.closedList.Add(child, child);
                         generated++;
                     }
                 }

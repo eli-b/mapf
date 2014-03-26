@@ -183,7 +183,7 @@ namespace CPF_experiment
         /// <param name="node"></param>
         public virtual bool Expand(WorldState node)
         {
-            //Debug.Print("Expanding node " + node);
+            Debug.Print("Expanding node " + node);
             var intermediateNodes = new List<WorldState>();
             intermediateNodes.Add(node);
 
@@ -294,7 +294,7 @@ namespace CPF_experiment
 
                     if (this.constraintList != null)
                     {
-                        nextStepLocation.init(instance.m_vAgents[agentIndex].agent.agentNum, agentLocation);
+                        nextStepLocation.init(instance.m_vAgents[agentIndex].agent.agentNum, agentLocation); // Throws nullreference exception when running CBS. Has something to do 
                         
                         if (this.constraintList.Contains(nextStepLocation))
                             continue;

@@ -7,156 +7,155 @@ namespace CPF_experiment
     class MddMatchAndPrune
     {
         MDD[] allMDDs;
-         Queue<MddMatchAndPruneState> openList;
-         HashTable_C closedList;
-         int solutionDepth; //the depth is the cost + 1 because the root also counts as a level
-         MddMatchAndPruneState goal; // This will contain the goal node if such was found
-         bool legal; //indicates if all single MDDs are legal
-         public bool[] conflicted; //indicates if the matching process found any illegal nodes/edges and pruned any of the MDDs
-         Run runner;
+        Queue<MddMatchAndPruneState> openList;
+        Dictionary<MddMatchAndPruneState, MddMatchAndPruneState> closedList;
+        int solutionDepth; //the depth is the cost + 1 because the root also counts as a level
+        MddMatchAndPruneState goal; // This will contain the goal node if such was found
+        bool legal; //indicates if all single MDDs are legal
+        public bool[] conflicted; //indicates if the matching process found any illegal nodes/edges and pruned any of the MDDs
+        Run runner;
 
         /// <summary>
         /// constructor
         /// </summary>
-         public MddMatchAndPrune(Run runner)
-         {
-             this.openList = new Queue<MddMatchAndPruneState>();
-             this.closedList=new HashTable_C();
-             conflicted = new bool[4];
-             this.runner = runner;
-         }
+        public MddMatchAndPrune(Run runner)
+        {
+            this.openList = new Queue<MddMatchAndPruneState>();
+            this.closedList = new Dictionary<MddMatchAndPruneState, MddMatchAndPruneState>();
+            conflicted = new bool[4];
+            this.runner = runner;
+        }
 
-         public void initialize(MDD[] allMDDs)
-         {
-             this.allMDDs = allMDDs;
-             this.openList.Clear();
-             this.closedList.Clear();
-             MDDNode[] rootPositions = new MDDNode[allMDDs.Length];
-             for (int i = 0; i < allMDDs.Length; i++)
-             {
-                 if (allMDDs[i].levels == null)
-                 {
-                     legal = false;
-                     return;
-                 }
-                 rootPositions[i] = allMDDs[i].levels[0].First.Value;
-                 this.conflicted[i] = false;
-             }
-             MddMatchAndPruneState root = new MddMatchAndPruneState(rootPositions);
-             this.solutionDepth = root.allPositions[0].father.levels.Length;
-             openList.Enqueue(root);
-             legal = true;
-         }
+        public void initialize(MDD[] allMDDs)
+        {
+            this.allMDDs = allMDDs;
+            this.openList.Clear();
+            this.closedList.Clear();
+            MDDNode[] rootPositions = new MDDNode[allMDDs.Length];
+            for (int i = 0; i < allMDDs.Length; i++)
+            {
+                if (allMDDs[i].levels == null)
+                {
+                    legal = false;
+                    return;
+                }
+                rootPositions[i] = allMDDs[i].levels[0].First.Value;
+                this.conflicted[i] = false;
+            }
+            MddMatchAndPruneState root = new MddMatchAndPruneState(rootPositions);
+            this.solutionDepth = root.allPositions[0].father.levels.Length;
+            openList.Enqueue(root);
+            legal = true;
+        }
 
         /// <summary>
         /// build the generalized MDD
         /// </summary>
         /// <returns></returns>
-         private bool buildGeneralMDD()
-         {
-             MddMatchAndPruneState current = openList.Dequeue();
-             successorIterator allChildren = new successorIterator(allMDDs.Length);
-             int currentLevel = current.stateLevel;
+        private bool buildGeneralMDD()
+        {
+            MddMatchAndPruneState current = openList.Dequeue();
+            successorIterator allChildren = new successorIterator(allMDDs.Length);
+            int currentLevel = current.stateLevel;
 
+            while (current.stateLevel + 1 != this.solutionDepth) // while not goal
+            {
+                Expand(current,allChildren);
+                if (openList.Count == 0)
+                    return false;
+                current = openList.Dequeue();
+                if (current.stateLevel != currentLevel)
+                {
+                    closedList.Clear();
+                    currentLevel++;
+                }
+                if (runner.ElapsedMilliseconds() > Constants.MAX_TIME)
+                    return false;
+            }
+            return true;
+        }
 
-             while (current.stateLevel + 1 != this.solutionDepth) // while not goal
-             {
-                 Expand(current,allChildren);
-                 if (openList.Count == 0)
-                     return false;
-                 current = openList.Dequeue();
-                 if (current.stateLevel != currentLevel)
-                 {
-                     closedList.Clear();
-                     currentLevel++;
-                 }
-                 if (runner.ElapsedMilliseconds() > Constants.MAX_TIME)
-                     return false;
-             }
-             return true;
-         }
+        /// <summary>
+        /// expands a given node
+        /// </summary>
+        /// <param name="toExpand"></param>
+        private void Expand(MddMatchAndPruneState toExpand, successorIterator allChildren)
+        {
+            allChildren.initialize(toExpand);
+            MddMatchAndPruneState successor;
 
-         /// <summary>
-         /// expands a given node
-         /// </summary>
-         /// <param name="toExpand"></param>
-         private void Expand(MddMatchAndPruneState toExpand, successorIterator allChildren)
-         {
-             allChildren.initialize(toExpand);
-             MddMatchAndPruneState successor;
+            while (allChildren.hasNext)
+            {
+                successor = allChildren.getNext();
+                if (closedList.ContainsKey(successor))
+                {
+                    ((MddMatchAndPruneState)closedList[successor]).addParent(toExpand);
+                }
+                else
+                {
+                    CostTreeNodeSolver.matchCounter++;
+                    successor.addParent(toExpand);
+                    closedList.Add(successor, successor);
+                    openList.Enqueue(successor);
+                    if (successor.stateLevel + 1 == this.solutionDepth)
+                        goal = successor;
+                }
+            }
+        }
 
-             while (allChildren.hasNext)
-             {
-                 successor = allChildren.getNext();
-                 if (closedList.Contains(successor))
-                 {
-                     ((MddMatchAndPruneState)closedList[successor]).addParent(toExpand);
-                 }
-                 else
-                 {
-                     CostTreeNodeSolver.matchCounter++;
-                     successor.addParent(toExpand);
-                     closedList.Add(successor);
-                     openList.Enqueue(successor);
-                     if (successor.stateLevel + 1 == this.solutionDepth)
-                         goal = successor;
-                 }
-             }
-         }
-
-         private void reverseExpand(MddMatchAndPruneState toExpand)
-         {
-             foreach (MddMatchAndPruneState parent in toExpand.parents) 
-             {
-                 for (int i = 0; i < toExpand.allPositions.Length; i++)
-                 {
-                     CostTreeSearchSolver.edgesMatrix[i, parent.allPositions[i].getVertexIndex(), parent.allPositions[i].getDirection(toExpand.allPositions[i])] = CostTreeSearchSolver.edgesMatrixCounter + 1;
-                 }
-                 if (closedList.Contains(parent) == false)
-                 {
-                     openList.Enqueue(parent);
-                     closedList.Add(parent);
-                 }
-             }
-         }
+        private void reverseExpand(MddMatchAndPruneState toExpand)
+        {
+            foreach (MddMatchAndPruneState parent in toExpand.parents) 
+            {
+                for (int i = 0; i < toExpand.allPositions.Length; i++)
+                {
+                    CostTreeSearchSolver.edgesMatrix[i, parent.allPositions[i].getVertexIndex(), parent.allPositions[i].getDirection(toExpand.allPositions[i])] = CostTreeSearchSolver.edgesMatrixCounter + 1;
+                }
+                if (closedList.ContainsKey(parent) == false)
+                {
+                    openList.Enqueue(parent);
+                    closedList.Add(parent, parent);
+                }
+            }
+        }
 
 
         /// <summary>
         /// prunes a given level according to the edgesMatrix
         /// </summary>
         /// <param name="level"></param>
-         private void pruneLevel(int level)
-         {
-             MDDNode[] parentsToDelte = new MDDNode[5];
-             int parentI;
+        private void pruneLevel(int level)
+        {
+            MDDNode[] parentsToDelte = new MDDNode[5];
+            int parentI;
 
-             for (int i = 0; i < allMDDs.Length; i++)
-             {
-                 foreach (MDDNode node in allMDDs[i].levels[level])
-                 {
-                     if (node.isDeleted)
-                         continue;
-                     parentI = 0;
+            for (int i = 0; i < allMDDs.Length; i++)
+            {
+                foreach (MDDNode node in allMDDs[i].levels[level])
+                {
+                    if (node.isDeleted)
+                        continue;
+                    parentI = 0;
 
-                     for (int d = 0; d < 5; d++)
-                         parentsToDelte[d] = null;
+                    for (int d = 0; d < 5; d++)
+                        parentsToDelte[d] = null;
 
-                     foreach (MDDNode parent in node.parents)
-                     {
-                         //if not legal
-                         if ((int)CostTreeSearchSolver.edgesMatrix[i, parent.getVertexIndex(), parent.getDirection(node)] != CostTreeSearchSolver.edgesMatrixCounter + 1)
-                         {
-                             parentsToDelte[parentI] = parent;
-                             this.conflicted[i] = true;
-                         }
-                         parentI++;
-                     }
-                     foreach (MDDNode delteParent in parentsToDelte)
-                         if (delteParent != null)
-                            node.removeParent(delteParent);
-                 }    
-             }
-         }
+                    foreach (MDDNode parent in node.parents)
+                    {
+                        //if not legal
+                        if ((int)CostTreeSearchSolver.edgesMatrix[i, parent.getVertexIndex(), parent.getDirection(node)] != CostTreeSearchSolver.edgesMatrixCounter + 1)
+                        {
+                            parentsToDelte[parentI] = parent;
+                            this.conflicted[i] = true;
+                        }
+                        parentI++;
+                    }
+                    foreach (MDDNode delteParent in parentsToDelte)
+                        if (delteParent != null)
+                           node.removeParent(delteParent);
+                }    
+            }
+        }
 
         /// <summary>
         /// prunes the given MDDs according to each other
@@ -165,24 +164,24 @@ namespace CPF_experiment
          {
              if (legal == false || buildGeneralMDD() == false)
                  return false;
-
+   
              //Run.resultsWriterdd.Write(CostTreeNodeSolver.matchCounter + ",");
              //Run.resultsWriterdd.WriteLine();
              //Run.resultsWriterdd.Flush();
              //Run.resultsWriterdd.Close();
-
+   
              if (openList.Count != 0)
                  Console.ReadLine();//should be empty
-
+   
              MddMatchAndPruneState current = goal;
              int currentLevel = goal.stateLevel;
              closedList.Clear();
-
+   
              while (current.stateLevel > 0) //while not root
              {
                  if (runner.ElapsedMilliseconds() > Constants.MAX_TIME)
                      return false;
-
+   
                  if (current.stateLevel < currentLevel)
                  {
                      pruneLevel(currentLevel);
@@ -196,7 +195,7 @@ namespace CPF_experiment
              pruneLevel(currentLevel); //prune level 1
              return true;
          }
-
+   
     }
 
     class MddMatchAndPruneState
@@ -205,7 +204,7 @@ namespace CPF_experiment
         public int stateLevel; //starts at 0
         public LinkedList<MddMatchAndPruneState> parents;
         LinkedList<MddMatchAndPruneState> childrens; 
-
+   
         public MddMatchAndPruneState(MDDNode[] allPositions)
         {
             this.allPositions = allPositions;
@@ -230,7 +229,7 @@ namespace CPF_experiment
         {
             parents.Union(otherParents);
         }
-
+   
         public void addParent(MddMatchAndPruneState parent)
         {
             this.parents.AddLast(parent);
@@ -250,7 +249,7 @@ namespace CPF_experiment
                 return ans;
             }
         }
-
+    
         public override bool Equals(object obj)
         {
             MddMatchAndPruneState comp = (MddMatchAndPruneState)obj;

@@ -87,8 +87,6 @@
     <Compile Include="CBS_IDA.cs" />
     <Compile Include="CBS_NoDD.cs" />
     <Compile Include="CBS_old.cs" />
-    <Compile Include="DnCConstraintsTable.cs" />
-    <Compile Include="DynamicArray.cs" />
     <Compile Include="CbsConflict.cs" />
     <Compile Include="HashSet_U.cs" />
     <Compile Include="IBinaryHeapItem.cs" />
@@ -99,7 +97,6 @@
     <Compile Include="CbsNode.cs" />
     <Compile Include="CbsConstraint.cs" />
     <Compile Include="MDD.cs" />
-    <Compile Include="HashTable_C.cs" />
     <Compile Include="HeuristicCalculator.cs" />
     <Compile Include="ClassicAStar.cs" />
     <Compile Include="Constants.cs" />

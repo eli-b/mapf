@@ -8,7 +8,7 @@ namespace CPF_experiment
         ProblemInstance instance;
         int agentNum;
         BinaryHeap openList;
-        HashTable_C closedList;
+        Dictionary<AgentState, AgentState> closedList;
         int solutionCost;
         HashSet<CbsConstraint> constraintsInGroup;
         Plan plan;
@@ -21,7 +21,7 @@ namespace CPF_experiment
         public AStarForSingleAgent()
         {
             this.openList = new BinaryHeap();
-            this.closedList = new HashTable_C();
+            this.closedList = new Dictionary<AgentState, AgentState>();
         }
 
         public virtual void Setup(ProblemInstance problemInstance, int agentNum, HashSet<CbsConstraint> constraints, HashSet<TimedMove> avoid, int minDepth = -1)
@@ -34,7 +34,7 @@ namespace CPF_experiment
             root.potentialConflicts = 0;
             this.closedList.Clear();
             this.openList.Clear();
-            this.closedList.Add(root);
+            this.closedList.Add(root, root);
             this.openList.Add(root);
             this.minDepth = minDepth;
             this.conflictTableThisGroup = avoid;
@@ -108,9 +108,9 @@ namespace CPF_experiment
                         if (nextMove.isColliding(conflictTableOtherGroups))
                             nextStep.potentialConflictsID++;
                         
-                        if (this.closedList.Contains(nextStep) == true)
+                        if (this.closedList.ContainsKey(nextStep) == true)
                         {
-                            AgentState inClosedList = (AgentState)this.closedList[nextStep];
+                            AgentState inClosedList = this.closedList[nextStep];
                             //if g is smaller then remove the old world state
                             if (inClosedList.potentialConflictsID > nextStep.potentialConflictsID ||
                                 (inClosedList.potentialConflictsID == nextStep.potentialConflictsID && inClosedList.potentialConflicts > nextStep.potentialConflicts))
@@ -119,10 +119,10 @@ namespace CPF_experiment
                                 openList.Remove(inClosedList);
                             }
                         }
-                        if (this.closedList.Contains(nextStep) == false)
+                        if (this.closedList.ContainsKey(nextStep) == false)
                         {
                             this.openList.Add(nextStep);
-                            this.closedList.Add(nextStep);
+                            this.closedList.Add(nextStep, nextStep);
                         }
                     }
                 }
@@ -135,7 +135,7 @@ namespace CPF_experiment
         ProblemInstance instance;
         int agentNum;
         BinaryHeap openList;
-        HashTable_C closedList;
+        Dictionary<AgentState, AgentState> closedList;
         public int conflictsCount;
         public int clearCount;
         int optimalSol;
@@ -143,7 +143,7 @@ namespace CPF_experiment
          public SetPotentialConflictsForAgent()
         {
             this.openList = new BinaryHeap();
-            this.closedList = new HashTable_C();
+            this.closedList = new Dictionary<AgentState, AgentState>();
         }
 
         public virtual void Setup(ProblemInstance problemInstance, int agentNum)
@@ -154,7 +154,7 @@ namespace CPF_experiment
             root.h = problemInstance.GetSingleAgentShortestPath(root);
             this.closedList.Clear();
             this.openList.Clear();
-            this.closedList.Add(root);
+            this.closedList.Add(root, root);
             this.openList.Add(root);
             optimalSol = root.h;
             clearCount = -1;
@@ -216,12 +216,12 @@ namespace CPF_experiment
 
                     if (nextStep.last_move.time + nextStep.h <= optimalSol + orderOfConflict)
                     {
-                        if (this.closedList.Contains(nextStep) == true)
+                        if (this.closedList.ContainsKey(nextStep) == true)
                         {
                             continue;
                         }
                         this.openList.Add(nextStep);
-                        this.closedList.Add(nextStep);
+                        this.closedList.Add(nextStep, nextStep);
                     }
                 }
             }

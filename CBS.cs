@@ -22,7 +22,7 @@ namespace CPF_experiment
 
         protected ProblemInstance instance;
         public BinaryHeap openList;
-        public HashTable_C closedList;
+        public Dictionary<CbsNode, CbsNode> closedList;
         public int highLevelExpanded;
         public int highLevelGenerated;
         public int totalCost;
@@ -44,7 +44,7 @@ namespace CPF_experiment
 
         public CBS_LocalConflicts(ICbsSolver solver, int maxThreshold = -1, int currentThreshold = -1)
         {
-            this.closedList = new HashTable_C();
+            this.closedList = new Dictionary<CbsNode, CbsNode>();
             this.openList = new BinaryHeap();
             this.mergeThreshold = currentThreshold;
             this.solver = solver;
@@ -142,7 +142,7 @@ namespace CPF_experiment
             if (currentNode.totalCost <= this.maxCost)
             {
                 this.openList.Add(currentNode);
-                this.closedList.Add(currentNode);
+                this.closedList.Add(currentNode, currentNode);
                 this.addToGlobalConflictCount(currentNode.getConflict());
             }
             while (openList.Count > 0 && runner.ElapsedMilliseconds() < Constants.MAX_TIME)
@@ -195,7 +195,7 @@ namespace CPF_experiment
 
             if (this.maxThreshold != -1 && checkMerge(node))
             {
-                if (closedList.Contains(node))
+                if (closedList.ContainsKey(node)) // TODO: You won't find it there, it was just taken out two lines ago. Remove check?
                     return true;
 
                 if (node.rePlan(instance, runner, conflict.agentA, this.minCost, solver, lowLevelSolver, ref highLevelExpanded, ref highLevelGenerated, ref loweLevelExpanded, ref loweLevelGenerated) == false)
@@ -208,12 +208,12 @@ namespace CPF_experiment
                     maxSizeGroup = node.replanSize;
                 if (node.totalCost <= maxCost)
                     openList.Add(node);
-                closedList.Add(node);
+                closedList.Add(node, node);
                 this.addToGlobalConflictCount(node.getConflict());
                 return false;
             }
 
-            closedList.Add(node);
+            closedList.Add(node, node);
 
              CbsConstraint con;
              CbsNode toAdd;
@@ -231,7 +231,7 @@ namespace CPF_experiment
                  con = new CbsConstraint(conflict, instance, true);
                  toAdd = new CbsNode(node, con, conflict.agentA, instance);
 
-                 if (closedList.Contains(toAdd) == false)
+                 if (closedList.ContainsKey(toAdd) == false)
                  {
 
                      if (toAdd.rePlan(instance, runner, conflict.agentA, Math.Max(minCost, conflict.timeStep), solver, lowLevelSolver, ref highLevelExpanded, ref highLevelGenerated, ref loweLevelExpanded, ref loweLevelGenerated))
@@ -239,7 +239,7 @@ namespace CPF_experiment
                          if (toAdd.totalCost <= this.maxCost)
                          {
                              openList.Add(toAdd);
-                             closedList.Add(toAdd);
+                             closedList.Add(toAdd, toAdd);
                              this.highLevelGenerated++;
                              addToGlobalConflictCount(toAdd.getConflict());
                          }
@@ -263,14 +263,14 @@ namespace CPF_experiment
                 con = new CbsConstraint(conflict, instance, false);
                 toAdd = new CbsNode(node, con, conflict.agentB, instance);
 
-                if (closedList.Contains(toAdd) == false)
+                if (closedList.ContainsKey(toAdd) == false)
                 {
                     if (toAdd.rePlan(instance, runner, conflict.agentB, Math.Max(minCost, conflict.timeStep), solver, lowLevelSolver, ref highLevelExpanded, ref highLevelGenerated, ref loweLevelExpanded, ref loweLevelGenerated))
                     {
                         if (toAdd.totalCost <= this.maxCost)
                         {
                             openList.Add(toAdd);
-                            closedList.Add(toAdd);
+                            closedList.Add(toAdd, toAdd);
                             this.highLevelGenerated++;
                             addToGlobalConflictCount(toAdd.getConflict());
                         }
@@ -322,7 +322,8 @@ namespace CPF_experiment
 
         public CBS_GlobalConflicts(ICbsSolver solver, int maxThreshold, int currentThreshold)
         {
-            this.closedList = new HashTable_C();
+            // Not using the base's constructor?
+            this.closedList = new Dictionary<CbsNode, CbsNode>();
             this.openList = new BinaryHeap();
             this.mergeThreshold = currentThreshold;
             this.solver = solver;
