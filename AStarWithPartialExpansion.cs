@@ -47,7 +47,7 @@ namespace CPF_experiment
         /// <returns></returns>
         protected bool expand(WorldState currentNode, int agentIndex, Run runner, int targetF, HashSet<TimedMove> currentMoves)
         {
-            if (runner.ElapsedMilliseconds() > Constants.MAX_TIME || this.foundGoal)
+            if (runner.ElapsedMilliseconds() > Constants.MAX_TIME)
                 return true;
             WorldState prev = currentNode.prevStep;
             if (agentIndex == 0) // If this is the first agent that moves
@@ -96,21 +96,7 @@ namespace CPF_experiment
                             this.generated++;
                             this.closedList.Add(currentNode, currentNode);
 
-
-                            //if (currentNode.h + currentNode.g + currentNode.potentialConflictsCount == targetF + currentNode.prevStep.potentialConflictsCount)
-                            //{
-                            //    if (currentNode.h == 0)
-                            //    {
-                            //        this.openList.Add(currentNode);
-                            //        this.foundGoal = true;
-                            //        return true;
-                            //    }
-                            //    this.expanded++;
-                            //    if (Expand(currentNode))
-                            //        return true;
-                            //}
-                            //else
-                                this.openList.Add(currentNode);
+                            this.openList.Add(currentNode);
                             return true;
                         }
                     }
@@ -133,8 +119,6 @@ namespace CPF_experiment
 
             foreach (TimedMove agentLocation in currentNode.allAgentsState[agentIndex].last_move.GetNextMoves(Constants.ALLOW_DIAGONAL_MOVE))
             {
-                if (foundGoal)
-                    return true;
                 if (this.constraintList != null)
                 {
                     nextStepLocation.init(instance.m_vAgents[agentIndex].agent.agentNum, agentLocation);
@@ -248,7 +232,7 @@ namespace CPF_experiment
 
             if (targetFchange < 0)
                 return false;
-            if (runner.ElapsedMilliseconds() > Constants.MAX_TIME || this.foundGoal)
+            if (runner.ElapsedMilliseconds() > Constants.MAX_TIME)
                 return true;
             WorldStateForPartialExpansion prev = (WorldStateForPartialExpansion)currentNode.prevStep;
             if (agentIndex == 0) // If this is the first agent that moves
@@ -295,21 +279,7 @@ namespace CPF_experiment
                         this.generated++;
                         this.closedList.Add(currentNode, currentNode);
 
-                        //if (currentNode.h + currentNode.g + currentNode.potentialConflictsCount == currentNode.prevStep.h + currentNode.prevStep.g + currentNode.prevStep.potentialConflictsCount)
-                        //{
-                        //    if (currentNode.h == 0)
-                        //    {
-                        //        this.foundGoal = true;
-                        //        this.openList.Add(currentNode);
-                        //    }
-                        //    else
-                        //    {
-                        //        expanded++;
-                        //        Expand(currentNode);
-                        //    }
-                        //}
-                        //else
-                            this.openList.Add(currentNode);
+                        this.openList.Add(currentNode);
                         return true;
                     }
                 }
@@ -322,8 +292,6 @@ namespace CPF_experiment
             bool ans = false;
             foreach (TimedMove agentLocation in currentNode.allAgentsState[agentIndex].last_move.GetNextMoves(Constants.ALLOW_DIAGONAL_MOVE))
             {
-                if (foundGoal)
-                    return true;
                 if (this.constraintList != null)
                 {
                     nextStepLocation.init(instance.m_vAgents[agentIndex].agent.agentNum, agentLocation);

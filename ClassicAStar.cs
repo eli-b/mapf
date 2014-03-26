@@ -25,7 +25,6 @@ namespace CPF_experiment
         protected HashSet<TimedMove> illegalMoves;
         protected HashSet_U<DnCConstraint> constraintList;
         protected Run runner;
-        protected bool foundGoal;
         public WorldState goal; // This will contain the goal node if such was found
         protected int minDepth;
         protected int internalConflictCount;
@@ -139,7 +138,6 @@ namespace CPF_experiment
         public bool Solve(Run runner)
         {
             this.runner = runner;
-            this.foundGoal = false;
             WorldState currentNode;
             this.solutionDepth = ((WorldState)openList.Peek()).h;
 
@@ -191,7 +189,7 @@ namespace CPF_experiment
 
             for (int agentIndex = 0; agentIndex < this.instance.m_vAgents.Length ; ++agentIndex)
             {
-                if (runner.ElapsedMilliseconds() > Constants.MAX_TIME || this.foundGoal) // how can I find the goal in the middle of expanding a node?
+                if (runner.ElapsedMilliseconds() > Constants.MAX_TIME)
                     return true;
 
                 intermediateNodes = ExpandOneAgent(intermediateNodes, agentIndex, this.runner);
@@ -258,20 +256,6 @@ namespace CPF_experiment
                         this.closedList.Add(currentNode, currentNode);
                         this.generated++;
 
-                        //if (currentNode.h + currentNode.g + currentNode.potentialConflictsCount == currentNode.prevStep.h + currentNode.prevStep.g + currentNode.prevStep.potentialConflictsCount)
-                        //{
-                        //    if (currentNode.h == 0)
-                        //    {
-                        //        this.foundGoal = true;
-                        //        this.openList.Add(currentNode);
-                        //    }
-                        //    else
-                        //    {
-                        //        expanded++;
-                        //        Expand(currentNode);
-                        //    }
-                        //}
-                        //else
                         this.openList.Add(currentNode);
                     }
 
@@ -314,13 +298,13 @@ namespace CPF_experiment
                         
                         if (this.constraintList.Contains(nextStepLocation))
                             continue;
-                        if (this.mustConstraints != null && this.mustConstraints.Length > currentNode.makespan + 1 && // not >=?
-                            this.mustConstraints[currentNode.makespan + 1] != null)
-                        {
-                            if (this.mustConstraints[currentNode.makespan + 1].Any<DnCConstraint>(
-                                con => con.violatesMustCond((byte)instance.m_vAgents[agentIndex].agent.agentNum, agentLocation)))
-                                continue;
-                        }
+                    }
+                    if (this.mustConstraints != null && this.mustConstraints.Length > currentNode.makespan + 1 && // not >=?
+                        this.mustConstraints[currentNode.makespan + 1] != null)
+                    {
+                        if (this.mustConstraints[currentNode.makespan + 1].Any<DnCConstraint>(
+                            con => con.violatesMustCond((byte)instance.m_vAgents[agentIndex].agent.agentNum, agentLocation)))
+                            continue;
                     }
 
                     childNode = new WorldState(currentNode);
