@@ -11,7 +11,6 @@ namespace CPF_experiment
         /// <returns>The name of the solver</returns>
         String GetName();
 
-
         /// <summary>
         /// Solves the instance that was set by a call to Setup()
         /// </summary>
@@ -19,12 +18,10 @@ namespace CPF_experiment
         /// <returns></returns>
         bool Solve(Run runner);
 
-
         /// <summary>
         /// Setup the relevant data structures for a run.
         /// </summary>
         void Setup(ProblemInstance problemInstance);
-
 
         /// <summary>
         /// Clears the relevant data structures and variables to free memory usage.
@@ -53,19 +50,17 @@ namespace CPF_experiment
         void OutputStatistics(TextWriter output);
 
         /// <summary>
-        /// gets the delta of (actual solution cost - first state heuristics)
+        /// Gets the delta of (actual solution cost - first state heuristics)
         /// </summary>
-        /// <returns></returns>
         int getSolutionDepth();
 
-        int getNodesPassedPruningCounter();
+        int getNodesPassedPruningCounter(); // What does this mean?
         long getMemoryUsed();
         int getHighLevelExpanded();
         int getHighLevelGenerated();
         int getLowLevelExpanded();
         int getLowLevelGenerated();
         int getMaxGroupSize();
-
     }
 
     public interface ICbsSolver : ISolver

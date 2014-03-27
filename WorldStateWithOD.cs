@@ -23,11 +23,11 @@ namespace CPF_experiment
             this.potentialConflictsCount = 0;
         }
         
-        public WorldStateWithOD(WorldState cpy) : base(cpy)
+        public WorldStateWithOD(WorldStateWithOD cpy) : base(cpy)
         {
             this.g = cpy.g;
-            this.agentTurn = ((WorldStateWithOD)cpy).agentTurn;
-            this.potentialConflictsCount = ((WorldStateWithOD)cpy).potentialConflictsCount;
+            this.agentTurn = cpy.agentTurn;
+            this.potentialConflictsCount = cpy.potentialConflictsCount;
         }
         
         public WorldStateWithOD(AgentState[] states, List<uint> relevantAgents) : base(states, relevantAgents)
@@ -65,18 +65,7 @@ namespace CPF_experiment
         {
             if (((WorldStateWithOD)obj).agentTurn != this.agentTurn)
                 return false;
-            if (base.Equals(obj) == false)
-                return false;
-            for (int i = 0 ; i < agentTurn; i++)
-            {
-                if (allAgentsState[i].last_move.direction != ((WorldState)obj).allAgentsState[i].last_move.direction)
-                {
-                    if (allAgentsState[i].last_move.direction != Move.Direction.NO_DIRECTION && 
-                        ((WorldState)obj).allAgentsState[i].last_move.direction != Move.Direction.NO_DIRECTION)
-                        return false;
-                }
-            }
-            return true;
+            return base.Equals(obj);
         }
 
         /// <summary>
@@ -85,10 +74,9 @@ namespace CPF_experiment
         override public void CalculateG()
         {
             g = 0;
-            AgentState singleAgentState;
             for (int i = 0; i < allAgentsState.Length; i++)
             {
-                singleAgentState = allAgentsState[i];
+                AgentState singleAgentState = allAgentsState[i];
                 if (singleAgentState.atGoal())
                     g += singleAgentState.arrivalTime;
                 ///
@@ -97,7 +85,7 @@ namespace CPF_experiment
                 /// Therefore, we add the makespan only to these agents, and the previous timestamp to the others.
                 /// </remark>
                 ///
-                else if (i <= ((WorldStateWithOD)this.prevStep).agentTurn)
+                else if (i <= ((WorldStateWithOD)this.prevStep).agentTurn) // Shouldn't this be just < ???
                 {
                     g += makespan;
                 }   

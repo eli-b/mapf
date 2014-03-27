@@ -12,13 +12,14 @@ namespace CPF_experiment
         public int makespan; // Total time steps passed, max(agent makespans)
         public int g; // Sum of agent makespans until they reach their goal
         public int h;
-        public bool notExpanded; // Used only by AStarWithPartialExpansionBasic. Consider moving.
         public AgentState[] allAgentsState;
         public WorldState prevStep;
         private int binaryHeapIndex;
         public int potentialConflictsCount;
         public int cbsInternalConflictsCount;
-        public byte nextFvalue; // Used only by AStarWithPartialExpansionBasic. Consider moving.
+        /// <summary>
+        /// The last move of all agents that have already moved in this turn 
+        /// </summary>
         public HashSet<TimedMove> currentMoves;
 
         /// <summary>
@@ -32,7 +33,6 @@ namespace CPF_experiment
             this.g = 0;
             this.potentialConflictsCount = 0;
             this.cbsInternalConflictsCount = 0;
-            this.notExpanded = true;
             this.currentMoves = new HashSet<TimedMove>();
         }
 
@@ -49,25 +49,7 @@ namespace CPF_experiment
             {
                 this.allAgentsState[i] = new AgentState(cpy.allAgentsState[i]);
             }
-            this.notExpanded = true; // Not cpy.notExpanded?
             this.currentMoves = new HashSet<TimedMove>(cpy.currentMoves);
-        }
-
-        /// <summary>
-        /// Copies a state with only a sub group of the original agents.
-        /// Doesn't copy h or makespan!
-        /// </summary>
-        /// <param name="cpy"></param>
-        /// <param name="numOfAgents"></param>
-        public WorldState(WorldState cpy, int numOfAgents)
-        {
-            this.allAgentsState = new AgentState[numOfAgents];
-            for (int i = 0; i < numOfAgents; i++)
-            {
-                this.allAgentsState[i] = new AgentState(cpy.allAgentsState[i]);
-            }
-            this.notExpanded = true;
-            //TODO: Copy the relevant parts of cpy.currentMoves
         }
 
         /// <summary>
@@ -130,7 +112,6 @@ namespace CPF_experiment
 
             return 0;
         }
-        
 
         /// <summary>
         /// Calculate and set the g of the state as the sum of the different agent g values.

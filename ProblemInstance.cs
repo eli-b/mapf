@@ -444,7 +444,7 @@ namespace CPF_experiment
 
             if (parameters.ContainsKey(Trevor.ILLEGAL_MOVES_KEY))
             {
-                HashSet<TimedMove> reserved = (HashSet<TimedMove>)parameters[Trevor.ILLEGAL_MOVES_KEY];
+                var reserved = (HashSet<TimedMove>)parameters[Trevor.ILLEGAL_MOVES_KEY];
 
                 return (toCheck.isColliding(reserved) == false);
             }

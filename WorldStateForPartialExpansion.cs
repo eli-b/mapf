@@ -4,9 +4,10 @@ namespace CPF_experiment
 {
     class WorldStateForPartialExpansion : WorldState
     {
-
         public byte currentFChange;
         public bool alreadyExpanded;
+        public byte nextFvalue;
+        public bool notExpanded;
 
         /// <summary>
         /// Create a state with the given state for every agent.
@@ -15,6 +16,7 @@ namespace CPF_experiment
         public WorldStateForPartialExpansion(AgentState[] allAgentsState): base(allAgentsState)
         {
             alreadyExpanded = false;
+            this.notExpanded = true;
             currentFChange = 0;
         }
 
@@ -27,6 +29,7 @@ namespace CPF_experiment
         {
             alreadyExpanded = false;
             currentFChange = 0;
+            this.notExpanded = true; // Not cpy.notExpanded?
         }
 
         public byte[][] getSingleAgentMoves(ProblemInstance problem)

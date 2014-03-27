@@ -36,6 +36,7 @@ namespace CPF_experiment
             }
             root = new MDDStep(sRoot, null);
             openList.Add(root);
+            // Not adding it automatically to the closed list here?
             conflictAvoidenceVaiulations = 0;
         }
        

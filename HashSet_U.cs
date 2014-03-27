@@ -7,6 +7,7 @@ namespace CPF_experiment
     // This class represents a union of HashSets.
     // TODO: Make sure it's really better than using HashSet.UnionWith().
     // </summary>
+    [Serializable]
     public class HashSet_U<T> : HashSet<T>
     {
         List<HashSet<T>> Data;

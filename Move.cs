@@ -211,6 +211,8 @@ namespace CPF_experiment
         /// This includes:
         /// 1. Head on collision
         /// 2. When other move targets the same location.
+        /// TODO: When diagonal moves are allowed, need to also check for diagonal collisions, e.g., (0,0)->(1,1) and (0,1)->(1,0) and such.
+        /// No rush, though. We don't currently work with diagonal moves.
         /// </summary>
         /// <param name="x"></param>
         /// <param name="y"></param>

@@ -21,7 +21,7 @@ namespace CPF_experiment
             this.locationsAtTime = new List<LinkedList<Move>>(); // TODO: Initialize list with #agents
             while (currentNode != null)
             {
-                this.locationsAtTime.Insert(0,currentNode.GetAgentsMoves());
+                this.locationsAtTime.Insert(0, currentNode.GetAgentsMoves());
                 currentNode = currentNode.prevStep;
             }
         }
@@ -63,6 +63,8 @@ namespace CPF_experiment
         /// <summary>
         /// Reconstructs a plan by going backwards from a goal state, returning only moves in a full states
         /// and ignoring intermediate states.
+        /// TODO: This is awful code. Just make a virtual GetPrevState in WorldState and
+        /// make WorldStateWithOD return only full states.
         /// </summary>
         /// <param name="goalState"></param>
         public Plan(WorldStateWithOD goalState)

@@ -16,8 +16,9 @@ namespace CPF_experiment
 
         override public string GetName() { return "PE-Basic "; }
 
-        override public bool Expand(WorldState node)
+        override public bool Expand(WorldState simpleLookingNode)
         {
+            WorldStateForPartialExpansion node = (WorldStateForPartialExpansion)simpleLookingNode;
             //Debug.Print("Expanding node " + node);
             if (node.notExpanded)
             {
@@ -45,11 +46,11 @@ namespace CPF_experiment
         /// <param name="targetF"></param>
         /// <param name="currentMoves"></param>
         /// <returns></returns>
-        protected bool expand(WorldState currentNode, int agentIndex, Run runner, int targetF, HashSet<TimedMove> currentMoves)
+        protected bool expand(WorldStateForPartialExpansion currentNode, int agentIndex, Run runner, int targetF, HashSet<TimedMove> currentMoves)
         {
             if (runner.ElapsedMilliseconds() > Constants.MAX_TIME)
                 return true;
-            WorldState prev = currentNode.prevStep;
+            WorldStateForPartialExpansion prev = (WorldStateForPartialExpansion)currentNode.prevStep;
             if (agentIndex == 0) // If this is the first agent that moves
             {
                 hasMoreSuc = false;
@@ -105,8 +106,9 @@ namespace CPF_experiment
                     if (currentNode.h + currentNode.g > targetF)
                     {
                         hasMoreSuc = true;
-                        if (currentNode.h + currentNode.g < currentNode.prevStep.nextFvalue)
-                            currentNode.prevStep.nextFvalue = (byte)(currentNode.h + currentNode.g);
+                        var prevStep = (WorldStateForPartialExpansion)currentNode.prevStep;
+                        if (currentNode.h + currentNode.g < prevStep.nextFvalue)
+                            prevStep.nextFvalue = (byte)(currentNode.h + currentNode.g);
                     }
                     return false;
                 }
@@ -128,7 +130,7 @@ namespace CPF_experiment
                 if (IsValid(agentLocation, currentMoves))
                 {
                     currentMoves.Add(agentLocation);
-                    WorldState childNode = new WorldState(currentNode);
+                    var childNode = new WorldStateForPartialExpansion(currentNode);
                     childNode.allAgentsState[agentIndex].move(agentLocation);
                     childNode.prevStep = prev;
                     if (expand(childNode, agentIndex + 1, runner, targetF, currentMoves))
@@ -148,6 +150,7 @@ namespace CPF_experiment
             output.Write(solutionDepth + Run.RESULTS_DELIMITER);
             output.Write(expandedFullStates + Run.RESULTS_DELIMITER);
             output.Write("NA"/*Process.GetCurrentProcess().VirtualMemorySize64*/ + Run.RESULTS_DELIMITER);
+            // Isn't there a CSV module in C# instead of fussing with the delimeter everywhere?
         }
     }
     
@@ -156,38 +159,9 @@ namespace CPF_experiment
     {
         sbyte[][] fLookup;
 
-        public override void Setup(ProblemInstance problemInstance)
-        {
-            this.instance = problemInstance;
-            this.heuristic = this.CreateHeuristic();
-            WorldState root = this.CreateSearchRoot();
-            root.h = (int)this.heuristic.h(root);
-            this.closedList.Add(root, root);
-            this.openList.Add(root);
-            this.expanded = 0;
-            expandedFullStates = 0;
-            this.totalCost = 0;
-            this.solutionDepth = 0;
-            this.goal = null;
-            this.numOfAgents = problemInstance.m_vAgents.Length;
-            this.generated = 0;
-
-            // Store parameters used by Trevor's Independant Detection algorithm
-            if (problemInstance.parameters.ContainsKey(Trevor.MAXIMUM_COST_KEY))
-                this.maxCost = (int)(problemInstance.parameters[Trevor.MAXIMUM_COST_KEY]);
-            else
-                this.maxCost = int.MaxValue;
-            if (problemInstance.parameters.ContainsKey(Trevor.ILLEGAL_MOVES_KEY))
-                this.illegalMoves = (HashSet<TimedMove>)(problemInstance.parameters[Trevor.ILLEGAL_MOVES_KEY]);
-            else
-                this.illegalMoves = null;
-
-        }
-
         override protected WorldState CreateSearchRoot()
         {
             WorldStateForPartialExpansion root = new WorldStateForPartialExpansion(this.instance.m_vAgents);
-            //root.getNextChild(instance, closedList, true);
             return root;
         }
 
@@ -208,8 +182,7 @@ namespace CPF_experiment
             }
             //Debug.Print("Expanding node " + node);
 
-
-            sbyte[][] fLookupTable = null; // [0] - agent number ,[1] - f change, value =1 - exists successor, value = -1 not exists, value = 0 don't know
+            sbyte[][] fLookupTable = null; // [0] - agent number ,[1] - f change, value = 1 - exists successor, value = -1 not exists, value = 0 don't know
 
             Expand(node, 0, runner, new HashSet<TimedMove>(), allMoves, node.currentFChange, fLookupTable);
             node.currentFChange++;

@@ -41,7 +41,7 @@ namespace CPF_experiment
             foreach (TimedMove newMove in parent.allAgentsState[agentTurn].last_move.GetNextMoves(Constants.ALLOW_DIAGONAL_MOVE))
             {
                // this.generated++;
-                if (this.IsValid(newMove, agentTurn, parent))
+                if (this.IsValid(newMove, parent.currentMoves))
                 {
                     childNode = new WorldStateWithOD(parent);
                     childNode.allAgentsState[agentTurn].move(newMove);
@@ -65,7 +65,7 @@ namespace CPF_experiment
                     if (parent.agentTurn == 0)
                         childNode.makespan = parent.makespan + 1;
 
-                    // g of child is equal to g of parent only when newMove is a STAY move and agent has already arrived at his goal location
+                    // g of child is equal to g of parent only when newMove is a STAY move and agent has already arrived at its goal
                     childNode.CalculateG();  
 
                     if (childNode.h + childNode.g <= this.maxCost)
@@ -86,12 +86,10 @@ namespace CPF_experiment
                                 openList.Remove(inClosedList);
                             }
                         }
-                        //if (childNode.agentTurn != 0 || (childNode.agentTurn == 0 && this.closedList.Contains(childNode) == false))
+
                         if (this.closedList.ContainsKey(childNode) == false)
                         {
                             this.generated++;
-                            //if (childNode.agentTurn == 0)
-                            //    closedList.Add(childNode);
                             this.addToClosedList(childNode);
                             if (childNode.h + childNode.g + childNode.potentialConflictsCount == node.h + node.g + node.potentialConflictsCount)
                             {
@@ -113,6 +111,10 @@ namespace CPF_experiment
             return false;
         }
 
+        /// <summary>
+        /// What's the logic behind this func?
+        /// </summary>
+        /// <param name="toAdd"></param>
         private void addToClosedList(WorldStateWithOD toAdd)
         {
             WorldStateWithOD cpy = new WorldStateWithOD(toAdd);
@@ -140,45 +142,6 @@ namespace CPF_experiment
             {
                 closedList.Add(cpy, cpy);
             }
-        }
-
-        /// <summary>
-        /// Check if a move is valid. This checks against:
-        /// - Hitting a wall or an obstacle
-        /// - Colliding with other agents
-        /// </summary>
-        /// <param name="aMove"></param>
-        /// <param name="agentIndex">The index of the agent that wants to perform the move</param>
-        /// <param name="node"></param>
-        /// <returns>true if the move is valid</returns>
-        protected bool IsValid(TimedMove aMove, int agentIndex, WorldStateWithOD node)
-        {
-            if (this.instance.IsValid(aMove) == false)
-                return false;
-
-            // Check against all the agents that have already moved to see if current move collides with their move
-            for (int i = 0; i < agentIndex; i++)
-            {
-                if (aMove.isColliding(node.allAgentsState[i].last_move))
-                    return false;
-            }
-               
-            return !IsMoveReserved(aMove);            
-        }
-
-        /// <summary>
-        /// Check if the proposed move is reserved in the plan of another agent.
-        /// This is used in Trevor's IndependenceDetection.
-        /// </summary>
-        /// <param name="aMove"></param>
-        /// <returns>True if the move is reserved</returns>
-        protected bool IsMoveReserved(TimedMove aMove)
-        {
-            if (this.illegalMoves != null)
-            {
-                return aMove.isColliding(this.illegalMoves);
-            }
-            return false;
         }
 
         /// <summary>

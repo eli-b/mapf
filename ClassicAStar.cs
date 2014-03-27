@@ -21,14 +21,23 @@ namespace CPF_experiment
         public int totalCost;
         public int numOfAgents;
         protected int maxCost;
+        /// <summary>
+        /// For derived algorithms that use partial expansion
+        /// </summary>
         protected int expandedFullStates;
         protected HashSet<TimedMove> illegalMoves;
         protected HashSet_U<CbsConstraint> constraintList;
         protected Run runner;
         public WorldState goal; // This will contain the goal node if such was found
+        /// <summary>
+        /// For CBS-A*
+        /// </summary>
         protected int minDepth;
         protected int internalConflictCount;
         protected int externalConflictCount;
+        /// <summary>
+        /// For CBS-IDA* - not used
+        /// </summary>
         protected List<CbsConstraint>[] mustConstraints;
 
         /// <summary>
@@ -165,8 +174,8 @@ namespace CPF_experiment
                 }
 
                 // Expand
-                expanded++;
                 Expand(currentNode);
+                expanded++;
             }
 
             totalCost = Constants.NO_SOLUTION_COST;
@@ -183,7 +192,7 @@ namespace CPF_experiment
         /// <param name="node"></param>
         public virtual bool Expand(WorldState node)
         {
-            Debug.Print("Expanding node " + node);
+            //Debug.Print("Expanding node " + node);
             var intermediateNodes = new List<WorldState>();
             intermediateNodes.Add(node);
 
@@ -206,7 +215,6 @@ namespace CPF_experiment
                 // Assuming h is an admissable heuristic, no need to generate nodes that won't get us to the goal
                 // within the budget
                 {
-
                     if (instance.parameters.ContainsKey(Trevor.CONFLICT_AVOIDENCE))
                     {
                         currentNode.potentialConflictsCount = currentNode.prevStep.potentialConflictsCount;
@@ -282,7 +290,6 @@ namespace CPF_experiment
             var GeneratedNodes = new List<WorldState>();
             CbsConstraint nextStepLocation = new CbsConstraint();
             WorldState childNode;
-            bool illegal;
 
             foreach (var currentNode in intermediateNodes)
             {
@@ -310,11 +317,10 @@ namespace CPF_experiment
                     childNode = new WorldState(currentNode);
                     childNode.allAgentsState[agentIndex].move(agentLocation);
                     childNode.prevStep = currentNode;
-                    if (agentIndex == 0) {
+                    if (agentIndex == 0)
                         childNode.currentMoves.Clear();
-                        childNode.currentMoves = new HashSet<TimedMove>();
-                    }
                     childNode.currentMoves.Add(agentLocation);
+
                     GeneratedNodes.Add(childNode);
                 }
             }
@@ -324,24 +330,25 @@ namespace CPF_experiment
 
         /// <summary>
         /// Check if the move is valid, i.e. not colliding into walls or other agents.
-        /// This method should be in WorldState or ProblemInstance or something.
-        /// It has nothing to do with A*.
+        /// This method is here instead of in ProblemInstance to enable unused algorithmic tweaks.
         /// </summary>
         /// <param name="possibleMove">The move to check if possible</param>
         /// <returns>true, if the move is possible.</returns>
         protected bool IsValid(TimedMove possibleMove, HashSet<TimedMove> currentMoves)
         {
+            // Check if the proposed move is reserved in the plan of another agent.
+            // This is used in Trevor's IndependenceDetection.
             if (this.illegalMoves != null) 
             {
                 if (possibleMove.isColliding(illegalMoves))
                     return false;
             }
 
-            // If the tile is not free (out of the grid or with an obstacles)
+            // If the tile is not free (out of the grid or with an obstacle)
             if (this.instance.IsValid(possibleMove) == false)
                 return false;
 
-            // Check if previous move of another agent will collide with this move:
+            // Check against all the agents that have already moved to see if current move collides with their move
             return (possibleMove.isColliding(currentMoves) == false);
         }
 
@@ -393,6 +400,7 @@ namespace CPF_experiment
             this.externalConflictCount = 0;
             if (problemInstance.parameters.ContainsKey(CBS_LocalConflicts.CONSTRAINTS))
                 this.constraintList = (HashSet_U<CbsConstraint>)problemInstance.parameters[CBS_LocalConflicts.CONSTRAINTS];
+
             if (problemInstance.parameters.ContainsKey(CBS_LocalConflicts.CONSTRAINTSP))
             {
                 List<CbsConstraint> lc = (List<CbsConstraint>)problemInstance.parameters[CBS_LocalConflicts.CONSTRAINTSP];
