@@ -250,7 +250,7 @@ namespace CPF_experiment
 
             // Console.ReadLine();
 
-            Program.onlyReadInstances = true;
+            Program.onlyReadInstances = false;
 
             int instances = 100;
 
