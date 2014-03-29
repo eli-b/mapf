@@ -162,7 +162,7 @@ namespace CPF_experiment
             : base(state.last_move.x, state.last_move.y, state.last_move.direction, state.last_move.time)
         {
             this.ins = ins;
-            this.cardinality = ins.getCardinality(state);
+            this.cardinality = ins.getCardinality(state.last_move);
         }
 
         public CoordinateForConflictRatio(CoordinateForConflictRatio cpy)

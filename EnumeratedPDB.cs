@@ -316,11 +316,11 @@ namespace CPF_experiment
                  * in positions previous to our current position.
                  */
 
-                Int32 nCard1 = m_Problem.getCardinality(s.allAgentsState[m_vAgents[i]]);
+                Int32 nCard1 = m_Problem.getCardinality(s.allAgentsState[m_vAgents[i]].last_move);
                 Int32 nPreceding = 0;
                 for (int j = 0; j < i; ++j)
                 {
-                    Int32 nCard2 = m_Problem.getCardinality(s.allAgentsState[m_vAgents[j]]);
+                    Int32 nCard2 = m_Problem.getCardinality(s.allAgentsState[m_vAgents[j]].last_move);
                     if (nCard2 < nCard1)
                         ++nPreceding;
                 }

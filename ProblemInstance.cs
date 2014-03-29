@@ -135,7 +135,7 @@ namespace CPF_experiment
                 // Create initial state
                 agentState = new AgentState(this.m_vAgents[agentId].agent.Goal.x,
                         this.m_vAgents[agentId].agent.Goal.y, -1, -1, agentId);
-                entry = this.getCardinality(agentState);
+                entry = this.getCardinality(agentState.last_move);
                 shortestPaths[entry] = 0;
                 openlist.Enqueue(new WorldState(new AgentState[1] { agentState }));
                 while (openlist.Count > 0)
@@ -366,9 +366,9 @@ namespace CPF_experiment
         /// <param name="ags">An agent's current location.</param>
         /// <returns>n, where the agent is located at the nth non-obstacle
         /// location in our grid.</returns>
-        public Int32 getCardinality(AgentState ags)
+        public Int32 getCardinality(Move location)
         {
-            return (m_vCardinality[ags.last_move.x, ags.last_move.y]);
+            return (m_vCardinality[location.x, location.y]);
         }
         
         private void precomputePermutations()
