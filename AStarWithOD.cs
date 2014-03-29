@@ -40,7 +40,6 @@ namespace CPF_experiment
             // Try all legal moves of the agents
             foreach (TimedMove newMove in parent.allAgentsState[agentTurn].last_move.GetNextMoves(Constants.ALLOW_DIAGONAL_MOVE))
             {
-               // this.generated++;
                 if (this.IsValid(newMove, parent.currentMoves))
                 {
                     childNode = new WorldStateWithOD(parent);
@@ -48,19 +47,6 @@ namespace CPF_experiment
                     childNode.prevStep = parent;
                     childNode.agentTurn = childAgentTurn;
                     childNode.h = (int)this.heuristic.h(childNode);
-
-                    if (instance.parameters.ContainsKey(Trevor.CONFLICT_AVOIDENCE))
-                    {
-                        childNode.potentialConflictsCount = parent.potentialConflictsCount;
-                        childNode.potentialConflictsCount += childNode.conflictsCount(((HashSet<TimedMove>)instance.parameters[Trevor.CONFLICT_AVOIDENCE]));
-                    }
-
-                    if (instance.parameters.ContainsKey(CBS_LocalConflicts.INTERNAL_CAT))
-                    {
-                        childNode.cbsInternalConflictsCount = parent.prevStep.cbsInternalConflictsCount;
-                        childNode.cbsInternalConflictsCount += parent.conflictsCount(((HashSet<TimedMove>)instance.parameters[CBS_LocalConflicts.INTERNAL_CAT]));
-                    }
-
                     // Makespan increases only if this is the move of the first agent
                     if (parent.agentTurn == 0)
                         childNode.makespan = parent.makespan + 1;
@@ -70,8 +56,19 @@ namespace CPF_experiment
 
                     if (childNode.h + childNode.g <= this.maxCost)
                     {
+                        if (instance.parameters.ContainsKey(Trevor.CONFLICT_AVOIDENCE))
+                        {
+                            childNode.potentialConflictsCount = parent.potentialConflictsCount;
+                            childNode.potentialConflictsCount += childNode.conflictsCount(((HashSet<TimedMove>)instance.parameters[Trevor.CONFLICT_AVOIDENCE]));
+                        }
+
+                        if (instance.parameters.ContainsKey(CBS_LocalConflicts.INTERNAL_CAT))
+                        {
+                            childNode.cbsInternalConflictsCount = parent.prevStep.cbsInternalConflictsCount;
+                            childNode.cbsInternalConflictsCount += parent.conflictsCount(((HashSet<TimedMove>)instance.parameters[CBS_LocalConflicts.INTERNAL_CAT]));
+                        }
+
                         //if in closed list
-                        //if (childNode.agentTurn==0 && this.closedList.Contains(childNode) == true)
                         if (this.closedList.ContainsKey(childNode) == true)
                         {
                             WorldStateWithOD inClosedList = (WorldStateWithOD)this.closedList[childNode];
@@ -98,6 +95,7 @@ namespace CPF_experiment
                                     this.openList.Add(childNode);
                                     return true;
                                 }
+                                // Expanding the child node immediately - WHY???
                                 this.expanded++;
                                 if (Expand(childNode))
                                     return true;

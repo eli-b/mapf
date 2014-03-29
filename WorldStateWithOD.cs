@@ -47,10 +47,6 @@ namespace CPF_experiment
                 int hash = Constants.PRIMES_FOR_HASHING[0];
                 hash = hash * Constants.PRIMES_FOR_HASHING[1] + base.GetHashCode();
                 hash = hash * Constants.PRIMES_FOR_HASHING[2] + this.agentTurn;
-                for (int i = 0; i < agentTurn; i++)
-                {
-                    hash = hash * Constants.PRIMES_FOR_HASHING[(i + 3) % Constants.PRIMES_FOR_HASHING.Length] + allAgentsState[i].last_move.GetHashCode();
-                }
                 return hash;
             }
         }
@@ -85,7 +81,8 @@ namespace CPF_experiment
                 /// Therefore, we add the makespan only to these agents, and the previous timestamp to the others.
                 /// </remark>
                 ///
-                else if (i <= ((WorldStateWithOD)this.prevStep).agentTurn) // Shouldn't this be just < ???
+                else if (i <= ((WorldStateWithOD)this.prevStep).agentTurn) // Agent already moved in this step.
+                                                                           // (Using the parent's agentTurn is equivalent to using i <= (agentTurn-1)%num_agents)
                 {
                     g += makespan;
                 }   
@@ -106,7 +103,7 @@ namespace CPF_experiment
             int ans = 0;
             int lastMove = agentTurn - 1;
             if (agentTurn == 0)
-                lastMove = allAgentsState.Length - 1; // Not return 0?
+                lastMove = allAgentsState.Length - 1;
             if (allAgentsState[lastMove].last_move.isColliding(conflictAvoidence)) // Behavior change: this didn't check for head-on collisions
                 ans++;
             return ans;
