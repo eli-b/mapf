@@ -207,71 +207,7 @@ namespace CPF_experiment
 
             foreach (var currentNode in finalGeneratedNodes)
             {
-                currentNode.h = (int)this.heuristic.h(currentNode);
-                currentNode.makespan++;
-                currentNode.CalculateG();
-
-                if (currentNode.h + currentNode.g <= this.maxCost)
-                // Assuming h is an admissable heuristic, no need to generate nodes that won't get us to the goal
-                // within the budget
-                {
-                    if (instance.parameters.ContainsKey(Trevor.CONFLICT_AVOIDENCE))
-                    {
-                        currentNode.potentialConflictsCount = currentNode.prevStep.potentialConflictsCount;
-                        currentNode.potentialConflictsCount += currentNode.conflictsCount(((HashSet<TimedMove>)instance.parameters[Trevor.CONFLICT_AVOIDENCE]));
-                    }
-
-                    if (instance.parameters.ContainsKey(CBS_LocalConflicts.INTERNAL_CAT))
-                    {
-                        currentNode.cbsInternalConflictsCount = currentNode.prevStep.cbsInternalConflictsCount;
-                        currentNode.cbsInternalConflictsCount += currentNode.conflictsCount(((HashSet_U<TimedMove>)instance.parameters[CBS_LocalConflicts.INTERNAL_CAT]));
-                    }
-
-                    //if in closed list
-                    if (this.closedList.ContainsKey(currentNode) == true)
-                    {
-                        var inClosedList = this.closedList[currentNode];
-                        // TODO: Some code dup with CompareTo method of WorldState, not sure if avoidable
-                        var g_inClosedList = inClosedList.g;
-                        var potentialConflictsCount_inClosedList = inClosedList.potentialConflictsCount;
-                        var cbsInternalConflictsCount_inClosedList = inClosedList.cbsInternalConflictsCount;
-
-                        // if g is smaller or
-                        //    g is equal but current node has fewer potential conflicts or
-                        //                   current node has same number of potential conflicts but current node has fewer CBS internal conflicts than remove the old world state
-                        if (g_inClosedList > currentNode.g ||
-                            (g_inClosedList == currentNode.g && (potentialConflictsCount_inClosedList > currentNode.potentialConflictsCount ||
-                                                                    (potentialConflictsCount_inClosedList == currentNode.potentialConflictsCount && cbsInternalConflictsCount_inClosedList > currentNode.cbsInternalConflictsCount))))
-                        // Alternative view:
-                        // if g is smaller than remove the old world state
-                        // if g is equal but current node has fewer potential conflicts than remove the old world state
-                        // if g is equal and current node has same number of potential conflicts but current node has fewer CBS internal conflicts than remove the old world state
-                        //if (g_inClosedList > currentNode.g || 
-                        //    (g_inClosedList == currentNode.g && potentialConflictsCount_inClosedList > currentNode.potentialConflictsCount) ||
-                        //    (g_inClosedList == currentNode.g && potentialConflictsCount_inClosedList == currentNode.potentialConflictsCount && cbsInternalConflictsCount_inClosedList > currentNode.cbsInternalConflictsCount))
-                        {
-                            closedList.Remove(inClosedList);
-                            openList.Remove(inClosedList);
-                            // Items are searched for in the heap using their binaryHeapIndex, which is only intialized when they're put into it,
-                            // and not their hash or their Equals or CompareTo methods, so it's important to call Remove with inClosedList,
-                            // which might be in the heap, and not currentNode, which may be Equal to it, but was never in the heap so it
-                            // doesn't have a binaryHeapIndex initialized.
-                        }
-                    }
-
-                    if (this.closedList.ContainsKey(currentNode) == false)
-                    {
-                        this.closedList.Add(currentNode, currentNode);
-                        this.generated++;
-
-                        this.openList.Add(currentNode);
-                    }
-
-                    // What if in open list?? It seems this impl immediately puts _generated_ nodes in the closed list,
-                    // so it only needs to check it and not the open list.
-                    // That actually makes a lot of sense: membership tests in heaps are expensive, and in hashtables are cheap.
-                    // This way we only need to _search_ the open list if we encounter a node that was already visited.
-                }
+                ProcessGeneratedNode(currentNode);
             }
             
             return true;
@@ -416,6 +352,83 @@ namespace CPF_experiment
                 }
             }
         }
+
+        /// <summary>
+        /// Returns whether the node was inserted into the open list
+        /// </summary>
+        /// <param name="currentNode"></param>
+        /// <returns></returns>
+        protected bool ProcessGeneratedNode(WorldState currentNode)
+        {
+            currentNode.h = (int)this.heuristic.h(currentNode);
+            currentNode.makespan++;
+            currentNode.CalculateG();
+
+            if (currentNode.h + currentNode.g <= this.maxCost)
+            // Assuming h is an admissable heuristic, no need to generate nodes that won't get us to the goal
+            // within the budget
+            {
+                if (instance.parameters.ContainsKey(Trevor.CONFLICT_AVOIDENCE))
+                {
+                    currentNode.potentialConflictsCount = currentNode.prevStep.potentialConflictsCount;
+                    currentNode.potentialConflictsCount += currentNode.conflictsCount(((HashSet<TimedMove>)instance.parameters[Trevor.CONFLICT_AVOIDENCE]));
+                }
+
+                if (instance.parameters.ContainsKey(CBS_LocalConflicts.INTERNAL_CAT))
+                {
+                    currentNode.cbsInternalConflictsCount = currentNode.prevStep.cbsInternalConflictsCount;
+                    currentNode.cbsInternalConflictsCount += currentNode.conflictsCount(((HashSet_U<TimedMove>)instance.parameters[CBS_LocalConflicts.INTERNAL_CAT]));
+                }
+
+                //if in closed list
+                if (this.closedList.ContainsKey(currentNode) == true)
+                {
+                    var inClosedList = this.closedList[currentNode];
+                    // TODO: Some code dup with CompareTo method of WorldState, not sure if avoidable
+                    var g_inClosedList = inClosedList.g;
+                    var potentialConflictsCount_inClosedList = inClosedList.potentialConflictsCount;
+                    var cbsInternalConflictsCount_inClosedList = inClosedList.cbsInternalConflictsCount;
+
+                    // if g is smaller or
+                    //    g is equal but current node has fewer potential conflicts or
+                    //                   current node has same number of potential conflicts but current node has fewer CBS internal conflicts than remove the old world state
+                    if (g_inClosedList > currentNode.g ||
+                        (g_inClosedList == currentNode.g && (potentialConflictsCount_inClosedList > currentNode.potentialConflictsCount ||
+                                                                (potentialConflictsCount_inClosedList == currentNode.potentialConflictsCount && cbsInternalConflictsCount_inClosedList > currentNode.cbsInternalConflictsCount))))
+                    // Alternative view:
+                    // if g is smaller than remove the old world state
+                    // if g is equal but current node has fewer potential conflicts than remove the old world state
+                    // if g is equal and current node has same number of potential conflicts but current node has fewer CBS internal conflicts than remove the old world state
+                    //if (g_inClosedList > currentNode.g || 
+                    //    (g_inClosedList == currentNode.g && potentialConflictsCount_inClosedList > currentNode.potentialConflictsCount) ||
+                    //    (g_inClosedList == currentNode.g && potentialConflictsCount_inClosedList == currentNode.potentialConflictsCount && cbsInternalConflictsCount_inClosedList > currentNode.cbsInternalConflictsCount))
+                    {
+                        closedList.Remove(inClosedList);
+                        openList.Remove(inClosedList);
+                        // Items are searched for in the heap using their binaryHeapIndex, which is only intialized when they're put into it,
+                        // and not their hash or their Equals or CompareTo methods, so it's important to call Remove with inClosedList,
+                        // which might be in the heap, and not currentNode, which may be Equal to it, but was never in the heap so it
+                        // doesn't have a binaryHeapIndex initialized.
+                    }
+                }
+
+                if (this.closedList.ContainsKey(currentNode) == false)
+                {
+                    this.closedList.Add(currentNode, currentNode);
+                    this.generated++;
+
+                    this.openList.Add(currentNode);
+                    return true;
+                }
+
+                // What if in open list?? It seems this impl immediately puts _generated_ nodes in the closed list,
+                // so it only needs to check it and not the open list.
+                // That actually makes a lot of sense: membership tests in heaps are expensive, and in hashtables are cheap.
+                // This way we only need to _search_ the open list if we encounter a node that was already visited.
+            }
+            return false;
+        }
+
         public int getHighLevelExpanded() { return 0; }
         public int getHighLevelGenerated() { return 0; }
         public int getLowLevelExpanded() { return expanded; }

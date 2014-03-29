@@ -217,46 +217,7 @@ namespace CPF_experiment
                 if (targetFchange != 0)
                     return false;
 
-
-                currentNode.h = (int)this.heuristic.h(currentNode);
-                currentNode.makespan++;
-                currentNode.CalculateG();
-                if (currentNode.h + currentNode.g <= this.maxCost)
-                {
-
-                    if (instance.parameters.ContainsKey(Trevor.CONFLICT_AVOIDENCE))
-                    {
-                        currentNode.potentialConflictsCount = currentNode.prevStep.potentialConflictsCount;
-                        currentNode.potentialConflictsCount += currentNode.conflictsCount(((HashSet<TimedMove>)instance.parameters[Trevor.CONFLICT_AVOIDENCE]));
-                    }
-
-                    if (instance.parameters.ContainsKey(CBS_LocalConflicts.INTERNAL_CAT))
-                    {
-                        currentNode.cbsInternalConflictsCount = currentNode.prevStep.cbsInternalConflictsCount;
-                        currentNode.cbsInternalConflictsCount += currentNode.conflictsCount(((HashSet_U<TimedMove>)instance.parameters[CBS_LocalConflicts.INTERNAL_CAT]));
-                    }
-
-                    //if in closed list
-                    if (this.closedList.ContainsKey(currentNode) == true)
-                    {
-                        WorldStateForPartialExpansion inClosedList = (WorldStateForPartialExpansion)this.closedList[currentNode];
-                        //if g is smaller than remove the old world state
-                        if (inClosedList.g > currentNode.g || (inClosedList.g == currentNode.g && (inClosedList.potentialConflictsCount > currentNode.potentialConflictsCount || (inClosedList.potentialConflictsCount == currentNode.potentialConflictsCount && inClosedList.cbsInternalConflictsCount > currentNode.cbsInternalConflictsCount))))
-                        {
-                            closedList.Remove(inClosedList);
-                            openList.Remove(inClosedList);
-                        }
-                    }
-                    if (this.closedList.ContainsKey(currentNode) == false)
-                    {
-                        this.generated++;
-                        this.closedList.Add(currentNode, currentNode);
-
-                        this.openList.Add(currentNode);
-                        return true;
-                    }
-                }
-                return false;
+                return ProcessGeneratedNode(currentNode);
             }
 
             // Try all legal moves of the agents
