@@ -238,7 +238,7 @@ namespace CPF_experiment
                             int nSingleAgentShortestPath = 0;
                             foreach (var a in i.allAgentsState)
                                 nSingleAgentShortestPath +=
-                                    this.m_Problem.GetSingleAgentShortestPath(a.agent.agentNum, a.last_move.x, a.last_move.y);
+                                    this.m_Problem.GetSingleAgentShortestPath(a);
                             int nDifference = i.g - nSingleAgentShortestPath;
                             Debug.Assert(nDifference >= 0);
                             Debug.Assert(nDifference < Byte.MaxValue);
@@ -275,8 +275,7 @@ namespace CPF_experiment
                 foreach (var a in m_vAgents)
                 {
                     nSingleAgentShortestPath +=
-                        this.m_Problem.GetSingleAgentShortestPath(s.allAgentsState[a].agent.agentNum,
-                        s.allAgentsState[a].last_move.x, s.allAgentsState[a].last_move.y);
+                        this.m_Problem.GetSingleAgentShortestPath(s.allAgentsState[a]);
                 }
             return (m_vTable[hash(s)] + (uint) nSingleAgentShortestPath);
         }

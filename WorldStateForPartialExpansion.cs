@@ -49,7 +49,7 @@ namespace CPF_experiment
             //set values
             for (int i = 0; i < allAgentsState.Length; i++)
             {
-                hBefore = problem.GetSingleAgentShortestPath(allAgentsState[i].agent.agentNum, allAgentsState[i].last_move.x, allAgentsState[i].last_move.y);
+                hBefore = problem.GetSingleAgentShortestPath(allAgentsState[i]);
 
                 foreach (TimedMove check in allAgentsState[i].last_move.GetNextMoves(Constants.ALLOW_DIAGONAL_MOVE))
                 {

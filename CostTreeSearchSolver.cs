@@ -86,7 +86,7 @@ namespace CPF_experiment
             for (int i = 0; i < problem.GetNumOfAgents(); i++)
             {
                 temp=problem.m_vAgents[i];
-                costs[i] = Math.Max(problem.GetSingleAgentShortestPath(temp.agent.agentNum, temp.last_move.x, temp.last_move.y), minDepth);
+                costs[i] = Math.Max(problem.GetSingleAgentShortestPath(temp), minDepth);
             }
 
             openList.AddFirst(new CostTreeNode(costs));

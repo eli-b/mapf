@@ -167,22 +167,22 @@ namespace CPF_experiment
         }
 
         /// <summary>
-        /// Returns the shortest path between a given coordinate and the goal location of the given agent.
+        /// Returns the length of the shortest path between a given coordinate and the goal location of the given agent.
         /// </summary>
         /// <param name="agentNum"></param>
         /// <param name="x"></param>
         /// <param name="y"></param>
-        /// <returns>The shortest path from x,y to the goal of agent agentNum</returns>
+        /// <returns>The length of the shortest path from x,y to the goal of the agent.</returns>
         public int GetSingleAgentShortestPath(int agentNum, int x, int y)
         {
             return this.singleAgentShortestPaths[agentNum][this.m_vCardinality[x, y]];
         }
 
         /// <summary>
-        /// Returns the shortest path between a given coordinate and the goal location of the given agent.
+        /// Returns the length of the shortest path between a given agent's location and the goal of that agent.
         /// </summary>
         /// <param name="agent"></param>
-        /// <returns>The shortest path from x,y to the goal of agent agentNum</returns>
+        /// <returns>The length of the shortest path between a given agent's location and the goal of that agent</returns>
         public int GetSingleAgentShortestPath(AgentState agent)
         {
             return this.singleAgentShortestPaths[agent.agent.agentNum][this.m_vCardinality[agent.last_move.x, agent.last_move.y]];

@@ -118,8 +118,7 @@ namespace CPF_experiment
             uint nHeuristic = 0;
             foreach (var a in m_vAgents)
             {
-                nHeuristic += (uint)this.m_Problem.GetSingleAgentShortestPath(s.allAgentsState[a].agent.agentNum,
-                    s.allAgentsState[a].last_move.x, s.allAgentsState[a].last_move.y);
+                nHeuristic += (uint)this.m_Problem.GetSingleAgentShortestPath(s.allAgentsState[a]);
             }
             return nHeuristic;
         }
