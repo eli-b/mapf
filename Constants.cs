@@ -21,5 +21,6 @@ namespace CPF_experiment
         public static bool exhaustiveIcts = false;
 
         public const bool ALLOW_DIAGONAL_MOVE = false;
+        public static readonly int NUM_ALLOWED_DIRECTIONS = ALLOW_DIAGONAL_MOVE ? Move.NUM_DIRECTIONS : Move.NUM_NON_DIAG_MOVES;
     }
 }

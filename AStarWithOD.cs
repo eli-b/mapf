@@ -22,7 +22,12 @@ namespace CPF_experiment
         /// - Inserting them to OPEN
         /// - Insert the generated nodes to the hashtable of nodes, currently implmented together with the closed list.
         /// </summary>
-        override public bool Expand(WorldState node)
+        override public void Expand(WorldState node)
+        {
+            ExpandRecursively(node);
+        }
+
+        protected bool ExpandRecursively(WorldState node)
         {
             if (runner.ElapsedMilliseconds() > Constants.MAX_TIME)
                 return false;
@@ -97,7 +102,7 @@ namespace CPF_experiment
                                 }
                                 // Expanding the child node immediately - WHY???
                                 this.expanded++;
-                                if (Expand(childNode))
+                                if (ExpandRecursively(childNode))
                                     return true;
                             }
                             else

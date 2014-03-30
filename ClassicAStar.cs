@@ -83,7 +83,7 @@ namespace CPF_experiment
         }
 
         /// <summary>
-        /// Creates the initial state from which the search will start. 
+        /// Factory method. Creates the initial state from which the search will start. 
         /// This will be the first state to be inserted to OPEN.
         /// </summary>
         /// <returns>The root of the search tree</returns>
@@ -190,7 +190,7 @@ namespace CPF_experiment
         /// - Insert the generated nodes to the hashtable of nodes, currently implemented together with the closed list.
         /// </summary>
         /// <param name="node"></param>
-        public virtual bool Expand(WorldState node)
+        public virtual void Expand(WorldState node)
         {
             //Debug.Print("Expanding node " + node);
             var intermediateNodes = new List<WorldState>();
@@ -199,9 +199,9 @@ namespace CPF_experiment
             for (int agentIndex = 0; agentIndex < this.instance.m_vAgents.Length ; ++agentIndex)
             {
                 if (runner.ElapsedMilliseconds() > Constants.MAX_TIME)
-                    return true;
+                    return;
 
-                intermediateNodes = ExpandOneAgent(intermediateNodes, agentIndex, this.runner);
+                intermediateNodes = ExpandOneAgent(intermediateNodes, agentIndex);
             }
             var finalGeneratedNodes = intermediateNodes;
 
@@ -209,8 +209,6 @@ namespace CPF_experiment
             {
                 ProcessGeneratedNode(currentNode);
             }
-            
-            return true;
         }
         
         /// <summary>
@@ -221,10 +219,12 @@ namespace CPF_experiment
         /// - Insert node into CLOSED
         /// Returns the child nodes
         /// </summary>
-        protected virtual List<WorldState> ExpandOneAgent(List<WorldState> intermediateNodes, int agentIndex, Run runner)
+        protected virtual List<WorldState> ExpandOneAgent(List<WorldState> intermediateNodes, int agentIndex)
         {
             var GeneratedNodes = new List<WorldState>();
-            CbsConstraint nextStepLocation = new CbsConstraint();
+            CbsConstraint nextStepLocation = null;
+            if (this.constraintList != null)
+                nextStepLocation = new CbsConstraint();
             WorldState childNode;
 
             foreach (var currentNode in intermediateNodes)
@@ -250,11 +250,13 @@ namespace CPF_experiment
                             continue;
                     }
 
-                    childNode = new WorldState(currentNode);
+                    childNode = CreateSearchNode(currentNode);
                     childNode.allAgentsState[agentIndex].move(agentLocation);
-                    childNode.prevStep = currentNode;
+                    childNode.prevStep = currentNode.prevStep; // Most node objects are just temporary ones used during expansion process - skip them
                     if (agentIndex == 0)
-                        childNode.currentMoves.Clear();
+                    {
+                        childNode.prevStep = currentNode;
+                    }
                     childNode.currentMoves.Add(agentLocation);
 
                     GeneratedNodes.Add(childNode);
@@ -262,6 +264,16 @@ namespace CPF_experiment
             }
             intermediateNodes.Clear();
             return GeneratedNodes;
+        }
+
+        /// <summary>
+        /// Factory method.
+        /// </summary>
+        /// <param name="from"></param>
+        /// <returns></returns>
+        protected virtual WorldState CreateSearchNode(WorldState from)
+        {
+            return new WorldState(from);
         }
 
         /// <summary>
@@ -354,11 +366,11 @@ namespace CPF_experiment
         }
 
         /// <summary>
-        /// Returns whether the node was inserted into the open list
+        /// Returns whether the node was inserted into the open list.
         /// </summary>
         /// <param name="currentNode"></param>
         /// <returns></returns>
-        protected bool ProcessGeneratedNode(WorldState currentNode)
+        protected virtual bool ProcessGeneratedNode(WorldState currentNode)
         {
             currentNode.h = (int)this.heuristic.h(currentNode);
             currentNode.makespan++;
