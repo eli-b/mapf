@@ -15,7 +15,8 @@ namespace CPF_experiment
         /// </summary>
         public byte remainingFChange;
         /// <summary>
-        /// Only computed on demand.
+        /// For each agent and each direction it can go, the effect of that move on F
+        /// byte.MaxValue means this is an illegal move. Only computed on demand.
         /// </summary>
         protected byte[][] singleAgentFDifferences;
         /// <summary>
@@ -23,7 +24,7 @@ namespace CPF_experiment
         /// </summary>
         protected byte maxFChange;
         /// <summary>
-        /// Per each agent and f change, save 1 if that f change is achievable by moving the agents starting from this one on,
+        /// Per each agent and f change, has 1 if that f change is achievable by moving the agents starting from this one on,
         /// -1 if it isn't, and 0 if we don't know yet.
         /// Only computed on demand
         /// </summary>
@@ -50,14 +51,13 @@ namespace CPF_experiment
         {
             alreadyExpanded = false; // Creating a new unexpanded node from cpy
             remainingFChange = cpy.remainingFChange;
-            singleAgentFDifferences = null; // cpy.singleAgentFDifferences; // TODO: Consider copying cpy's tables, and nulling out the row of the agent that moved last to save a lot of calculations.
-                                            // To do that, add a virtual move method to WorldState that gets an agentIndex and an agentLocation, override it here with the above addition and make ClassicAStar.Expand use it when generating nodes instead of the specific agent's move method.
-            fLookup = null; // cpy.fLookup; // TODO: Same, but null all rows up to the one of the agent that moved.
+            singleAgentFDifferences = cpy.singleAgentFDifferences; // Notice that after an agent is moved its row won't be up-to-date.
+            fLookup = null; // Notice that after an agent is moved, all rows up to and including the one of the agent that moved won't be up-to-date.
             maxFChange = 0; // cpy.maxFChange // TODO: Same.
         }
 
         /// <summary>
-        /// Calculates for each agent and each direction it can go - the effect of that move on F
+        /// Calculates for each agent and each direction it can go, the effect of that move on F. Illegal moves get byte.MaxValue
         /// </summary>
         /// <param name="problem"></param>
         /// <returns></returns>
@@ -128,8 +128,6 @@ namespace CPF_experiment
         /// <returns></returns>
         public bool hasMoreChildren()
         {
-            //if (!alreadyExpanded)
-            //    throw new System.Exception("Call calcSingleAgentFDifferences first");
             return this.targetFChange <= this.maxFChange;
         }
         
@@ -138,11 +136,8 @@ namespace CPF_experiment
             return alreadyExpanded;
         }
 
-        public bool hasChildrenForCurrentF(int agentNum = 0)
+        public bool hasChildrenForCurrentF(int agentNum=0)
         {
-            //if (!alreadyExpanded)
-            //    throw new System.Exception("Call calcSingleAgentFDifferences first");
-
             return existsChildForF(agentNum, this.remainingFChange);
         }
 
@@ -152,20 +147,16 @@ namespace CPF_experiment
         /// <param name="agentNum"></param>
         /// <param name="remainingTargetFChange"></param>
         /// <returns></returns>
-        protected bool existsChildForF(int agentNum, int remainingTargetFChange)
+        protected bool existsChildForF(int agentNum, byte remainingTargetFChange)
         {
             // Stopping conditions:
-            if (remainingTargetFChange < 0) // assuming the heuristic function is consistent, this is impossible
-            {
-                return false;
-            }
-
             if (agentNum == allAgentsState.Length)
             {
                 if (remainingTargetFChange == 0)
                     return true;
                 return false;
             }
+            
             if (fLookup[agentNum][remainingTargetFChange] != 0) // Answer known (arrays are initialized to zero). TODO: Replace the magic.
             {
                 return fLookup[agentNum][remainingTargetFChange] == 1; // Return known answer. TODO: Replace the magic
@@ -174,9 +165,9 @@ namespace CPF_experiment
             // Recursive actions:
             for (int direction = 0; direction < Constants.NUM_ALLOWED_DIRECTIONS; direction++)
             {
-                if (singleAgentFDifferences[agentNum][direction] > remainingTargetFChange) // Small optimization - no need to make the recursive call just to request a negative target from it and get false
+                if (singleAgentFDifferences[agentNum][direction] > remainingTargetFChange) // Small optimization - no need to make the recursive call just to request a negative target from it and get false (because we assume the heuristic function is consistent)
                     continue;
-                if (existsChildForF(agentNum + 1, remainingTargetFChange - singleAgentFDifferences[agentNum][direction]))
+                if (existsChildForF(agentNum + 1, (byte)(remainingTargetFChange - singleAgentFDifferences[agentNum][direction])))
                 {
                     fLookup[agentNum][remainingTargetFChange] = 1;
                     return true;
@@ -186,8 +177,16 @@ namespace CPF_experiment
             return false;
         }
 
+        /// <summary>
+        /// An agent was moved between calculating the singleAgentFDifferences and this call. Using the data that describes its F change potential before the move.
+        /// </summary>
+        /// <param name="agentIndex"></param>
         public void UpdateRemainingFChange(int agentIndex) {
-            this.remainingFChange -= this.singleAgentFDifferences[agentIndex][(int)this.allAgentsState[agentIndex].last_move.direction];
+            byte fChangeFromLastMove = this.singleAgentFDifferences[agentIndex][(int)this.allAgentsState[agentIndex].last_move.direction];
+            if (fChangeFromLastMove != byte.MaxValue && this.remainingFChange >= fChangeFromLastMove)
+                this.remainingFChange -= fChangeFromLastMove;
+            else
+                this.remainingFChange = byte.MaxValue;
         }
     }
 }

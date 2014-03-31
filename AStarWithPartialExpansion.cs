@@ -143,9 +143,11 @@ namespace CPF_experiment
         protected override List<WorldState> ExpandOneAgent(List<WorldState> intermediateNodes, int agentIndex)
         {
             // Prune nodes that can't get to the target F
+            foreach (WorldState node in intermediateNodes)
+                ((WorldStateForPartialExpansion)node).calcSingleAgentFDifferences(this.instance);
             intermediateNodes = intermediateNodes.Where<WorldState>(
-                node => ((WorldStateForPartialExpansion)node).hasChildrenForCurrentF(agentIndex) &&
-                ((WorldStateForPartialExpansion)node).remainingFChange >= 0
+                node => ((WorldStateForPartialExpansion)node).remainingFChange != byte.MaxValue && // last move was good
+                        ((WorldStateForPartialExpansion)node).hasChildrenForCurrentF(agentIndex)
                                                                     ).ToList<WorldState>();
             // Expand the agent
             List<WorldState> generated = base.ExpandOneAgent(intermediateNodes, agentIndex);

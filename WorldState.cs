@@ -18,7 +18,7 @@ namespace CPF_experiment
         public int potentialConflictsCount;
         public int cbsInternalConflictsCount;
         /// <summary>
-        /// The last move of all agents that have already moved in this turn 
+        /// The last move of all agents that have already moved in this turn. Used for making sure the next agent move doesn't collide with move already made.
         /// </summary>
         public HashSet<TimedMove> currentMoves;
 
@@ -28,7 +28,7 @@ namespace CPF_experiment
         /// <param name="allAgentsState"></param>
         public WorldState(AgentState[] allAgentsState)
         {
-            this.allAgentsState = allAgentsState;
+            this.allAgentsState = allAgentsState.ToArray<AgentState>();
             this.makespan = 0;
             this.g = 0;
             this.potentialConflictsCount = 0;

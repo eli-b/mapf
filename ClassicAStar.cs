@@ -207,6 +207,9 @@ namespace CPF_experiment
 
             foreach (var currentNode in finalGeneratedNodes)
             {
+                currentNode.h = (int)this.heuristic.h(currentNode);
+                currentNode.makespan++;
+                currentNode.CalculateG();
                 ProcessGeneratedNode(currentNode);
             }
         }
@@ -372,10 +375,6 @@ namespace CPF_experiment
         /// <returns></returns>
         protected virtual bool ProcessGeneratedNode(WorldState currentNode)
         {
-            currentNode.h = (int)this.heuristic.h(currentNode);
-            currentNode.makespan++;
-            currentNode.CalculateG();
-
             if (currentNode.h + currentNode.g <= this.maxCost)
             // Assuming h is an admissable heuristic, no need to generate nodes that won't get us to the goal
             // within the budget
