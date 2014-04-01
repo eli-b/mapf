@@ -221,7 +221,7 @@ namespace CPF_experiment
         public bool isColliding(int other_x, int other_y, Direction other_direction)
         {
             // Same target check
-            if (this.x == other_x && this.y == other_x)
+            if (this.x == other_x && this.y == other_y)
                 return true;
             // Head-on collision check
             var source_x = this.x + directionToOppositeDeltas[(int)this.direction, 0];
