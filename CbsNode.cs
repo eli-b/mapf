@@ -222,22 +222,13 @@ namespace CPF_experiment
         {
             if (this.allSingleAgentPlans.Length == 1) 
                 return;
-            int maxPlanSize = 0;
-            int planSize = -1;
+            int maxPlanSize = this.allSingleAgentPlans.Max<SinglePlan>(plan => plan.GetSize());
             this.conflict = null;
             HashSet<TimedMove> externalCAT = null;
             HashSet_U<TimedMove> CbsExternalCAT = (HashSet_U<TimedMove>)problem.parameters[CBS_LocalConflicts.INTERNAL_CAT];
             if (problem.parameters.ContainsKey(Trevor.CONFLICT_AVOIDENCE))
                  externalCAT = (HashSet<TimedMove>)problem.parameters[Trevor.CONFLICT_AVOIDENCE];
-            TimedMove checkMove=new TimedMove();
-
-            // Find the longest plan among all the groups
-            foreach (SinglePlan plan in this.allSingleAgentPlans)
-            {
-                planSize = plan.GetSize();
-                if (planSize > maxPlanSize)
-                    maxPlanSize = planSize;
-            }
+            TimedMove checkMove = new TimedMove();
 
             // Check in every time step that the plans do not collide
             for (int time = 1; time < maxPlanSize; time++)
@@ -245,7 +236,7 @@ namespace CPF_experiment
                 // Check all pairs of groups if they are conflicting at the given time step
                 for (int i = 0; i < allSingleAgentPlans.Length; i++)
                 {
-                    checkMove.setup(allSingleAgentPlans[i].GetLocationsAt(time),time);
+                    checkMove.setup(allSingleAgentPlans[i].GetLocationAt(time), time);
                     if (checkMove.isColliding(externalCAT))
                         externalConflictsCount++;
                     if (checkMove.isColliding(CbsExternalCAT))
@@ -256,8 +247,8 @@ namespace CPF_experiment
                         {
                             if (conflict == null)
                             {
-                                Move first = allSingleAgentPlans[i].GetLocationsAt(time);
-                                Move second = allSingleAgentPlans[j].GetLocationsAt(time);
+                                Move first = allSingleAgentPlans[i].GetLocationAt(time);
+                                Move second = allSingleAgentPlans[j].GetLocationAt(time);
                                 this.conflict = new CbsConflict(i, j, first, second, time);
                             }
                             internalConflictsCount++;
@@ -567,7 +558,7 @@ namespace CPF_experiment
 
         public int pathLength(int agent)
         {
-            Move[] moves = allSingleAgentPlans[agent].locationsAtTime;
+            Move[] moves = allSingleAgentPlans[agent].locationAtTimes;
             Move goal = moves[moves.Length - 1];
             for (int i = moves.Length - 2; i >= 0; i--)
             {

@@ -142,12 +142,12 @@ namespace CPF_experiment
         /// Returns the last move of all the agents in this state
         /// </summary>
         /// <returns>A list of points</returns>
-        public LinkedList<Move> GetAgentsMoves()
+        public List<Move> GetAgentsMoves()
         {
-            LinkedList<Move> ans = new LinkedList<Move>();
+            var ans = new List<Move>();
             for (int i = 0; i < allAgentsState.Length; i++)
             {
-                ans.AddFirst(new Move(allAgentsState[i].last_move));
+                ans.Add(new Move(allAgentsState[i].last_move));
             }
             return ans;
         }

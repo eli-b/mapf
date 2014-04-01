@@ -547,10 +547,10 @@ namespace CPF_experiment
         {
             if (this.plan == null)
                 return;
-            LinkedList<Move> step;
+            
             for (int i = 1; i <= maxTimeStep*2; i++)
             {
-                step = plan.GetLocationsAt(i);
+                List<Move> step = plan.GetLocationsAt(i);
                 foreach (Move move in step)
                 {
                     CA.Add(new TimedMove(move, i));
@@ -560,16 +560,14 @@ namespace CPF_experiment
 
         public void removeGroupFromCA(HashSet<TimedMove> CA)
         {
-            LinkedList<Move> step;
-            TimedMove S;
             int i = 1;
             bool stop = false;
             while (stop == false)
             {
-                step = plan.GetLocationsAt(i);
+                List<Move> step = plan.GetLocationsAt(i);
                 foreach (Move move in step)
                 {
-                    S = new TimedMove(move, i);
+                    var S = new TimedMove(move, i);
                     if (CA.Contains(S))
                         CA.Remove(new TimedMove(move, i));
                     else

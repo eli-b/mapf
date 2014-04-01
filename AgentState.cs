@@ -108,11 +108,9 @@ namespace CPF_experiment
             }
         }
 
-        public LinkedList<Move> GetMove()
+        public Move GetMove()
         {
-            LinkedList<Move> ans = new LinkedList<Move>();
-            ans.AddFirst(new Move(this.last_move));
-            return ans;
+            return new Move(this.last_move);
         }
 
         /// <summary>
