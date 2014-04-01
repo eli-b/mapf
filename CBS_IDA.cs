@@ -65,7 +65,6 @@ namespace CPF_experiment
             //Debug.WriteLine("Solving Sub-problem On Level - " + mergeThreshold);
             //Console.ReadLine();
 
-            CBS_LocalConflicts.isCbs = true;
             CbsConflict conflict;
             this.runner = runner;
 
@@ -85,7 +84,6 @@ namespace CPF_experiment
                 {
                     totalCost = Constants.TIMEOUT_COST;
                     Console.WriteLine("Out of time");
-                    CBS_LocalConflicts.isCbs = false;
                     this.Clear();
                     return false;
                 }
@@ -94,7 +92,6 @@ namespace CPF_experiment
                 fBound = nextF;
             }
             totalCost = Constants.NO_SOLUTION_COST;
-            CBS_LocalConflicts.isCbs = false;
             this.Clear();
             return false;
         }
@@ -111,7 +108,6 @@ namespace CPF_experiment
                 this.totalCost = node.totalCost;
                 this.goalNode = node;
                 this.solution = node.CalculateJointPlan();
-                CBS_LocalConflicts.isCbs = false;
                 this.Clear();
                 return true;
             }
@@ -259,7 +255,6 @@ namespace CPF_experiment
             }
             CbsNode.allConstraintsForNode = new HashSet<CbsConstraint>();
             minCost = 0;
-            CBS_LocalConflicts.isGlobal = true;
         }
 
         protected bool checkMerge(CbsNode node)

@@ -18,7 +18,6 @@ namespace CPF_experiment
         public static string NEW_CONSTRAINTS = "newConstraints";
         // The key of recent internal CAT for CBS
         public static string NEW_INTERNAL_CAT = "newInternalCAT";
-        public static bool isGlobal;
 
         protected ProblemInstance instance;
         public BinaryHeap openList;
@@ -29,7 +28,6 @@ namespace CPF_experiment
         protected Run runner;
         protected CbsNode goalNode;
         protected Plan solution;
-        public static bool isCbs;
         protected int maxCost;
         protected int loweLevelExpanded;
         protected int loweLevelGenerated;
@@ -85,14 +83,12 @@ namespace CPF_experiment
             }
             CbsNode.allConstraintsForNode = new HashSet<CbsConstraint>();
             minCost = 0;
-            isGlobal = false;
         }
 
         public void Setup(ProblemInstance problemInstance, int minDepth)
         {
             Setup(problemInstance);
             this.minCost = minDepth;
-            isGlobal = false;
         }
 
         public void Clear()
@@ -129,13 +125,12 @@ namespace CPF_experiment
             //Debug.WriteLine("Solving Sub-problem On Level - " + mergeThreshold);
             //Console.ReadLine();
 
-            isCbs = true;
             CbsConflict conflict;
             this.runner = runner;
-            CbsNode currentNode = (CbsNode)openList.Remove();
+            CbsNode currentNode = (CbsNode)openList.Remove(); // the root
             
             highLevelExpanded++;
-            if (currentNode.solve(instance,runner,minCost , lowLevelSolver ,ref highLevelExpanded,ref highLevelGenerated, ref loweLevelExpanded,ref loweLevelGenerated) == false)
+            if (currentNode.solve(instance, runner, minCost, lowLevelSolver, ref highLevelExpanded, ref highLevelGenerated, ref loweLevelExpanded, ref loweLevelGenerated) == false)
             {
                 return false;
             }
@@ -152,14 +147,10 @@ namespace CPF_experiment
                 {
                     totalCost = Constants.TIMEOUT_COST;
                     Console.WriteLine("Out of time");
-                    isCbs = false;
                     this.Clear();
                     return false;
                 }
                 currentNode = (CbsNode)openList.Remove();
-
-               
-                
 
                 conflict = currentNode.getConflict();
                 // Check if node is the goal
@@ -168,7 +159,6 @@ namespace CPF_experiment
                     this.totalCost = currentNode.totalCost;
                     this.goalNode = currentNode;
                     this.solution = currentNode.CalculateJointPlan();
-                    isCbs = false;
                     this.Clear();
                     return true;
                 }
@@ -179,7 +169,6 @@ namespace CPF_experiment
                         currentNode.clear();
             }
             totalCost = Constants.NO_SOLUTION_COST;
-            isCbs = false;
             this.Clear();
             return false;
         }
@@ -191,7 +180,7 @@ namespace CPF_experiment
 
         public virtual bool expand(CbsNode node, CbsConflict conflict)
         {
-            closedList.Remove(node);
+            closedList.Remove(node); // Why?
 
             if (this.maxThreshold != -1 && checkMerge(node))
             {
@@ -291,7 +280,7 @@ namespace CPF_experiment
             return this.solution;
         }
 
-        private void PrintSolution(WorldState end)
+        private void PrintSolution(WorldState end) // ?
         {
         }
 
@@ -349,7 +338,6 @@ namespace CPF_experiment
                 }
             }
             base.Setup(problemInstance);
-            isGlobal=true;
         }
 
         protected override bool checkMerge(CbsNode node)
