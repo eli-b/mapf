@@ -38,9 +38,6 @@ namespace CPF_experiment
             int agentTurn = parent.agentTurn;
             WorldStateWithOD childNode;
             int childAgentTurn = ((parent.agentTurn + 1) % (this.instance.m_vAgents.Length));
-            int step = node.makespan;
-            if (parent.agentTurn == 0)
-                step++;
             
             // Try all legal moves of the agents
             foreach (TimedMove newMove in parent.allAgentsState[agentTurn].last_move.GetNextMoves(Constants.ALLOW_DIAGONAL_MOVE))
@@ -55,6 +52,7 @@ namespace CPF_experiment
                     // Makespan increases only if this is the move of the first agent
                     if (parent.agentTurn == 0)
                         childNode.makespan = parent.makespan + 1;
+                    childNode.currentMoves.Add(newMove);
 
                     // g of child is equal to g of parent only when newMove is a STAY move and agent has already arrived at its goal
                     childNode.CalculateG();  
