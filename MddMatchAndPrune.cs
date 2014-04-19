@@ -253,10 +253,7 @@ namespace CPF_experiment
         public override bool Equals(object obj)
         {
             MddMatchAndPruneState comp = (MddMatchAndPruneState)obj;
-            for (int i = 0; i < this.allPositions.Length; i++)
-                if (this.allPositions[i].Equals(comp.allPositions[i]) == false)
-                    return false;
-            return true;
+            return this.allPositions.SequenceEqual<MDDNode>(comp.allPositions);
         }
     }
 

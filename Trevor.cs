@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Collections.Generic;
 using System.Collections;
 using System.IO;
@@ -8,9 +9,9 @@ namespace CPF_experiment
 {
     class Trevor : ISolver
     {
-        // The key of the illegal moves table in the ProblemInstance (used in IndependentDetection())
+        // The key of the illegal moves table in the ProblemInstance (used in IndependenceDetection())
         public static string ILLEGAL_MOVES_KEY = "reserved";
-        // The key of the maximal solution cost of the agent group in the ProblemInstance (used in IndependentDetection())
+        // The key of the maximal solution cost of the agent group in the ProblemInstance (used in IndependenceDetection())
         public static string MAXIMUM_COST_KEY = "cost";
         // The key of the conflict avoidance table
         public static string CONFLICT_AVOIDANCE = "ConflictAvoidance";
@@ -516,14 +517,8 @@ namespace CPF_experiment
         public override bool Equals(object obj) // TODO: Implement GetHashCode()
         {
             AgentsGroup other = (AgentsGroup)obj;
-            for (int i = 0; i < allAgentsState.Length; i++)
-            {
-                if (allAgentsState[i].Equals(other.allAgentsState[i]) == false)
-                    return false;
-            }
-            return true;
+            return allAgentsState.SequenceEqual<AgentState>(other.allAgentsState);
         }
-
 
         /// <summary>
         /// Tries to find a plan for this group, that will not conflict with the given plan,
