@@ -17,11 +17,12 @@ namespace CPF_experiment
 
         protected LinkedList<AgentsGroup> allGroups;
         protected ProblemInstance instance;
-         int expandedHL;
-         int generatedHL;
-         int expandedLL;
-         int generatedLL;
+        int expandedHL;
+        int generatedHL;
+        int expandedLL;
+        int generatedLL;
         public int totalCost;
+        protected Run runner;
 
         /// <summary>
         /// The complete plan for all the agents that was found.
@@ -31,6 +32,7 @@ namespace CPF_experiment
         public int maxGroup;
         public int minGroup;
         public ISolver groupSolver;
+        protected HeuristicCalculator heuristic;
         private IList<Conflict> allConflicts;
         private int maxSolutionDepth;
         private HashSet<TimedMove> conflictAvoidence;
@@ -46,7 +48,7 @@ namespace CPF_experiment
             this.groupSolver = groupSolver;
             this.allConflicts = new List<Conflict>();
             this.allGroups = new LinkedList<AgentsGroup>();
-            this.name = groupSolver.GetName() + "+ID";
+            this.name = groupSolver + "+ID";
         }
 
         public void Clear()
@@ -57,9 +59,10 @@ namespace CPF_experiment
             this.conflictAvoidence.Clear();
         }
 
-        public void Setup(ProblemInstance instance)
+        public void Setup(ProblemInstance instance, Run runner)
         {
             this.instance = instance;
+            this.runner = runner;
             this.expandedHL = 0;
             this.generatedHL = 0;
             this.totalCost = 0;
@@ -70,6 +73,17 @@ namespace CPF_experiment
             // Initialize the agent group collection with a group for every agent
             foreach (AgentState agentStartState in instance.m_vAgents)
                 this.allGroups.AddFirst(new AgentsGroup(this.instance,  new AgentState[1] { agentStartState }, this.groupSolver));
+        }
+
+        public void SetHeuristic(HeuristicCalculator heuristic)
+        {
+            this.heuristic = heuristic;
+            this.groupSolver.SetHeuristic(heuristic);
+        }
+
+        public HeuristicCalculator GetHeuristic()
+        {
+            return this.heuristic;
         }
 
         public virtual String GetName() { return name; }
@@ -321,13 +335,12 @@ namespace CPF_experiment
         /// <summary>
         /// Run the A* algorithm with Standley's ID and OD improvements.
         /// </summary>
-        /// <param name="runner"></param>
         /// <returns>true if optimal solution has been found</returns>
-        public bool Solve(Run runner)
+        public bool Solve()
         {
             // Solve the single agent problems independently
             LinkedListNode<AgentsGroup> agentGroupNode = this.allGroups.First;
-            maxDepth=0;
+            maxDepth = 0;
 
             while (agentGroupNode != null)
             {
@@ -440,8 +453,8 @@ namespace CPF_experiment
         /// <returns>true if optimal solution for the group of agents were found, false otherwise</returns>
         public bool Solve(Run runner)
         {
-            this.solver.Setup(this.instance);
-            bool solved = this.solver.Solve(runner);
+            this.solver.Setup(this.instance, runner);
+            bool solved = this.solver.Solve();
             this.solutionCost = this.solver.GetSolutionCost();
             if (solved == false)
                 return false;
@@ -500,7 +513,7 @@ namespace CPF_experiment
             return this.allAgentsState.Length;
         }
 
-        public override bool Equals(object obj)
+        public override bool Equals(object obj) // TODO: Implement GetHashCode()
         {
             AgentsGroup other = (AgentsGroup)obj;
             for (int i = 0; i < allAgentsState.Length; i++)
@@ -514,8 +527,8 @@ namespace CPF_experiment
 
         /// <summary>
         /// Tries to find a plan for this group, that will not conflict with the given plan,
-        /// and stil have the same solution cost as the current solution cost.
-        /// This is used in the IndependentDetection() method.
+        /// and still has the same solution cost as the current solution cost.
+        /// This is used in the IndependenceDetection() method.
         /// </summary>
         /// <param name="plan"></param>
         /// <param name="runner"></param>

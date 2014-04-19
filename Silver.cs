@@ -14,7 +14,6 @@ namespace CPF_experiment
     {
         Run runner;
         HashSet<Move> RT;
-        bool diagonal;
         AgentState[] allAgentsState;
         Hashtable parked;
         int[] allPathCost;

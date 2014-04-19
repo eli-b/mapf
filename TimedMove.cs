@@ -21,7 +21,7 @@ namespace CPF_experiment
         /// </summary>
         /// <param name="allowDiag"></param>
         /// <returns></returns>
-        public IEnumerable<TimedMove> GetNextMoves(bool allowDiag = false)
+        public new IEnumerable<TimedMove> GetNextMoves(bool allowDiag = false)
         {
             int count;
             if (allowDiag)

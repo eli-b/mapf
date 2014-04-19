@@ -24,6 +24,7 @@ namespace CPF_experiment
         protected int minCost;
         protected int maxThreshold;
         protected int maxSizeGroup;
+        protected HeuristicCalculator heuristic;
         int[][] globalConflictsCounter;
         CbsNode root;
 
@@ -60,13 +61,10 @@ namespace CPF_experiment
             output.Write(Process.GetCurrentProcess().VirtualMemorySize64 + Run.RESULTS_DELIMITER + Run.RESULTS_DELIMITER);
         }
 
-        public bool Solve(Run runner)
+        public bool Solve()
         {
             //Debug.WriteLine("Solving Sub-problem On Level - " + mergeThreshold);
             //Console.ReadLine();
-
-            CbsConflict conflict;
-            this.runner = runner;
 
             if (root.solve(instance, runner, minCost, lowLevelSolver, ref highLevelExpanded, ref highLevelGenerated, ref loweLevelExpanded, ref loweLevelGenerated) == false)
             {
@@ -217,7 +215,7 @@ namespace CPF_experiment
             return this.maxSizeGroup;
         }
 
-        public void Setup(ProblemInstance problemInstance)
+        public void Setup(ProblemInstance problemInstance, Run runner)
         {
             globalConflictsCounter = new int[problemInstance.m_vAgents.Length][];
             for (int i = 0; i < globalConflictsCounter.Length; i++)
@@ -229,6 +227,7 @@ namespace CPF_experiment
                 }
             }
             this.instance = problemInstance;
+            this.runner = runner;
             root = new CbsNode(instance.m_vAgents.Length);
             this.highLevelExpanded = 0;
             this.highLevelGenerated = 1;
@@ -255,6 +254,17 @@ namespace CPF_experiment
             }
             CbsNode.allConstraintsForNode = new HashSet<CbsConstraint>();
             minCost = 0;
+        }
+
+        public void SetHeuristic(HeuristicCalculator heuristic)
+        {
+            this.heuristic = heuristic;
+            this.solver.SetHeuristic(heuristic);
+        }
+
+        public HeuristicCalculator GetHeuristic()
+        {
+            return this.heuristic;
         }
 
         protected bool checkMerge(CbsNode node)

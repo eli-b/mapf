@@ -76,7 +76,7 @@ namespace CPF_experiment
 
             if (s.allAgentsState.Length % 2 == 1)
             {
-                SingleShortestPath pdb = new SingleShortestPath();
+                SumIndividualCosts pdb = new SumIndividualCosts();
                 List<uint> vAgents = new List<uint>(1);
                 vAgents.Add((uint) s.allAgentsState.Length - 1);
                 pdb.init(pi, vAgents);

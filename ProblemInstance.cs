@@ -70,11 +70,12 @@ namespace CPF_experiment
         public ProblemInstance Subproblem(AgentState[] selectedAgents)
         {
             // Not explicitly checking whether selectedAgents are really a subset of our agents?
-            // Not copying instance id?
+            // Not copying instance id. This isn't the same problem.
             ProblemInstance subproblemInstance = new ProblemInstance();
             subproblemInstance.init(selectedAgents, this.m_vGrid, (int)this.m_nObstacles, (int)this.m_nLocations, this.m_vPermutations, this.m_vCardinality);
             subproblemInstance.singleAgentShortestPaths = this.singleAgentShortestPaths; // Each subproblem holds every agent's single shortest paths just so this.singleAgentShortestPaths[agent_num] would easily work
             // TODO: For a very large number of agents this may not be feasible. Consider not assuming agent x is in row x but instead having a dictionary mapping from agent nums to their paths
+            subproblemInstance.parameters = this.parameters;
             return subproblemInstance;
         }
 
@@ -271,7 +272,6 @@ namespace CPF_experiment
                 }
             }
 
-            
             // Next line is Agents:
             line = input.ReadLine();
             Debug.Assert(line.StartsWith("Agents:"));
@@ -404,6 +404,7 @@ namespace CPF_experiment
         /// <summary>
         /// Check if the tile is valid, i.e. in the grid and without an obstacle.
         /// NOT checking the direction. A Move could be declared valid even if it came to an edge tile from outside the grid!
+        /// NOT checking if the move is illegal
         /// </summary>
         /// <param name="x"></param>
         /// <param name="y"></param>
@@ -437,6 +438,11 @@ namespace CPF_experiment
             return true;
         }
 
+        /// <summary>
+        /// Also checks if the move is illegal
+        /// </summary>
+        /// <param name="toCheck"></param>
+        /// <returns></returns>
         public bool IsValid(TimedMove toCheck)
         {
             if (isValidTile(toCheck.x, toCheck.y) == false)
@@ -473,7 +479,7 @@ namespace CPF_experiment
             return "Problem instance:"+instanceId+" #Agents:" + m_vAgents.Length
                     + ", GridCells:" + m_nLocations + ", #Obstacles:" + m_nObstacles;                
         }
-
+        
         public double getConflictRation(int orderOfConflict)
         {
             HashSet<CoordinateForConflictRatio> potentialConflicts = new HashSet<CoordinateForConflictRatio>();

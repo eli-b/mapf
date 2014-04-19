@@ -115,7 +115,7 @@
     <Compile Include="ShowSolution.Designer.cs">
       <DependentUpon>ShowSolution.cs</DependentUpon>
     </Compile>
-    <Compile Include="SingleShortestPath.cs" />
+    <Compile Include="SumIndividualCosts.cs" />
     <Compile Include="EnumeratedPDB.cs" />
     <Compile Include="PDB.cs" />
     <Compile Include="ProblemInstance.cs" />

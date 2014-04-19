@@ -22,9 +22,6 @@ namespace CPF_experiment
         public ushort replanSize;
         public byte collapse; // 0 - not expanded. 1 - only A not expanded. 2 - only B not expanded
 
-        /// <summary>
-        /// default constructor
-        /// </summary>
         public CbsNode(int numberOfAgents)
         {
             allSingleAgentPlans = new SinglePlan[numberOfAgents];
@@ -74,7 +71,7 @@ namespace CPF_experiment
         }
 
         /// <summary>
-        /// solve a given problem according to given constraints, sets the plans array (plan per agent)
+        /// Solve a given problem according to given constraints, sets the plans array (plan per agent)
         /// </summary>
         /// <param name="problem"></param>
         /// <param name="runner"></param>
@@ -95,13 +92,12 @@ namespace CPF_experiment
             {
                 AgentState[] subGroup = new AgentState[] { problem.m_vAgents[i] };
                 subProblem = problem.Subproblem(subGroup);
-                subProblem.parameters = problem.parameters; // Why isn't this done in Subproblem()? Perhaps there's a good reason.
-
+                
                 InternalCAT.Join(newInternalCAT);
                 Constraints.Join(newConstraints);
 
-                solver.Setup(subProblem, depthToReplan);
-                bool success = solver.Solve(runner);
+                solver.Setup(subProblem, depthToReplan, runner);
+                bool success = solver.Solve();
                 
                 highLevelExpanded += solver.getHighLevelExpanded();
                 highLevelGenerated += solver.getHighLevelGenerated();
@@ -125,8 +121,9 @@ namespace CPF_experiment
             this.FindConflict(problem);
             return true;
         }
+
         /// <summary>
-        /// replan for a given agent (when constraints for that agent have changed)
+        /// Replan for a given agent (when constraints for that agent have changed)
         /// </summary>
         public bool rePlan(ProblemInstance problem, Run runner, int agentForRePlan, int depthToReplan, ICbsSolver highLevelSolver, ICbsSolver lowLevelSolver, ref int highLevelExpanded, ref int highLevelGenerated, ref int loweLevelExpanded, ref int loweLevelGenerated)
         {
@@ -169,8 +166,8 @@ namespace CPF_experiment
 
             //Constraints.print();
            
-            solver.Setup(subProblem, depthToReplan);
-            if (solver.Solve(runner) == false)
+            solver.Setup(subProblem, depthToReplan, runner);
+            if (solver.Solve() == false)
             {
                 highLevelExpanded += solver.getHighLevelExpanded();
                 highLevelGenerated += solver.getHighLevelGenerated();
@@ -184,8 +181,6 @@ namespace CPF_experiment
             highLevelGenerated += solver.getHighLevelGenerated();
             loweLevelExpanded += solver.getLowLevelExpanded();
             loweLevelGenerated += solver.getLowLevelGenerated();
-
-
 
             int j = 0;
             SinglePlan[] singlePlans=solver.getSinglePlans();
@@ -211,13 +206,13 @@ namespace CPF_experiment
             Constraints.Seperate(newConstraints);
             newConstraints.Clear();
             this.FindConflict(problem);
-           // printConflict();
+            // printConflict();
             return true;
         }
+
         /// <summary>
-        /// find the first conflict (timewise) for all the given plans
+        /// Find the first conflict (timewise) for all the given plans
         /// </summary>
-        /// <returns></returns>
         private void FindConflict(ProblemInstance problem)
         {
             if (this.allSingleAgentPlans.Length == 1) 
@@ -263,7 +258,7 @@ namespace CPF_experiment
             return this.conflict;
         }
 
-        public override int GetHashCode()//TODO: change this
+        public override int GetHashCode() //TODO: change this
         {
             unchecked
             {
@@ -628,8 +623,8 @@ namespace CPF_experiment
 
             //Constraints.print();
 
-            solver.Setup(subProblem, depthToReplan);
-            if (solver.Solve(runner) == false)
+            solver.Setup(subProblem, depthToReplan, runner);
+            if (solver.Solve() == false)
             {
                 highLevelExpanded += solver.getHighLevelExpanded();
                 highLevelGenerated += solver.getHighLevelGenerated();
@@ -644,8 +639,6 @@ namespace CPF_experiment
             loweLevelExpanded += solver.getLowLevelExpanded();
             loweLevelGenerated += solver.getLowLevelGenerated();
 
-
-
             int j = 0;
             SinglePlan[] singlePlans = solver.getSinglePlans();
 
@@ -656,7 +649,6 @@ namespace CPF_experiment
                     this.allSingleAgentPlans[i] = singlePlans[j];
                     j++;
                 }
-
             }
 
             // printPlan();

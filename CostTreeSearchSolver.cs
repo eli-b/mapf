@@ -18,6 +18,7 @@ namespace CPF_experiment
         public int expandedLL;
         public int generatedLL;
         protected ProblemInstance problem;
+        protected Run runner;
         public CostTreeNode costTreeNode;
         protected int costA;
         protected int costB;
@@ -30,7 +31,7 @@ namespace CPF_experiment
         protected HashSet_U<TimedMove> CBS_CAT;
         protected int minCAvaiulations;
 
-        //these variabels are for matching and pruning MDDs
+        // These variables are for matching and pruning MDDs
         public static int[,,] edgesMatrix; // K(agent), V(from), V(to)
         public static int edgesMatrixCounter;
         public static int maxY; 
@@ -49,12 +50,12 @@ namespace CPF_experiment
         /// <returns>The name of the solver</returns>
         public virtual String GetName() { return "CostTreeSearch+pairsMatch"; }
 
-        public virtual void Setup(ProblemInstance problemInstance) { Setup(problemInstance, 0); }
+        public virtual void Setup(ProblemInstance problemInstance, Run runner) { Setup(problemInstance, 0, runner); }
 
         /// <summary>
         /// Setup the relevant data structures for a run.
         /// </summary>
-        public virtual void Setup(ProblemInstance problemInstance, int minDepth)
+        public virtual void Setup(ProblemInstance problemInstance, int minDepth, Run runner)
         {
             minCAvaiulations = int.MaxValue;
             passed = 0;
@@ -78,6 +79,7 @@ namespace CPF_experiment
                 sizeOfA = 1;
             }
             this.problem = problemInstance;
+            this.runner = runner;
 
             closedList = new HashSet<CostTreeNode>();
             openList = new LinkedList<CostTreeNode>();
@@ -106,6 +108,13 @@ namespace CPF_experiment
             {
                 CBS_CAT = ((HashSet_U<TimedMove>)problemInstance.parameters[CBS_LocalConflicts.INTERNAL_CAT]);
             }
+        }
+
+        public void SetHeuristic(HeuristicCalculator heuristic) {}
+
+        public HeuristicCalculator GetHeuristic()
+        {
+            return null;
         }
 
         /// <summary>
@@ -157,7 +166,7 @@ namespace CPF_experiment
         /// </summary>
         /// <param name="runner"></param>
         /// <returns></returns>
-        public virtual bool Solve(Run runner)
+        public virtual bool Solve()
         {
             //int currentLevelCost = -1;
             //CostTreeNodeSolver next;            
@@ -165,7 +174,7 @@ namespace CPF_experiment
             //int sumSubGroupA;
             //int sumSubGroupB;
             ////TODO if no solution found the algorithm will never stop
-            //while (runner.watch.ElapsedMilliseconds < Constants.MAX_TIME)
+            //while (runner.ElapsedMilliseconds < Constants.MAX_TIME)
             //{
             //    costTreeNode = openList.First.Value;
             //    if (costTreeNode.costs.Sum() > currentLevelCost)
@@ -232,7 +241,7 @@ namespace CPF_experiment
     {
         int syncSize;
         public CostTreeSearchSolverOldMatching(int syncSize) : base() { this.syncSize = syncSize; }
-        public override bool Solve(Run runner)
+        public override bool Solve()
         {
             //long time=0;
             CostTreeNodeSolverOldMatching next = new CostTreeNodeSolverOldMatching(problem,runner);
@@ -307,9 +316,9 @@ namespace CPF_experiment
 
     class CostTreeSearchSolverNoPruning : CostTreeSearchSolver
     {
-        public override bool Solve(Run runner)
+        public override bool Solve()
         {
-            CostTreeNodeSolverDDBF next = new CostTreeNodeSolverDDBF(problem, runner);
+            CostTreeNodeSolverDDBF next = new CostTreeNodeSolverDDBF(problem, this.runner);
             LinkedList<Move>[] ans = null;
             int sumSubGroupA;
             int sumSubGroupB;
@@ -382,15 +391,15 @@ namespace CPF_experiment
     {
         int maxGroupChecked;
         public CostTreeSearchSolverKMatch(int maxGroupChecked) : base() { this.maxGroupChecked = maxGroupChecked; }
-        public override void Setup(ProblemInstance problemInstance) { Setup(problemInstance, 0); }
-        public override void Setup(ProblemInstance problemInstance, int minDepth)
+        public override void Setup(ProblemInstance problemInstance, Run runner) { Setup(problemInstance, 0, runner); }
+        public override void Setup(ProblemInstance problemInstance, int minDepth, Run runner)
         {
             edgesMatrix = new int[problemInstance.m_vAgents.Length, problemInstance.GetMaxX() * problemInstance.GetMaxY() + problemInstance.GetMaxY(), Move.NUM_NON_DIAG_MOVES];
             edgesMatrixCounter = 0;
             maxY = problemInstance.GetMaxY();
-            base.Setup(problemInstance, minDepth);
+            base.Setup(problemInstance, minDepth, runner);
         }
-        public override bool Solve(Run runner)
+        public override bool Solve()
         {
             CostTreeNodeSolverKSimpaleMatching next = new CostTreeNodeSolverKSimpaleMatching(problem, runner);
             LinkedList<Move>[] ans = null;
@@ -465,15 +474,15 @@ namespace CPF_experiment
     {
         int syncSize;
         public CostTreeSearchSolverRepatedMatch(int syncSize) : base() { this.syncSize = syncSize; }
-        public override void Setup(ProblemInstance problemInstance) { Setup(problemInstance, 0); }
-        public override void Setup(ProblemInstance problemInstance, int minDepth)
+        public override void Setup(ProblemInstance problemInstance, Run runner) { Setup(problemInstance, 0, runner); }
+        public override void Setup(ProblemInstance problemInstance, int minDepth, Run runner)
         {
             edgesMatrix = new int[problemInstance.m_vAgents.Length, problemInstance.GetMaxX() * problemInstance.GetMaxY() + problemInstance.GetMaxY(), Move.NUM_NON_DIAG_MOVES];
             edgesMatrixCounter = 0;
             maxY = problemInstance.GetMaxY();
-            base.Setup(problemInstance, minDepth);
+            base.Setup(problemInstance, minDepth, runner);
         }
-        public override bool Solve(Run runner)
+        public override bool Solve()
         {
             //int time = 0;
             CostTreeNodeSolverRepatedMatching next = new CostTreeNodeSolverRepatedMatching(problem, runner);

@@ -4,18 +4,17 @@ using System.Collections.Generic;
 
 namespace CPF_experiment
 {
-
     /// <summary>
-    /// This class forms a wrapper around True_Path_Heuristic, which represents
-    /// the single shortest path heuristic, precomputed for every agent.
+    /// This class forms a wrapper around m_Problem.GetSingleAgentShortestPath().
+    /// It represents the single shortest path heuristic, precomputed for every agent.
     /// </summary>
 
     [Serializable]
-    class SingleShortestPath : PDB
+    class SumIndividualCosts : PDB
     {
         /// <summary>
         /// Since this class simply refers via a table-lookup to the globally
-        /// available True_Path_Heuristic class, we incur no memory.
+        /// available m_Problem.GetSingleAgentShortestPath class, we incur no memory.
         /// </summary>
         /// <returns>0 by definition.</returns>
         public override UInt64 estimateSize()
@@ -25,7 +24,7 @@ namespace CPF_experiment
 
         /// <summary>
         /// The building function for this class doesn't do anything because we
-        /// are simply wrapping the functionality of the True_Path_Heuristic
+        /// are simply wrapping the functionality of the m_Problem.GetSingleAgentShortestPath
         /// class.
         /// </summary>
         public override void build() {}
@@ -50,11 +49,13 @@ namespace CPF_experiment
                 allTileAgentHeuristics[i] = setHeuristicsForTile(a, b);
             }
         }
+
         public static void clear()
         {
             allTileAgentHeuristics = null;
             grid = null;
         }
+
         private static int[][] setHeuristicsForTile(int X, int Y)
         {
             int val;
@@ -116,11 +117,16 @@ namespace CPF_experiment
         public override uint h(WorldState s)
         {
             uint nHeuristic = 0;
-            foreach (var a in m_vAgents)
+            foreach (AgentState state in s.allAgentsState)
             {
-                nHeuristic += (uint)this.m_Problem.GetSingleAgentShortestPath(s.allAgentsState[a]);
+                nHeuristic += (uint)this.m_Problem.GetSingleAgentShortestPath(state);
             }
             return nHeuristic;
+        }
+
+        public override string ToString()
+        {
+            return "SIC";
         }
     }
 }

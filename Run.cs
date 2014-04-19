@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -83,16 +84,22 @@ namespace CPF_experiment
         List<ISolver> solvers;
 
         /// <summary>
-        /// counts the number of times each algorithm went out of time
+        /// Counts the number of times each algorithm went out of time consecutively
         /// </summary>
         public int[] outOfTimeCounter;
 
         /// <summary>
-        /// cunstruct with chosen algorithms
+        /// Construct with chosen algorithms.
         /// </summary>
         public Run()
         {
+            // Preparing the heuristics:
+            var sic = new SumIndividualCosts();
+            
+            // Preparing the solvers:
             solvers = new List<ISolver>();
+            solvers.Add(new ClassicAStar(sic)); // Assumed to be the first solver. Works
+            solvers.Add(new CBS_LocalConflicts(new ClassicAStar(sic), -1, -1, sic)); // Works
 
          //   solvers.Add(new CostTreeSearchSolverNoPruning());
             //solvers.Add(new CostTreeSearchSolverKMatch(2));
@@ -110,7 +117,6 @@ namespace CPF_experiment
     //        solvers.Add(new CostTreeSearchOldMatching(3));
             //solvers.Add(new CostTreeSearchRepatedMatch(3));
 
-            solvers.Add(new ClassicAStar());
 
            //solvers.Add(new AStarWithPartialExpansionBasic());
            // solvers.Add(new AStarWithOD());
@@ -232,7 +238,7 @@ namespace CPF_experiment
                     {
                         Move.Direction op = (Move.Direction)rand.Next(0, 5); // TODO: fixme
                         aStart[i].last_move.Update(op);
-                        if (problem.IsValid(aStart[i].last_move.x, aStart[i].last_move.y) &&
+                        if (problem.IsValid(aStart[i].last_move) &&
                             !goals[aStart[i].last_move.x][aStart[i].last_move.y]) // this spot isn't another agent's goal
                             break;
                         else
@@ -254,13 +260,15 @@ namespace CPF_experiment
         /// <param name="instance">The instance to solve</param>
         public void solveGivenProblem(ProblemInstance instance)
         {
+            // Preparing a list of agent indices (not agent nums) for the heuristics' init() method
+            List<uint> agentList = Enumerable.Range(0, instance.m_vAgents.Length).Select<int, uint>(x=> (uint)x).ToList<uint>(); // FIXME: Must the heuristics really receive a list of uints?
+            
+            // Solve using the different algorithms
             Debug.WriteLine("Solving instance " + instance);
             int gridSize = instance.m_vGrid.Length;
             this.printProblemStatistics(instance);
-            CBS_LocalConflicts.isDnC = true;
             //double cr0 = instance.getConflictRation(0);
             //double cr1 = instance.getConflictRation(1);
-            CBS_LocalConflicts.isDnC = false;
 
             //Debug.WriteLine("Conflict ratio (first order): " + cr0);
             //Debug.WriteLine("Conflict ratio (second order): " + cr1);
@@ -272,13 +280,12 @@ namespace CPF_experiment
 
             for (int i = 0; i < solvers.Count; i++)
             {
-                //if (i == 1)
-                //    Constants.exhaustiveIcts = true;
-
-                if (outOfTimeCounter[i] < Constants.MAX_FAIL_COUNT) //after "MAX_FAIL_COUNT" failures of a given algotrithm we stop running it
+                if (outOfTimeCounter[i] < Constants.MAX_FAIL_COUNT) // After "MAX_FAIL_COUNT" consecutive failures of a given algorithm we stop running it.
+                                                                    // Assuming problem difficulties are non-decreasing, if it consistently failed on several problems it won't suddenly succeed in solving the next problem.
                 {
                     GC.Collect();
                     GC.WaitForPendingFinalizers();
+                    solvers[i].GetHeuristic().init(instance, agentList);
                     this.run(solvers[i], instance);
 
                     //solvers[i].GetPlan().PrintPlan();
@@ -328,11 +335,12 @@ namespace CPF_experiment
         /// <param name="instance">The problem instance that will be solved</param>
         private void run(ISolver solver, ProblemInstance instance)
         {
+            // Run the algorithm
             bool solved;
-            Console.WriteLine("-----------------" + solver.GetName() + "-----------------");
+            Console.WriteLine("-----------------" + solver + "-----------------");
             this.startTime = this.ElapsedMillisecondsTotal();
-            solver.Setup(instance);
-            solved = solver.Solve(this);
+            solver.Setup(instance, this);
+            solved = solver.Solve();
             double elapsedTime = this.ElapsedMilliseconds();
             if (solved)
             {
@@ -374,7 +382,7 @@ namespace CPF_experiment
 
             for (int i = 0; i < solvers.Count; i++)
             {
-                var name = solvers[i].GetName();
+                var name = solvers[i];
                 this.resultsWriter.Write(name + " success");
                 this.resultsWriter.Write(Run.RESULTS_DELIMITER);
                 this.resultsWriter.Write(name + " Runtime");
@@ -472,7 +480,7 @@ namespace CPF_experiment
         //    Console.WriteLine("---------------------------------------");
         //    for (int i = 0; i < solvers.Count; i++)
         //    {
-        //        Console.WriteLine("Enter Fail Count For " + solvers[i].GetName());
+        //        Console.WriteLine("Enter Fail Count For " + solvers[i]);
         //        this.outOfTimeCounter[i] = Int16.Parse(Console.ReadLine());
         //    }
         //}
@@ -480,7 +488,7 @@ namespace CPF_experiment
         private double ElapsedMillisecondsTotal()
         {
             TimeSpan interval = Process.GetCurrentProcess().TotalProcessorTime;
-            return (double)interval.TotalMilliseconds;
+            return interval.TotalMilliseconds;
         }
 
         public double ElapsedMilliseconds()

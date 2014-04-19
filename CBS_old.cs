@@ -34,6 +34,7 @@ namespace CPF_experiment
         protected int minCost;
         protected int maxThreshold;
         protected int maxSizeGroup;
+        protected HeuristicCalculator heuristic;
 
         public CBS_old() { }
 
@@ -51,9 +52,10 @@ namespace CPF_experiment
             }
         }
 
-        public virtual void Setup(ProblemInstance problemInstance)
+        public virtual void Setup(ProblemInstance problemInstance, Run runner)
         {
             this.instance = problemInstance;
+            this.runner = runner;
             CbsNode root = new CbsNode(instance.m_vAgents.Length);
             this.openList.Add(root);
             this.highLevelExpanded = 0;
@@ -82,10 +84,21 @@ namespace CPF_experiment
             minCost = 0;
         }
 
-        public void Setup(ProblemInstance problemInstance, int minDepth)
+        public void Setup(ProblemInstance problemInstance, int minDepth, Run runner)
         {
-            Setup(problemInstance);
+            Setup(problemInstance, runner);
             this.minCost = minDepth;
+        }
+
+        public void SetHeuristic(HeuristicCalculator heuristic)
+        {
+            this.heuristic = heuristic;
+            this.solver.SetHeuristic(heuristic);
+        }
+
+        public HeuristicCalculator GetHeuristic()
+        {
+            return this.heuristic;
         }
 
         public void Clear()
@@ -101,7 +114,7 @@ namespace CPF_experiment
         {
             if (mergeThreshold == -1)
                 return "Basic CBS_old";
-            return "CBS_old Local(" + mergeThreshold + ")(" + maxThreshold + ")+" + lowLevelSolver.GetName();
+            return "CBS_old Local(" + mergeThreshold + ")(" + maxThreshold + ")+" + lowLevelSolver;
         }
 
         public int GetSolutionCost() { return this.totalCost; }
@@ -117,13 +130,12 @@ namespace CPF_experiment
             output.Write(Process.GetCurrentProcess().VirtualMemorySize64 + Run.RESULTS_DELIMITER + Run.RESULTS_DELIMITER);
         }
 
-        public bool Solve(Run runner)
+        public bool Solve()
         {
             //Debug.WriteLine("Solving Sub-problem On Level - " + mergeThreshold);
             //Console.ReadLine();
 
             CbsConflict conflict;
-            this.runner = runner;
             CbsNode currentNode = (CbsNode)openList.Remove();
             highLevelExpanded++;
             if (currentNode.solve(instance,runner,minCost , lowLevelSolver ,ref highLevelExpanded,ref highLevelGenerated, ref loweLevelExpanded,ref loweLevelGenerated) == false)
@@ -292,7 +304,7 @@ namespace CPF_experiment
 
         public CBS_GlobalConflicts_OLD(ICbsSolver solver) : base(solver) { }
 
-        public override void Setup(ProblemInstance problemInstance)
+        public override void Setup(ProblemInstance problemInstance, Run runner)
         {
             globalConflictsCounter = new int[problemInstance.m_vAgents.Length][];
             for (int i = 0; i < globalConflictsCounter.Length; i++)
@@ -303,7 +315,7 @@ namespace CPF_experiment
                     globalConflictsCounter[i][j] = 0;
                 }
             }
-            base.Setup(problemInstance);
+            base.Setup(problemInstance, runner);
         }
 
         protected override bool checkMerge(CbsNode node)
@@ -321,7 +333,7 @@ namespace CPF_experiment
         {
             if (mergeThreshold == -1)
                 return "Basic CBS_OLD";
-            return "CBS_OLD Global(" + mergeThreshold + ")(" + maxThreshold + ")+" + lowLevelSolver.GetName();
+            return "CBS_OLD Global(" + mergeThreshold + ")(" + maxThreshold + ")+" + lowLevelSolver;
         }
     }
 }

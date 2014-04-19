@@ -212,11 +212,6 @@ namespace CPF_experiment
                     List<WorldState> vChildren = new List<WorldState>();
                     WorldState tws = (WorldState)c.m_bf.Deserialize(c.m_fsQueue);
                     UInt32 nHashParent = hash(tws);
-                    if (nHashParent == 8184)
-                    {
-                        bool b;
-                        b = true;
-                    }
 
                     this.Expand(tws, vChildren);
 
@@ -330,6 +325,7 @@ namespace CPF_experiment
             return (nHash);
         }
 
+#if false
         /// <summary>
         /// When building the pattern database, it is assumed that the root
         /// node of our search tree contains state information only about the
@@ -343,7 +339,6 @@ namespace CPF_experiment
         /// <param name="s">A state which include only agents that pertain to
         /// this pattern database.</param>
         /// <returns>An index into the table of heuristic values.</returns>
-#if false
         uint buildHash(Travor_WorldState s)
         {
 

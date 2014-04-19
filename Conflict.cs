@@ -2,7 +2,7 @@
 namespace CPF_experiment
 {
     /// <summary>
-    /// This class represents a conflict between two groups of agents in Standley's Indepedence Detection algorithm.
+    /// This class represents a conflict between two groups of agents in Standley's Indepedence Detection algorithm and in ICTS.
     /// </summary>
     class Conflict
     {
@@ -16,7 +16,7 @@ namespace CPF_experiment
             this.group2 = group2;
             timeOfConflict = time;
         }
-        public override bool Equals(object obj)
+        public override bool Equals(object obj) // TODO: Implement GetHashCode()
         {
             Conflict other = (Conflict)obj;
             if (this.group1.Equals(other.group1) && this.group2.Equals(other.group2))

@@ -43,19 +43,20 @@ namespace CPF_experiment
         /// <summary>
         /// Default constructor.
         /// </summary>
-        public ClassicAStar()
+        public ClassicAStar(HeuristicCalculator heuristic = null)
         {
             this.closedList = new Dictionary<WorldState, WorldState>();
             this.openList = new BinaryHeap();
+            this.heuristic = heuristic;
         }
 
         /// <summary>
         /// Setup the relevant data structures for a run.
         /// </summary>
-        public virtual void Setup(ProblemInstance problemInstance)
+        public virtual void Setup(ProblemInstance problemInstance, Run runner)
         {
             this.instance = problemInstance;
-            this.heuristic = this.CreateHeuristic();
+            this.runner = runner;
             WorldState root = this.CreateSearchRoot();
             root.h = (int)this.heuristic.h(root); // g was already set to 0 in the constructor
             this.openList.Add(root);
@@ -103,23 +104,22 @@ namespace CPF_experiment
             this.illegalMoves = null;
         }
 
-        /// <summary>
-        /// This method creates the object that will calculate the heuristics.
-        /// </summary>
-        /// <returns></returns>
-        protected HeuristicCalculator CreateHeuristic()
+        public void SetHeuristic(HeuristicCalculator heuristic)
         {
-            var sic = new SingleShortestPath();
+            this.heuristic = heuristic;
+        }
 
-            // Preparing a list of agent indices (not agent nums) for sic's init() method
-            List<uint> agentList = this.instance.m_vAgents.Select<AgentState, uint>((state, index) => (uint)index).ToList<uint>();
-            sic.init(this.instance, agentList);
-
-            sic.build();
-            return sic;
+        public HeuristicCalculator GetHeuristic()
+        {
+            return this.heuristic;
         }
 
         public virtual String GetName() { return "A*"; }
+
+        public override string ToString()
+        {
+            return this.GetName() + "/" + this.heuristic;
+        }
 
         public WorldState GetGoal() { return this.goal; }
 
@@ -144,10 +144,8 @@ namespace CPF_experiment
         /// Runs the algorithm until the problem is solved or memory/time is exhausted
         /// </summary>
         /// <returns>True if solved</returns>
-        public bool Solve(Run runner)
+        public bool Solve()
         {
-            this.runner = runner;
-            WorldState currentNode;
             this.solutionDepth = ((WorldState)openList.Peek()).h;
 
             while (openList.Count > 0)
@@ -161,7 +159,7 @@ namespace CPF_experiment
                     return false;
                 }
 
-                currentNode = (WorldState)openList.Remove();
+                var currentNode = (WorldState)openList.Remove();
 
                 // Check if node is the goal
                 if (currentNode.GoalTest(minDepth))
@@ -343,9 +341,9 @@ namespace CPF_experiment
         public long getMemoryUsed() { return Process.GetCurrentProcess().VirtualMemorySize64; }
 
         //CBS SOLVER
-        public void Setup(ProblemInstance problemInstance, int minDepth)
+        public void Setup(ProblemInstance problemInstance, int minDepth, Run runner)
         {
-            this.Setup(problemInstance);
+            this.Setup(problemInstance, runner);
             this.minDepth = minDepth;
             this.internalConflictCount = 0;
             this.externalConflictCount = 0;

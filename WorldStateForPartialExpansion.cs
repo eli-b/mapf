@@ -89,7 +89,7 @@ namespace CPF_experiment
                         }
                     }
                     
-                    if (problem.isValidTile(check.x, check.y)) // TODO: Was the else on this line correct? Probably not, since what if there are illegal moves but this move isn't colliding with them?
+                    if (problem.isValidTile(check.x, check.y))
                     {
                         hAfter = problem.GetSingleAgentShortestPath(allAgentsState[i].agent.agentNum, check.x, check.y);
 

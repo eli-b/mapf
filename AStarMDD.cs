@@ -184,7 +184,6 @@ namespace CPF_experiment
     {
         public MDDNode[] allSteps;
         public MDDStep prevStep;
-        public int depth;
         public int conflicts;
         int binaryHeapIndex;
 

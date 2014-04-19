@@ -14,14 +14,22 @@ namespace CPF_experiment
         /// <summary>
         /// Solves the instance that was set by a call to Setup()
         /// </summary>
-        /// <param name="runner"></param>
         /// <returns></returns>
-        bool Solve(Run runner);
+        bool Solve();
 
         /// <summary>
         /// Setup the relevant data structures for a run.
         /// </summary>
-        void Setup(ProblemInstance problemInstance);
+        /// <param name="runner"></param>
+        void Setup(ProblemInstance problemInstance, Run runner);
+
+        /// <summary>
+        /// Set the heuristic
+        /// </summary>
+        /// <param name="heuristic"></param>
+        void SetHeuristic(HeuristicCalculator heuristic);
+
+        HeuristicCalculator GetHeuristic();
 
         /// <summary>
         /// Clears the relevant data structures and variables to free memory usage.
@@ -65,7 +73,7 @@ namespace CPF_experiment
 
     public interface ICbsSolver : ISolver
     {
-        void Setup(ProblemInstance problemInstance, int minDepth);
+        void Setup(ProblemInstance problemInstance, int minDepth, Run runner);
         SinglePlan[] getSinglePlans();
     }
 }

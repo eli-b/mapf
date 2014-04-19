@@ -19,14 +19,17 @@ namespace CPF_experiment
         public int nextFvalue;
         public int currentFTarget;
 
+        public AStarWithPartialExpansionBasic(HeuristicCalculator heuristic = null)
+            : base(heuristic) { }
+
         override protected WorldState CreateSearchRoot()
         {
             return new WorldStateForPartialExpansion(this.instance.m_vAgents); // Consider using a WorldStateForBasicPartialExpansion that only has the isAlreadyExpanded stuff
         }
 
-        public override void Setup(ProblemInstance problemInstance) 
+        public override void Setup(ProblemInstance problemInstance, Run runner) 
         { 
-            base.Setup(problemInstance);
+            base.Setup(problemInstance, runner);
             generatedAndDiscarded = 0;
         }
 
@@ -99,6 +102,9 @@ namespace CPF_experiment
 
     class AStarWithPartialExpansion : ClassicAStar 
     {
+        public AStarWithPartialExpansion(HeuristicCalculator heuristic = null)
+            : base(heuristic) { }
+
         override protected WorldState CreateSearchRoot()
         {
             WorldStateForPartialExpansion root = new WorldStateForPartialExpansion(this.instance.m_vAgents);
@@ -110,7 +116,7 @@ namespace CPF_experiment
             return new WorldStateForPartialExpansion((WorldStateForPartialExpansion)from);
         }
 
-        override public string GetName() { return "EPEA* "; }
+        override public string GetName() { return "EPEA*"; }
 
         public override void Expand(WorldState nodeP)
         {
@@ -166,6 +172,8 @@ namespace CPF_experiment
             var currentNode = (WorldStateForPartialExpansion)simpleLookingNode;
             if (currentNode.remainingFChange != 0) // No more moves to do, remaining F change must be zero
                 return false;
+
+
 
  	        return base.ProcessGeneratedNode(currentNode);
         }

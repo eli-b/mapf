@@ -101,14 +101,14 @@ namespace CPF_experiment
                             instanceName = "Instance-" + gridSizes[gs] + "-" + obstaclesProbs[obs] + "-" + agentListSizes[ag] + "-" + i;
                             try
                             {
-                                instance = ProblemInstance.Import(Directory.GetCurrentDirectory() + "\\Instances\\"+instanceName);
+                                instance = ProblemInstance.Import(Directory.GetCurrentDirectory() + "\\Instances\\" + instanceName);
                                 instance.instanceId = i;
                             }
                             catch (Exception importException)
                             {
                                 if (onlyReadInstances)
                                 {
-                                    Console.WriteLine("File " + instanceName + "  Dosen't exist");
+                                    Console.WriteLine("File " + instanceName + "  dosen't exist");
                                     return;
 
                                     //Console.WriteLine("File Not Found!!!!");
@@ -145,9 +145,6 @@ namespace CPF_experiment
         /// <summary>
         /// dragon age experiment
         /// </summary>
-        /// <param name="gridSizes"></param>
-        /// <param name="agentListSizes"></param>
-        /// <param name="obstaclesProbs"></param>
         /// <param name="instances"></param>
         public void RunDragonAgeExperimentSet(int instances)
         {
@@ -156,7 +153,7 @@ namespace CPF_experiment
             Run runner = new Run();
             runner.openResultsFile(RESULTS_FILE_NAME);
             TextWriter output;
-            int[] agentListSizes={5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200, 250, 300 };
+            int[] agentListSizes = {5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200, 250, 300 };
 
             bool continueFromLastRun = true;
             string[] lineParts = null;
