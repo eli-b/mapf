@@ -242,7 +242,7 @@ namespace CPF_experiment
                             !goals[aStart[i].last_move.x][aStart[i].last_move.y]) // this spot isn't another agent's goal
                             break;
                         else
-                            aStart[i].last_move.Update(op); // Rollback
+                            aStart[i].last_move.setOppositeMove(); // Rollback
                     }
                     goals[aStart[i].last_move.x][aStart[i].last_move.y] = true; // Claim agent's new goal
                 }
