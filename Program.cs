@@ -169,46 +169,46 @@ namespace CPF_experiment
                 continueFromLastRun = false;
             }
 
-                    for (int ag = 0; ag < agentListSizes.Length; ag++)
+            for (int ag = 0; ag < agentListSizes.Length; ag++)
+            {
+                for (int i = 0; i < instances; i++)
+                {
+                    if (continueFromLastRun)//set the latest problem
                     {
-                        for (int i = 0; i < instances; i++)
+                        ag = int.Parse(lineParts[0]);
+                        i = int.Parse(lineParts[1]);
+                        for (int j = 2; j < lineParts.Length; j++)
                         {
-                            if (continueFromLastRun)  //set the latest problem
-                            {
-                                ag = int.Parse(lineParts[0]);
-                                i = int.Parse(lineParts[1]);
-                                for (int j = 2; j < lineParts.Length; j++)
-                                {
-                                    runner.outOfTimeCounter[j - 2] = int.Parse(lineParts[j]);
-                                }
-                                continueFromLastRun = false;
-                                continue;
-                            }
-                            if (runner.outOfTimeCounter.Sum() == runner.outOfTimeCounter.Length * 20)
-                                continue;
-                            instanceName = agentListSizes[ag]+" agents i-"+i;
-                            try
-                            {
-                                instance = ProblemInstance.Import(Directory.GetCurrentDirectory() + "\\Instances\\"+instanceName);
-                            }
-                            catch (Exception importException)
-                            {
-                                throw new Exception("missing map " + instanceName);
-                            }
-
-                            runner.solveGivenProblem(instance);
-
-                            //save the latest problem
-                            File.Delete(Directory.GetCurrentDirectory() + "\\Instances\\current problem");
-                            output = new StreamWriter(Directory.GetCurrentDirectory() + "\\Instances\\current problem");
-                            output.WriteLine("{0},{1}",ag, i);
-                            for (int j = 0; j < runner.outOfTimeCounter.Length; j++)
-                            {
-                                output.Write("," + runner.outOfTimeCounter[j]);
-                            }
-                            output.Close();
+                            runner.outOfTimeCounter[j - 2] = int.Parse(lineParts[j]);
                         }
+                        continueFromLastRun = false;
+                        continue;
                     }
+                    if (runner.outOfTimeCounter.Sum() == runner.outOfTimeCounter.Length * 20)
+                        continue;
+                    instanceName = agentListSizes[ag]+" agents i-"+i;
+                    try
+                    {
+                        instance = ProblemInstance.Import(Directory.GetCurrentDirectory() + "\\Instances\\"+instanceName);
+                    }
+                    catch (Exception importException)
+                    {
+                        throw new Exception("missing map " + instanceName);
+                    }
+
+                    runner.solveGivenProblem(instance);
+
+                    //save the latest problem
+                    File.Delete(Directory.GetCurrentDirectory() + "\\Instances\\current problem");
+                    output = new StreamWriter(Directory.GetCurrentDirectory() + "\\Instances\\current problem");
+                    output.WriteLine("{0},{1}",ag, i);
+                    for (int j = 0; j < runner.outOfTimeCounter.Length; j++)
+                    {
+                        output.Write("," + runner.outOfTimeCounter[j]);
+                    }
+                    output.Close();
+                }
+            }
             runner.closeResultsFile();
         }
 
