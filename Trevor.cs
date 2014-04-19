@@ -12,8 +12,8 @@ namespace CPF_experiment
         public static string ILLEGAL_MOVES_KEY = "reserved";
         // The key of the maximal solution cost of the agent group in the ProblemInstance (used in IndependentDetection())
         public static string MAXIMUM_COST_KEY = "cost";
-        // The key of the conflict avoidence table
-        public static string CONFLICT_AVOIDENCE = "ConflictAvoidence";
+        // The key of the conflict avoidance table
+        public static string CONFLICT_AVOIDANCE = "ConflictAvoidance";
 
         protected LinkedList<AgentsGroup> allGroups;
         protected ProblemInstance instance;
@@ -35,7 +35,7 @@ namespace CPF_experiment
         protected HeuristicCalculator heuristic;
         private IList<Conflict> allConflicts;
         private int maxSolutionDepth;
-        private HashSet<TimedMove> conflictAvoidence;
+        private HashSet<TimedMove> conflictAvoidance;
         private int maxDepth;
         private int passed;
         private string name;
@@ -56,7 +56,7 @@ namespace CPF_experiment
             this.allGroups.Clear();
             this.groupSolver.Clear();
             this.allConflicts.Clear();
-            this.conflictAvoidence.Clear();
+            this.conflictAvoidance.Clear();
         }
 
         public void Setup(ProblemInstance instance, Run runner)
@@ -69,7 +69,7 @@ namespace CPF_experiment
             this.maxGroup = 1;
             this.passed = 0;
             this.minGroup = instance.m_vAgents.Length;
-            this.conflictAvoidence = new HashSet<TimedMove>();
+            this.conflictAvoidance = new HashSet<TimedMove>();
             // Initialize the agent group collection with a group for every agent
             foreach (AgentState agentStartState in instance.m_vAgents)
                 this.allGroups.AddFirst(new AgentsGroup(this.instance,  new AgentState[1] { agentStartState }, this.groupSolver));
@@ -262,37 +262,37 @@ namespace CPF_experiment
                     // Add plan of group2 to illegal moves table and replan group1 with equal cost
                     if (conflict.timeOfConflict < conflict.group1.GetPlan().GetSize())
                     {
-                        conflict.group1.removeGroupFromCA(conflictAvoidence);
+                        conflict.group1.removeGroupFromCA(conflictAvoidance);
                         if (conflict.group1.ReplanUnderConstraints(conflict.group2.GetPlan(), runner) == true)
                         {
-                            conflict.group1.addGroupToCA(conflictAvoidence, maxDepth);
+                            conflict.group1.addGroupToCA(conflictAvoidance, maxDepth);
                             continue;
                         }
-                        conflict.group1.addGroupToCA(conflictAvoidence, maxDepth);
+                        conflict.group1.addGroupToCA(conflictAvoidance, maxDepth);
                     }
                     // Add plan of group1 to illegal moves table and replan group2 with equal cost
                     if (conflict.timeOfConflict < conflict.group2.GetPlan().GetSize() - 1)
                     {
-                        conflict.group2.removeGroupFromCA(conflictAvoidence);
+                        conflict.group2.removeGroupFromCA(conflictAvoidance);
                         if (conflict.group2.ReplanUnderConstraints(conflict.group1.GetPlan(), runner) == true)
                         {
-                            conflict.group2.addGroupToCA(conflictAvoidence, maxDepth);
+                            conflict.group2.addGroupToCA(conflictAvoidance, maxDepth);
                             continue;
                         }
-                        conflict.group2.addGroupToCA(conflictAvoidence, maxDepth);
+                        conflict.group2.addGroupToCA(conflictAvoidance, maxDepth);
                     }
                 }
 
                 // Groups are conflicting - need to join them to a single group
                 allGroups.Remove(conflict.group1);
                 allGroups.Remove(conflict.group2);
-                //remove both groups from avoidence table
-                conflict.group1.removeGroupFromCA(conflictAvoidence);
-                conflict.group2.removeGroupFromCA(conflictAvoidence);
+                //remove both groups from avoidance table
+                conflict.group1.removeGroupFromCA(conflictAvoidance);
+                conflict.group2.removeGroupFromCA(conflictAvoidance);
 
                 compositeGroup = this.JoinGroups(conflict);
 
-                compositeGroup.instance.parameters[CONFLICT_AVOIDENCE] = conflictAvoidence;
+                compositeGroup.instance.parameters[CONFLICT_AVOIDANCE] = conflictAvoidance;
 
                 // Solve composite group with A*
                 solved = compositeGroup.Solve(runner);
@@ -300,8 +300,8 @@ namespace CPF_experiment
                 if (compositeGroup.solutionCost > maxDepth)
                     maxDepth = compositeGroup.solutionCost;
 
-                //add group to conflict avoidence table
-                compositeGroup.addGroupToCA(conflictAvoidence, maxDepth);
+                //add group to conflict avoidance table
+                compositeGroup.addGroupToCA(conflictAvoidance, maxDepth);
                 allGroups.AddFirst(compositeGroup);
 
                 this.expandedHL += compositeGroup.expandedHL;
@@ -344,12 +344,12 @@ namespace CPF_experiment
 
             while (agentGroupNode != null)
             {
-                agentGroupNode.Value.instance.parameters[CONFLICT_AVOIDENCE] = conflictAvoidence;
+                agentGroupNode.Value.instance.parameters[CONFLICT_AVOIDANCE] = conflictAvoidance;
                 agentGroupNode.Value.Solve(runner);
                 if (agentGroupNode.Value.solutionCost > maxDepth)
                     maxDepth = agentGroupNode.Value.solutionCost;
-                //add group to conflict avoidence table
-                agentGroupNode.Value.addGroupToCA(conflictAvoidence, maxDepth);
+                //add group to conflict avoidance table
+                agentGroupNode.Value.addGroupToCA(conflictAvoidance, maxDepth);
 
                 this.expandedHL += agentGroupNode.Value.expandedHL;
                 this.generatedHL += agentGroupNode.Value.generatedHL;

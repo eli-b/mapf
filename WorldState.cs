@@ -226,23 +226,23 @@ namespace CPF_experiment
             return true;
         }
         
-        public virtual int conflictsCount(HashSet<TimedMove> conflictAvoidence)
+        public virtual int conflictsCount(HashSet<TimedMove> conflictAvoidance)
         {
             int ans = 0;
             for (int i = 0; i < allAgentsState.Length; i++)
             {
-                if (allAgentsState[i].last_move.isColliding(conflictAvoidence))
+                if (allAgentsState[i].last_move.isColliding(conflictAvoidance))
                     ans++;
             }
             return ans;
         }
 
-        public virtual int conflictsCount(HashSet_U<TimedMove> conflictAvoidence)
+        public virtual int conflictsCount(HashSet_U<TimedMove> conflictAvoidance)
         {
             int ans = 0;
             for (int i = 0; i < allAgentsState.Length; i++)
             {
-                if (allAgentsState[i].last_move.isColliding(conflictAvoidence))
+                if (allAgentsState[i].last_move.isColliding(conflictAvoidance))
                     ans++;
             }
             return ans;

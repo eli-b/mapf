@@ -377,10 +377,10 @@ namespace CPF_experiment
             // Assuming h is an admissable heuristic, no need to generate nodes that won't get us to the goal
             // within the budget
             {
-                if (instance.parameters.ContainsKey(Trevor.CONFLICT_AVOIDENCE))
+                if (instance.parameters.ContainsKey(Trevor.CONFLICT_AVOIDANCE))
                 {
                     currentNode.potentialConflictsCount = currentNode.prevStep.potentialConflictsCount;
-                    currentNode.potentialConflictsCount += currentNode.conflictsCount(((HashSet<TimedMove>)instance.parameters[Trevor.CONFLICT_AVOIDENCE]));
+                    currentNode.potentialConflictsCount += currentNode.conflictsCount(((HashSet<TimedMove>)instance.parameters[Trevor.CONFLICT_AVOIDANCE]));
                 }
 
                 if (instance.parameters.ContainsKey(CBS_LocalConflicts.INTERNAL_CAT))

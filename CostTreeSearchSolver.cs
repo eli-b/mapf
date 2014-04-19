@@ -29,7 +29,7 @@ namespace CPF_experiment
         public static int passed;
         protected HashSet<TimedMove> ID_CAT;
         protected HashSet_U<TimedMove> CBS_CAT;
-        protected int minCAvaiulations;
+        protected int minCAViolations;
 
         // These variables are for matching and pruning MDDs
         public static int[,,] edgesMatrix; // K(agent), V(from), V(to)
@@ -57,7 +57,7 @@ namespace CPF_experiment
         /// </summary>
         public virtual void Setup(ProblemInstance problemInstance, int minDepth, Run runner)
         {
-            minCAvaiulations = int.MaxValue;
+            minCAViolations = int.MaxValue;
             passed = 0;
             this.generatedHL = 1;
             this.expandedHL = 1;
@@ -100,9 +100,9 @@ namespace CPF_experiment
             else
                 this.maxCost = -1;
 
-            if (problemInstance.parameters.ContainsKey(Trevor.CONFLICT_AVOIDENCE))
+            if (problemInstance.parameters.ContainsKey(Trevor.CONFLICT_AVOIDANCE))
             {
-                ID_CAT = ((HashSet<TimedMove>)problemInstance.parameters[Trevor.CONFLICT_AVOIDENCE]);
+                ID_CAT = ((HashSet<TimedMove>)problemInstance.parameters[Trevor.CONFLICT_AVOIDANCE]);
             }
             if (problemInstance.parameters.ContainsKey(CBS_LocalConflicts.INTERNAL_CAT))
             {
@@ -259,7 +259,7 @@ namespace CPF_experiment
                 {
                     //if we are above the given solution return no solution found
                     if (sumSubGroupA + sumSubGroupB > maxCost)
-                        return (this.minCAvaiulations != int.MaxValue);
+                        return (this.minCAViolations != int.MaxValue);
                     //if we are below the given solution no need to do goal test just expand node
                     if (sumSubGroupA + sumSubGroupB < maxCost)
                     {
@@ -289,14 +289,14 @@ namespace CPF_experiment
                                 return true;
                             }
 
-                            if (next.caVaiulations < this.minCAvaiulations)
+                            if (next.caViolations < this.minCAViolations)
                             {
                                 totalCost = next.costs.Sum();
                                 solution = ans;
                                 passed--;
-                                this.minCAvaiulations = next.caVaiulations;
+                                this.minCAViolations = next.caViolations;
                                 maxCost = totalCost;
-                                if (next.caVaiulations == 0)
+                                if (next.caViolations == 0)
                                     return true;
                             }
                         }
@@ -333,7 +333,7 @@ namespace CPF_experiment
                 {
                     //if we are above the given solution return no solution found
                     if (sumSubGroupA + sumSubGroupB > maxCost)
-                        return (this.minCAvaiulations != int.MaxValue);
+                        return (this.minCAViolations != int.MaxValue);
                     //if we are below the given solution no need to do goal test just expand node
                     if (sumSubGroupA + sumSubGroupB < maxCost)
                     {
@@ -362,13 +362,13 @@ namespace CPF_experiment
                                 return true;
                             }
 
-                            if (next.caVaiulations < this.minCAvaiulations)
+                            if (next.caViolations < this.minCAViolations)
                             {
                                 totalCost = next.costs.Sum();
                                 solution = ans;
-                                this.minCAvaiulations = next.caVaiulations;
+                                this.minCAViolations = next.caViolations;
                                 maxCost = totalCost;
-                                if (next.caVaiulations == 0)
+                                if (next.caViolations == 0)
                                     return true;
                                 passed--;
                             }
@@ -416,7 +416,7 @@ namespace CPF_experiment
                 {
                     //if we are above the given solution return no solution found
                     if (sumSubGroupA + sumSubGroupB > maxCost)
-                        return (this.minCAvaiulations != int.MaxValue);
+                        return (this.minCAViolations != int.MaxValue);
                     //if we are below the given solution no need to do goal test just expand node
                     if (sumSubGroupA + sumSubGroupB < maxCost)
                     {
@@ -446,14 +446,14 @@ namespace CPF_experiment
                                 return true;
                             }
 
-                            if (next.caVaiulations < this.minCAvaiulations)
+                            if (next.caViolations < this.minCAViolations)
                             {
                                 totalCost = next.costs.Sum();
                                 solution = ans;
                                 passed--;
-                                this.minCAvaiulations = next.caVaiulations;
+                                this.minCAViolations = next.caViolations;
                                 maxCost = totalCost;
-                                if (next.caVaiulations == 0)
+                                if (next.caViolations == 0)
                                     return true;
                             }
                         }
@@ -502,7 +502,7 @@ namespace CPF_experiment
                 {
                     //if we are above the given solution return no solution found
                     if (sumSubGroupA + sumSubGroupB > maxCost)
-                        return (this.minCAvaiulations != int.MaxValue);
+                        return (this.minCAViolations != int.MaxValue);
                     //if we are below the given solution no need to do goal test just expand node
                     if (sumSubGroupA + sumSubGroupB < maxCost)
                     {
@@ -537,14 +537,14 @@ namespace CPF_experiment
                                 return true;
                             }
 
-                            if (next.caVaiulations < this.minCAvaiulations)
+                            if (next.caViolations < this.minCAViolations)
                             {
                                 totalCost = next.costs.Sum();
                                 solution = ans;
                                 passed--;
-                                this.minCAvaiulations = next.caVaiulations;
+                                this.minCAViolations = next.caViolations;
                                 maxCost = totalCost;
-                                if (next.caVaiulations == 0)
+                                if (next.caViolations == 0)
                                     return true;
                             }
                         }

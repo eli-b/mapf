@@ -62,10 +62,10 @@ namespace CPF_experiment
 
                     if (childNode.h + childNode.g <= this.maxCost)
                     {
-                        if (instance.parameters.ContainsKey(Trevor.CONFLICT_AVOIDENCE))
+                        if (instance.parameters.ContainsKey(Trevor.CONFLICT_AVOIDANCE))
                         {
                             childNode.potentialConflictsCount = parent.potentialConflictsCount;
-                            childNode.potentialConflictsCount += childNode.conflictsCount(((HashSet<TimedMove>)instance.parameters[Trevor.CONFLICT_AVOIDENCE]));
+                            childNode.potentialConflictsCount += childNode.conflictsCount(((HashSet<TimedMove>)instance.parameters[Trevor.CONFLICT_AVOIDANCE]));
                         }
 
                         if (instance.parameters.ContainsKey(CBS_LocalConflicts.INTERNAL_CAT))

@@ -96,15 +96,15 @@ namespace CPF_experiment
         /// <summary>
         /// Returns count for last agent to move only.
         /// </summary>
-        /// <param name="conflictAvoidence"></param>
+        /// <param name="conflictAvoidance"></param>
         /// <returns></returns>
-        override public int conflictsCount(HashSet<TimedMove> conflictAvoidence)
+        override public int conflictsCount(HashSet<TimedMove> conflictAvoidance)
         {
             int ans = 0;
             int lastMove = agentTurn - 1;
             if (agentTurn == 0)
                 lastMove = allAgentsState.Length - 1;
-            if (allAgentsState[lastMove].last_move.isColliding(conflictAvoidence)) // Behavior change: this didn't check for head-on collisions
+            if (allAgentsState[lastMove].last_move.isColliding(conflictAvoidance)) // Behavior change: this didn't check for head-on collisions
                 ans++;
             return ans;
         }

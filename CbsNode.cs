@@ -221,8 +221,8 @@ namespace CPF_experiment
             this.conflict = null;
             HashSet<TimedMove> externalCAT = null;
             HashSet_U<TimedMove> CbsExternalCAT = (HashSet_U<TimedMove>)problem.parameters[CBS_LocalConflicts.INTERNAL_CAT];
-            if (problem.parameters.ContainsKey(Trevor.CONFLICT_AVOIDENCE))
-                 externalCAT = (HashSet<TimedMove>)problem.parameters[Trevor.CONFLICT_AVOIDENCE];
+            if (problem.parameters.ContainsKey(Trevor.CONFLICT_AVOIDANCE))
+                 externalCAT = (HashSet<TimedMove>)problem.parameters[Trevor.CONFLICT_AVOIDANCE];
             TimedMove checkMove = new TimedMove();
 
             // Check in every time step that the plans do not collide

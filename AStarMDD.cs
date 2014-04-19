@@ -12,7 +12,7 @@ namespace CPF_experiment
         BinaryHeap openList;
         public int expanded;
         public int generated;
-        public int conflictAvoidenceVaiulations;
+        public int conflictAvoidanceViolations;
         HashSet<TimedMove> ID_CAT;
         HashSet_U<TimedMove> CBS_CAT;
 
@@ -37,7 +37,7 @@ namespace CPF_experiment
             root = new MDDStep(sRoot, null);
             openList.Add(root);
             // Not adding it automatically to the closed list here?
-            conflictAvoidenceVaiulations = 0;
+            conflictAvoidanceViolations = 0;
         }
        
         public LinkedList<Move>[] solve()
@@ -56,7 +56,7 @@ namespace CPF_experiment
                 // Check if node is the goal
                 if (goalTest(currentNode))
                 {
-                    conflictAvoidenceVaiulations=currentNode.conflicts;
+                    conflictAvoidanceViolations=currentNode.conflicts;
                     return getAnswear(currentNode);
                 }
 

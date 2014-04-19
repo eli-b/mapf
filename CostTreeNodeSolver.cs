@@ -18,9 +18,9 @@ namespace CPF_experiment
         protected Run runner;
         protected ProblemInstance problem;
 
-        public int caVaiulations;
+        public int caViolations;
 
-        public static int matchCounter;//debugin
+        public static int matchCounter; //debugging
 
         public CostTreeNodeSolver(ProblemInstance problem, Run runner)
         {
@@ -176,7 +176,7 @@ namespace CPF_experiment
             LinkedList<Move>[] ans =  findSolution.solve();
             generated = findSolution.generated;
             expanded = findSolution.expanded;
-            caVaiulations = findSolution.conflictAvoidenceVaiulations;
+            caViolations = findSolution.conflictAvoidanceViolations;
             return ans;
         }
     }
@@ -198,7 +198,7 @@ namespace CPF_experiment
             LinkedList<Move>[] ans = findSolution.solve();
             generated = findSolution.generated;
             expanded = findSolution.expanded;
-            caVaiulations = findSolution.conflictAvoidenceVaiulations;
+            caViolations = findSolution.conflictAvoidanceViolations;
             return ans;
         }
     }
@@ -314,7 +314,7 @@ namespace CPF_experiment
             LinkedList<Move>[] ans = findSolution.solve();
             generated = findSolution.generated;
             expanded = findSolution.expanded;
-            caVaiulations = findSolution.conflictAvoidenceVaiulations;
+            caViolations = findSolution.conflictAvoidanceViolations;
             return ans;
         }
     }
@@ -390,9 +390,8 @@ namespace CPF_experiment
             LinkedList<Move>[] ans = findSolution.solve();
             generated = findSolution.generated;
             expanded = findSolution.expanded;
-            caVaiulations = findSolution.conflictAvoidenceVaiulations;
+            caViolations = findSolution.conflictAvoidanceViolations;
             return ans;
         }
     }
-    
 }

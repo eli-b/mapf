@@ -42,8 +42,8 @@ namespace CPF_experiment
             externalConflicts = 0;
 
             // Store parameters used by Trevor's Independant Detection algorithm
-            if (problemInstance.parameters.ContainsKey(Trevor.CONFLICT_AVOIDENCE))
-                this.conflictTableOtherGroups = (HashSet<TimedMove>)(problemInstance.parameters[Trevor.CONFLICT_AVOIDENCE]);
+            if (problemInstance.parameters.ContainsKey(Trevor.CONFLICT_AVOIDANCE))
+                this.conflictTableOtherGroups = (HashSet<TimedMove>)(problemInstance.parameters[Trevor.CONFLICT_AVOIDANCE]);
             else
                 this.conflictTableOtherGroups = null;
         }
