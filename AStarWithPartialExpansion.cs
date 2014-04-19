@@ -122,26 +122,26 @@ namespace CPF_experiment
         {
             var node = (WorldStateForPartialExpansion)nodeP;
 
-            node.calcSingleAgentFDifferences(instance);
+            node.calcSingleAgentDeltaFs(instance);
 
             if (node.isAlreadyExpanded() == false)
             {
                 expandedFullStates++;
                 node.alreadyExpanded = true;
-                node.targetFChange = 0; // Assuming a consistent heuristic (as done in the paper), the min F Change is zero.
+                node.targetDeltaF = 0; // Assuming a consistent heuristic (as done in the paper), the min delta F is zero.
             }
             //Debug.Print("Expanding node " + node);
 
-            node.remainingFChange = node.targetFChange;
+            node.remainingDeltaF = node.targetDeltaF;
 
             base.Expand(node);
 
-            node.targetFChange++;
+            node.targetDeltaF++;
 
             while (node.hasMoreChildren() && node.hasChildrenForCurrentF() == false)
-                node.targetFChange++;
+                node.targetDeltaF++;
 
-            if (node.hasMoreChildren() && node.hasChildrenForCurrentF() && node.h + node.g + node.targetFChange <= this.maxCost)
+            if (node.hasMoreChildren() && node.hasChildrenForCurrentF() && node.h + node.g + node.targetDeltaF <= this.maxCost)
                 openList.Add(node);
             return;
         }
@@ -150,9 +150,9 @@ namespace CPF_experiment
         {
             // Prune nodes that can't get to the target F
             foreach (WorldState node in intermediateNodes)
-                ((WorldStateForPartialExpansion)node).calcSingleAgentFDifferences(this.instance);
+                ((WorldStateForPartialExpansion)node).calcSingleAgentDeltaFs(this.instance);
             intermediateNodes = intermediateNodes.Where<WorldState>(
-                node => ((WorldStateForPartialExpansion)node).remainingFChange != byte.MaxValue && // last move was good
+                node => ((WorldStateForPartialExpansion)node).remainingDeltaF != byte.MaxValue && // last move was good
                         ((WorldStateForPartialExpansion)node).hasChildrenForCurrentF(agentIndex)
                                                                     ).ToList<WorldState>();
             // Expand the agent
@@ -170,7 +170,7 @@ namespace CPF_experiment
         protected override bool ProcessGeneratedNode(WorldState simpleLookingNode)
         {
             var currentNode = (WorldStateForPartialExpansion)simpleLookingNode;
-            if (currentNode.remainingFChange != 0) // No more moves to do, remaining F change must be zero
+            if (currentNode.remainingDeltaF != 0) // No more moves to do, remaining delta F must be zero
                 return false;
 
 
