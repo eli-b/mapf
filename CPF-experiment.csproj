@@ -109,12 +109,6 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
-    <Compile Include="ShowSolution.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="ShowSolution.Designer.cs">
-      <DependentUpon>ShowSolution.cs</DependentUpon>
-    </Compile>
     <Compile Include="SumIndividualCosts.cs" />
     <Compile Include="EnumeratedPDB.cs" />
     <Compile Include="PDB.cs" />
@@ -161,9 +155,6 @@
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
-    </EmbeddedResource>
-    <EmbeddedResource Include="ShowSolution.resx">
-      <DependentUpon>ShowSolution.cs</DependentUpon>
     </EmbeddedResource>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
