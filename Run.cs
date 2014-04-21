@@ -247,6 +247,11 @@ namespace CPF_experiment
                     goals[aStart[i].last_move.x][aStart[i].last_move.y] = true; // Claim agent's new goal
                 }
             }
+            // Zero the agents' timesteps
+            foreach (AgentState agentStart in aStart) 
+            {
+                agentStart.last_move.time = 0;
+            }
 
             // TODO: There is some repetition here of previous instantiation of ProblemInstance. Think how to elegantly bypass this.
             problem = new ProblemInstance();
