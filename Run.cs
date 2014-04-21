@@ -247,6 +247,7 @@ namespace CPF_experiment
                     goals[aStart[i].last_move.x][aStart[i].last_move.y] = true; // Claim agent's new goal
                 }
             }
+
             // Zero the agents' timesteps
             foreach (AgentState agentStart in aStart) 
             {
@@ -280,9 +281,6 @@ namespace CPF_experiment
             //this.resultsWriter.Write(cr0 + RESULTS_DELIMITER);
             //this.resultsWriter.Write(cr1 + RESULTS_DELIMITER);
 
-
-            Constants.exhaustiveIcts = false;
-
             for (int i = 0; i < solvers.Count; i++)
             {
                 if (outOfTimeCounter[i] < Constants.MAX_FAIL_COUNT) // After "MAX_FAIL_COUNT" consecutive failures of a given algorithm we stop running it.
@@ -293,29 +291,29 @@ namespace CPF_experiment
                     solvers[i].GetHeuristic().init(instance, agentList);
                     this.run(solvers[i], instance);
 
-                    //solvers[i].GetPlan().PrintPlan();
 
                     Console.WriteLine();
-                    if (solvers[i].GetSolutionCost() > 0)
+                    if (solvers[i].GetSolutionCost() >= 0)
                     {
+                        solvers[i].GetPlan().PrintPlan();
                         outOfTimeCounter[i] = 0;
-                        Console.WriteLine("+SUCCESS+ (:");
-                        //  solvers[i].GetPlan().PrintPlan();
-                        if (solvers[0].GetSolutionCost() > 0)
-                        {
-                            Debug.Assert(solvers[0].GetSolutionCost() == solvers[i].GetSolutionCost(), "A* solution cost is different than that of " + solvers[i].GetName());
-                            //Debug.Assert(solvers[0].getExpanded() == solvers[i].getExpanded(), "Different Expended");
-                           // Debug.Assert(solvers[0].getGenerated() == solvers[i].getGenerated(), "Different Generated");
 
-                            if (solvers[0].GetSolutionCost() != solvers[i].GetSolutionCost())
-                            {
-                                Console.WriteLine("A* solution cost is different than that of " + solvers[i].GetName());
-                                Console.ReadLine();
-                            }
-                           // Debug.Assert(solvers[0].getSolutionDepth() == solvers[i].getSolutionDepth(), "Depth Bug " + solvers[i].GetName());
-                            //ss = new ShowSolution(instance, solvers[i].GetPlan());
-                            //ss.Show();
+                        // Validate solution:
+                        if (solvers[0].GetSolutionCost() >= 0)
+                        {
+                            Debug.Assert(solvers[0].GetSolutionCost() == solvers[i].GetSolutionCost(), "A* solution cost is different than that of " + solvers[i]); // Assuming algs are supposed to find an optimal solution, this is an error.
+                            //Debug.Assert(solvers[0].getExpanded() == solvers[i].getExpanded(), "Different Expanded");
+                            //Debug.Assert(solvers[0].getGenerated() == solvers[i].getGenerated(), "Different Generated");
+                            //Debug.Assert(solvers[0].GetSolutionDepth() == solvers[i].GetSolutionDepth(), "Depth Bug " + solvers[i]);
+
+                            //if (solvers[0].GetSolutionCost() != solvers[i].GetSolutionCost())
+                            //{
+                            //    Console.WriteLine("A* solution cost is different than that of " + solvers[i]);
+                            //    Console.ReadLine();
+                            //}
                         }
+
+                        Console.WriteLine("+SUCCESS+ (:");
                     }
                     else
                     {
@@ -329,8 +327,8 @@ namespace CPF_experiment
                 Console.WriteLine();
             }
             this.continueToNextLine();
-          //  Debug.Assert(solvers[0].getNodesPassedPruningCounter() >= solvers[1].getNodesPassedPruningCounter(), "");
-           // Console.ReadLine();
+          //Debug.Assert(solvers[0].GetNodesPassedPruningCounter() >= solvers[1].GetNodesPassedPruningCounter(), "");
+          //Console.ReadLine();
         }
 
         /// <summary>
