@@ -29,20 +29,21 @@ namespace CPF_experiment
         public WorldState(AgentState[] allAgentsState)
         {
             this.allAgentsState = allAgentsState.ToArray<AgentState>();
-            this.makespan = 0;
-            this.g = 0;
+            this.makespan = allAgentsState.Min<AgentState>(state => state.last_move.time); // We expect to only find at most two G values within the agent group
+            this.CalculateG(); // G not necessarily zero when solving a partially solved problem.
             this.potentialConflictsCount = 0;
             this.cbsInternalConflictsCount = 0;
             this.currentMoves = new HashSet<TimedMove>();
         }
 
         /// <summary>
-        /// Copy constructor. Doesn't copy g!
+        /// Copy constructor.
         /// </summary>
         /// <param name="cpy"></param>
         public WorldState(WorldState cpy)
         {
             this.makespan = cpy.makespan;
+            this.g = cpy.g;
             this.h = cpy.h;
             this.allAgentsState = new AgentState[cpy.allAgentsState.Length];
             for (int i = 0; i < allAgentsState.Length; i++)
@@ -65,18 +66,16 @@ namespace CPF_experiment
         /// <param name="allAgentsState">A set of agent states in the original problem.</param>
         /// <param name="vAgents">A list of indices referring to the subset of agents we want to extract.</param>
         public WorldState(AgentState[] allAgentsState, List<uint> vAgents)
-        {
-            // Copy specified agents:
-            this.allAgentsState = vAgents.Select<uint, AgentState>(index => new AgentState(allAgentsState[index])).ToArray<AgentState>();
-            makespan = 0;
-            g = 0;
-        }        
+            // Copy specified agents only
+            : this(vAgents.Select<uint, AgentState>(index => new AgentState(allAgentsState[index])).ToArray<AgentState>())
+        {}        
         
         public bool GoalTest(int minDepth)
         {
             if (makespan >= minDepth)
                 return h == 0; // That's crazy! A node that is close to the goal might also get h==0.
                                // Our specific heuristic doesn't behave that way, though.
+                               // FIXME: Implement a proper goal test and use it when h==0.
             return false;
         }
 
@@ -93,6 +92,7 @@ namespace CPF_experiment
             if (this.h + this.g > that.h + that.g)
                 return 1;
 
+            // Tie breaking:
             if (this.potentialConflictsCount < that.potentialConflictsCount)
                 return -1;
             if (this.potentialConflictsCount > that.potentialConflictsCount)
@@ -124,7 +124,7 @@ namespace CPF_experiment
                 if (singleAgentState.atGoal())
                     g += singleAgentState.arrivalTime;
                 else
-                    g += makespan;
+                    g += singleAgentState.last_move.time;
             }
         }
 
@@ -216,14 +216,7 @@ namespace CPF_experiment
             if (obj == null)
                 return false;
             WorldState that = (WorldState)obj;
-            if (this.allAgentsState.Length != that.allAgentsState.Length)
-                return false;
-            for (int i = 0; i < this.allAgentsState.Length; i++)
-            {
-                if (!this.allAgentsState[i].Equals(that.allAgentsState[i]))
-                    return false;
-            }
-            return true;
+            return this.allAgentsState.SequenceEqual<AgentState>(that.allAgentsState);
         }
         
         public virtual int conflictsCount(HashSet<TimedMove> conflictAvoidance)

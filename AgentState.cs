@@ -14,6 +14,9 @@ namespace CPF_experiment
         /// At goal
         /// </summary>
         public int arrivalTime;
+        /// <summary>
+        /// The last move's time is the agent's G
+        /// </summary>
         public TimedMove last_move;
         private int binaryHeapIndex;
         public int potentialConflicts;

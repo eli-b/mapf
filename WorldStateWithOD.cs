@@ -65,35 +65,6 @@ namespace CPF_experiment
         }
 
         /// <summary>
-        /// Calculate and set the g of the state as the sum of the different agent g values.
-        /// </summary>
-        override public void CalculateG()
-        {
-            g = 0;
-            for (int i = 0; i < allAgentsState.Length; i++)
-            {
-                AgentState singleAgentState = allAgentsState[i];
-                if (singleAgentState.atGoal())
-                    g += singleAgentState.arrivalTime;
-                ///
-                /// <remark> 
-                /// The agents that have moved in this timestamp are all the agents until parent.agentTurn.
-                /// Therefore, we add the makespan only to these agents, and the previous timestamp to the others.
-                /// </remark>
-                ///
-                else if (i <= ((WorldStateWithOD)this.prevStep).agentTurn) // Agent already moved in this step.
-                                                                           // (Using the parent's agentTurn is equivalent to using i <= (agentTurn-1)%num_agents)
-                {
-                    g += makespan;
-                }   
-                else 
-                {
-                    g += makespan - 1;
-                }
-            }
-        }
-
-        /// <summary>
         /// Returns count for last agent to move only.
         /// </summary>
         /// <param name="conflictAvoidance"></param>
