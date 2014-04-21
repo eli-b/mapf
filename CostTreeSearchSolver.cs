@@ -226,15 +226,15 @@ namespace CPF_experiment
             return false;
         }
 
-        public int getHighLevelExpanded() { return this.expandedHL; }
-        public int getHighLevelGenerated() { return this.generatedHL; }
-        public int getLowLevelExpanded() { return this.expandedLL; }
-        public int getLowLevelGenerated() { return this.generatedLL; }
-        public int getSolutionDepth() { return this.totalCost - initialHeuristics; }
-        public int getNodesPassedPruningCounter() { return passed; }
-        public long getMemoryUsed() { return Process.GetCurrentProcess().VirtualMemorySize64; }
-        public int getMaxGroupSize() { return problem.m_vAgents.Length; }
-        public SinglePlan[] getSinglePlans() { return SinglePlan.getSinglePlans(solution); }
+        public int GetHighLevelExpanded() { return this.expandedHL; }
+        public int GetHighLevelGenerated() { return this.generatedHL; }
+        public int GetLowLevelExpanded() { return this.expandedLL; }
+        public int GetLowLevelGenerated() { return this.generatedLL; }
+        public int GetSolutionDepth() { return this.totalCost - initialHeuristics; }
+        public int GetNodesPassedPruningCounter() { return passed; }
+        public long GetMemoryUsed() { return Process.GetCurrentProcess().VirtualMemorySize64; }
+        public int GetMaxGroupSize() { return problem.m_vAgents.Length; }
+        public SinglePlan[] GetSinglePlans() { return SinglePlan.getSinglePlans(solution); }
     }
 
     class CostTreeSearchSolverOldMatching : CostTreeSearchSolver

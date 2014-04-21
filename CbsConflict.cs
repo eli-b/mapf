@@ -22,7 +22,7 @@ namespace CPF_experiment
                 this.vartex = true;
         }
 
-        public override bool Equals(object obj)
+        public override bool Equals(object obj) // TODO: Implement GetHashCode()
         {
             if (this.agentA != ((CbsConflict)obj).agentA)
                 return false;

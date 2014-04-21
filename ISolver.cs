@@ -60,20 +60,20 @@ namespace CPF_experiment
         /// <summary>
         /// Gets the delta of (actual solution cost - first state heuristics)
         /// </summary>
-        int getSolutionDepth();
+        int GetSolutionDepth();
 
-        int getNodesPassedPruningCounter(); // What does this mean?
-        long getMemoryUsed();
-        int getHighLevelExpanded();
-        int getHighLevelGenerated();
-        int getLowLevelExpanded();
-        int getLowLevelGenerated();
-        int getMaxGroupSize();
+        int GetNodesPassedPruningCounter(); // What does this mean?
+        long GetMemoryUsed();
+        int GetHighLevelExpanded();
+        int GetHighLevelGenerated();
+        int GetLowLevelExpanded();
+        int GetLowLevelGenerated();
+        int GetMaxGroupSize();
     }
 
     public interface ICbsSolver : ISolver
     {
         void Setup(ProblemInstance problemInstance, int minDepth, Run runner);
-        SinglePlan[] getSinglePlans();
+        SinglePlan[] GetSinglePlans();
     }
 }

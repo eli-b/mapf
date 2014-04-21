@@ -8,9 +8,9 @@ namespace CPF_experiment
     public interface IBinaryHeapItem : IComparable<IBinaryHeapItem> 
     {
         /// <summary>
-        /// the index of the item in the binary heap
+        /// The index of the item in the binary heap
         /// </summary>
-        int getIndexInHeap();
-        void setIndexInHeap(int index);
+        int GetIndexInHeap();
+        void SetIndexInHeap(int index);
     }
 }

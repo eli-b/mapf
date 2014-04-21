@@ -6,7 +6,7 @@ namespace CPF_experiment
 {
     public class CbsConstraint : IComparable
     {
-        protected byte[] agents;
+        protected List<byte> agents;
         protected TimedMove move;
       //public byte group;
       //bool onVartex;
@@ -14,7 +14,8 @@ namespace CPF_experiment
 
         public CbsConstraint(int agent, int posX, int posY, Move.Direction direction, int timeStep)
         {
-            this.agents = new byte[1] { (byte)agent };
+            this.agents = new List<byte>();
+            this.agents.Add((byte)agent);
             this.move = new TimedMove(posX, posY, direction, timeStep);
           //this.onVartex = onVartex;
         }
@@ -35,7 +36,8 @@ namespace CPF_experiment
                 move = conflict.agentBmove;
                 agentNum = instance.m_vAgents[conflict.agentB].agent.agentNum;
             }
-            this.agents = new byte[1] { (byte)agentNum };
+            this.agents = new List<byte>();
+            this.agents.Add((byte)agentNum);
 
             this.move = new TimedMove(move, conflict.timeStep);
           //this.onVartex = conflict.vartex;
@@ -43,16 +45,16 @@ namespace CPF_experiment
                 this.move.direction = Move.Direction.NO_DIRECTION;
         }
 
-        public void init(int agent, int posX, int posY, Move.Direction direction, int timeStep)
+        public void Init(int agent, int posX, int posY, Move.Direction direction, int timeStep)
         {
-            this.agents = new byte[1] { (byte)agent }; // Must allocate a new array to make sure its size didn't change
+            this.agents = new List<byte>();
+            this.agents.Add((byte)agent);
             this.move.setup(posX, posY, direction, timeStep);
         }
 
-        public void init(int agent, TimedMove move)
+        public void Init(int agent, TimedMove move)
         {
-            this.agents = new byte[1] { (byte)agent }; // Must allocate a new array to make sure its size didn't change
-            this.move.setup(move);
+            this.Init(agent, move.x, move.y, move.direction, move.time);
         }
 
         /// <summary>
@@ -65,8 +67,11 @@ namespace CPF_experiment
         public override bool Equals(object obj)
         {
             CbsConstraint other = (CbsConstraint)obj;
-            if (fullyEqual && (sameAgents(other) == false))
-                return false;
+            if (fullyEqual)
+            {
+                if (this.agents.Count != other.agents.Count)
+                    return false;
+            }
 
             // This only checks that this.agents is a subset of other.agents!
             foreach (byte agent in this.agents)
@@ -80,32 +85,9 @@ namespace CPF_experiment
             return this.move.Equals(other.move);
         }
 
-        public void addAgents(List<byte> addAgents)
+        public void AddAgents(List<byte> addAgents)
         {
-            // TODO: Consider just using a List<int> and removing this method.
-            if (addAgents.Count == 0)
-                return;
-            byte[] newAgents = new byte[agents.Length + addAgents.Count];
-            Array.Copy(agents, newAgents, agents.Length);
-            Array.Copy(addAgents.ToArray<byte>(), 0, newAgents, agents.Length, addAgents.Count);
-            agents = newAgents;
-        }
-
-        /// <summary>
-        /// Only actually compares the number of agents :(
-        /// </summary>
-        /// <param name="obj"></param>
-        /// <returns></returns>
-        public bool sameAgents(CbsConstraint other)
-        {
-            if (this.agents.Length != other.agents.Length)
-                return false;
-            //foreach (byte agents in this.agents)
-            //{
-            //    if (((CbsConstraint)obj).agents.Contains(agents) == false)
-            //        return false;
-            //}
-            return true;
+            this.agents.AddRange(addAgents);
         }
 
         public override int GetHashCode()
@@ -114,24 +96,26 @@ namespace CPF_experiment
             {
                 int ans = 0;
                 ans += move.GetHashCode() * 3;
-              //ans += agents * 79;
+                for (int i = 0; i < this.agents.Count; i++)
+                {
+                    ans += this.agents[i] * Constants.PRIMES_FOR_HASHING[(i + 2) % Constants.PRIMES_FOR_HASHING.Length];
+                }
                 return ans;
             }
         }
 
-        public int getX() { return this.move.x; }
-        public int getY() { return this.move.y; }
-        //public int getAgentNum() { return this.agents; }
-        public int getTimeStep() { return this.move.time; }
+        public int GetX() { return this.move.x; } // Not used anywhere
+        public int GetY() { return this.move.y; } // Not used anywhere
+        public int GetTimeStep() { return this.move.time; }
 
-        public Move.Direction getDirection()
+        public Move.Direction GetDirection()
         {
             return this.move.direction;
         }
         
         public override string ToString()
         {
-            return move.ToString() + " direction-{" + move.direction + "} time-{" + move.time + "}";
+            return move.ToString() + " direction-{" + move.direction + "} time-{" + move.time + "} first agent {" + agents[0] + "}";
         }
 
         /// <summary>
@@ -139,7 +123,7 @@ namespace CPF_experiment
         /// </summary>
         /// <param name="other"></param>
         /// <returns></returns>
-        public bool allows(CbsConstraint other)
+        public bool Allows(CbsConstraint other)
         {
             if (this.move.Equals(other.move) == false) // Minor behavior change: if exactly one move has a set direction, and they're otherwise equal the method used to return true.
                 return true;
@@ -166,12 +150,12 @@ namespace CPF_experiment
         /// <param name="timeStep"></param>
         /// <param name="direction"></param>
         /// <returns></returns>
-        public bool violatesMustCond(byte agent, int posX, int posY, Move.Direction direction, int timeStep)
+        public bool ViolatesMustCond(byte agent, int posX, int posY, Move.Direction direction, int timeStep)
         {
-            return this.violatesMustCond(agent, new TimedMove(posX, posY, direction, timeStep));
+            return this.ViolatesMustCond(agent, new TimedMove(posX, posY, direction, timeStep));
         }
 
-        public bool violatesMustCond(byte agent, TimedMove move)
+        public bool ViolatesMustCond(byte agent, TimedMove move)
         {
             if (agents.Contains<byte>(agent) == false)
                 return false;

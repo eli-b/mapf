@@ -91,7 +91,7 @@ namespace CPF_experiment
             if (_count == _capacity)
                 Capacity *= 2; // Automatically grows the array!
 
-            item.setIndexInHeap(_count);
+            item.SetIndexInHeap(_count);
             _data[_count] = item;
             _count++;
             UpHeap();
@@ -107,7 +107,7 @@ namespace CPF_experiment
                 throw new InvalidOperationException("Cannot remove item, heap is empty.");
 
             IBinaryHeapItem v = _data[0];
-            v.setIndexInHeap(REMOVED_FROM_HEAP);
+            v.SetIndexInHeap(REMOVED_FROM_HEAP);
             _count--;
             if (this._count != 0)
             {
@@ -132,12 +132,12 @@ namespace CPF_experiment
             while (par > -1 && item.CompareTo(_data[par]) < 0)
             {
                 _data[p] = _data[par]; // Swap parent down
-                _data[p].setIndexInHeap(p);
+                _data[p].SetIndexInHeap(p);
                 p = par;
                 par = Parent(p);
             }
             _data[p] = item; // Finally, place item at the base of the bubble-up chain
-            _data[p].setIndexInHeap(p);
+            _data[p].SetIndexInHeap(p);
         }
         
         private void DownHeap()
@@ -166,7 +166,7 @@ namespace CPF_experiment
                 if (item.CompareTo(_data[n]) > 0)
                 {
                     _data[p] = _data[n]; // Swap child up
-                    _data[p].setIndexInHeap(p);
+                    _data[p].SetIndexInHeap(p);
                     p = n;
                 }
                 else
@@ -175,7 +175,7 @@ namespace CPF_experiment
                 }
             }
             _data[p] = item; // Finally, place item at the base of the bubble-down chain
-            _data[p].setIndexInHeap(p);
+            _data[p].SetIndexInHeap(p);
         }
         
         private void EnsureSort()
@@ -289,12 +289,12 @@ namespace CPF_experiment
         {
             if (item == null)
                 return false;
-            int child_index = item.getIndexInHeap();
+            int child_index = item.GetIndexInHeap();
             
             if (child_index == REMOVED_FROM_HEAP)
                 return false;
 
-            _data[child_index].setIndexInHeap(REMOVED_FROM_HEAP);
+            _data[child_index].SetIndexInHeap(REMOVED_FROM_HEAP);
             if (child_index == 0)
             {
                 Remove();
@@ -309,7 +309,7 @@ namespace CPF_experiment
             while (child_index != 0)
             {
                 _data[child_index] = _data[father_index]; // Swap parent down
-                _data[child_index].setIndexInHeap(child_index);
+                _data[child_index].SetIndexInHeap(child_index);
                 child_index = father_index;
                 father_index = Parent(child_index);
             }

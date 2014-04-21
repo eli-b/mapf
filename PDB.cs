@@ -123,7 +123,7 @@ namespace CPF_experiment
         /// <returns></returns>
         private bool IsValid(Move possibleMove, int agentNum, ICollection<Move> previousAgentMoves)
         {
-            // If the tile is not free (out of the grid or with an obstacles)
+            // If the tile is not free (out of the grid or with an obstacle)
             if (m_Problem.IsValid(possibleMove) == false)
                 return false;
 

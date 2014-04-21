@@ -144,7 +144,7 @@ namespace CPF_experiment
             output.Write(/*Process.GetCurrentProcess().VirtualMemorySize64*/"NA" + Run.RESULTS_DELIMITER);
         }
 
-        public int getMaxGroupSize()
+        public int GetMaxGroupSize()
         {
             foreach (AgentsGroup group in this.allGroups)
             {
@@ -410,13 +410,13 @@ namespace CPF_experiment
             Console.WriteLine("Generated - " + generatedHL);
             Console.WriteLine("Total cost - " + totalCost);
         }
-        public int getHighLevelExpanded() { return this.expandedHL; }
-        public int getHighLevelGenerated() { return this.generatedHL; }
-        public int getLowLevelExpanded() { return this.expandedLL; }
-        public int getLowLevelGenerated() { return this.generatedLL; }
-        public int getSolutionDepth() { return maxSolutionDepth; }
-        public int getNodesPassedPruningCounter() { return passed; }
-        public long getMemoryUsed() { return Process.GetCurrentProcess().VirtualMemorySize64; }
+        public int GetHighLevelExpanded() { return this.expandedHL; }
+        public int GetHighLevelGenerated() { return this.generatedHL; }
+        public int GetLowLevelExpanded() { return this.expandedLL; }
+        public int GetLowLevelGenerated() { return this.generatedLL; }
+        public int GetSolutionDepth() { return maxSolutionDepth; }
+        public int GetNodesPassedPruningCounter() { return passed; }
+        public long GetMemoryUsed() { return Process.GetCurrentProcess().VirtualMemorySize64; }
     }
 
 
@@ -463,13 +463,13 @@ namespace CPF_experiment
             // Store the plan found by the solver
             this.solutionCost = this.solver.GetSolutionCost();
             this.plan = this.solver.GetPlan();
-            this.expandedHL = solver.getHighLevelExpanded();
-            this.generatedHL = solver.getHighLevelGenerated();
-            this.expandedLL = solver.getLowLevelExpanded();
-            this.generatedLL = solver.getLowLevelGenerated();
-            this.depthOfSolution = solver.getSolutionDepth();
-            this.passed = solver.getNodesPassedPruningCounter();
-            this.timeTillLastNode = solver.getMemoryUsed();
+            this.expandedHL = solver.GetHighLevelExpanded();
+            this.generatedHL = solver.GetHighLevelGenerated();
+            this.expandedLL = solver.GetLowLevelExpanded();
+            this.generatedLL = solver.GetLowLevelGenerated();
+            this.depthOfSolution = solver.GetSolutionDepth();
+            this.passed = solver.GetNodesPassedPruningCounter();
+            this.timeTillLastNode = solver.GetMemoryUsed();
 
             // Clear memory
             this.solver.Clear();

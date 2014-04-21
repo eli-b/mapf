@@ -247,7 +247,7 @@ namespace CPF_experiment
                         this.mustConstraints[currentNode.makespan + 1] != null)
                     {
                         if (this.mustConstraints[currentNode.makespan + 1].Any<CbsConstraint>(
-                            con => con.violatesMustCond((byte)instance.m_vAgents[agentIndex].agent.agentNum, agentLocation)))
+                            con => con.ViolatesMustCond((byte)instance.m_vAgents[agentIndex].agent.agentNum, agentLocation)))
                             continue;
                     }
 
@@ -311,7 +311,7 @@ namespace CPF_experiment
             return new Plan(this.GetGoal());
         }
 
-        public virtual SinglePlan[] getSinglePlans()
+        public virtual SinglePlan[] GetSinglePlans()
         {
             return SinglePlan.getSinglePlans(this.GetGoal());
         }
@@ -335,10 +335,10 @@ namespace CPF_experiment
 
         public int getExpanded() { return this.expanded; }
         public int getGenerated() { return this.generated; }
-        public int getSolutionDepth() { return this.solutionDepth; }
+        public int GetSolutionDepth() { return this.solutionDepth; }
         public virtual int getTrueNagativeCount() { return -1; }
-        public virtual int getNodesPassedPruningCounter() { return expandedFullStates; }
-        public long getMemoryUsed() { return Process.GetCurrentProcess().VirtualMemorySize64; }
+        public virtual int GetNodesPassedPruningCounter() { return expandedFullStates; }
+        public long GetMemoryUsed() { return Process.GetCurrentProcess().VirtualMemorySize64; }
 
         //CBS SOLVER
         public void Setup(ProblemInstance problemInstance, int minDepth, Run runner)
@@ -355,12 +355,12 @@ namespace CPF_experiment
                 List<CbsConstraint> lc = (List<CbsConstraint>)problemInstance.parameters[CBS_LocalConflicts.CONSTRAINTSP];
                 if (lc != null && lc.Count > 0)
                 {
-                    mustConstraints = new List<CbsConstraint>[lc[lc.Count - 1].getTimeStep() + 1];
+                    mustConstraints = new List<CbsConstraint>[lc[lc.Count - 1].GetTimeStep() + 1];
                     foreach (CbsConstraint con in lc)
                     {
-                        if (mustConstraints[con.getTimeStep()] == null)
-                            mustConstraints[con.getTimeStep()] = new List<CbsConstraint>();
-                        mustConstraints[con.getTimeStep()].Add(con);
+                        if (mustConstraints[con.GetTimeStep()] == null)
+                            mustConstraints[con.GetTimeStep()] = new List<CbsConstraint>();
+                        mustConstraints[con.GetTimeStep()].Add(con);
                     }
                 }
             }
@@ -438,11 +438,11 @@ namespace CPF_experiment
             return false;
         }
 
-        public int getHighLevelExpanded() { return 0; }
-        public int getHighLevelGenerated() { return 0; }
-        public int getLowLevelExpanded() { return expanded; }
-        public int getLowLevelGenerated() { return generated; }
-        public int getMaxGroupSize() { return numOfAgents; }
+        public int GetHighLevelExpanded() { return 0; }
+        public int GetHighLevelGenerated() { return 0; }
+        public int GetLowLevelExpanded() { return expanded; }
+        public int GetLowLevelGenerated() { return generated; }
+        public int GetMaxGroupSize() { return numOfAgents; }
     }
 }
 

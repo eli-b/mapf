@@ -72,12 +72,12 @@ namespace CPF_experiment
         /// <summary>
         /// BH_Item implementation
         /// </summary>
-        public int getIndexInHeap() { return binaryHeapIndex; }
+        public int GetIndexInHeap() { return binaryHeapIndex; }
 
         /// <summary>
         /// BH_Item implementation
         /// </summary>
-        public void setIndexInHeap(int index) { binaryHeapIndex = index; }
+        public void SetIndexInHeap(int index) { binaryHeapIndex = index; }
 
         /// <summary>
         /// Checks last_move and agent

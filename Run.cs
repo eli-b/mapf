@@ -352,11 +352,11 @@ namespace CPF_experiment
             }
             Console.WriteLine();
             Console.WriteLine("Time In milliseconds: {0}", elapsedTime);
-            Console.WriteLine("Total Expanded Nodes (High-Level): {0}", solver.getHighLevelExpanded());
-            Console.WriteLine("Total Generated Nodes (High-Level): {0}", solver.getHighLevelGenerated());
-            Console.WriteLine("Total Expanded Nodes (Low-Level): {0}", solver.getLowLevelExpanded());
-            Console.WriteLine("Total Generated Nodes (Low-Level): {0}", solver.getLowLevelGenerated());
-           // Console.WriteLine("Total Unique/Full Expanded Nodes: {0}", solver.getNodesPassedPruningCounter());
+            Console.WriteLine("Total Expanded Nodes (High-Level): {0}", solver.GetHighLevelExpanded());
+            Console.WriteLine("Total Generated Nodes (High-Level): {0}", solver.GetHighLevelGenerated());
+            Console.WriteLine("Total Expanded Nodes (Low-Level): {0}", solver.GetLowLevelExpanded());
+            Console.WriteLine("Total Generated Nodes (Low-Level): {0}", solver.GetLowLevelGenerated());
+           // Console.WriteLine("Total Unique/Full Expanded Nodes: {0}", solver.GetNodesPassedPruningCounter());
 
             this.printStatistics(instance, solver, elapsedTime);
             solver.Clear();
@@ -432,11 +432,11 @@ namespace CPF_experiment
 
             this.resultsWriter.Write(runtimeInMillis + RESULTS_DELIMITER);
             this.resultsWriter.Write(solver.GetSolutionCost() + RESULTS_DELIMITER);
-            this.resultsWriter.Write(solver.getHighLevelExpanded() + RESULTS_DELIMITER);
-            this.resultsWriter.Write(solver.getHighLevelGenerated() + RESULTS_DELIMITER);
-            this.resultsWriter.Write(solver.getLowLevelExpanded() + RESULTS_DELIMITER);
-            this.resultsWriter.Write(solver.getLowLevelGenerated() + RESULTS_DELIMITER);
-            this.resultsWriter.Write(solver.getMaxGroupSize() + RESULTS_DELIMITER);
+            this.resultsWriter.Write(solver.GetHighLevelExpanded() + RESULTS_DELIMITER);
+            this.resultsWriter.Write(solver.GetHighLevelGenerated() + RESULTS_DELIMITER);
+            this.resultsWriter.Write(solver.GetLowLevelExpanded() + RESULTS_DELIMITER);
+            this.resultsWriter.Write(solver.GetLowLevelGenerated() + RESULTS_DELIMITER);
+            this.resultsWriter.Write(solver.GetMaxGroupSize() + RESULTS_DELIMITER);
 
             //solver.OutputStatistics(this.resultsWriter);
         }

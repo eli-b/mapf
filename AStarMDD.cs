@@ -63,12 +63,12 @@ namespace CPF_experiment
                 // Expand
                 expanded++;
                 toExpand.setup(currentNode);
-                expand(toExpand);
+                Expand(toExpand);
             }
             return null;
         }
 
-        public void expand(ExpandedNode currentNode)
+        public void Expand(ExpandedNode currentNode)
         {
             MDDStep child = currentNode.getNextChild();
             while (child != null)
@@ -258,13 +258,13 @@ namespace CPF_experiment
         /// BH_Item implementation
         /// </summary>
         /// <returns></returns>
-        public int getIndexInHeap() { return binaryHeapIndex; }
+        public int GetIndexInHeap() { return binaryHeapIndex; }
         
         /// <summary>
         /// BH_Item implementation
         /// </summary>
         /// <returns></returns>
-        public void setIndexInHeap(int index) { binaryHeapIndex = index; }
+        public void SetIndexInHeap(int index) { binaryHeapIndex = index; }
 
         public int CompareTo(IBinaryHeapItem other)
         {

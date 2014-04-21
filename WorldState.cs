@@ -161,13 +161,13 @@ namespace CPF_experiment
         /// BH_Item implementation
         /// </summary>
         /// <returns></returns>
-        public int getIndexInHeap() { return binaryHeapIndex; }
+        public int GetIndexInHeap() { return binaryHeapIndex; }
 
         /// <summary>
         /// BH_Item implementation
         /// </summary>
         /// <returns></returns>
-        public void setIndexInHeap(int index) { binaryHeapIndex = index; }
+        public void SetIndexInHeap(int index) { binaryHeapIndex = index; }
 
         /// <summary>
         /// Checks for internal conflicts
