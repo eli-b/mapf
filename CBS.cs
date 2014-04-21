@@ -190,38 +190,35 @@ namespace CPF_experiment
             return false;
         }
 
-        protected virtual bool checkMerge(CbsNode node)
+        protected virtual bool MergeConflicting(CbsNode node)
         {
-            return node.CheckMergeCondition(mergeThreshold);
+            return node.MergeIf(mergeThreshold);
         }
 
         public virtual bool Expand(CbsNode node)
         {
             CbsConflict conflict = node.GetConflict();
 
-            closedList.Remove(node); // Why?
-
-            if (this.maxThreshold != -1 && checkMerge(node))
+            if (this.maxThreshold != -1)
             {
-                if (closedList.ContainsKey(node)) // TODO: You won't find it there, it was just taken out two lines ago. Remove check?
-                    return true;
-
-                if (node.Replan(conflict.agentA, this.minDepth, ref highLevelExpanded, ref highLevelGenerated, ref lowLevelExpanded, ref lowLevelGenerated) == false)
+                closedList.Remove(node); // This may be the last chance to do it, if a merge occurs in the next line
+                if (MergeConflicting(node))
                 {
-                    if (node.replanSize > this.maxSizeGroup)
-                        maxSizeGroup = node.replanSize;
-                    return true;
+                    closedList.Add(node, node); // With new hash code
+                    if (node.Replan(conflict.agentA, this.minDepth, ref highLevelExpanded, ref highLevelGenerated, ref lowLevelExpanded, ref lowLevelGenerated) == false)
+                    {
+                        this.maxSizeGroup = Math.Max(this.maxSizeGroup, node.replanSize);
+                        return true;
+                    }
+                    this.maxSizeGroup = Math.Max(this.maxSizeGroup, node.replanSize);
+                    if (node.totalCost <= maxCost)
+                        openList.Add(node);
+                    this.addToGlobalConflictCount(node.GetConflict());
+                    return false;
                 }
-                if (node.replanSize > this.maxSizeGroup)
-                    maxSizeGroup = node.replanSize;
-                if (node.totalCost <= maxCost)
-                    openList.Add(node);
-                closedList.Add(node, node);
-                this.addToGlobalConflictCount(node.GetConflict());
-                return false;
+                else
+                    closedList.Add(node, node); // With old hash code
             }
-
-            closedList.Add(node, node);
 
             // Expand node, possibly partially:
             // Generate left child:
@@ -240,7 +237,7 @@ namespace CPF_experiment
                 node.totalCost += (ushort)(conflict.timeStep + 1 - node.PathLength(conflict.agentA)); // Add the minimal delta in the left child's cost: since we're banning the goal at conflict.timeStep, it must at least do conflict.timeStep+1 steps
                 openList.Add(node); // Re-insert node into open list with higher cost
             }
-            else // Agent A expansion already skipped in the past or not forcing A from its goal - finally generated the child:
+            else // Agent A expansion already skipped in the past or not forcing A from its goal - finally generate the child:
             {
                  con = new CbsConstraint(conflict, instance, true);
                  toAdd = new CbsNode(node, con, conflict.agentA);
@@ -357,9 +354,9 @@ namespace CPF_experiment
             base.Setup(problemInstance, runner);
         }
 
-        protected override bool checkMerge(CbsNode node)
+        protected override bool MergeConflicting(CbsNode node)
         {
-            return node.CheckMergeCondition(mergeThreshold, globalConflictsCounter);
+            return node.MergeIf(mergeThreshold, globalConflictsCounter);
         }
 
         protected override void addToGlobalConflictCount(CbsConflict conflict)

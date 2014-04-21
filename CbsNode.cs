@@ -484,7 +484,13 @@ namespace CPF_experiment
             return allSingleAgentPlans[agent].GetSize() - 1;
         }
 
-        public bool CheckMergeCondition(int mergeThreshold)
+        /// <summary>
+        /// Merge agent groups that are conflicting in this node if they pass the merge threshold.
+        /// Warning: May change the hash code!
+        /// </summary>
+        /// <param name="mergeThreshold"></param>
+        /// <returns>Whether a merge was performed.</returns>
+        public bool MergeIf(int mergeThreshold)
         {
             int countConflicts = 1;
             int firstGroupNumber = this.agentsGroupAssignment[conflict.agentA];
@@ -501,7 +507,7 @@ namespace CPF_experiment
             }
 
             CbsNode current = this.prev;
-            int a,b;
+            int a, b;
             while (current != null)
             {
                 a=current.conflict.agentA;
@@ -519,7 +525,15 @@ namespace CPF_experiment
             return false;
         }
 
-        public bool CheckMergeCondition(int mergeThreshold, int[][] globalConflictCounter)
+        /// <summary>
+        /// Merge agent groups that are conflicting in this node if they pass the merge threshold.
+        /// FIXME: Code dup with previous method
+        /// Warning: May change the hash code!
+        /// </summary>
+        /// <param name="mergeThreshold"></param>
+        /// <param name="globalConflictCounter"></param>
+        /// <returns>Whether a merge was performed.</returns>
+        public bool MergeIf(int mergeThreshold, int[][] globalConflictCounter)
         {
             int conflictCounter = 0;
             int firstGroupNumber = this.agentsGroupAssignment[conflict.agentA];

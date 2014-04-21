@@ -264,9 +264,9 @@ namespace CPF_experiment
             return this.heuristic;
         }
 
-        protected bool checkMerge(CbsNode node)
+        protected bool MergeConflicting(CbsNode node)
         {
-            return node.CheckMergeCondition(mergeThreshold, globalConflictsCounter);
+            return node.MergeIf(mergeThreshold, globalConflictsCounter);
         }
 
         protected void addToGlobalConflictCount(CbsConflict conflict)

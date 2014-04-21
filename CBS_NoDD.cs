@@ -6,6 +6,9 @@ using System.Diagnostics;
 
 namespace CPF_experiment
 {
+    /// <summary>
+    /// Cbs with no closed list. According to the paper, it's usually a bit faster since there very few cycles in the search.
+    /// </summary>
     class CBS_NoDD : ISolver
     {
         protected ProblemInstance instance;
@@ -115,7 +118,7 @@ namespace CPF_experiment
         public virtual bool Expand(CbsNode node,CbsConflict conflict)
         {
 
-            if (this.maxThreshold != -1 && checkMerge(node))
+            if (this.maxThreshold != -1 && MergeConflicting(node))
             {
                 if (node.Replan(conflict.agentA, this.minCost, ref highLevelExpanded, ref highLevelGenerated, ref lowLevelExpanded, ref lowLevelGenerated) == false)
                 {
@@ -270,9 +273,9 @@ namespace CPF_experiment
             return this.heuristic;
         }
 
-        protected bool checkMerge(CbsNode node)
+        protected bool MergeConflicting(CbsNode node)
         {
-            return node.CheckMergeCondition(mergeThreshold, globalConflictsCounter);
+            return node.MergeIf(mergeThreshold, globalConflictsCounter);
         }
 
         protected void addToGlobalConflictCount(CbsConflict conflict)
@@ -398,7 +401,7 @@ namespace CPF_experiment
 
         public virtual bool Expand(CbsNode node, CbsConflict conflict)
         {
-            if (this.maxThreshold != -1 && checkMerge(node))
+            if (this.maxThreshold != -1 && MergeConflicting(node))
             {
                 if (node.Replan(conflict.agentA, this.minCost, ref highLevelExpanded, ref highLevelGenerated, ref lowLevelExpanded, ref lowLevelGenerated) == false)
                 {
@@ -575,9 +578,9 @@ namespace CPF_experiment
             return this.heuristic;
         }
 
-        protected bool checkMerge(CbsNode node)
+        protected bool MergeConflicting(CbsNode node)
         {
-            return node.CheckMergeCondition(mergeThreshold, globalConflictsCounter);
+            return node.MergeIf(mergeThreshold, globalConflictsCounter);
         }
 
         protected void addToGlobalConflictCount(CbsConflict conflict)
