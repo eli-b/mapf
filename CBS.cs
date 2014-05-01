@@ -26,6 +26,7 @@ namespace CPF_experiment
         public int highLevelExpanded;
         public int highLevelGenerated;
         public int totalCost;
+        protected int solutionDepth;
         protected Run runner;
         protected CbsNode goalNode;
         protected Plan solution;
@@ -68,10 +69,12 @@ namespace CPF_experiment
 
             this.highLevelExpanded = 0;
             this.highLevelGenerated = 0;
-            lowLevelExpanded = 0;
-            lowLevelGenerated = 0;
-            maxSizeGroup = 1;
+            this.lowLevelExpanded = 0;
+            this.lowLevelGenerated = 0;
+            this.maxSizeGroup = 1;
             this.totalCost = 0;
+            this.solutionDepth = -1;
+
             if (problemInstance.parameters.ContainsKey(Trevor.MAXIMUM_COST_KEY))
                 this.maxCost = (int)(problemInstance.parameters[Trevor.MAXIMUM_COST_KEY]);
             else
@@ -141,21 +144,40 @@ namespace CPF_experiment
 
         public int GetSolutionCost() { return this.totalCost; }
 
-        public void OutputStatistics(TextWriter output)
+        public virtual void OutputStatisticsHeader(TextWriter output)
         {
+            output.Write(this.ToString() + " Expanded (HL)");
+            output.Write(Run.RESULTS_DELIMITER);
+            output.Write(this.ToString() + " Generated (HL)");
+            output.Write(Run.RESULTS_DELIMITER);
+            output.Write(this.ToString() + " Expanded (LL)");
+            output.Write(Run.RESULTS_DELIMITER);
+            output.Write(this.ToString() + " Generated (LL)");
+            output.Write(Run.RESULTS_DELIMITER);
+        }
+
+        public virtual void OutputStatistics(TextWriter output)
+        {
+            Console.WriteLine("Total Expanded Nodes (High-Level): {0}", this.GetHighLevelExpanded());
+            Console.WriteLine("Total Generated Nodes (High-Level): {0}", this.GetHighLevelGenerated());
+            Console.WriteLine("Total Expanded Nodes (Low-Level): {0}", this.GetLowLevelExpanded());
+            Console.WriteLine("Total Generated Nodes (Low-Level): {0}", this.GetLowLevelGenerated());
+
             output.Write(this.highLevelExpanded + Run.RESULTS_DELIMITER);
             output.Write(this.highLevelGenerated + Run.RESULTS_DELIMITER);
-            output.Write("N/A" + Run.RESULTS_DELIMITER);
-            output.Write("N/A" + Run.RESULTS_DELIMITER);
-            output.Write("N/A" + Run.RESULTS_DELIMITER);
-            output.Write(lowLevelExpanded + Run.RESULTS_DELIMITER);
-            output.Write(Process.GetCurrentProcess().VirtualMemorySize64 + Run.RESULTS_DELIMITER + Run.RESULTS_DELIMITER);
+            output.Write(this.lowLevelExpanded + Run.RESULTS_DELIMITER);
+            output.Write(this.lowLevelGenerated + Run.RESULTS_DELIMITER);
         }
 
         public bool Solve()
         {
             //Debug.WriteLine("Solving Sub-problem On Level - " + mergeThreshold);
             //Console.ReadLine();
+            int initialEstimate = 0;
+            if (openList.Count > 0)
+                initialEstimate = ((CbsNode)openList.Peek()).totalCost;
+
+            int lastCost = -1;
 
             while (openList.Count > 0)
             {
@@ -173,6 +195,7 @@ namespace CPF_experiment
                 if (currentNode.GoalTest())
                 {
                     this.totalCost = currentNode.totalCost;
+                    this.solutionDepth = this.totalCost - initialEstimate;
                     this.goalNode = currentNode;
                     this.solution = currentNode.CalculateJointPlan();
                     this.Clear();
@@ -185,6 +208,7 @@ namespace CPF_experiment
                     if (currentNode.collapse == CbsNode.ExpansionState.NOT_EXPANDED) // Actually means the node was fully expanded
                         currentNode.Clear(); // TODO: Consider if this is even worth doing
             }
+
             this.totalCost = Constants.NO_SOLUTION_COST;
             this.Clear();
             return false;
@@ -217,7 +241,7 @@ namespace CPF_experiment
                     return false;
                 }
                 else
-                    closedList.Add(node, node); // With old hash code
+                    closedList.Add(node, node); // With the old hash code
             }
 
             // Expand node, possibly partially:
@@ -300,17 +324,10 @@ namespace CPF_experiment
             return this.solution;
         }
 
-        private void PrintSolution(WorldState end) // ?
-        {
-        }
-
-        public int GetSolutionDepth() { return -1; }
-        public int GetNodesPassedPruningCounter() { return lowLevelExpanded; }
-        public int getNodesFailedOn2Counter() { return -1; }
-        public int getNodesFailedOn3Counter() { return -1; }
-        public int getNodesFailedOn4Counter() { return -1; }
+        public int GetSolutionDepth() { return this.solutionDepth; }
+        
         public long GetMemoryUsed() { return Process.GetCurrentProcess().VirtualMemorySize64; }
-        public WorldState GetGoal() { throw new NotSupportedException("CBS doesn't have a traditional goal state as it solves the problem independently for each agent"); }
+        
         public SinglePlan[] GetSinglePlans()
         {
             return goalNode.allSingleAgentPlans;

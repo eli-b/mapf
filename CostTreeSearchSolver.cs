@@ -128,14 +128,6 @@ namespace CPF_experiment
             this.ID_CAT = null;
         }
 
-        /// <summary>
-        /// Returns the goal state if it was found. Otherwise returns null.
-        /// </summary>
-        public WorldState GetGoal()
-        {
-            throw new NotSupportedException("Goal state does not exist in CostTreeSearch");
-        }
-
         public Plan GetPlan() { return new Plan(solution); }
 
         /// <summary>
@@ -146,6 +138,20 @@ namespace CPF_experiment
             return this.totalCost;
         }
 
+        public virtual void OutputStatisticsHeader(TextWriter output)
+        {
+            output.Write(this.ToString() + " Expanded (HL)");
+            output.Write(Run.RESULTS_DELIMITER);
+            output.Write(this.ToString() + " Generated (HL)");
+            output.Write(Run.RESULTS_DELIMITER);
+            output.Write(this.ToString() + " Expanded (LL)");
+            output.Write(Run.RESULTS_DELIMITER);
+            output.Write(this.ToString() + " Generated (LL)");
+            output.Write(Run.RESULTS_DELIMITER);
+            output.Write(this.ToString() + " Passed");
+            output.Write(Run.RESULTS_DELIMITER);
+        }
+
         /// <summary>
         /// Prints statistics of a single run to the given output. 
         /// </summary>
@@ -153,11 +159,9 @@ namespace CPF_experiment
         {
             output.Write(this.expandedHL + Run.RESULTS_DELIMITER);
             output.Write(this.generatedHL + Run.RESULTS_DELIMITER);
-            output.Write("N/A" + Run.RESULTS_DELIMITER);
-            output.Write("N/A" + Run.RESULTS_DELIMITER);
-            output.Write(this.totalCost - initialHeuristics + Run.RESULTS_DELIMITER);
-             output.Write(passed + Run.RESULTS_DELIMITER);
-            output.Write(/*Process.GetCurrentProcess().VirtualMemorySize64*/"NA" + Run.RESULTS_DELIMITER);
+            output.Write(this.expandedLL + Run.RESULTS_DELIMITER);
+            output.Write(this.generatedLL + Run.RESULTS_DELIMITER);
+            output.Write(passed + Run.RESULTS_DELIMITER);
         }
 
 
@@ -231,7 +235,6 @@ namespace CPF_experiment
         public int GetLowLevelExpanded() { return this.expandedLL; }
         public int GetLowLevelGenerated() { return this.generatedLL; }
         public int GetSolutionDepth() { return this.totalCost - initialHeuristics; }
-        public int GetNodesPassedPruningCounter() { return passed; }
         public long GetMemoryUsed() { return Process.GetCurrentProcess().VirtualMemorySize64; }
         public int GetMaxGroupSize() { return problem.m_vAgents.Length; }
         public SinglePlan[] GetSinglePlans() { return SinglePlan.getSinglePlans(solution); }
@@ -558,7 +561,6 @@ namespace CPF_experiment
             Console.WriteLine("Out of time");
             return false; 
         }
-        public override String GetName() { return "ICTS " + syncSize + "RE "; }
+        public override String GetName() { return "ICTS " + syncSize + "RE"; }
     }
-                
 }

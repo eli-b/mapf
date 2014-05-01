@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 
 namespace CPF_experiment
 {
@@ -124,5 +125,20 @@ namespace CPF_experiment
         {
             return (m_vPDBs.Count == 0);
         }
+
+        /// <summary>
+        /// Prints header of statistics of a single run to the given output. 
+        /// </summary>
+        public void OutputStatisticsHeader(TextWriter output) { }
+
+        /// <summary>
+        /// Prints statistics of a single run to the given output.
+        /// </summary>
+        public void OutputStatistics(TextWriter output) { }
+
+        /// <summary>
+        /// Clears statistics.
+        /// </summary>
+        public void ClearStatistics() { }
     }
 }

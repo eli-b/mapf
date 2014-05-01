@@ -20,6 +20,7 @@ namespace CPF_experiment
         /// <summary>
         /// Setup the relevant data structures for a run.
         /// </summary>
+        /// <param name="problemInstance"></param>
         /// <param name="runner"></param>
         void Setup(ProblemInstance problemInstance, Run runner);
 
@@ -37,11 +38,6 @@ namespace CPF_experiment
         void Clear();
 
         /// <summary>
-        /// Returns the goal state if it was found. Otherwise returns null.
-        /// </summary>
-        WorldState GetGoal();
-
-        /// <summary>
         /// Returns the found plan, or null if no plan was found.
         /// </summary>
         /// <returns></returns>
@@ -53,7 +49,12 @@ namespace CPF_experiment
         int GetSolutionCost();
 
         /// <summary>
-        /// Prints statistics of a single run to the given output. 
+        /// Prints header of statistics of a single run to the given output. 
+        /// </summary>
+        void OutputStatisticsHeader(TextWriter output);
+        
+        /// <summary>
+        /// Prints statistics of a single run to the given output.
         /// </summary>
         void OutputStatistics(TextWriter output);
 
@@ -62,13 +63,13 @@ namespace CPF_experiment
         /// </summary>
         int GetSolutionDepth();
 
-        int GetNodesPassedPruningCounter(); // What does this mean?
         long GetMemoryUsed();
+        int GetMaxGroupSize();
+
         int GetHighLevelExpanded();
         int GetHighLevelGenerated();
         int GetLowLevelExpanded();
         int GetLowLevelGenerated();
-        int GetMaxGroupSize();
     }
 
     public interface ICbsSolver : ISolver

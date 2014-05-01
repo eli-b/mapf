@@ -5,7 +5,7 @@ using System.Linq;
 namespace CPF_experiment
 {
     /// <summary>
-    /// Returns a plan for a set of agents.
+    /// Represents a plan for a set of agents.
     /// </summary>
     public class Plan
     {

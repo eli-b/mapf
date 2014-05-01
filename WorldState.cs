@@ -18,7 +18,7 @@ namespace CPF_experiment
         public int potentialConflictsCount;
         public int cbsInternalConflictsCount;
         /// <summary>
-        /// The last move of all agents that have already moved in this turn. Used for making sure the next agent move doesn't collide with move already made.
+        /// The last move of all agents that have already moved in this turn. Used for making sure the next agent move doesn't collide with moves already made.
         /// </summary>
         public HashSet<TimedMove> currentMoves;
 
@@ -139,7 +139,8 @@ namespace CPF_experiment
         }
 
         /// <summary>
-        /// Returns the last move of all the agents in this state
+        /// Returns a copy of the last move of all the agents in this state.
+        /// Why a copy?
         /// </summary>
         /// <returns>A list of points</returns>
         public List<Move> GetAgentsMoves()

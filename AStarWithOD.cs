@@ -1,6 +1,6 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
 
 namespace CPF_experiment
 {
@@ -156,6 +156,23 @@ namespace CPF_experiment
         public override Plan GetPlan()
         {
             return new Plan(((WorldStateWithOD)(this.GetGoal())));
+        }
+
+        public override void OutputStatisticsHeader(TextWriter output)
+        {
+            base.OutputStatisticsHeader(output);
+
+            output.Write(this.ToString() + " Expanded Full States (LL)");
+            output.Write(Run.RESULTS_DELIMITER);
+        }
+
+        public override void OutputStatistics(TextWriter output)
+        {
+            base.OutputStatistics(output);
+
+            Console.WriteLine("Total Expanded Full States (Low-Level): {0}", this.expandedFullStates);
+
+            output.Write(this.expandedFullStates + Run.RESULTS_DELIMITER);
         }
     }
 }

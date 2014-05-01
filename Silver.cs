@@ -48,8 +48,6 @@ namespace CPF_experiment
 
         public String GetName() { return "Silver"; }
 
-        public WorldState GetGoal() { throw new NotSupportedException("A* type states not used in Silver"); }
-        
         public Plan GetPlan() { throw new NotSupportedException("TODO"); }
 
         public int GetSolutionCost() { return this.totalTime; }
@@ -223,12 +221,7 @@ namespace CPF_experiment
         
         public int getExpanded() { return this.expanded; }
         public int getGenerated() { return this.generated; }
-        public int getSolutionDepth() { return -1; }
-        public int getTrueNagativeCount() { return -1; }
-        public int getNodesPassedPruningCounter() { return -1; }
-        public int getNodesFailedOn2Counter() { return -1; }
-        public int getNodesFailedOn3Counter() { return -1; }
-        public int getNodesFailedOn4Counter() { return -1; }
-        public long getMemuryUsed() { return Process.GetCurrentProcess().VirtualMemorySize64; }
+        public int getSolutionDepth() { return -1; } // Lazy...
+        public long getMemoryUsed() { return Process.GetCurrentProcess().VirtualMemorySize64; }
     }
 }

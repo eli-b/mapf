@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Collections;
 using System.Collections.Generic;
 
@@ -128,5 +129,20 @@ namespace CPF_experiment
         {
             return "SIC";
         }
+
+        /// <summary>
+        /// Prints header of statistics of a single run to the given output. 
+        /// </summary>
+        void OutputStatisticsHeader(TextWriter output) { }
+
+        /// <summary>
+        /// Prints statistics of a single run to the given output.
+        /// </summary>
+        void OutputStatistics(TextWriter output) { }
+
+        /// <summary>
+        /// Clears statistics.
+        /// </summary>
+        void ClearStatistics() { }
     }
 }

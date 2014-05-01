@@ -38,7 +38,6 @@ namespace CPF_experiment
         private int maxSolutionDepth;
         private HashSet<TimedMove> conflictAvoidance;
         private int maxDepth;
-        private int passed;
         private string name;
 
         public Trevor() : this(new AStarWithOD())
@@ -68,7 +67,6 @@ namespace CPF_experiment
             this.generatedHL = 0;
             this.totalCost = 0;
             this.maxGroup = 1;
-            this.passed = 0;
             this.minGroup = instance.m_vAgents.Length;
             this.conflictAvoidance = new HashSet<TimedMove>();
             // Initialize the agent group collection with a group for every agent

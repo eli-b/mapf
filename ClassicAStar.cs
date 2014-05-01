@@ -18,6 +18,7 @@ namespace CPF_experiment
         public int solutionDepth;
         public int expanded;
         public int generated;
+        public int reopened;
         public int totalCost;
         public int numOfAgents;
         protected int maxCost;
@@ -62,11 +63,11 @@ namespace CPF_experiment
             this.openList.Add(root);
             this.closedList.Add(root, root);
             this.expanded = 0;
-            this.generated = 0;
+            this.generated = 1;
+            this.reopened = 0;
             this.expandedFullStates = 0;
             this.totalCost = 0;
-            this.solutionDepth = 0;
-            this.goal = null;
+            this.solutionDepth = -1;
             this.numOfAgents = problemInstance.m_vAgents.Length;
 
             // Store parameters used by Trevor's Independence Detection algorithm
@@ -94,7 +95,7 @@ namespace CPF_experiment
         }
 
         /// <summary>
-        /// Clears the relevant data structures and variables to free memory usage.
+        /// Clears the relevant data structures and variables to free memory.
         /// </summary>
         public void Clear()
         {
@@ -125,19 +126,32 @@ namespace CPF_experiment
 
         public int GetSolutionCost() { return this.totalCost; }
 
+        public virtual void OutputStatisticsHeader(TextWriter output)
+        {
+            output.Write(this.ToString() + " Expanded (LL)");
+            output.Write(Run.RESULTS_DELIMITER);
+            output.Write(this.ToString() + " Generated (LL)");
+            output.Write(Run.RESULTS_DELIMITER);
+            output.Write(this.ToString() + " Reopened (LL)");
+            output.Write(Run.RESULTS_DELIMITER);
+            
+            this.heuristic.OutputStatisticsHeader(output);
+        }
+
         /// <summary>
         /// Prints statistics of a single run to the given output. 
         /// </summary>
         public virtual void OutputStatistics(TextWriter output)
         {
+            Console.WriteLine("Total Expanded Nodes (Low-Level): {0}", this.GetLowLevelExpanded());
+            Console.WriteLine("Total Generated Nodes (Low-Level): {0}", this.GetLowLevelGenerated());
+            Console.WriteLine("Total Reopened Nodes (Low-Level): {0}", this.reopened);
+
             output.Write(this.expanded + Run.RESULTS_DELIMITER);
             output.Write(this.generated + Run.RESULTS_DELIMITER);
-            output.Write("N/A" + Run.RESULTS_DELIMITER);
-            output.Write("N/A" + Run.RESULTS_DELIMITER);
-            output.Write("N/A" + Run.RESULTS_DELIMITER);
-            //output.Write(solutionDepth + Run.RESULTS_DELIMITER);
-            // output.Write(expandedFullStates + Run.RESULTS_DELIMITER);
-            // output.Write("NA"/*Process.GetCurrentProcess().VirtualMemorySize64*/ + Run.RESULTS_DELIMITER);
+            output.Write(this.reopened + Run.RESULTS_DELIMITER);
+
+            this.heuristic.OutputStatistics(output);
         }
 
         /// <summary>
@@ -336,8 +350,6 @@ namespace CPF_experiment
         public int getExpanded() { return this.expanded; }
         public int getGenerated() { return this.generated; }
         public int GetSolutionDepth() { return this.solutionDepth; }
-        public virtual int getTrueNagativeCount() { return -1; }
-        public virtual int GetNodesPassedPruningCounter() { return expandedFullStates; }
         public long GetMemoryUsed() { return Process.GetCurrentProcess().VirtualMemorySize64; }
 
         //CBS SOLVER
@@ -389,7 +401,7 @@ namespace CPF_experiment
                     currentNode.cbsInternalConflictsCount += currentNode.conflictsCount(((HashSet_U<TimedMove>)instance.parameters[CBS_LocalConflicts.INTERNAL_CAT]));
                 }
 
-                //if in closed list
+                // If in closed list - only reopen if F is lower
                 if (this.closedList.ContainsKey(currentNode) == true)
                 {
                     var inClosedList = this.closedList[currentNode];
@@ -412,6 +424,7 @@ namespace CPF_experiment
                     //    (g_inClosedList == currentNode.g && potentialConflictsCount_inClosedList > currentNode.potentialConflictsCount) ||
                     //    (g_inClosedList == currentNode.g && potentialConflictsCount_inClosedList == currentNode.potentialConflictsCount && cbsInternalConflictsCount_inClosedList > currentNode.cbsInternalConflictsCount))
                     {
+                        this.reopened++;
                         closedList.Remove(inClosedList);
                         openList.Remove(inClosedList);
                         // Items are searched for in the heap using their binaryHeapIndex, which is only intialized when they're put into it,
@@ -424,13 +437,12 @@ namespace CPF_experiment
                 if (this.closedList.ContainsKey(currentNode) == false)
                 {
                     this.closedList.Add(currentNode, currentNode);
-                    this.generated++;
-
+                    this.generated++; // Reopned nodes are also recounted here.
                     this.openList.Add(currentNode);
                     return true;
                 }
 
-                // What if in open list?? It seems this impl immediately puts _generated_ nodes in the closed list,
+                // What if in open list? This implementation immediately puts _generated_ nodes in the closed list,
                 // so it only needs to check it and not the open list.
                 // That actually makes a lot of sense: membership tests in heaps are expensive, and in hashtables are cheap.
                 // This way we only need to _search_ the open list if we encounter a node that was already visited.

@@ -7,7 +7,7 @@ using System.Diagnostics;
 namespace CPF_experiment
 {
     /// <summary>
-    /// Cbs with no closed list. According to the paper, it's usually a bit faster since there very few cycles in the search.
+    /// Cbs with no closed list. According to the paper, it's usually a bit faster since there are very few cycles in the search.
     /// </summary>
     class CBS_NoDD : ISolver
     {
@@ -53,15 +53,24 @@ namespace CPF_experiment
 
         public int GetSolutionCost() { return this.totalCost; }
 
+        public virtual void OutputStatisticsHeader(TextWriter output)
+        {
+            output.Write(this.ToString() + " Expanded (HL)");
+            output.Write(Run.RESULTS_DELIMITER);
+            output.Write(this.ToString() + " Generated (HL)");
+            output.Write(Run.RESULTS_DELIMITER);
+            output.Write(this.ToString() + " Expanded (LL)");
+            output.Write(Run.RESULTS_DELIMITER);
+            output.Write(this.ToString() + " Generated (LL)");
+            output.Write(Run.RESULTS_DELIMITER);
+        }
+
         public void OutputStatistics(TextWriter output)
         {
             output.Write(this.highLevelExpanded + Run.RESULTS_DELIMITER);
             output.Write(this.highLevelGenerated + Run.RESULTS_DELIMITER);
-            output.Write("N/A" + Run.RESULTS_DELIMITER);
-            output.Write("N/A" + Run.RESULTS_DELIMITER);
-            output.Write("N/A" + Run.RESULTS_DELIMITER);
-            output.Write(lowLevelExpanded + Run.RESULTS_DELIMITER);
-            output.Write(Process.GetCurrentProcess().VirtualMemorySize64 + Run.RESULTS_DELIMITER + Run.RESULTS_DELIMITER);
+            output.Write(this.lowLevelExpanded + Run.RESULTS_DELIMITER);
+            output.Write(this.lowLevelGenerated + Run.RESULTS_DELIMITER);
         }
 
         public bool Solve()
@@ -202,12 +211,7 @@ namespace CPF_experiment
         }
 
         public int GetSolutionDepth() { return -1; }
-        public int GetNodesPassedPruningCounter() { return lowLevelExpanded; }
-        public int getNodesFailedOn2Counter() { return -1; }
-        public int getNodesFailedOn3Counter() { return -1; }
-        public int getNodesFailedOn4Counter() { return -1; }
         public long GetMemoryUsed() { return Process.GetCurrentProcess().VirtualMemorySize64; }
-        public WorldState GetGoal() { throw new NotSupportedException("CBS doesn't have a traditional goal state as it solves the problem independently for each agent"); }
         public SinglePlan[] getSinglePlans()
         {
             return goalNode.allSingleAgentPlans;
@@ -337,15 +341,24 @@ namespace CPF_experiment
 
         public int GetSolutionCost() { return this.totalCost; }
 
+        public virtual void OutputStatisticsHeader(TextWriter output)
+        {
+            output.Write(this.ToString() + " Expanded (HL)");
+            output.Write(Run.RESULTS_DELIMITER);
+            output.Write(this.ToString() + " Generated (HL)");
+            output.Write(Run.RESULTS_DELIMITER);
+            output.Write(this.ToString() + " Expanded (LL)");
+            output.Write(Run.RESULTS_DELIMITER);
+            output.Write(this.ToString() + " Generated (LL)");
+            output.Write(Run.RESULTS_DELIMITER);
+        }
+
         public void OutputStatistics(TextWriter output)
         {
             output.Write(this.highLevelExpanded + Run.RESULTS_DELIMITER);
             output.Write(this.highLevelGenerated + Run.RESULTS_DELIMITER);
-            output.Write("N/A" + Run.RESULTS_DELIMITER);
-            output.Write("N/A" + Run.RESULTS_DELIMITER);
-            output.Write("N/A" + Run.RESULTS_DELIMITER);
-            output.Write(lowLevelExpanded + Run.RESULTS_DELIMITER);
-            output.Write(Process.GetCurrentProcess().VirtualMemorySize64 + Run.RESULTS_DELIMITER + Run.RESULTS_DELIMITER);
+            output.Write(this.lowLevelExpanded + Run.RESULTS_DELIMITER);
+            output.Write(this.lowLevelGenerated + Run.RESULTS_DELIMITER);
         }
 
         public bool Solve()
@@ -507,12 +520,7 @@ namespace CPF_experiment
         }
 
         public int GetSolutionDepth() { return -1; }
-        public int GetNodesPassedPruningCounter() { return lowLevelExpanded; }
-        public int getNodesFailedOn2Counter() { return -1; }
-        public int getNodesFailedOn3Counter() { return -1; }
-        public int getNodesFailedOn4Counter() { return -1; }
         public long GetMemoryUsed() { return Process.GetCurrentProcess().VirtualMemorySize64; }
-        public WorldState GetGoal() { throw new NotSupportedException("CBS doesn't have a traditional goal state as it solves the problem independently for each agent"); }
         public SinglePlan[] getSinglePlans()
         {
             return goalNode.allSingleAgentPlans;

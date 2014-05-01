@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using System.IO;
+using System;
 
 namespace CPF_experiment
 {
@@ -86,15 +87,24 @@ namespace CPF_experiment
             return false;
         }
 
+        public override void OutputStatisticsHeader(TextWriter output)
+        {
+            base.OutputStatisticsHeader(output);
+            output.Write(this.ToString() + " Generated And Discarded (LL)");
+            output.Write(Run.RESULTS_DELIMITER);
+            output.Write(this.ToString() + " Expanded Full States (LL)");
+            output.Write(Run.RESULTS_DELIMITER);
+        }
+
         public override void OutputStatistics(TextWriter output)
         {
-            output.Write(this.expanded + Run.RESULTS_DELIMITER);
-            output.Write(this.generated + Run.RESULTS_DELIMITER);
-            output.Write("N/A" + Run.RESULTS_DELIMITER);
+            base.OutputStatistics(output);
+
+            Console.WriteLine("Generated And Discarded (Low-Level): {0}", this.generatedAndDiscarded);
+            Console.WriteLine("Expanded Full States (Low-Level): {0}", this.expandedFullStates);
+
             output.Write(this.generatedAndDiscarded + Run.RESULTS_DELIMITER);
-            output.Write(solutionDepth + Run.RESULTS_DELIMITER);
-            output.Write(expandedFullStates + Run.RESULTS_DELIMITER);
-            output.Write("NA"/*Process.GetCurrentProcess().VirtualMemorySize64*/ + Run.RESULTS_DELIMITER);
+            output.Write(this.expandedFullStates + Run.RESULTS_DELIMITER);
             // Isn't there a CSV module in C# instead of fussing with the delimeter everywhere?
         }
     }

@@ -60,9 +60,9 @@ namespace CPF_experiment
             this.openList.Add(root);
             this.highLevelExpanded = 0;
             this.highLevelGenerated = 1;
-            lowLevelExpanded = 0;
-            lowLevelGenerated = 0;
-            maxSizeGroup = 1;
+            this.lowLevelExpanded = 0;
+            this.lowLevelGenerated = 0;
+            this.maxSizeGroup = 1;
             this.totalCost = 0;
             if (problemInstance.parameters.ContainsKey(Trevor.MAXIMUM_COST_KEY))
                 this.maxCost = (int)(problemInstance.parameters[Trevor.MAXIMUM_COST_KEY]);
@@ -117,15 +117,24 @@ namespace CPF_experiment
 
         public int GetSolutionCost() { return this.totalCost; }
 
+        public virtual void OutputStatisticsHeader(TextWriter output)
+        {
+            output.Write(this.ToString() + " Expanded (HL)");
+            output.Write(Run.RESULTS_DELIMITER);
+            output.Write(this.ToString() + " Generated (HL)");
+            output.Write(Run.RESULTS_DELIMITER);
+            output.Write(this.ToString() + " Expanded (LL)");
+            output.Write(Run.RESULTS_DELIMITER);
+            output.Write(this.ToString() + " Generated (LL)");
+            output.Write(Run.RESULTS_DELIMITER);
+        }
+
         public void OutputStatistics(TextWriter output)
         {
             output.Write(this.highLevelExpanded + Run.RESULTS_DELIMITER);
             output.Write(this.highLevelGenerated + Run.RESULTS_DELIMITER);
-            output.Write("N/A" + Run.RESULTS_DELIMITER);
-            output.Write("N/A" + Run.RESULTS_DELIMITER);
-            output.Write("N/A" + Run.RESULTS_DELIMITER);
-            output.Write(lowLevelExpanded + Run.RESULTS_DELIMITER);
-            output.Write(Process.GetCurrentProcess().VirtualMemorySize64 + Run.RESULTS_DELIMITER + Run.RESULTS_DELIMITER);
+            output.Write(this.lowLevelExpanded + Run.RESULTS_DELIMITER);
+            output.Write(this.lowLevelGenerated + Run.RESULTS_DELIMITER);
         }
 
         public bool Solve()
@@ -258,12 +267,7 @@ namespace CPF_experiment
         }
 
         public int GetSolutionDepth() { return -1; }
-        public int GetNodesPassedPruningCounter() { return lowLevelExpanded; }
-        public int getNodesFailedOn2Counter() { return -1; }
-        public int getNodesFailedOn3Counter() { return -1; }
-        public int getNodesFailedOn4Counter() { return -1; }
         public long GetMemoryUsed() { return Process.GetCurrentProcess().VirtualMemorySize64; }
-        public WorldState GetGoal() { throw new NotSupportedException("CBS doesn't have a traditional goal state as it solves the problem independently for each agent"); }
         public SinglePlan[] GetSinglePlans()
         {
             return goalNode.allSingleAgentPlans;

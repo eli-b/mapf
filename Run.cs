@@ -106,15 +106,15 @@ namespace CPF_experiment
             //solvers.Add(new CostTreeSearchSolverOldMatching(2));
             //solvers.Add(new CostTreeSearchSolverRepatedMatch(2));
             //solvers.Add(new CostTreeSearchSolverKMatch(3));
-           // solvers.Add(new CostTreeSearchSolverOldMatching(3));
+            //solvers.Add(new CostTreeSearchSolverOldMatching(3));
             //solvers.Add(new CostTreeSearchSolverRepatedMatch(3));
 
-           // solvers.Add(new CostTreeSearchNoPruning());
+            //solvers.Add(new CostTreeSearchNoPruning());
             //solvers.Add(new CostTreeSearchKMatch(2));
             //solvers.Add(new CostTreeSearchOldMatching(2));
             //solvers.Add(new CostTreeSearchRepatedMatch(2));
             //solvers.Add(new CostTreeSearchKMatch(3));
-    //        solvers.Add(new CostTreeSearchOldMatching(3));
+            //solvers.Add(new CostTreeSearchOldMatching(3));
             //solvers.Add(new CostTreeSearchRepatedMatch(3));
 
 
@@ -293,24 +293,18 @@ namespace CPF_experiment
 
 
                     Console.WriteLine();
-                    if (solvers[i].GetSolutionCost() >= 0)
+                    if (solvers[i].GetSolutionCost() >= 0) // Solved successfully
                     {
                         solvers[i].GetPlan().PrintPlan();
                         outOfTimeCounter[i] = 0;
 
                         // Validate solution:
-                        if (solvers[0].GetSolutionCost() >= 0)
+                        if (i != 0 && solvers[0].GetSolutionCost() >= 0)
                         {
-                            Debug.Assert(solvers[0].GetSolutionCost() == solvers[i].GetSolutionCost(), "A* solution cost is different than that of " + solvers[i]); // Assuming algs are supposed to find an optimal solution, this is an error.
+                            Debug.Assert(solvers[0].GetSolutionCost() == solvers[i].GetSolutionCost(), solvers[0] + " solution cost is different than that of " + solvers[i]); // Assuming algs are supposed to find an optimal solution, this is an error.
                             //Debug.Assert(solvers[0].getExpanded() == solvers[i].getExpanded(), "Different Expanded");
                             //Debug.Assert(solvers[0].getGenerated() == solvers[i].getGenerated(), "Different Generated");
                             //Debug.Assert(solvers[0].GetSolutionDepth() == solvers[i].GetSolutionDepth(), "Depth Bug " + solvers[i]);
-
-                            //if (solvers[0].GetSolutionCost() != solvers[i].GetSolutionCost())
-                            //{
-                            //    Console.WriteLine("A* solution cost is different than that of " + solvers[i]);
-                            //    Console.ReadLine();
-                            //}
                         }
 
                         Console.WriteLine("+SUCCESS+ (:");
@@ -327,8 +321,6 @@ namespace CPF_experiment
                 Console.WriteLine();
             }
             this.continueToNextLine();
-          //Debug.Assert(solvers[0].GetNodesPassedPruningCounter() >= solvers[1].GetNodesPassedPruningCounter(), "");
-          //Console.ReadLine();
         }
 
         /// <summary>
@@ -348,21 +340,20 @@ namespace CPF_experiment
             if (solved)
             {
                 Console.WriteLine("Total cost: {0}", solver.GetSolutionCost());
+                Console.WriteLine("Solution depth: {0}", solver.GetSolutionDepth());
             }
             else
             {
                 Console.WriteLine("Failed to solve");
             }
             Console.WriteLine();
+
             Console.WriteLine("Time In milliseconds: {0}", elapsedTime);
-            Console.WriteLine("Total Expanded Nodes (High-Level): {0}", solver.GetHighLevelExpanded());
-            Console.WriteLine("Total Generated Nodes (High-Level): {0}", solver.GetHighLevelGenerated());
-            Console.WriteLine("Total Expanded Nodes (Low-Level): {0}", solver.GetLowLevelExpanded());
-            Console.WriteLine("Total Generated Nodes (Low-Level): {0}", solver.GetLowLevelGenerated());
            // Console.WriteLine("Total Unique/Full Expanded Nodes: {0}", solver.GetNodesPassedPruningCounter());
 
             this.printStatistics(instance, solver, elapsedTime);
             solver.Clear();
+            solver.GetHeuristic().ClearStatistics();
         }
 
         /// <summary>
@@ -370,13 +361,13 @@ namespace CPF_experiment
         /// </summary>
         public void printResultsFileHeader()
         {
-            this.resultsWriter.Write("GridSize");
+            this.resultsWriter.Write("Grid Size");
             this.resultsWriter.Write(Run.RESULTS_DELIMITER);
-            this.resultsWriter.Write("NumOfAgents");
+            this.resultsWriter.Write("Num Of Agents");
             this.resultsWriter.Write(Run.RESULTS_DELIMITER);
-            this.resultsWriter.Write("NumOfObstacles");
+            this.resultsWriter.Write("Num Of Obstacles");
             this.resultsWriter.Write(Run.RESULTS_DELIMITER);
-            this.resultsWriter.Write("InstanceId");
+            this.resultsWriter.Write("Instance Id");
             this.resultsWriter.Write(Run.RESULTS_DELIMITER);
             //this.resultsWriter.Write("Conflict1");
             //this.resultsWriter.Write(Run.RESULTS_DELIMITER);
@@ -385,24 +376,18 @@ namespace CPF_experiment
 
             for (int i = 0; i < solvers.Count; i++)
             {
-                var name = solvers[i];
-                this.resultsWriter.Write(name + " success");
+                var solver = solvers[i];
+                this.resultsWriter.Write(solver + " Success");
                 this.resultsWriter.Write(Run.RESULTS_DELIMITER);
-                this.resultsWriter.Write(name + " Runtime");
+                this.resultsWriter.Write(solver + " Runtime");
                 this.resultsWriter.Write(Run.RESULTS_DELIMITER);
-                this.resultsWriter.Write(name + " SolutionCost");
+                this.resultsWriter.Write(solver + " Solution Cost");
                 this.resultsWriter.Write(Run.RESULTS_DELIMITER);
-                this.resultsWriter.Write(name + " Expanded-HL");
+                solver.OutputStatisticsHeader(this.resultsWriter);
+                this.resultsWriter.Write(solver + " Max Group");
                 this.resultsWriter.Write(Run.RESULTS_DELIMITER);
-                this.resultsWriter.Write(name + " Generated-HL");
+                this.resultsWriter.Write(solver + " Solution Depth");
                 this.resultsWriter.Write(Run.RESULTS_DELIMITER);
-                this.resultsWriter.Write(name + " Expanded-LL");
-                this.resultsWriter.Write(Run.RESULTS_DELIMITER);
-                this.resultsWriter.Write(name + " Generated-LL");
-                this.resultsWriter.Write(Run.RESULTS_DELIMITER);
-                this.resultsWriter.Write(name + " Max Group");
-                this.resultsWriter.Write(Run.RESULTS_DELIMITER);
-
 
                 //this.resultsWriter.Write(name + "Min Group / G&D");
                 //this.resultsWriter.Write(Run.RESULTS_DELIMITER);
@@ -424,31 +409,32 @@ namespace CPF_experiment
         /// <param name="runtimeInMillis">The time it took the given solver to solve the given instance</param>
         private void printStatistics(ProblemInstance instance, ISolver solver, double runtimeInMillis)
         {
+            // Success col:
             if (solver.GetSolutionCost() < 0)
-            {
                 this.resultsWriter.Write(0 + RESULTS_DELIMITER);
-            }
             else
-            {
                 this.resultsWriter.Write(1 + RESULTS_DELIMITER);
-            }
-
+            // Runtime col:
             this.resultsWriter.Write(runtimeInMillis + RESULTS_DELIMITER);
+            // Solution Cost col:
             this.resultsWriter.Write(solver.GetSolutionCost() + RESULTS_DELIMITER);
-            this.resultsWriter.Write(solver.GetHighLevelExpanded() + RESULTS_DELIMITER);
-            this.resultsWriter.Write(solver.GetHighLevelGenerated() + RESULTS_DELIMITER);
-            this.resultsWriter.Write(solver.GetLowLevelExpanded() + RESULTS_DELIMITER);
-            this.resultsWriter.Write(solver.GetLowLevelGenerated() + RESULTS_DELIMITER);
+            // Algorithm specific cols:
+            solver.OutputStatistics(this.resultsWriter);
+            // Max Group col:
             this.resultsWriter.Write(solver.GetMaxGroupSize() + RESULTS_DELIMITER);
-
-            //solver.OutputStatistics(this.resultsWriter);
+            // Solution Depth col:
+            this.resultsWriter.Write(solver.GetSolutionDepth() + RESULTS_DELIMITER);
         }
 
         private void printProblemStatistics(ProblemInstance instance)
         {
+            // Grid Size col:
             this.resultsWriter.Write(instance.m_vGrid.GetLength(0) + RESULTS_DELIMITER);
+            // Num Of Agents col:
             this.resultsWriter.Write(instance.m_vAgents.Length + RESULTS_DELIMITER);
+            // Num Of Obstacles col:
             this.resultsWriter.Write(instance.m_nObstacles + RESULTS_DELIMITER);
+            // Instance Id col:
             this.resultsWriter.Write(instance.instanceId + RESULTS_DELIMITER);
         }
         private void continueToNextLine()
