@@ -341,33 +341,6 @@ namespace CPF_experiment
         }
 
         /// <summary>
-        /// Not used anywhere.
-        /// </summary>
-        private void NormalizeGroups()
-        {
-            short[] newGroups = new short[agentsGroupAssignment.Length];
-            short groupCount = 0;
-
-            for (int i = 0; i < newGroups.Length; i++)
-            {
-                newGroups[i] = -1;
-            }
-
-            for (int i = 0; i < agentsGroupAssignment.Length; i++)
-            {
-                if (newGroups[agentsGroupAssignment[i]] == -1)
-                {
-                    newGroups[agentsGroupAssignment[i]] = groupCount;
-                    groupCount++;
-                }
-            }
-            for (int i = 0; i < agentsGroupAssignment.Length; i++)
-            {
-                agentsGroupAssignment[i] = (ushort)newGroups[agentsGroupAssignment[i]];
-            }
-        }
-
-        /// <summary>
         /// Checks the group assignment and the constraints
         /// </summary>
         /// <param name="obj"></param>
@@ -470,22 +443,6 @@ namespace CPF_experiment
             constraints.Sort();
             return constraints;
         }
-
-        //private HashSet<CbsConstraint> GetConstraints(int group, ProblemInstance problem)
-        //{
-        //    var constraints = new HashSet<CbsConstraint>()
-        //    CbsNode current = this;
-        //    while (current.depth > 0)
-        //    {
-        //        if (this.agentsGroupAssignment[current.constraint.getAgentNum()] == group)
-        //        {
-        //            if (this.agentsGroupAssignment[current.prev.conflict.agentAMove] != this.agentsGroupAssignment[current.prev.conflict.agentBMove]) 
-        //                constraints.Add(current.constraint);
-        //        }
-        //        current = current.prev;
-        //    }
-        //    return constraints;
-        //}
 
         /// <summary>
         /// BH_Item implementation
@@ -600,18 +557,6 @@ namespace CPF_experiment
                     agentsGroupAssignment[i] = (ushort)a;
                 }
             }
-           // NormalizeGroups();
-        }
-
-        public void PrintPlan()
-        {
-            Debug.WriteLine("Plan:");
-            for (int i = 0; i < allSingleAgentPlans.Length; i++)
-            {
-                Debug.WriteLine("agent " + i);
-                allSingleAgentPlans[i].PrintPlan();
-            }
-            Debug.WriteLine("End Plan");
         }
 
         public void PrintConflict()
@@ -626,14 +571,20 @@ namespace CPF_experiment
             Debug.WriteLine("");
         }
 
+        // TODO: Remove use of this method from other CBS's and delete it
+        /// <summary>
+        /// NOT the cost, just the length - 1.
+        /// </summary>
+        /// <param name="agent"></param>
+        /// <returns></returns>
         public int PathLength(int agent)
         {
             Move[] moves = allSingleAgentPlans[agent].locationAtTimes;
             Move goal = moves[moves.Length - 1];
             for (int i = moves.Length - 2; i >= 0; i--)
             {
-                if (!moves[i].Equals(goal))
-                    return i+1;
+                if (moves[i].Equals(goal) == false) // Note the move that gets to the goal is different to the move that first waits in it.
+                    return  i + 1;
             }
             return 0;
         }

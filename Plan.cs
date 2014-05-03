@@ -63,32 +63,6 @@ namespace CPF_experiment
         }
 
         /// <summary>
-        /// Reconstructs a plan by going backwards from a goal state, returning only moves in a full states
-        /// and ignoring intermediate states.
-        /// TODO: This is awful code. Just make a virtual GetPrevState in WorldState and
-        /// make WorldStateWithOD return only full states.
-        /// </summary>
-        /// <param name="goalState"></param>
-        public Plan(WorldStateWithOD goalState)
-        {
-            WorldState currentNode = goalState;
-            this.locationsAtTimes = new LinkedList<List<Move>>(); // TODO: Initialize list with #agents
-            this.locationsAtTimes.AddFirst(goalState.GetAgentsMoves());
-            currentNode = currentNode.prevStep;
-            int currentMakespan = goalState.makespan;
-            while (currentNode != null)
-            {
-                // Insert agent's moves only if all the agents have moved (in order to return only full states and not intermediate states)
-                if (currentNode.makespan < currentMakespan)
-                {
-                    this.locationsAtTimes.AddFirst(currentNode.GetAgentsMoves());
-                    currentMakespan = currentNode.makespan;
-                }
-                currentNode = currentNode.prevStep;
-            }
-        }
-
-        /// <summary>
         /// Generates a big plan from a collection of smaller plans.
         /// </summary>
         /// <param name="subplans"></param>

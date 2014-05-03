@@ -224,17 +224,6 @@ namespace CPF_experiment
             return ans;
         }
 
-        public virtual int conflictsCount(HashSet_U<TimedMove> conflictAvoidance)
-        {
-            int ans = 0;
-            for (int i = 0; i < allAgentsState.Length; i++)
-            {
-                if (allAgentsState[i].lastMove.isColliding(conflictAvoidance))
-                    ans++;
-            }
-            return ans;
-        }
-        
         public virtual ProblemInstance ToProblemInstance(ProblemInstance initial)
         {
             // Notice this is not a subproblem in the number of agents but

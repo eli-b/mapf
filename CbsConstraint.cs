@@ -147,6 +147,7 @@ namespace CPF_experiment
         }
 
         /// <summary>
+        /// Not used anywhere.
         /// </summary>
         /// <param name="agent"></param>
         /// <param name="posX"></param>

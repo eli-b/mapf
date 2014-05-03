@@ -151,48 +151,4 @@ namespace CPF_experiment
             return false;
         }
     }
-
-
-    class CoordinateForConflictRatio : TimedMove
-    {
-        ProblemInstance ins;
-        public int cardinality;
-
-        public CoordinateForConflictRatio(ProblemInstance ins, AgentState state)
-            : base(state.lastMove.x, state.lastMove.y, state.lastMove.direction, state.lastMove.time)
-        {
-            this.ins = ins;
-            this.cardinality = ins.GetCardinality(state.lastMove);
-        }
-
-        public CoordinateForConflictRatio(CoordinateForConflictRatio cpy)
-            : base(cpy)
-        {
-            this.ins = cpy.ins;
-            this.cardinality = cpy.cardinality;
-        }
-
-        /// <summary>
-        /// Probably the intended implementation
-        /// </summary>
-        /// <param name="obj"></param>
-        /// <returns></returns>
-        public override bool Equals(object obj)
-        {
-            return base.Equals(obj);
-        }
-
-        public override int GetHashCode()
-        {
-            unchecked
-            {
-                int hash = 17;
-                hash = 23 * hash + base.GetHashCode();
-                // Until Equals checks these fields, we can't use them in the hash :(
-                //hash = 23 * hash + ins.GetHashCode();
-                //hash = 23 * hash + cardinality;
-                return hash;
-            }
-        }
-    }
 }

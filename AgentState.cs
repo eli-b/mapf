@@ -102,7 +102,7 @@ namespace CPF_experiment
         {
             AgentState that = (AgentState)obj;
             
-            if (this.lastMove.Equals(that.lastMove) /*behavior change! now checks time too*/ && this.agent.Equals(that.agent))
+            if (this.lastMove.Equals(that.lastMove) && this.agent.Equals(that.agent))
             {
                 return true;
             }

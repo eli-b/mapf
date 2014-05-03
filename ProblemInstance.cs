@@ -415,30 +415,6 @@ namespace CPF_experiment
         }
 
         /// <summary>
-        /// Check if the tile is valid, i.e. in the grid and without an obstacle and in some cases that the step is not reserved.
-        /// NOT checking the direction or the time!
-        /// </summary>
-        /// <param name="x"></param>
-        /// <param name="y"></param>
-        /// <returns>True if the given location is a valid grid location with no obstacles</returns>
-        public bool IsValid(int x, int y, int time = 0, int direction = (int)Move.Direction.NO_DIRECTION)
-        {
-            if (IsValidTile(x, y) == false)
-                return false;
-            //if (parameters.ContainsKey(Trevor.ILLEGAL_MOVES_KEY))
-            //{
-            //    Plan reserved = (Plan)parameters[Trevor.ILLEGAL_MOVES_KEY];
-            //    LinkedList<Move> reservedAtTime = reserved.GetLocationsAt(time);
-            //    foreach (Move res in reservedAtTime)
-            //    {
-            //        if (res.isColliding(x, y, direction))
-            //            return false;
-            //    }
-            //}
-            return true;
-        }
-
-        /// <summary>
         /// Also checks if the move is illegal
         /// </summary>
         /// <param name="toCheck"></param>
@@ -478,25 +454,6 @@ namespace CPF_experiment
         {
             return "Problem instance:"+instanceId+" #Agents:" + m_vAgents.Length
                     + ", GridCells:" + m_nLocations + ", #Obstacles:" + m_nObstacles;                
-        }
-        
-        public double getConflictRation(int orderOfConflict)
-        {
-            HashSet<CoordinateForConflictRatio> potentialConflicts = new HashSet<CoordinateForConflictRatio>();
-            SetPotentialConflictsForAgent set = new SetPotentialConflictsForAgent();
-            int conflictsCount = 0;
-            int clearCount = 0;
-
-            for (int i = 0; i < m_vAgents.Length; i++)
-            {
-                set.Setup(this, i);
-                set.Solve(potentialConflicts, orderOfConflict);
-                conflictsCount += set.conflictsCount;
-                if (i != 0)
-                    clearCount += set.clearCount;
-            }
-
-            return conflictsCount;
         }
     }
 }
