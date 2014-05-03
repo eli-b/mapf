@@ -79,7 +79,6 @@ namespace CPF_experiment
         public bool Solve()
         {
             //Debug.WriteLine("Solving Sub-problem On Level - " + mergeThreshold);
-            //Console.ReadLine();
 
             if (root.Solve(minCost, ref highLevelExpanded, ref highLevelGenerated, ref lowLevelExpanded, ref lowLevelGenerated) == false)
             {
@@ -135,10 +134,10 @@ namespace CPF_experiment
             if (node.totalCost + conflict.timeStep + stepLength - node.PathLength(conflict.agentA) <= fBound)
             {
                 ok1 = true;
-                if (node.IsAllowedConstraint(con1))
+                if (node.DoesMustConstraintAllow(con1))
                 {
                     toAdd = new CbsNode(node, con1, conflict.agentA);
-                    toAdd.SetUnConstraint(con2);
+                    toAdd.SetMustConstraint(con2);
 
                     if (toAdd.Replan3b(conflict.agentA, Math.Max(minCost, conflict.timeStep), ref highLevelExpanded, ref highLevelGenerated, ref lowLevelExpanded, ref lowLevelGenerated))
                     {
@@ -157,10 +156,10 @@ namespace CPF_experiment
             if (node.totalCost + conflict.timeStep + stepLength - node.PathLength(conflict.agentB) <= fBound)
             {
                 ok2 = true;
-                if (node.IsAllowedConstraint(con2))
+                if (node.DoesMustConstraintAllow(con2))
                 {
                     toAdd = new CbsNode(node, con2, conflict.agentB);
-                    toAdd.SetUnConstraint(con1);
+                    toAdd.SetMustConstraint(con1);
 
                     if (toAdd.Replan3b(conflict.agentB, Math.Max(minCost, conflict.timeStep), ref highLevelExpanded, ref highLevelGenerated, ref lowLevelExpanded, ref lowLevelGenerated))
                     {
@@ -198,7 +197,7 @@ namespace CPF_experiment
                     }
                 }
             }
-            return false; ;
+            return false;
         }
 
         public virtual Plan GetPlan()
@@ -249,18 +248,11 @@ namespace CPF_experiment
                 this.maxCost = (int)(problemInstance.parameters[Trevor.MAXIMUM_COST_KEY]);
             else
                 this.maxCost = int.MaxValue;
-            if (problemInstance.parameters.ContainsKey(CBS_LocalConflicts.NEW_INTERNAL_CAT) == false)
+            if (problemInstance.parameters.ContainsKey(CBS_LocalConflicts.INTERNAL_CAT) == false) // Top-most CBS only
             {
                 problemInstance.parameters[CBS_LocalConflicts.INTERNAL_CAT] = new HashSet_U<TimedMove>();
                 problemInstance.parameters[CBS_LocalConflicts.CONSTRAINTS] = new HashSet_U<CbsConstraint>();
-                problemInstance.parameters[CBS_LocalConflicts.NEW_CONSTRAINTS] = new HashSet<CbsConstraint>();
-                problemInstance.parameters[CBS_LocalConflicts.CONSTRAINTSP] = new List<CbsConstraint>();
-                problemInstance.parameters[CBS_LocalConflicts.NEW_INTERNAL_CAT] = new HashSet<TimedMove>();
-            }
-            else
-            {
-                problemInstance.parameters[CBS_LocalConflicts.NEW_INTERNAL_CAT] = new HashSet<TimedMove>();
-                problemInstance.parameters[CBS_LocalConflicts.NEW_CONSTRAINTS] = new HashSet<CbsConstraint>();
+                problemInstance.parameters[CBS_LocalConflicts.MUST_CONSTRAINTS] = new List<CbsConstraint>();
             }
             minCost = 0;
         }

@@ -5,6 +5,9 @@ using System.Diagnostics;
 
 namespace CPF_experiment
 {
+    /// <summary>
+    /// Like CBS, without partial expansion.
+    /// </summary>
     class CBS_old : ICbsSolver
     {
           // The key of the constraints list used for each CBS node
@@ -68,25 +71,20 @@ namespace CPF_experiment
                 this.maxCost = (int)(problemInstance.parameters[Trevor.MAXIMUM_COST_KEY]);
             else
                 this.maxCost = int.MaxValue;
-            if (problemInstance.parameters.ContainsKey(CBS_LocalConflicts.NEW_INTERNAL_CAT) == false)
+            if (problemInstance.parameters.ContainsKey(CBS_LocalConflicts.INTERNAL_CAT) == false)
             {
                 problemInstance.parameters[CBS_LocalConflicts.INTERNAL_CAT] = new HashSet_U<TimedMove>();
                 problemInstance.parameters[CBS_LocalConflicts.CONSTRAINTS] = new HashSet_U<CbsConstraint>();
-                problemInstance.parameters[CBS_LocalConflicts.NEW_CONSTRAINTS] = new HashSet<CbsConstraint>();
-                problemInstance.parameters[CBS_LocalConflicts.NEW_INTERNAL_CAT] = new HashSet<TimedMove>();
             }
-            else
-            {
-                problemInstance.parameters[CBS_LocalConflicts.NEW_INTERNAL_CAT] = new HashSet<TimedMove>();
-                problemInstance.parameters[CBS_LocalConflicts.NEW_CONSTRAINTS] = new HashSet<CbsConstraint>();
-            }
-            minDepth = 0;
+            
+            if (this.minDepth == -1)
+                this.minDepth = 0;
         }
 
         public void Setup(ProblemInstance problemInstance, int minDepth, Run runner)
         {
-            Setup(problemInstance, runner);
             this.minDepth = minDepth;
+            Setup(problemInstance, runner);
         }
 
         public void SetHeuristic(HeuristicCalculator heuristic)
@@ -106,6 +104,7 @@ namespace CPF_experiment
             this.closedList.Clear();
             this.instance = null;
             this.solver.Clear();
+            this.minDepth = -1;
         }
 
         public virtual String GetName() 
@@ -148,7 +147,6 @@ namespace CPF_experiment
         public bool Solve()
         {
             //Debug.WriteLine("Solving Sub-problem On Level - " + mergeThreshold);
-            //Console.ReadLine();
 
             CbsConflict conflict;
             CbsNode currentNode = (CbsNode)openList.Remove();
@@ -187,8 +185,7 @@ namespace CPF_experiment
                 // Expand
                 highLevelExpanded++;
                 if (Expand(currentNode, conflict))
-                    if (currentNode.collapse != 0)
-                        currentNode.Clear();
+                    currentNode.Clear();
             }
             totalCost = Constants.NO_SOLUTION_COST;
             this.Clear();
@@ -208,12 +205,10 @@ namespace CPF_experiment
                 if (MergeConflicting(node))
                 {
                     closedList.Add(node, node); // With new hash code
-                    if (node.Replan(conflict.agentA, this.minDepth, ref highLevelExpanded, ref highLevelGenerated, ref lowLevelExpanded, ref lowLevelGenerated) == false)
-                    {
-                        this.maxSizeGroup = Math.Max(this.maxSizeGroup, node.replanSize);
-                        return true;
-                    }
+                    bool solved = node.Replan(conflict.agentA, this.minDepth, ref highLevelExpanded, ref highLevelGenerated, ref lowLevelExpanded, ref lowLevelGenerated);
                     this.maxSizeGroup = Math.Max(this.maxSizeGroup, node.replanSize);
+                    if (solved == false)
+                        return true;
                     if (node.totalCost <= maxCost)
                         openList.Add(node);
                     this.addToGlobalConflictCount(node.GetConflict());
@@ -287,6 +282,11 @@ namespace CPF_experiment
         public int GetMaxGroupSize()
         {
             return this.maxSizeGroup;
+        }
+
+        public virtual int[] GetSingleCosts()
+        {
+            return null;
         }
     }
     class CBS_GlobalConflicts_OLD : CBS_old

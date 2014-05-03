@@ -81,5 +81,7 @@ namespace CPF_experiment
     {
         void Setup(ProblemInstance problemInstance, int minDepth, Run runner);
         SinglePlan[] GetSinglePlans();
+        int[] GetSingleCosts();
+
     }
 }

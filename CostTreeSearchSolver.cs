@@ -245,6 +245,11 @@ namespace CPF_experiment
         public long GetMemoryUsed() { return Process.GetCurrentProcess().VirtualMemorySize64; }
         public int GetMaxGroupSize() { return problem.m_vAgents.Length; }
         public SinglePlan[] GetSinglePlans() { return SinglePlan.getSinglePlans(solution); }
+
+        public virtual int[] GetSingleCosts()
+        {
+            return null;
+        }
     }
 
     class CostTreeSearchSolverOldMatching : CostTreeSearchSolver

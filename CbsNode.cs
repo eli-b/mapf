@@ -11,10 +11,14 @@ namespace CPF_experiment
         public ushort externalConflictsCount;
         public ushort internalConflictsCount;
         public SinglePlan[] allSingleAgentPlans;
+        public int[] allSingleAgentCosts;
         private int binaryHeapIndex;
         CbsConflict conflict;
         CbsConstraint constraint;
-        CbsConstraint unConstraint;
+        /// <summary>
+        /// Forcing an agent to be at a certain place at a certain time
+        /// </summary>
+        CbsConstraint mustConstraint;
         CbsNode prev;
         public ushort depth;
         public ushort[] agentsGroupAssignment;
@@ -22,13 +26,17 @@ namespace CPF_experiment
         public enum ExpansionState: byte
         {
             NOT_EXPANDED = 0,
-            A_NOT_EXPANDED,
-            B_NOT_EXPANDED
+            DEFERRED,
+            EXPANDED
         }
         /// <summary>
         /// For partial expansion
         /// </summary>
-        public ExpansionState collapse;
+        public ExpansionState agentAExpansion;
+        /// <summary>
+        /// For partial expansion
+        /// </summary>
+        public ExpansionState agentBExpansion;
         protected ProblemInstance problem;
         protected ICbsSolver highLevelSolver;
         protected ICbsSolver lowLevelSolver;
@@ -37,12 +45,13 @@ namespace CPF_experiment
         public CbsNode(int numberOfAgents, ProblemInstance problem, ICbsSolver highLevelSolver, ICbsSolver lowLevelSolver, Run runner)
         {
             allSingleAgentPlans = new SinglePlan[numberOfAgents];
-            totalCost = 0;
+            allSingleAgentCosts = new int[numberOfAgents];
             depth = 0;
             replanSize = 1;
             externalConflictsCount = 0;
             internalConflictsCount = 0;
-            collapse = ExpansionState.NOT_EXPANDED;
+            agentAExpansion = ExpansionState.NOT_EXPANDED;
+            agentBExpansion = ExpansionState.NOT_EXPANDED;
             agentsGroupAssignment = new ushort[numberOfAgents];
             for (ushort i = 0; i < numberOfAgents; i++)
             {
@@ -60,12 +69,10 @@ namespace CPF_experiment
         /// <param name="father"></param>
         /// <param name="newConstraint"></param>
         /// <param name="agentToReplan"></param>
-        /// <param name="problem"></param>
-        /// <param name="runner"></param>
         public CbsNode(CbsNode father, CbsConstraint newConstraint, int agentToReplan)
         {
-            this.totalCost = father.totalCost;
             this.allSingleAgentPlans = father.allSingleAgentPlans.ToArray<SinglePlan>();
+            this.allSingleAgentCosts = father.allSingleAgentCosts.ToArray<int>();
             this.agentsGroupAssignment = father.agentsGroupAssignment.ToArray<ushort>();
             this.prev = father;
             this.constraint = newConstraint;
@@ -80,7 +87,8 @@ namespace CPF_experiment
             this.depth = (ushort)(this.prev.depth + 1);
             externalConflictsCount = 0;
             internalConflictsCount = 0;
-            collapse = ExpansionState.NOT_EXPANDED;
+            agentAExpansion = ExpansionState.NOT_EXPANDED;
+            agentBExpansion = ExpansionState.NOT_EXPANDED;
             replanSize = 1;
             this.problem = father.problem;
             this.highLevelSolver = father.highLevelSolver;
@@ -90,6 +98,8 @@ namespace CPF_experiment
 
         /// <summary>
         /// Solve a given problem according to given constraints, sets the plans array (plan per agent).
+        /// This method ignores the agentsGroupAssignment and solves for each agent separately using the low level solver, which is OK because it's only called for the root node.
+        /// But on the other hand, it makes merging the method with Replan more difficult.
         /// Can this just call Replan consecutively please?
         /// </summary>
         /// <param name="depthToReplan"></param>
@@ -100,46 +110,57 @@ namespace CPF_experiment
         /// <returns></returns>
         public bool Solve(int depthToReplan, ref int highLevelExpanded, ref int highLevelGenerated, ref int lowLevelExpanded, ref int lowLevelGenerated)
         {
-            totalCost = 0;
-            HashSet<TimedMove> newInternalCAT = (HashSet<TimedMove>)problem.parameters[CBS_LocalConflicts.NEW_INTERNAL_CAT];
-            newInternalCAT.Clear();
-            HashSet<CbsConstraint> newConstraints = (HashSet<CbsConstraint>)problem.parameters[CBS_LocalConflicts.NEW_CONSTRAINTS];
-            newConstraints.Clear();
-            HashSet_U<TimedMove> InternalCAT = (HashSet_U<TimedMove>)problem.parameters[CBS_LocalConflicts.INTERNAL_CAT];
-            HashSet_U<CbsConstraint> Constraints = (HashSet_U<CbsConstraint>)problem.parameters[CBS_LocalConflicts.CONSTRAINTS];
+            this.totalCost = 0;
+            var newInternalCAT = new HashSet<TimedMove>();
+            var newConstraints = this.GetConstraints();
+            var internalCAT = (HashSet_U<TimedMove>)problem.parameters[CBS_LocalConflicts.INTERNAL_CAT];
+            var constraints = (HashSet_U<CbsConstraint>)problem.parameters[CBS_LocalConflicts.CONSTRAINTS];
+
+            bool success = true;
+
+            constraints.Join(newConstraints);
 
             for (int i = 0; i < problem.m_vAgents.Length; i++)
             {
                 AgentState[] subGroup = new AgentState[] { problem.m_vAgents[i] };
                 ProblemInstance subProblem = problem.Subproblem(subGroup);
                 
-                InternalCAT.Join(newInternalCAT);
-                Constraints.Join(newConstraints);
+                // This mechanism of adding the constraints to the possibly pre-existing constraints allows having
+                // layers of CBS solver, each one adding its own constraints and respecting those of the solvers above it
+                // in CbsLocalConflicts
+                internalCAT.Join(newInternalCAT);
 
                 this.lowLevelSolver.Setup(subProblem, depthToReplan, runner);
-                bool success = this.lowLevelSolver.Solve();
+                success = this.lowLevelSolver.Solve();
 
                 highLevelExpanded += this.lowLevelSolver.GetHighLevelExpanded();
                 highLevelGenerated += this.lowLevelSolver.GetHighLevelGenerated();
                 lowLevelExpanded += this.lowLevelSolver.GetLowLevelExpanded();
                 lowLevelGenerated += this.lowLevelSolver.GetLowLevelGenerated();
-                if (!success)
-                {
-
-                    InternalCAT.Seperate(newInternalCAT);
-                    Constraints.Seperate(newConstraints);
-                    return false;
-                }
-
-                InternalCAT.Seperate(newInternalCAT);
-                Constraints.Seperate(newConstraints);
+                
+                internalCAT.Seperate(newInternalCAT);
+                
+                if (!success) // Usually means a timeout occured.
+                    break;
 
                 allSingleAgentPlans[i] = this.lowLevelSolver.GetSinglePlans()[0];
-                totalCost += (ushort)this.lowLevelSolver.GetSolutionCost();
-                allSingleAgentPlans[i].addPlanToHashSet(newInternalCAT, totalCost * 2);
+                allSingleAgentCosts[i] = this.lowLevelSolver.GetSolutionCost();
+                totalCost += (ushort)allSingleAgentCosts[i];
+                allSingleAgentPlans[i].addPlanToHashSet(newInternalCAT, totalCost * 2); // This is kind of an arbitrary value.
+                                                                                        // The next plan could be 100 times longer than the total cost so far,
+                                                                                        // and we won't detect the internal conflicts it causes by entering the other agents' goal long after they reached it.
+                                                                                        // TODO: Think of a way to mark the last step in the plan as a "forever after" step that applies to all the next steps.
             }
-            this.FindConflict(problem);
-            return true;
+
+            constraints.Seperate(newConstraints);
+
+            if (success)
+            {
+                this.FindConflict();
+                return true;
+            }
+            else
+                return false;
         }
 
         /// <summary>
@@ -155,92 +176,83 @@ namespace CPF_experiment
         /// <returns></returns>
         public bool Replan(int agentForReplan, int depthToReplan, ref int highLevelExpanded, ref int highLevelGenerated, ref int lowLevelExpanded, ref int lowLevelGenerated)
         {
-            HashSet<TimedMove> newInternalCAT = (HashSet<TimedMove>)problem.parameters[CBS_LocalConflicts.NEW_INTERNAL_CAT];
+            var newInternalCAT = new HashSet<TimedMove>();
             HashSet<CbsConstraint> newConstraints = this.GetConstraints();
-            problem.parameters[CBS_LocalConflicts.NEW_CONSTRAINTS] = newConstraints;
-            HashSet_U<TimedMove> InternalCAT = (HashSet_U<TimedMove>)problem.parameters[CBS_LocalConflicts.INTERNAL_CAT];
-            HashSet_U<CbsConstraint> Constraints = (HashSet_U<CbsConstraint>)problem.parameters[CBS_LocalConflicts.CONSTRAINTS];
-            ICbsSolver solver = highLevelSolver;
+            var internalCAT = (HashSet_U<TimedMove>)problem.parameters[CBS_LocalConflicts.INTERNAL_CAT];
+            var constraints = (HashSet_U<CbsConstraint>)problem.parameters[CBS_LocalConflicts.CONSTRAINTS];
 
-            newInternalCAT.Clear();
+            int maxPlanSize = this.allSingleAgentPlans.Max<SinglePlan>(plan => plan.GetSize());
 
-            int groupNum = this.agentsGroupAssignment[agentForRePlan];
-            List<AgentState> subGroup=new List<AgentState>();
-
-            //Debug.WriteLine("Sub-problem:");
-
+            // Construct the subgroup of agents that are of the same group as agentForReplan,
+            // and add the plans of all other agents to newInternalCAT
+            List<AgentState> subGroup = new List<AgentState>();
+            int groupNum = this.agentsGroupAssignment[agentForReplan];
             for (int i = 0; i < agentsGroupAssignment.Length; i++)
             {
                 if (this.agentsGroupAssignment[i] == groupNum)
                 {
                     subGroup.Add(problem.m_vAgents[i]);
-                   // Debug.WriteLine(i);
                 }
                 else
-                    allSingleAgentPlans[i].addPlanToHashSet(newInternalCAT, totalCost);
+                    allSingleAgentPlans[i].addPlanToHashSet(newInternalCAT, maxPlanSize);
             }
 
-            replanSize = (ushort)subGroup.Count;
+            this.replanSize = (ushort)subGroup.Count;
 
+            ICbsSolver solver = highLevelSolver;
             if (subGroup.Count == 1)
                 solver = lowLevelSolver;
 
             ProblemInstance subProblem = problem.Subproblem(subGroup.ToArray());
-            subProblem.parameters = problem.parameters;
 
-            InternalCAT.Join(newInternalCAT);
-            Constraints.Join(newConstraints);
-
-            //Constraints.print();
+            internalCAT.Join(newInternalCAT);
+            constraints.Join(newConstraints);
            
             solver.Setup(subProblem, depthToReplan, runner);
-            if (solver.Solve() == false)
-            {
-                highLevelExpanded += solver.GetHighLevelExpanded();
-                highLevelGenerated += solver.GetHighLevelGenerated();
-                lowLevelExpanded += solver.GetLowLevelExpanded();
-                lowLevelGenerated += solver.GetLowLevelGenerated();
-                InternalCAT.Seperate(newInternalCAT);
-                Constraints.Seperate(newConstraints);
-                return false;
-            }
+            bool solved = solver.Solve();
+
             highLevelExpanded += solver.GetHighLevelExpanded();
             highLevelGenerated += solver.GetHighLevelGenerated();
             lowLevelExpanded += solver.GetLowLevelExpanded();
             lowLevelGenerated += solver.GetLowLevelGenerated();
 
+            internalCAT.Seperate(newInternalCAT);
+            constraints.Seperate(newConstraints);
+            
+            if (solved == false) // Usually means a timeout occured.
+                return false;
+
+            // Copy the SinglePlans for the solved agent group from the solver to the appropriate places in this.allSingleAgentPlans
             int j = 0;
             SinglePlan[] singlePlans = solver.GetSinglePlans();
-
+            int[] singleCosts = solver.GetSingleCosts();
             for (int i = 0; i < agentsGroupAssignment.Length; i++)
             {
                 if (this.agentsGroupAssignment[i] == groupNum)
                 {
                     this.allSingleAgentPlans[i] = singlePlans[j];
+                    this.allSingleAgentCosts[i] = singleCosts[j];
                     j++;
                 }
-
             }
+            Debug.Assert(j == replanSize);
+
+            // Calc totalCost
+            this.totalCost = (ushort) this.allSingleAgentCosts.Sum();
 
             // PrintPlan();
 
-            totalCost = 0;
-            foreach (SinglePlan plan in allSingleAgentPlans)
-            {
-                totalCost += (ushort)(plan.GetSize() - 1);
-            }
-            InternalCAT.Seperate(newInternalCAT);
-            Constraints.Seperate(newConstraints);
-            newConstraints.Clear();
-            this.FindConflict(problem);
+            this.FindConflict();
             // PrintConflict();
             return true;
         }
 
         /// <summary>
-        /// Find the first conflict (timewise) for all the given plans
+        /// Find the first conflict (timewise) for all the given plans.
+        /// Assumes all agents are initially on the same timestep (no OD).
+        /// Also updates the internalConflictsCount and externalConflictsCount counters.
         /// </summary>
-        private void FindConflict(ProblemInstance problem)
+        private void FindConflict()
         {
             if (this.allSingleAgentPlans.Length == 1) 
                 return;
@@ -267,11 +279,13 @@ namespace CPF_experiment
                     {
                         if (allSingleAgentPlans[i].IsColliding(time, allSingleAgentPlans[j]))
                         {
-                            if (conflict == null)
+                            if (this.conflict == null)
                             {
+                                int initialTimeStep = this.problem.m_vAgents[0].lastMove.time; // To account for solving partially solved problems.
+                                                                                               // This assumes the makespan of all the agents is the same.
                                 Move first = allSingleAgentPlans[i].GetLocationAt(time);
                                 Move second = allSingleAgentPlans[j].GetLocationAt(time);
-                                this.conflict = new CbsConflict(i, j, first, second, time);
+                                this.conflict = new CbsConflict(i, j, first, second, time + initialTimeStep);
                             }
                             internalConflictsCount++;
                         }
@@ -289,7 +303,7 @@ namespace CPF_experiment
         /// Uses the group assignments and the constraints.
         /// </summary>
         /// <returns></returns>
-        public override int GetHashCode() //TODO: change this
+        public override int GetHashCode()
         {
             unchecked
             {
@@ -300,15 +314,28 @@ namespace CPF_experiment
                 }
 
                 CbsNode current = this;
-                while (current.depth > 0)
+                while (current.depth > 0) // No constraint in depth=0, and the root is shared between all nodes so its data adds no entropy.
                 {
-                    if (current.prev.conflict != null && 
-                        this.agentsGroupAssignment[current.prev.conflict.agentA] != this.agentsGroupAssignment[current.prev.conflict.agentB]) // What does this check do? Is it correct?
+                    //if (current.prev.conflict != null && // Safe because current isn't the root, not sure why it's necessary though.
+                    //    this.agentsGroupAssignment[current.prev.conflict.agentA] != 
+                    //    this.agentsGroupAssignment[current.prev.conflict.agentB]) // A (first) conflict in prev creates the constraint in current.
+                                                                                    // We can skip constraints that came from conflicts between
+                                                                                    // agents that were later merged because nodes that only differ in these
+                                                                                    // conflicts will have the same single agent paths.
+                                                                                    // The actual conflict could have been between 3 agents and the third
+                                                                                    // may not have been merged with the other two, but that collision will
+                                                                                    // still happen and will create another node with a constraint the covers it.
+                                                                                    // The above consideration, however, isn't good to use here since it isn't also done in Equals,
+                                                                                    // so two unequal (because of a constraint that deals with a conflict between two low level nodes that were only merged in one of the high level nodes)
+                                                                                    // nodes could have the same hash and cause a collision.
+                                                                                    // TODO: Enable the above here and in Equals.
                     {
                         ans += current.constraint.GetHashCode();
                     }
                     current = current.prev;
                 }
+                // TODO: Consider moving the above loop to GetConstraints and just using it here.
+
                 return ans;
             }
         }
@@ -357,10 +384,10 @@ namespace CPF_experiment
             HashSet<CbsConstraint> other_constraints = other.GetConstraints();
 
             int constraint_count = 0;
-            while (current.depth > 0)
+            while (current.depth > 0) // The root is shared, and has no constraints
             {
                 ++constraint_count;
-                //if (this.agentsGroupAssignment[current.prev.conflict.agentAMove] != this.agentsGroupAssignment[current.prev.conflict.agentBMove])
+                //if (this.agentsGroupAssignment[current.prev.conflict.agentA] != this.agentsGroupAssignment[current.prev.conflict.agentB]) // See my comments for GetHashCode(). This tries to do the same thing.
                 //{
                     //current.constraint.group = (byte)this.agentsGroupAssignment[current.constraint.getAgentNum()];
                     if (other_constraints.Contains(current.constraint) == false)
@@ -379,9 +406,13 @@ namespace CPF_experiment
             return constraint_count == other_constraints.Count;
         }
 
+        /// <summary>
+        /// Worth doing because the node may always be in the closed list
+        /// </summary>
         public void Clear()
         {
             this.allSingleAgentPlans = null;
+            this.allSingleAgentCosts = null;
         }
 
         public int CompareTo(IBinaryHeapItem item)
@@ -432,8 +463,8 @@ namespace CPF_experiment
             CbsNode current = this;
             while (current.depth > 0)
             {
-                if (current.unConstraint != null)
-                    constraints.Add(current.unConstraint);
+                if (current.mustConstraint != null)
+                    constraints.Add(current.mustConstraint);
                 current = current.prev;
             }
             constraints.Sort();
@@ -470,18 +501,7 @@ namespace CPF_experiment
 
         public Plan CalculateJointPlan()
         {
-            IList<SinglePlan> plans = new List<SinglePlan>();
-
-            for (int i = 0; i < allSingleAgentPlans.Length; i++)
-            {
-                plans.Add(allSingleAgentPlans[i]);
-            }
-            return new Plan(plans);
-        }
-
-        public int GetAgentsSolutionDepth(int agent)
-        {
-            return allSingleAgentPlans[agent].GetSize() - 1;
+            return new Plan(allSingleAgentPlans);
         }
 
         /// <summary>
@@ -618,21 +638,21 @@ namespace CPF_experiment
             return 0;
         }
 
-        public bool IsAllowedConstraint(CbsConstraint check)
+        public bool DoesMustConstraintAllow(CbsConstraint check)
         {
             CbsNode current = this;
             while (current != null)
             {
-                if (current.unConstraint != null && !current.unConstraint.Allows(check))
+                if (current.mustConstraint != null && !current.mustConstraint.Allows(check))
                     return false;
                 current = current.prev;
             }
             return true;
         }
 
-        public void SetUnConstraint(CbsConstraint set)
+        public void SetMustConstraint(CbsConstraint set)
         {
-            this.unConstraint = set;
+            this.mustConstraint = set;
         }
 
         public bool GoalTest() {
@@ -640,7 +660,8 @@ namespace CPF_experiment
         }
 
         /// <summary>
-        /// ??
+        /// For CBS IDA* only.
+        /// Consider inheriting from CbsNode and overriding the Replan method instead.
         /// </summary>
         /// <param name="agentForReplan"></param>
         /// <param name="depthToReplan"></param>
@@ -651,21 +672,17 @@ namespace CPF_experiment
         /// <returns></returns>
         public bool Replan3b(int agentForReplan, int depthToReplan, ref int highLevelExpanded, ref int highLevelGenerated, ref int lowLevelExpanded, ref int lowLevelGenerated)
         {
-            HashSet<TimedMove> newInternalCAT = (HashSet<TimedMove>)problem.parameters[CBS_LocalConflicts.NEW_INTERNAL_CAT];
-            newInternalCAT.Clear();
+            var newInternalCAT = new HashSet<TimedMove>();
             HashSet<CbsConstraint> newConstraints = this.GetConstraints();
-            problem.parameters[CBS_LocalConflicts.NEW_CONSTRAINTS] = newConstraints;
             HashSet_U<TimedMove> InternalCAT = (HashSet_U<TimedMove>)problem.parameters[CBS_LocalConflicts.INTERNAL_CAT];
             HashSet_U<CbsConstraint> Constraints = (HashSet_U<CbsConstraint>)problem.parameters[CBS_LocalConflicts.CONSTRAINTS];
             List<CbsConstraint> mustConstraints = this.GetMustConstraints();
-            problem.parameters[CBS_LocalConflicts.CONSTRAINTSP] = mustConstraints;
-            ICbsSolver solver = highLevelSolver;
-
-            int groupNum = this.agentsGroupAssignment[agentForRePlan];
-            List<AgentState> subGroup = new List<AgentState>();
+            problem.parameters[CBS_LocalConflicts.MUST_CONSTRAINTS] = mustConstraints;
 
             //Debug.WriteLine("Sub-problem:");
 
+            List<AgentState> subGroup = new List<AgentState>();
+            int groupNum = this.agentsGroupAssignment[agentForReplan];
             for (int i = 0; i < agentsGroupAssignment.Length; i++)
             {
                 if (this.agentsGroupAssignment[i] == groupNum)
@@ -677,8 +694,9 @@ namespace CPF_experiment
                     allSingleAgentPlans[i].addPlanToHashSet(newInternalCAT, totalCost);
             }
 
-            replanSize = (ushort)subGroup.Count;
+            this.replanSize = (ushort)subGroup.Count;
 
+            ICbsSolver solver = highLevelSolver;
             if (subGroup.Count == 1)
                 solver = lowLevelSolver;
 
@@ -688,7 +706,7 @@ namespace CPF_experiment
             InternalCAT.Join(newInternalCAT);
             Constraints.Join(newConstraints);
 
-            //Constraints.print();
+            //constraints.Print();
 
             solver.Setup(subProblem, depthToReplan, runner);
             if (solver.Solve() == false)
@@ -708,27 +726,27 @@ namespace CPF_experiment
 
             int j = 0;
             SinglePlan[] singlePlans = solver.GetSinglePlans();
-
+            int[] singleCosts = solver.GetSingleCosts();
             for (int i = 0; i < agentsGroupAssignment.Length; i++)
             {
                 if (this.agentsGroupAssignment[i] == groupNum)
                 {
                     this.allSingleAgentPlans[i] = singlePlans[j];
+                    this.allSingleAgentCosts[i] = singleCosts[j];
                     j++;
                 }
             }
+            Debug.Assert(j == replanSize);
+
+            // Calc totalCost
+            this.totalCost = (ushort)this.allSingleAgentCosts.Sum();
 
             // PrintPlan();
 
-            totalCost = 0;
-            foreach (SinglePlan plan in allSingleAgentPlans)
-            {
-                totalCost += (ushort)(plan.GetSize() - 1);
-            }
             InternalCAT.Seperate(newInternalCAT);
             Constraints.Seperate(newConstraints);
             newConstraints.Clear();
-            this.FindConflict(problem);
+            this.FindConflict();
             // PrintConflict();
             return true;
         }

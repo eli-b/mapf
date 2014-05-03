@@ -335,24 +335,13 @@ namespace CPF_experiment
 
         public virtual SinglePlan[] GetSinglePlans()
         {
-            return SinglePlan.getSinglePlans(this.GetGoal());
+            return this.GetPlan().getSinglePlans();
         }
-        
-        /// <summary>
-        /// Prints the actual solutions. Mainly for debug purposes
-        /// </summary>
-        /// <param name="end"></param>
-        private void PrintSolution(WorldState end)
+
+        protected int[] singleCosts;
+        public virtual int[] GetSingleCosts()
         {
-            int step = 0;
-            Console.WriteLine("solution back to front");
-            while (end != null)
-            {
-                Console.WriteLine("step " + step);
-                Console.WriteLine(end.ToString());
-                step++;
-                end = end.prevStep;
-            }
+            return this.singleCosts;
         }
 
         public int getExpanded() { return this.expanded; }
@@ -360,27 +349,29 @@ namespace CPF_experiment
         public int GetSolutionDepth() { return this.solutionDepth; }
         public long GetMemoryUsed() { return Process.GetCurrentProcess().VirtualMemorySize64; }
 
-        //CBS SOLVER
+        // CBS SOLVER
         public void Setup(ProblemInstance problemInstance, int minDepth, Run runner)
         {
             this.Setup(problemInstance, runner);
             this.minDepth = minDepth;
             this.internalConflictCount = 0;
             this.externalConflictCount = 0;
+
             if (problemInstance.parameters.ContainsKey(CBS_LocalConflicts.CONSTRAINTS))
                 this.constraintList = (HashSet_U<CbsConstraint>)problemInstance.parameters[CBS_LocalConflicts.CONSTRAINTS];
 
-            if (problemInstance.parameters.ContainsKey(CBS_LocalConflicts.CONSTRAINTSP))
+            if (problemInstance.parameters.ContainsKey(CBS_LocalConflicts.MUST_CONSTRAINTS))
             {
-                List<CbsConstraint> lc = (List<CbsConstraint>)problemInstance.parameters[CBS_LocalConflicts.CONSTRAINTSP];
-                if (lc != null && lc.Count > 0)
+                List<CbsConstraint> musts = (List<CbsConstraint>)problemInstance.parameters[CBS_LocalConflicts.MUST_CONSTRAINTS];
+                if (musts != null && musts.Count > 0)
                 {
-                    mustConstraints = new List<CbsConstraint>[lc[lc.Count - 1].GetTimeStep() + 1];
-                    foreach (CbsConstraint con in lc)
+                    this.mustConstraints = new List<CbsConstraint>[musts.Max<CbsConstraint>(con => con.GetTimeStep()) + 1]; // To have index MAX, array needs MAX + 1 places.
+                    foreach (CbsConstraint con in musts)
                     {
-                        if (mustConstraints[con.GetTimeStep()] == null)
-                            mustConstraints[con.GetTimeStep()] = new List<CbsConstraint>();
-                        mustConstraints[con.GetTimeStep()].Add(con);
+                        int timeStep = con.GetTimeStep();
+                        if (this.mustConstraints[timeStep] == null)
+                            this.mustConstraints[timeStep] = new List<CbsConstraint>();
+                        this.mustConstraints[timeStep].Add(con);
                     }
                 }
             }
@@ -400,13 +391,15 @@ namespace CPF_experiment
                 if (instance.parameters.ContainsKey(Trevor.CONFLICT_AVOIDANCE))
                 {
                     currentNode.potentialConflictsCount = currentNode.prevStep.potentialConflictsCount;
-                    currentNode.potentialConflictsCount += currentNode.conflictsCount(((HashSet<TimedMove>)instance.parameters[Trevor.CONFLICT_AVOIDANCE]));
+                    currentNode.potentialConflictsCount += currentNode.ConflictsCount(
+                        ((HashSet<TimedMove>)instance.parameters[Trevor.CONFLICT_AVOIDANCE]));
                 }
 
                 if (instance.parameters.ContainsKey(CBS_LocalConflicts.INTERNAL_CAT))
                 {
                     currentNode.cbsInternalConflictsCount = currentNode.prevStep.cbsInternalConflictsCount;
-                    currentNode.cbsInternalConflictsCount += currentNode.conflictsCount(((HashSet_U<TimedMove>)instance.parameters[CBS_LocalConflicts.INTERNAL_CAT]));
+                    currentNode.cbsInternalConflictsCount += currentNode.ConflictsCount(
+                        ((HashSet_U<TimedMove>)instance.parameters[CBS_LocalConflicts.INTERNAL_CAT]));
                 }
 
                 // If in closed list - only reopen if F is lower

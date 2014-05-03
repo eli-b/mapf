@@ -8,17 +8,18 @@ namespace CPF_experiment
 {
     class CBS_LocalConflicts : ICbsSolver
     {
-
-        // The key of the constraints list used for each CBS node
+        /// <summary>
+        /// The key of the constraints list used for each CBS node
+        /// </summary>
         public static string CONSTRAINTS = "constraints";
-        // The key of the must constraints list used for each CBS node
-        public static string CONSTRAINTSP = "constraintsp";
-        // The key of the internal CAT for CBS
+        /// <summary>
+        /// The key of the must constraints list used for each CBS node
+        /// </summary>
+        public static string MUST_CONSTRAINTS = "must constraints";
+        /// <summary>
+        /// The key of the internal CAT for CBS, used to favor A* nodes that have fewer conflicts with other routes during tie-breaking
+        /// </summary>
         public static string INTERNAL_CAT = "internalCAT";
-        // The key of recent constraints
-        public static string NEW_CONSTRAINTS = "newConstraints";
-        // The key of recent internal CAT for CBS
-        public static string NEW_INTERNAL_CAT = "newInternalCAT";
 
         protected ProblemInstance instance;
         public BinaryHeap openList;
@@ -62,7 +63,7 @@ namespace CPF_experiment
             this.heuristic = heuristic;
         }
 
-        public virtual void Setup(ProblemInstance problemInstance, Run runner)
+        public virtual void Setup(ProblemInstance problemInstance, int minDepth, Run runner)
         {
             this.instance = problemInstance;
             this.runner = runner;
@@ -79,24 +80,20 @@ namespace CPF_experiment
                 this.maxCost = (int)(problemInstance.parameters[Trevor.MAXIMUM_COST_KEY]);
             else
                 this.maxCost = int.MaxValue;
-            if (problemInstance.parameters.ContainsKey(CBS_LocalConflicts.NEW_INTERNAL_CAT) == false)
+
+            if (problemInstance.parameters.ContainsKey(CBS_LocalConflicts.INTERNAL_CAT) == false) // Top-most CBS solver
             {
                 problemInstance.parameters[CBS_LocalConflicts.INTERNAL_CAT] = new HashSet_U<TimedMove>();
                 problemInstance.parameters[CBS_LocalConflicts.CONSTRAINTS] = new HashSet_U<CbsConstraint>();
-                problemInstance.parameters[CBS_LocalConflicts.NEW_CONSTRAINTS] = new HashSet<CbsConstraint>();
-                problemInstance.parameters[CBS_LocalConflicts.NEW_INTERNAL_CAT] = new HashSet<TimedMove>();
             }
-            else
-            {
-                problemInstance.parameters[CBS_LocalConflicts.NEW_INTERNAL_CAT] = new HashSet<TimedMove>();
-                problemInstance.parameters[CBS_LocalConflicts.NEW_CONSTRAINTS] = new HashSet<CbsConstraint>();
-            }
-            minDepth = 0;
+
+            this.minDepth = minDepth;
+
             CbsNode root = new CbsNode(instance.m_vAgents.Length, problemInstance, this.solver, this.lowLevelSolver, runner);
             // Solve the root node
-            root.Solve(minDepth, ref highLevelExpanded, ref highLevelGenerated, ref lowLevelExpanded, ref lowLevelGenerated);
+            bool solved = root.Solve(minDepth, ref highLevelExpanded, ref highLevelGenerated, ref lowLevelExpanded, ref lowLevelGenerated);
             
-            if (root.totalCost <= this.maxCost)
+            if (solved && root.totalCost <= this.maxCost)
             {
                 this.openList.Add(root);
                 this.highLevelGenerated++;
@@ -105,10 +102,9 @@ namespace CPF_experiment
             }
         }
 
-        public void Setup(ProblemInstance problemInstance, int minDepth, Run runner)
+        public virtual void Setup(ProblemInstance problemInstance, Run runner)
         {
-            Setup(problemInstance, runner);
-            this.minDepth = minDepth;
+            this.Setup(problemInstance, 0, runner);
         }
 
         public void SetHeuristic(HeuristicCalculator heuristic)
@@ -177,10 +173,11 @@ namespace CPF_experiment
             }
         }
 
+        private bool debug = false;
+
         public bool Solve()
         {
             //Debug.WriteLine("Solving Sub-problem On Level - " + mergeThreshold);
-            //Console.ReadLine();
             int initialEstimate = 0;
             if (openList.Count > 0)
                 initialEstimate = ((CbsNode)openList.Peek()).totalCost;
@@ -199,9 +196,28 @@ namespace CPF_experiment
                 }
                 var currentNode = (CbsNode)openList.Remove();
 
+                if (debug)
+                {
+                    Debug.WriteLine("Total cost so far: " + currentNode.totalCost);
+                    Debug.WriteLine("Constraints so far: ");
+                    foreach (CbsConstraint constraint in currentNode.GetConstraints())
+                    {
+                        Debug.WriteLine(constraint);
+                    }
+                    Debug.WriteLine("Conflict: " + currentNode.GetConflict());
+                    currentNode.CalculateJointPlan().PrintPlan();
+                    Debug.WriteLine("");
+                    Debug.WriteLine("");
+                }
+
+                Debug.Assert(currentNode.totalCost >= lastCost, "CBS node with decreasing cost: " + currentNode.totalCost + " < " + lastCost);
+                lastCost = currentNode.totalCost;
+
                 // Check if node is the goal
                 if (currentNode.GoalTest())
                 {
+                    if (debug)
+                        Debug.WriteLine("-------------------------");
                     this.totalCost = currentNode.totalCost;
                     this.solutionDepth = this.totalCost - initialEstimate;
                     this.goalNode = currentNode;
@@ -210,11 +226,11 @@ namespace CPF_experiment
                     return true;
                 }
                 // Expand
-                var ret = Expand(currentNode);
+                Expand(currentNode);
                 highLevelExpanded++;
-                if (ret)
-                    if (currentNode.collapse == CbsNode.ExpansionState.NOT_EXPANDED) // Actually means the node was fully expanded
-                        currentNode.Clear(); // TODO: Consider if this is even worth doing
+                if (currentNode.agentAExpansion == CbsNode.ExpansionState.EXPANDED &&
+                    currentNode.agentBExpansion == CbsNode.ExpansionState.EXPANDED) // Fully expanded
+                    currentNode.Clear();
             }
 
             this.totalCost = Constants.NO_SOLUTION_COST;
@@ -227,7 +243,7 @@ namespace CPF_experiment
             return node.MergeIf(mergeThreshold);
         }
 
-        public virtual bool Expand(CbsNode node)
+        public virtual void Expand(CbsNode node)
         {
             CbsConflict conflict = node.GetConflict();
 
@@ -237,16 +253,18 @@ namespace CPF_experiment
                 if (MergeConflicting(node))
                 {
                     closedList.Add(node, node); // With new hash code
-                    if (node.Replan(conflict.agentA, this.minDepth, ref highLevelExpanded, ref highLevelGenerated, ref lowLevelExpanded, ref lowLevelGenerated) == false)
-                    {
-                        this.maxSizeGroup = Math.Max(this.maxSizeGroup, node.replanSize);
-                        return true;
-                    }
+                    bool success = node.Replan(conflict.agentA, this.minDepth,
+                                ref highLevelExpanded, ref highLevelGenerated, ref lowLevelExpanded, ref lowLevelGenerated);
                     this.maxSizeGroup = Math.Max(this.maxSizeGroup, node.replanSize);
+                    if (success == false)
+                    {
+                        this.Clear();
+                        return;
+                    }
                     if (node.totalCost <= maxCost)
                         openList.Add(node);
                     this.addToGlobalConflictCount(node.GetConflict());
-                    return false;
+                    return;
                 }
                 else
                     closedList.Add(node, node); // With the old hash code
@@ -256,59 +274,35 @@ namespace CPF_experiment
             // Generate left child:
             CbsConstraint con;
             CbsNode toAdd;
-            if (node.collapse != CbsNode.ExpansionState.A_NOT_EXPANDED && 
-                Math.Max(minDepth, conflict.timeStep) > node.PathLength(conflict.agentA)) // Conflict happens after agent A reached its goal.
-                                                                                          // Generating the left child would mean moving agent a from the goal,
-                                                                                          // which costs a lot because:
-                                                                                          // A) All STAY moves in the goal before leaving it now add to the g.
-                                                                                          // B) We force the low level to compute a path longer than the optimal,
-                                                                                          //    and with a bad suprise towards the end in the form of a constraint,
-                                                                                          //    so the low-level's SIC heuristic performs poorly.
+            if (node.agentAExpansion == CbsNode.ExpansionState.NOT_EXPANDED && conflict.vertex == true &&
+                Math.Max(minDepth, conflict.timeStep) >= node.allSingleAgentCosts[conflict.agentA])
+            // Conflict happens when or after agent A reaches its goal.
+            // The left child would cost a lot because:
+            // A) All WAIT moves in the goal before leaving it now add to the g.
+            // B) We force the low level to compute a path longer than the optimal,
+            //    and with a bad suprise towards the end in the form of a constraint,
+            //    so the low-level's SIC heuristic performs poorly.
+            // C) We're banning the GOAL from all directions (since this is a vertex conflict),
+            //    so any alternative plan will at least cost 1 more.
+            //    We're ignoring edge conflicts because they can only happen at the goal when reaching it,
+            //    and aren't guaranteed to increase the cost because the goal can still be possibly reached from another edge.
             {
-                node.collapse = CbsNode.ExpansionState.A_NOT_EXPANDED;
-                node.totalCost += (ushort)(conflict.timeStep + 1 - node.PathLength(conflict.agentA)); // Add the minimal delta in the left child's cost: since we're banning the goal at conflict.timeStep, it must at least do conflict.timeStep+1 steps
+                node.agentAExpansion = CbsNode.ExpansionState.DEFERRED;
+                int agentAOldCost = node.allSingleAgentCosts[conflict.agentA];
+                // Add the minimal delta in the child's cost:
+                // since we're banning the goal at conflict.timeStep, it must at least do conflict.timeStep+1 steps
+                node.totalCost += (ushort)(conflict.timeStep + 1 - agentAOldCost);
                 openList.Add(node); // Re-insert node into open list with higher cost
             }
             else // Agent A expansion already skipped in the past or not forcing A from its goal - finally generate the child:
             {
-                 con = new CbsConstraint(conflict, instance, true);
-                 toAdd = new CbsNode(node, con, conflict.agentA);
-
-                 if (closedList.ContainsKey(toAdd) == false)
-                 {
-                     if (toAdd.Replan(conflict.agentA, Math.Max(minDepth, conflict.timeStep), ref highLevelExpanded, ref highLevelGenerated, ref lowLevelExpanded, ref lowLevelGenerated))
-                     {
-                         if (toAdd.totalCost <= this.maxCost)
-                         {
-                             openList.Add(toAdd);
-                             closedList.Add(toAdd, toAdd);
-                             this.highLevelGenerated++;
-                             addToGlobalConflictCount(toAdd.GetConflict());
-                         }
-                     }
-                 }
-                 if (node.collapse == CbsNode.ExpansionState.A_NOT_EXPANDED)
-                     node.collapse = CbsNode.ExpansionState.NOT_EXPANDED; // FIXME: This may be correct but it's very confusing. Just have two vars for A expansion and B expansion
-            }
-
-            // Generate right child:
-            if (node.collapse != CbsNode.ExpansionState.B_NOT_EXPANDED &&
-                Math.Max(minDepth, conflict.timeStep) > node.PathLength(conflict.agentB)) // Again, skip expansion
-            {
-                if (node.collapse != CbsNode.ExpansionState.NOT_EXPANDED) // A_NOT_EXPANDED is unexpected because it means both agents were at their goal when they collided, and valid problems don't have colliding goals
-                    throw new Exception("Expand/CBS");
-                node.collapse = CbsNode.ExpansionState.B_NOT_EXPANDED;
-                node.totalCost += (ushort)(conflict.timeStep + 1 - node.PathLength(conflict.agentB));
-                openList.Add(node);
-            }
-            else
-            {
-                con = new CbsConstraint(conflict, instance, false);
-                toAdd = new CbsNode(node, con, conflict.agentB);
+                con = new CbsConstraint(conflict, instance, true);
+                toAdd = new CbsNode(node, con, conflict.agentA);
 
                 if (closedList.ContainsKey(toAdd) == false)
                 {
-                    if (toAdd.Replan(conflict.agentB, Math.Max(minDepth, conflict.timeStep), ref highLevelExpanded, ref highLevelGenerated, ref lowLevelExpanded, ref lowLevelGenerated))
+                    if (toAdd.Replan(conflict.agentA, Math.Max(minDepth, conflict.timeStep),
+                                     ref highLevelExpanded, ref highLevelGenerated, ref lowLevelExpanded, ref lowLevelGenerated))
                     {
                         if (toAdd.totalCost <= this.maxCost)
                         {
@@ -318,11 +312,46 @@ namespace CPF_experiment
                             addToGlobalConflictCount(toAdd.GetConflict());
                         }
                     }
+                    // else a timeout probably occured
                 }
-                if (node.collapse == CbsNode.ExpansionState.B_NOT_EXPANDED)
-                    node.collapse = CbsNode.ExpansionState.NOT_EXPANDED;
+                node.agentAExpansion = CbsNode.ExpansionState.EXPANDED;
             }
-            return true;
+
+            // Generate right child:
+            if (node.agentBExpansion == CbsNode.ExpansionState.NOT_EXPANDED && conflict.vertex == true &&
+                Math.Max(minDepth, conflict.timeStep) >= node.allSingleAgentCosts[conflict.agentB]) // Again, skip expansion
+            {
+                if (node.agentAExpansion == CbsNode.ExpansionState.DEFERRED)
+                    throw new Exception("Unexpected: Expansion of both children differed, but this is a vertex conflict so that means the targets for the two agents are equal, which is illegal");
+                
+                node.agentBExpansion = CbsNode.ExpansionState.DEFERRED;
+                int agentBOldCost = node.allSingleAgentCosts[conflict.agentB];
+                node.totalCost += (ushort)(conflict.timeStep + 1 - agentBOldCost);
+                openList.Add(node); // Re-insert node into open list with higher cost
+                // TODO: Code duplication with agentA. Make this into a function.
+            }
+            else
+            {
+                con = new CbsConstraint(conflict, instance, false);
+                toAdd = new CbsNode(node, con, conflict.agentB);
+
+                if (closedList.ContainsKey(toAdd) == false)
+                {
+                    if (toAdd.Replan(conflict.agentB, Math.Max(minDepth, conflict.timeStep),
+                                     ref highLevelExpanded, ref highLevelGenerated, ref lowLevelExpanded, ref lowLevelGenerated))
+                    {
+                        if (toAdd.totalCost <= this.maxCost)
+                        {
+                            openList.Add(toAdd);
+                            closedList.Add(toAdd, toAdd);
+                            this.highLevelGenerated++;
+                            addToGlobalConflictCount(toAdd.GetConflict());
+                        }
+                    }
+                    // else a timeout probably occured
+                }
+                node.agentBExpansion = CbsNode.ExpansionState.EXPANDED;
+            }
         }
 
         protected virtual void addToGlobalConflictCount(CbsConflict conflict) { }
@@ -340,6 +369,12 @@ namespace CPF_experiment
         {
             return goalNode.allSingleAgentPlans;
         }
+
+        public virtual int[] GetSingleCosts()
+        {
+            return goalNode.allSingleAgentCosts;
+        }
+
         public int GetHighLevelExpanded() { return highLevelExpanded; }
         public int GetHighLevelGenerated() { return highLevelGenerated; }
         public int GetLowLevelExpanded() { return lowLevelExpanded; }

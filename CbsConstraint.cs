@@ -25,7 +25,7 @@ namespace CPF_experiment
             this.move = new TimedMove(move);
         }
 
-        public CbsConstraint() : this(-1, -1, -1, Move.Direction.NO_DIRECTION, -1) {} // Nonsense values until init, just allocate move
+        public CbsConstraint() : this(-1, -1, -1, Move.Direction.NO_DIRECTION, -1) {} // Nonsense values until Init, just allocate move
 
         public CbsConstraint(CbsConflict conflict, ProblemInstance instance, bool agentA)
         {
@@ -154,14 +154,15 @@ namespace CPF_experiment
         /// <param name="timeStep"></param>
         /// <param name="direction"></param>
         /// <returns></returns>
-        public bool ViolatesMustCond(byte agent, int posX, int posY, Move.Direction direction, int timeStep)
+        public bool ViolatesMustConstraint(byte agent, int posX, int posY, Move.Direction direction, int timeStep)
         {
-            return this.ViolatesMustCond(agent, new TimedMove(posX, posY, direction, timeStep));
+            return this.ViolatesMustConstraint(agent, new TimedMove(posX, posY, direction, timeStep));
         }
 
-        public bool ViolatesMustCond(byte agent, TimedMove move)
+        public bool ViolatesMustConstraint(byte agent, TimedMove move)
         {
-            if (agents.Contains<byte>(agent) == false)
+            if (agents.Contains<byte>(agent) == false) // Must-constraints can only logically have one agent -
+                                                       // you can't force two agents to be at the same place and at the same time
                 return false;
             return this.move.Equals(move) == false;
         }

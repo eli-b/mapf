@@ -84,7 +84,6 @@ namespace CPF_experiment
         public bool Solve()
         {
             //Debug.WriteLine("Solving Sub-problem On Level - " + mergeThreshold);
-            //Console.ReadLine();
 
             CbsConflict conflict;
             CbsNode currentNode = (CbsNode)openList.Remove();
@@ -124,7 +123,8 @@ namespace CPF_experiment
                 // Expand
                 highLevelExpanded++;
                 if (Expand(currentNode, conflict))
-                    if (currentNode.collapse == 0)
+                    if (currentNode.agentAExpansion == CbsNode.ExpansionState.EXPANDED &&
+                        currentNode.agentBExpansion == CbsNode.ExpansionState.EXPANDED) // Fully expanded
                         currentNode.Clear();
             }
             totalCost = Constants.NO_SOLUTION_COST;
@@ -137,14 +137,10 @@ namespace CPF_experiment
 
             if (this.maxThreshold != -1 && MergeConflicting(node))
             {
-                if (node.Replan(conflict.agentA, this.minCost, ref highLevelExpanded, ref highLevelGenerated, ref lowLevelExpanded, ref lowLevelGenerated) == false)
-                {
-                    if (node.replanSize > this.maxSizeGroup)
-                        maxSizeGroup = node.replanSize;
+                bool solved = node.Replan(conflict.agentA, this.minCost, ref highLevelExpanded, ref highLevelGenerated, ref lowLevelExpanded, ref lowLevelGenerated);
+                this.maxSizeGroup = Math.Max(this.maxSizeGroup, node.replanSize);
+                if (solved == false)
                     return true;
-                }
-                if (node.replanSize > this.maxSizeGroup)
-                    maxSizeGroup = node.replanSize;
                 if (node.totalCost <= maxCost)
                     openList.Add(node);
                 this.addToGlobalConflictCount(node.GetConflict());
@@ -154,10 +150,10 @@ namespace CPF_experiment
 
              CbsConstraint con;
              CbsNode toAdd;
-            if (node.collapse != CbsNode.ExpansionState.A_NOT_EXPANDED &&
+            if (node.agentAExpansion == CbsNode.ExpansionState.NOT_EXPANDED &&
                 Math.Max(minCost, conflict.timeStep) > node.PathLength(conflict.agentA))
             {
-                node.collapse = CbsNode.ExpansionState.A_NOT_EXPANDED;
+                node.agentAExpansion = CbsNode.ExpansionState.DEFERRED;
                 node.totalCost += (ushort)(conflict.timeStep + 1 - node.PathLength(conflict.agentA));
                 openList.Add(node);
             }
@@ -176,15 +172,15 @@ namespace CPF_experiment
                     }
                 }
                 
-                if (node.collapse == CbsNode.ExpansionState.A_NOT_EXPANDED)
-                    node.collapse = CbsNode.ExpansionState.NOT_EXPANDED;
+                node.agentAExpansion = CbsNode.ExpansionState.EXPANDED;
             }
-            if (node.collapse != CbsNode.ExpansionState.B_NOT_EXPANDED &&
+
+            if (node.agentBExpansion == CbsNode.ExpansionState.NOT_EXPANDED &&
                 Math.Max(minCost, conflict.timeStep) > node.PathLength(conflict.agentB))
             {
-                if (node.collapse != CbsNode.ExpansionState.NOT_EXPANDED)
+                if (node.agentAExpansion == CbsNode.ExpansionState.DEFERRED)
                     throw new Exception("Expand/CBS");
-                node.collapse = CbsNode.ExpansionState.B_NOT_EXPANDED;
+                node.agentBExpansion = CbsNode.ExpansionState.DEFERRED;
                 node.totalCost += (ushort)(conflict.timeStep + 1 - node.PathLength(conflict.agentB));
                 openList.Add(node);
             }
@@ -203,8 +199,7 @@ namespace CPF_experiment
                     }
                 }
 
-                if (node.collapse == CbsNode.ExpansionState.B_NOT_EXPANDED)
-                    node.collapse = CbsNode.ExpansionState.NOT_EXPANDED;
+                node.agentBExpansion = CbsNode.ExpansionState.EXPANDED;
             }
             return true;
         }
@@ -259,17 +254,10 @@ namespace CPF_experiment
                 this.maxCost = (int)(problemInstance.parameters[Trevor.MAXIMUM_COST_KEY]);
             else
                 this.maxCost = int.MaxValue;
-            if (problemInstance.parameters.ContainsKey(CBS_LocalConflicts.NEW_INTERNAL_CAT) == false)
+            if (problemInstance.parameters.ContainsKey(CBS_LocalConflicts.INTERNAL_CAT) == false)
             {
                 problemInstance.parameters[CBS_LocalConflicts.INTERNAL_CAT] = new HashSet_U<TimedMove>();
                 problemInstance.parameters[CBS_LocalConflicts.CONSTRAINTS] = new HashSet_U<CbsConstraint>();
-                problemInstance.parameters[CBS_LocalConflicts.NEW_CONSTRAINTS] = new HashSet<CbsConstraint>();
-                problemInstance.parameters[CBS_LocalConflicts.NEW_INTERNAL_CAT] = new HashSet<TimedMove>();
-            }
-            else
-            {
-                problemInstance.parameters[CBS_LocalConflicts.NEW_INTERNAL_CAT] = new HashSet<TimedMove>();
-                problemInstance.parameters[CBS_LocalConflicts.NEW_CONSTRAINTS] = new HashSet<CbsConstraint>();
             }
             minCost = 0;
         }
@@ -369,10 +357,17 @@ namespace CPF_experiment
             output.Write(this.lowLevelGenerated + Run.RESULTS_DELIMITER);
         }
 
+        public int NumStatsColumns
+        {
+            get
+            {
+                return 4;
+            }
+        }
+
         public bool Solve()
         {
             //Debug.WriteLine("Solving Sub-problem On Level - " + mergeThreshold);
-            //Console.ReadLine();
 
             CbsConflict conflict;
             CbsNode currentNode = (CbsNode)openList.Remove();
@@ -412,7 +407,8 @@ namespace CPF_experiment
                 // Expand
                 highLevelExpanded++;
                 if (Expand(currentNode, conflict))
-                    if (currentNode.collapse == 0)
+                    if (currentNode.agentAExpansion == CbsNode.ExpansionState.EXPANDED &&
+                        currentNode.agentBExpansion == CbsNode.ExpansionState.EXPANDED) // Fully expanded
                         currentNode.Clear();
             }
             totalCost = Constants.NO_SOLUTION_COST;
@@ -442,19 +438,19 @@ namespace CPF_experiment
             CbsNode toAdd;
             CbsConstraint con2 = new CbsConstraint(conflict, instance, false);
             CbsConstraint con1 = new CbsConstraint(conflict, instance, true);
-            if (node.collapse != CbsNode.ExpansionState.A_NOT_EXPANDED &&
+            if (node.agentAExpansion == CbsNode.ExpansionState.NOT_EXPANDED &&
                 Math.Max(minCost, conflict.timeStep) > node.PathLength(conflict.agentA))
             {
-                node.collapse = CbsNode.ExpansionState.A_NOT_EXPANDED;
+                node.agentAExpansion = CbsNode.ExpansionState.DEFERRED;
                 node.totalCost += (ushort)(conflict.timeStep + 1 - node.PathLength(conflict.agentA));
                 openList.Add(node);
             }
             else 
             {
-                if (node.IsAllowedConstraint(con1))
+                if (node.DoesMustConstraintAllow(con1))
                 {
                     toAdd = new CbsNode(node, con1, conflict.agentA);
-                    toAdd.SetUnConstraint(con2);
+                    toAdd.SetMustConstraint(con2);
 
                     if (toAdd.Replan(conflict.agentA, Math.Max(minCost, conflict.timeStep), ref highLevelExpanded, ref highLevelGenerated, ref lowLevelExpanded, ref lowLevelGenerated))
                     {
@@ -466,24 +462,24 @@ namespace CPF_experiment
                         }
                     }
                 }
-                if (node.collapse == CbsNode.ExpansionState.A_NOT_EXPANDED)
-                    node.collapse = CbsNode.ExpansionState.NOT_EXPANDED;
+                
+                node.agentAExpansion = CbsNode.ExpansionState.EXPANDED;
             }
-            if (node.collapse != CbsNode.ExpansionState.B_NOT_EXPANDED &&
+            if (node.agentBExpansion == CbsNode.ExpansionState.NOT_EXPANDED &&
                 Math.Max(minCost, conflict.timeStep) > node.PathLength(conflict.agentB))
             {
-                if (node.collapse != CbsNode.ExpansionState.NOT_EXPANDED)
+                if (node.agentAExpansion == CbsNode.ExpansionState.DEFERRED)
                     throw new Exception("Expand/CBS");
-                node.collapse = CbsNode.ExpansionState.B_NOT_EXPANDED;
+                node.agentBExpansion = CbsNode.ExpansionState.DEFERRED;
                 node.totalCost += (ushort)(conflict.timeStep + 1 - node.PathLength(conflict.agentB));
                 openList.Add(node);
             }
             else 
             {
-                if (node.IsAllowedConstraint(con2))
+                if (node.DoesMustConstraintAllow(con2))
                 {
                     toAdd = new CbsNode(node, con2, conflict.agentB);
-                    toAdd.SetUnConstraint(con1);
+                    toAdd.SetMustConstraint(con1);
 
                     if (toAdd.Replan(conflict.agentB, Math.Max(minCost, conflict.timeStep), ref highLevelExpanded, ref highLevelGenerated, ref lowLevelExpanded, ref lowLevelGenerated))
                     {
@@ -495,10 +491,11 @@ namespace CPF_experiment
                         }
                     }
                 }
-                if (node.collapse == CbsNode.ExpansionState.B_NOT_EXPANDED)
-                    node.collapse = CbsNode.ExpansionState.NOT_EXPANDED;
+                node.agentBExpansion = CbsNode.ExpansionState.EXPANDED;
             }
-            if (node.collapse == CbsNode.ExpansionState.NOT_EXPANDED)
+
+            if (node.agentAExpansion == CbsNode.ExpansionState.EXPANDED &&
+                node.agentBExpansion == CbsNode.ExpansionState.EXPANDED)
             {
                 toAdd = new CbsNode(node, con1, conflict.agentA);
                 if (toAdd.Replan(conflict.agentA, Math.Max(minCost, conflict.timeStep), ref highLevelExpanded, ref highLevelGenerated, ref lowLevelExpanded, ref lowLevelGenerated))
@@ -568,17 +565,10 @@ namespace CPF_experiment
                 this.maxCost = (int)(problemInstance.parameters[Trevor.MAXIMUM_COST_KEY]);
             else
                 this.maxCost = int.MaxValue;
-            if (problemInstance.parameters.ContainsKey(CBS_LocalConflicts.NEW_INTERNAL_CAT) == false)
+            if (problemInstance.parameters.ContainsKey(CBS_LocalConflicts.INTERNAL_CAT) == false) // Top-most CBS only
             {
                 problemInstance.parameters[CBS_LocalConflicts.INTERNAL_CAT] = new HashSet_U<TimedMove>();
                 problemInstance.parameters[CBS_LocalConflicts.CONSTRAINTS] = new HashSet_U<CbsConstraint>();
-                problemInstance.parameters[CBS_LocalConflicts.NEW_CONSTRAINTS] = new HashSet<CbsConstraint>();
-                problemInstance.parameters[CBS_LocalConflicts.NEW_INTERNAL_CAT] = new HashSet<TimedMove>();
-            }
-            else
-            {
-                problemInstance.parameters[CBS_LocalConflicts.NEW_INTERNAL_CAT] = new HashSet<TimedMove>();
-                problemInstance.parameters[CBS_LocalConflicts.NEW_CONSTRAINTS] = new HashSet<CbsConstraint>();
             }
             minCost = 0;
         }
