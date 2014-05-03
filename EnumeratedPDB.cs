@@ -173,7 +173,7 @@ namespace CPF_experiment
             WorldState goal =
                 new WorldState(m_Problem.m_vAgents, m_vAgents);
             foreach (AgentState ags in goal.allAgentsState)
-                ags.swapCurrentWithGoal();
+                ags.SwapCurrentWithGoal();
             List<uint> vBackup = m_vAgents;
             m_vAgents = new List<uint>(goal.allAgentsState.Length);
             for (uint i = 0; i < goal.allAgentsState.Length; ++i)
@@ -311,11 +311,11 @@ namespace CPF_experiment
                  * in positions previous to our current position.
                  */
 
-                Int32 nCard1 = m_Problem.getCardinality(s.allAgentsState[m_vAgents[i]].last_move);
+                Int32 nCard1 = m_Problem.GetCardinality(s.allAgentsState[m_vAgents[i]].lastMove);
                 Int32 nPreceding = 0;
                 for (int j = 0; j < i; ++j)
                 {
-                    Int32 nCard2 = m_Problem.getCardinality(s.allAgentsState[m_vAgents[j]].last_move);
+                    Int32 nCard2 = m_Problem.GetCardinality(s.allAgentsState[m_vAgents[j]].lastMove);
                     if (nCard2 < nCard1)
                         ++nPreceding;
                 }

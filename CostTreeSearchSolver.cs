@@ -164,7 +164,6 @@ namespace CPF_experiment
             output.Write(passed + Run.RESULTS_DELIMITER);
         }
 
-
         /// <summary>
         /// Solves the instance that was set by a call to Setup()
         /// </summary>

@@ -9,7 +9,6 @@ namespace CPF_experiment
         protected List<byte> agents;
         protected TimedMove move;
       //public byte group;
-      //bool onVartex;
         public static bool fullyEqual;
 
         public CbsConstraint(int agent, int posX, int posY, Move.Direction direction, int timeStep)
@@ -17,7 +16,13 @@ namespace CPF_experiment
             this.agents = new List<byte>();
             this.agents.Add((byte)agent);
             this.move = new TimedMove(posX, posY, direction, timeStep);
-          //this.onVartex = onVartex;
+        }
+
+        public CbsConstraint(int agent, TimedMove move)
+        {
+            this.agents = new List<byte>();
+            this.agents.Add((byte)agent);
+            this.move = new TimedMove(move);
         }
 
         public CbsConstraint() : this(-1, -1, -1, Move.Direction.NO_DIRECTION, -1) {} // Nonsense values until init, just allocate move
@@ -40,8 +45,7 @@ namespace CPF_experiment
             this.agents.Add((byte)agentNum);
 
             this.move = new TimedMove(move, conflict.timeStep);
-          //this.onVartex = conflict.vartex;
-            if (conflict.vartex)
+            if (conflict.vertex)
                 this.move.direction = Move.Direction.NO_DIRECTION;
         }
 

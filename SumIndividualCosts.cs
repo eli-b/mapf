@@ -36,7 +36,7 @@ namespace CPF_experiment
         public static bool[][] grid;
         static bool allowDiagonalMove;
 
-        public static void init(int i_size_X, int i_size_Y, Agent[] allAgents, bool diagonal, bool[][] i_grid)
+        public static void Init(int i_size_X, int i_size_Y, Agent[] allAgents, bool diagonal, bool[][] i_grid)
         {
             size_X = i_size_X;
             size_Y = i_size_Y;
@@ -83,7 +83,7 @@ namespace CPF_experiment
                 // Expand tile:
                 foreach (Move nextMove in move.GetNextMoves(allowDiagonalMove))
                 {
-                    if (isValidTile(nextMove.x, nextMove.y) && !closedList.Contains(nextMove.x * size_X + nextMove.y))
+                    if (IsValidTile(nextMove.x, nextMove.y) && !closedList.Contains(nextMove.x * size_X + nextMove.y))
                     {
                         openList.Enqueue(new Tuple<Move, int>(nextMove, val + 1));
                         closedList.Add(nextMove.x * size_X + nextMove.y);
@@ -98,7 +98,7 @@ namespace CPF_experiment
             return allTileAgentHeuristics[agent][X][Y];
         }
 
-        static public bool isValidTile(int X, int Y)
+        static public bool IsValidTile(int X, int Y)
         {
             if (X < 0 || X >= size_X || Y < 0 || Y >= size_Y)
                 return false;

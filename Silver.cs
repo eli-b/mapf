@@ -100,17 +100,17 @@ namespace CPF_experiment
                 if (temp.h == 0)
                 {
                     valid = true;
-                    for (int i = temp.last_move.time ; i <= maxPathCost; i++)
+                    for (int i = temp.lastMove.time ; i <= maxPathCost; i++)
                     {
-                        if (RT.Contains(new TimedMove(temp.last_move.x, temp.last_move.y, Move.Direction.NO_DIRECTION, i)))
+                        if (RT.Contains(new TimedMove(temp.lastMove.x, temp.lastMove.y, Move.Direction.NO_DIRECTION, i)))
                             valid = false;
                     }
                     if (valid)
                     {
                         reservePath(temp);
-                        totalTime += temp.last_move.time;
+                        totalTime += temp.lastMove.time;
                         //printPath(temp);
-                        parked.Add(new Move(temp.last_move.x, temp.last_move.y, Move.Direction.NO_DIRECTION), temp.last_move.time);
+                        parked.Add(new Move(temp.lastMove.x, temp.lastMove.y, Move.Direction.NO_DIRECTION), temp.lastMove.time);
                         return true;
                     }
                 }
@@ -124,7 +124,7 @@ namespace CPF_experiment
             AgentState temp = end;
             while (temp != null)
             {
-                RT.Add(new TimedMove(temp.last_move.x, temp.last_move.y, temp.last_move.direction, temp.last_move.time));
+                RT.Add(new TimedMove(temp.lastMove.x, temp.lastMove.y, temp.lastMove.direction, temp.lastMove.time));
                 allPathCost[temp.agent.agentNum]++;
                 temp = temp.prev;
             }
@@ -133,7 +133,7 @@ namespace CPF_experiment
         }
         private void expendNode(AgentState node, BinaryHeap openList, HashSet<AgentState> closedList)
         {
-            foreach (TimedMove move in node.last_move.GetNextMoves(Constants.ALLOW_DIAGONAL_MOVE))
+            foreach (TimedMove move in node.lastMove.GetNextMoves(Constants.ALLOW_DIAGONAL_MOVE))
             {
                 if (isValidMove(move))
                 {
@@ -143,12 +143,12 @@ namespace CPF_experiment
                     if (move.time > maxPathCost)
                     {
                         tempCL = new AgentState(temp);
-                        tempCL.last_move.time = maxPathCost;
+                        tempCL.lastMove.time = maxPathCost;
                     }
                     if (!closedList.Contains(tempCL))
                     {
                         closedList.Add(tempCL);
-                        temp.last_move.time = move.time;
+                        temp.lastMove.time = move.time;
                         openList.Add(temp);
                         generated++;
                     }

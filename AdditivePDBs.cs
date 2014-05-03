@@ -136,6 +136,13 @@ namespace CPF_experiment
         /// </summary>
         public void OutputStatistics(TextWriter output) { }
 
+        public int NumStatsColumns {
+            get
+            {
+                return 0;
+            }
+        }
+
         /// <summary>
         /// Clears statistics.
         /// </summary>

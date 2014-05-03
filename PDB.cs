@@ -100,13 +100,13 @@ namespace CPF_experiment
             }
 
             // Try all legal moves of the agent
-            foreach (TimedMove agentLocation in currentNode.allAgentsState[agentIndex].last_move.GetNextMoves(Constants.ALLOW_DIAGONAL_MOVE))
+            foreach (TimedMove agentLocation in currentNode.allAgentsState[agentIndex].lastMove.GetNextMoves(Constants.ALLOW_DIAGONAL_MOVE))
             {
                 if (IsValid(agentLocation, agentIndex, previousMoves))
                 {
                     previousMoves.Add(agentLocation);
                     childNode = new WorldState(currentNode);
-                    childNode.allAgentsState[agentIndex].move(agentLocation);
+                    childNode.allAgentsState[agentIndex].MoveTo(agentLocation);
                     childNode.prevStep = prev;
                     Expand(childNode, agentIndex + 1,children, previousMoves);
                     previousMoves.Remove(agentLocation);
@@ -143,6 +143,14 @@ namespace CPF_experiment
         /// Prints statistics of a single run to the given output.
         /// </summary>
         public void OutputStatistics(TextWriter output) { }
+
+        public int NumStatsColumns
+        {
+            get
+            {
+                return 0;
+            }
+        }
 
         /// <summary>
         /// Clears statistics.

@@ -17,7 +17,7 @@ namespace CPF_experiment
         /// <summary>
         /// The last move's time is the agent's G
         /// </summary>
-        public TimedMove last_move;
+        public TimedMove lastMove;
         private int binaryHeapIndex;
         public int potentialConflicts;
         public ushort potentialConflictsID;
@@ -25,7 +25,7 @@ namespace CPF_experiment
 
         public AgentState(int pos_X, int pos_Y, Agent agent)
         {
-            this.last_move = new TimedMove(pos_X, pos_Y, Move.Direction.NO_DIRECTION, 0);
+            this.lastMove = new TimedMove(pos_X, pos_Y, Move.Direction.NO_DIRECTION, 0);
             this.agent = agent;
         }
 
@@ -38,38 +38,38 @@ namespace CPF_experiment
             this.agent = copy.agent;
             this.h = copy.h;
             this.arrivalTime = copy.arrivalTime;
-            this.last_move = new TimedMove(copy.last_move); // Can we just do this.last_move = copy.last_move?
+            this.lastMove = new TimedMove(copy.lastMove); // Can we just do this.lastMove = copy.lastMove? I think we can now, since MoveTo replaces the move
         }
 
-        public void swapCurrentWithGoal()
+        public void SwapCurrentWithGoal()
         {
-            int nTemp = last_move.x;
-            last_move.x = agent.Goal.x;
+            int nTemp = lastMove.x;
+            lastMove.x = agent.Goal.x;
             agent.Goal.x = nTemp;
-            nTemp = last_move.y;
-            last_move.y = agent.Goal.y;
+            nTemp = lastMove.y;
+            lastMove.y = agent.Goal.y;
             agent.Goal.y = nTemp;
         }
 
         /// <summary>
-        /// Updates the agent's last move with the given move and set arrivalTime (at goal) if necessary.
+        /// Updates the agent's last move with the given move and sets arrivalTime (at goal) if necessary.
         /// </summary>
-        public void move(TimedMove move)
+        public void MoveTo(TimedMove move)
         {
-            last_move = move;
+            this.lastMove = move;
 
-            // If performed a non STAY move and reached the agent's goal - store the arrival time
-            if ((move.direction != Move.Direction.Wait) && (this.atGoal()))
-                this.arrivalTime = last_move.time;
+            // If performed a non WAIT move and reached the agent's goal - store the arrival time
+            if ((move.direction != Move.Direction.Wait) && (this.AtGoal()))
+                this.arrivalTime = lastMove.time;
         }
 
         /// <summary>
         /// Checks if the agent is at its goal location
         /// </summary>
         /// <returns>True if the agent has reached its goal location</returns>
-        public bool atGoal()
+        public bool AtGoal()
         {
-            return this.agent.Goal.Equals(this.last_move); // Comparing Move to TimedMove is allowed, the reverse isn't.
+            return this.agent.Goal.Equals(this.lastMove); // Comparing Move to TimedMove is allowed, the reverse isn't.
         }
 
         /// <summary>
@@ -83,7 +83,7 @@ namespace CPF_experiment
         public void SetIndexInHeap(int index) { binaryHeapIndex = index; }
 
         /// <summary>
-        /// Checks last_move and agent
+        /// Checks lastMove and agent
         /// </summary>
         /// <param name="obj"></param>
         /// <returns></returns>
@@ -91,7 +91,7 @@ namespace CPF_experiment
         {
             AgentState that = (AgentState)obj;
             
-            if (this.last_move.Equals(that.last_move) /*behavior change! now checks time too*/ && this.agent.Equals(that.agent))
+            if (this.lastMove.Equals(that.lastMove) /*behavior change! now checks time too*/ && this.agent.Equals(that.agent))
             {
                 return true;
             }
@@ -99,7 +99,7 @@ namespace CPF_experiment
         }
 
         /// <summary>
-        /// Uses last_move and agent.
+        /// Uses lastMove and agent.
         /// </summary>
         /// <param name="obj"></param>
         /// <returns></returns>
@@ -107,13 +107,13 @@ namespace CPF_experiment
         {
             unchecked
             {
-                return 3 * this.agent.GetHashCode() + 5 * this.last_move.GetHashCode(); // Behavior change: now uses currentStep too.
+                return 3 * this.agent.GetHashCode() + 5 * this.lastMove.GetHashCode(); // Behavior change: now uses currentStep too.
             }
         }
 
         public Move GetMove()
         {
-            return new Move(this.last_move);
+            return new Move(this.lastMove);
         }
 
         /// <summary>
@@ -124,9 +124,9 @@ namespace CPF_experiment
         public int CompareTo(IBinaryHeapItem other)
         {
             AgentState that = (AgentState)other;
-            if (this.h + this.last_move.time < that.h + that.last_move.time)
+            if (this.h + this.lastMove.time < that.h + that.lastMove.time)
                 return -1;
-            if (this.h + this.last_move.time > that.h + that.last_move.time)
+            if (this.h + this.lastMove.time > that.h + that.lastMove.time)
                 return 1;
 
             if (this.potentialConflictsID < that.potentialConflictsID)
@@ -139,28 +139,16 @@ namespace CPF_experiment
             if (this.potentialConflicts > that.potentialConflicts)
                 return 1;
 
-            if (this.last_move.time < that.last_move.time)
+            if (this.lastMove.time < that.lastMove.time)
                 return 1;
-            if (this.last_move.time > that.last_move.time) // Prefer larger g
+            if (this.lastMove.time > that.lastMove.time) // Prefer larger g
                 return -1;
             return 0;
         }
 
         public override string ToString()
         {
-            return " step-" + last_move.time + " position " + this.last_move;
-        }
-    }
-
-    ///<summary>
-    /// Compares two AgentStates according to their AgentNum
-    /// This method is used for Rtrevor
-    ///</summary>
-    class AgentsNumsComparator : IComparer<AgentState>
-    {
-        public int Compare(AgentState x, AgentState y)
-        {
-            return x.agent.agentNum.CompareTo(y.agent.agentNum);
+            return "step-" + lastMove.time + " position " + this.lastMove;
         }
     }
 }

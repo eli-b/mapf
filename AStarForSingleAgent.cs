@@ -68,9 +68,9 @@ namespace CPF_experiment
                 }
                 currentNode = (AgentState)openList.Remove();
                 // Check if node is the goal
-                if (currentNode.atGoal() && currentNode.last_move.time > this.minDepth)
+                if (currentNode.AtGoal() && currentNode.lastMove.time > this.minDepth)
                 {
-                    this.solutionCost = currentNode.last_move.time;
+                    this.solutionCost = currentNode.lastMove.time;
                     this.plan = new Plan(currentNode);
                     this.externalConflicts = currentNode.potentialConflictsID;
                     return true;
@@ -89,7 +89,7 @@ namespace CPF_experiment
             AgentState nextStep;
             CbsConstraint nextStepLocation = new CbsConstraint();
 
-            foreach (TimedMove nextMove in currentNode.last_move.GetNextMoves(Constants.ALLOW_DIAGONAL_MOVE))
+            foreach (TimedMove nextMove in currentNode.lastMove.GetNextMoves(Constants.ALLOW_DIAGONAL_MOVE))
             {
                 if (instance.IsValid(nextMove))
                 {
@@ -97,9 +97,9 @@ namespace CPF_experiment
                     {
                         nextStep = new AgentState(currentNode);
                         nextStep.prev = currentNode;
-                        nextStep.move(nextMove);
+                        nextStep.MoveTo(nextMove);
                         nextStep.h = Math.Max(instance.GetSingleAgentShortestPath(nextStep),
-                                              minDepth - nextStep.last_move.time);
+                                              minDepth - nextStep.lastMove.time);
                         nextStep.potentialConflicts = currentNode.potentialConflicts;
                         nextStep.potentialConflictsID = currentNode.potentialConflictsID;
 
@@ -205,16 +205,16 @@ namespace CPF_experiment
         {
             AgentState nextStep;
 
-            foreach (TimedMove nextMove in currentNode.last_move.GetNextMoves(Constants.ALLOW_DIAGONAL_MOVE))
+            foreach (TimedMove nextMove in currentNode.lastMove.GetNextMoves(Constants.ALLOW_DIAGONAL_MOVE))
             {
                 if (instance.IsValid(nextMove))
                 {
                     nextStep = new AgentState(currentNode);
                     nextStep.prev = currentNode;
-                    nextStep.move(nextMove);
+                    nextStep.MoveTo(nextMove);
                     nextStep.h = instance.GetSingleAgentShortestPath(nextStep);
 
-                    if (nextStep.last_move.time + nextStep.h <= optimalSol + orderOfConflict)
+                    if (nextStep.lastMove.time + nextStep.h <= optimalSol + orderOfConflict)
                     {
                         if (this.closedList.ContainsKey(nextStep) == true)
                         {

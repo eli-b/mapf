@@ -245,7 +245,7 @@ namespace CPF_experiment
             foreach (var currentNode in intermediateNodes)
             {
                 // Try all legal moves of the agents
-                foreach (TimedMove agentLocation in currentNode.allAgentsState[agentIndex].last_move.GetNextMoves(Constants.ALLOW_DIAGONAL_MOVE))
+                foreach (TimedMove agentLocation in currentNode.allAgentsState[agentIndex].lastMove.GetNextMoves(Constants.ALLOW_DIAGONAL_MOVE))
                 {
                     if (IsValid(agentLocation, currentNode.currentMoves) == false)
                         continue;
@@ -266,7 +266,7 @@ namespace CPF_experiment
                     }
 
                     childNode = CreateSearchNode(currentNode);
-                    childNode.allAgentsState[agentIndex].move(agentLocation);
+                    childNode.allAgentsState[agentIndex].MoveTo(agentLocation);
                     childNode.prevStep = currentNode.prevStep; // Most node objects are just temporary ones used during expansion process - skip them
                     if (agentIndex == 0)
                     {

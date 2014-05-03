@@ -159,10 +159,10 @@ namespace CPF_experiment
         public int cardinality;
 
         public CoordinateForConflictRatio(ProblemInstance ins, AgentState state)
-            : base(state.last_move.x, state.last_move.y, state.last_move.direction, state.last_move.time)
+            : base(state.lastMove.x, state.lastMove.y, state.lastMove.direction, state.lastMove.time)
         {
             this.ins = ins;
-            this.cardinality = ins.getCardinality(state.last_move);
+            this.cardinality = ins.GetCardinality(state.lastMove);
         }
 
         public CoordinateForConflictRatio(CoordinateForConflictRatio cpy)

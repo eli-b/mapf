@@ -29,7 +29,7 @@ namespace CPF_experiment
         public WorldState(AgentState[] allAgentsState)
         {
             this.allAgentsState = allAgentsState.ToArray<AgentState>();
-            this.makespan = allAgentsState.Min<AgentState>(state => state.last_move.time); // We expect to only find at most two G values within the agent group
+            this.makespan = allAgentsState.Min<AgentState>(state => state.lastMove.time); // We expect to only find at most two G values within the agent group
             this.CalculateG(); // G not necessarily zero when solving a partially solved problem.
             this.potentialConflictsCount = 0;
             this.cbsInternalConflictsCount = 0;
@@ -133,7 +133,7 @@ namespace CPF_experiment
             string ans = "makespan: " + makespan + ", h: " + h + ", g: " + g + "\n";
             foreach (AgentState temp in allAgentsState)
             {
-                ans +=" agent " + temp.agent.agentNum + ": " + temp.last_move + "\n";
+                ans +=" agent " + temp.agent.agentNum + ": " + temp.lastMove + "\n";
             }
             return ans;
         }
@@ -148,14 +148,14 @@ namespace CPF_experiment
             var ans = new List<Move>();
             for (int i = 0; i < allAgentsState.Length; i++)
             {
-                ans.Add(new Move(allAgentsState[i].last_move));
+                ans.Add(new Move(allAgentsState[i].lastMove));
             }
             return ans;
         }
 
         public Move getSingleAgentMove(int index)
         {
-            return new Move(allAgentsState[index].last_move);
+            return new Move(allAgentsState[index].lastMove);
         }
 
         /// <summary>
@@ -181,7 +181,7 @@ namespace CPF_experiment
                 for (int j = i+1; j < this.allAgentsState.Length; j++)
                 {
                     // Internal conflict
-                    if (this.allAgentsState[i].last_move.isColliding(this.allAgentsState[j].last_move))
+                    if (this.allAgentsState[i].lastMove.isColliding(this.allAgentsState[j].lastMove))
                         return false;
                 }
             }
@@ -225,7 +225,7 @@ namespace CPF_experiment
             int ans = 0;
             for (int i = 0; i < allAgentsState.Length; i++)
             {
-                if (allAgentsState[i].last_move.isColliding(conflictAvoidance))
+                if (allAgentsState[i].lastMove.isColliding(conflictAvoidance))
                     ans++;
             }
             return ans;
@@ -236,7 +236,7 @@ namespace CPF_experiment
             int ans = 0;
             for (int i = 0; i < allAgentsState.Length; i++)
             {
-                if (allAgentsState[i].last_move.isColliding(conflictAvoidance))
+                if (allAgentsState[i].lastMove.isColliding(conflictAvoidance))
                     ans++;
             }
             return ans;

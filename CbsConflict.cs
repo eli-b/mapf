@@ -8,7 +8,10 @@ namespace CPF_experiment
         public Move agentAmove;
         public Move agentBmove;
         public int timeStep;
-        public bool vartex; // Same dest, from any direction
+        /// <summary>
+        /// If true, conflict is two agents have same dest, from any direction. Otherwise it's an edge conflict.
+        /// </summary>
+        public bool vertex;
 
         public CbsConflict(int conflictingAgentA, int conflictingAgentB, Move agentAMove, Move agentBMove, int timeStep)
         {
@@ -17,9 +20,14 @@ namespace CPF_experiment
             this.agentAmove = agentAMove;
             this.agentBmove = agentBMove;
             this.timeStep = timeStep;
-            this.vartex = false;
+            this.vertex = false;
             if (agentAMove.x == agentBMove.x && agentAMove.y == agentBMove.y) // Same dest, from any direction
-                this.vartex = true;
+                this.vertex = true;
+        }
+
+        public override string ToString()
+        {
+            return "Agent " + this.agentA + " going " + this.agentAmove + " collides with agent " + this.agentB + " going " + this.agentBmove + " at time " + this.timeStep;
         }
 
         public override bool Equals(object obj) // TODO: Implement GetHashCode()
@@ -28,11 +36,11 @@ namespace CPF_experiment
                 return false;
             if (this.agentB != ((CbsConflict)obj).agentB)
                 return false;
-            if (this.vartex != ((CbsConflict)obj).vartex)
+            if (this.vertex != ((CbsConflict)obj).vertex)
                 return false;
             if (this.timeStep != ((CbsConflict)obj).timeStep)
                 return false;
-            if (this.vartex)
+            if (this.vertex)
             { // Compare dests, ignore directions
                 if (this.agentAmove.x != ((CbsConflict)obj).agentAmove.x)
                     return false;

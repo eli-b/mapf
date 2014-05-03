@@ -77,7 +77,7 @@ namespace CPF_experiment
             {
                 hBefore = problem.GetSingleAgentShortestPath(allAgentsState[i]);
 
-                foreach (TimedMove check in allAgentsState[i].last_move.GetNextMoves(Constants.ALLOW_DIAGONAL_MOVE))
+                foreach (TimedMove check in allAgentsState[i].lastMove.GetNextMoves(Constants.ALLOW_DIAGONAL_MOVE))
                 {
                     if (problem.parameters.ContainsKey(Trevor.ILLEGAL_MOVES_KEY))
                     {
@@ -89,7 +89,7 @@ namespace CPF_experiment
                         }
                     }
                     
-                    if (problem.isValidTile(check.x, check.y))
+                    if (problem.IsValidTile(check.x, check.y))
                     {
                         hAfter = problem.GetSingleAgentShortestPath(allAgentsState[i].agent.agentNum, check.x, check.y);
 
@@ -182,7 +182,7 @@ namespace CPF_experiment
         /// </summary>
         /// <param name="agentIndex"></param>
         public void UpdateRemainingFChange(int agentIndex) {
-            byte fChangeFromLastMove = this.singleAgentDeltaFs[agentIndex][(int)this.allAgentsState[agentIndex].last_move.direction];
+            byte fChangeFromLastMove = this.singleAgentDeltaFs[agentIndex][(int)this.allAgentsState[agentIndex].lastMove.direction];
             if (fChangeFromLastMove != byte.MaxValue && this.remainingDeltaF >= fChangeFromLastMove)
                 this.remainingDeltaF -= fChangeFromLastMove;
             else

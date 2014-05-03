@@ -146,14 +146,14 @@ namespace CPF_experiment
         /// Replan for a given agent (when constraints for that agent have changed).
         /// FIXME: Code duplication with Solve().
         /// </summary>
-        /// <param name="agentForRePlan"></param>
+        /// <param name="agentForReplan"></param>
         /// <param name="depthToReplan"></param>
         /// <param name="highLevelExpanded"></param>
         /// <param name="highLevelGenerated"></param>
         /// <param name="lowLevelExpanded"></param>
         /// <param name="lowLevelGenerated"></param>
         /// <returns></returns>
-        public bool Replan(int agentForRePlan, int depthToReplan, ref int highLevelExpanded, ref int highLevelGenerated, ref int lowLevelExpanded, ref int lowLevelGenerated)
+        public bool Replan(int agentForReplan, int depthToReplan, ref int highLevelExpanded, ref int highLevelGenerated, ref int lowLevelExpanded, ref int lowLevelGenerated)
         {
             HashSet<TimedMove> newInternalCAT = (HashSet<TimedMove>)problem.parameters[CBS_LocalConflicts.NEW_INTERNAL_CAT];
             HashSet<CbsConstraint> newConstraints = this.GetConstraints();
@@ -510,8 +510,8 @@ namespace CPF_experiment
             int a, b;
             while (current != null)
             {
-                a=current.conflict.agentA;
-                b=current.conflict.agentB;
+                a = current.conflict.agentA;
+                b = current.conflict.agentB;
                 if ((firstGroup.Contains(a) && secondGroup.Contains(b)) || (firstGroup.Contains(b) && secondGroup.Contains(a)))
                     countConflicts++;
                 current = current.prev;
@@ -588,7 +588,7 @@ namespace CPF_experiment
             Debug.WriteLine("Plan:");
             for (int i = 0; i < allSingleAgentPlans.Length; i++)
             {
-                Debug.WriteLine("agents - " + i);
+                Debug.WriteLine("agent " + i);
                 allSingleAgentPlans[i].PrintPlan();
             }
             Debug.WriteLine("End Plan");
@@ -642,14 +642,14 @@ namespace CPF_experiment
         /// <summary>
         /// ??
         /// </summary>
-        /// <param name="agentForRePlan"></param>
+        /// <param name="agentForReplan"></param>
         /// <param name="depthToReplan"></param>
         /// <param name="highLevelExpanded"></param>
         /// <param name="highLevelGenerated"></param>
         /// <param name="lowLevelExpanded"></param>
         /// <param name="lowLevelGenerated"></param>
         /// <returns></returns>
-        public bool Replan3b(int agentForRePlan, int depthToReplan, ref int highLevelExpanded, ref int highLevelGenerated, ref int lowLevelExpanded, ref int lowLevelGenerated)
+        public bool Replan3b(int agentForReplan, int depthToReplan, ref int highLevelExpanded, ref int highLevelGenerated, ref int lowLevelExpanded, ref int lowLevelGenerated)
         {
             HashSet<TimedMove> newInternalCAT = (HashSet<TimedMove>)problem.parameters[CBS_LocalConflicts.NEW_INTERNAL_CAT];
             newInternalCAT.Clear();

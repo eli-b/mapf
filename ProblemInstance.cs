@@ -100,12 +100,12 @@ namespace CPF_experiment
                 m_nLocations = (uint)nLocations;
             
             if (permutations == null)
-                precomputePermutations();
+                PrecomputePermutations();
             else
                 m_vPermutations = permutations;
 
             if (cardinality == null)
-                precomputeCardinality();
+                PrecomputeCardinality();
             else
                 m_vCardinality = cardinality;
         }
@@ -136,7 +136,7 @@ namespace CPF_experiment
                 // Create initial state
                 agentState = new AgentState(this.m_vAgents[agentId].agent.Goal.x,
                         this.m_vAgents[agentId].agent.Goal.y, -1, -1, agentId);
-                entry = this.getCardinality(agentState.last_move);
+                entry = this.GetCardinality(agentState.lastMove);
                 shortestPaths[entry] = 0;
                 openlist.Enqueue(new WorldState(new AgentState[1] { agentState }));
                 while (openlist.Count > 0)
@@ -145,7 +145,7 @@ namespace CPF_experiment
                     currentAgentState = state.allAgentsState[0];
 
                     // Generate child states
-                    foreach (TimedMove aMove in currentAgentState.last_move.GetNextMoves(Constants.ALLOW_DIAGONAL_MOVE))
+                    foreach (TimedMove aMove in currentAgentState.lastMove.GetNextMoves(Constants.ALLOW_DIAGONAL_MOVE))
                     {
                         if (IsValid(aMove))
                         {
@@ -154,7 +154,7 @@ namespace CPF_experiment
                             if ((shortestPaths[entry] < 0) || (shortestPaths[entry] > state.g + 1))
                             {
                                 childState = new WorldState(state);
-                                childState.allAgentsState[0].move(aMove);
+                                childState.allAgentsState[0].MoveTo(aMove);
                                 childState.g = state.g + 1;
                                 shortestPaths[entry] = state.g + 1;
                                 openlist.Enqueue(childState);
@@ -186,7 +186,7 @@ namespace CPF_experiment
         /// <returns>The length of the shortest path between a given agent's location and the goal of that agent</returns>
         public int GetSingleAgentShortestPath(AgentState agent)
         {
-            return this.singleAgentShortestPaths[agent.agent.agentNum][this.m_vCardinality[agent.last_move.x, agent.last_move.y]];
+            return this.singleAgentShortestPaths[agent.agent.agentNum][this.m_vCardinality[agent.lastMove.x, agent.lastMove.y]];
         }
 
         /// <summary>
@@ -224,7 +224,7 @@ namespace CPF_experiment
         public void init(AgentState[] ags)
         {
             m_vAgents = ags;
-            precomputePermutations();
+            PrecomputePermutations();
         }
         
         /// <summary>
@@ -234,11 +234,10 @@ namespace CPF_experiment
         /// <returns></returns>
         public static ProblemInstance Import(string fileName)
         {
-            
             TextReader input = new StreamReader(fileName);
             string[] lineParts;
             string line;
-            int instanceId=0;
+            int instanceId = 0;
 
             line = input.ReadLine();
             if (line.StartsWith("Grid:") == false)
@@ -350,9 +349,9 @@ namespace CPF_experiment
                 output.Write(EXPORT_DELIMITER);
                 output.Write(state.agent.Goal.y);
                 output.Write(EXPORT_DELIMITER);
-                output.Write(state.last_move.x);
+                output.Write(state.lastMove.x);
                 output.Write(EXPORT_DELIMITER);
-                output.Write(state.last_move.y);
+                output.Write(state.lastMove.y);
                 output.WriteLine();
             }
             output.Flush();
@@ -360,18 +359,18 @@ namespace CPF_experiment
         }
 
         /// <summary>
-        /// Given an agent located at the nth location on our board that has
-        /// not been occupied by an obstacle, we return n.
+        /// Given an agent located at the nth location on our board that is
+        /// not occupied by an obstacle, we return n.
         /// </summary>
         /// <param name="ags">An agent's current location.</param>
         /// <returns>n, where the agent is located at the nth non-obstacle
         /// location in our grid.</returns>
-        public Int32 getCardinality(Move location)
+        public Int32 GetCardinality(Move location)
         {
             return (m_vCardinality[location.x, location.y]);
         }
         
-        private void precomputePermutations()
+        private void PrecomputePermutations()
         {
             m_vPermutations = new UInt64[m_vAgents.Length];
             m_vPermutations[m_vPermutations.Length - 1] = 1;
@@ -387,7 +386,7 @@ namespace CPF_experiment
             ++m_nPermutations;
         }
         
-        private void precomputeCardinality()
+        private void PrecomputeCardinality()
         {
             m_vCardinality = new Int32[m_vGrid.Length, m_vGrid[0].Length];
             Int32 maxCardinality = 0;
@@ -411,7 +410,7 @@ namespace CPF_experiment
         /// <returns>True if the given location is a valid grid location with no obstacles</returns>
         public bool IsValid(Move aMove)
         {
-            return isValidTile(aMove.x, aMove.y);
+            return IsValidTile(aMove.x, aMove.y);
         }
 
         /// <summary>
@@ -423,7 +422,7 @@ namespace CPF_experiment
         /// <returns>True if the given location is a valid grid location with no obstacles</returns>
         public bool IsValid(int x, int y, int time = 0, int direction = (int)Move.Direction.NO_DIRECTION)
         {
-            if (isValidTile(x, y) == false)
+            if (IsValidTile(x, y) == false)
                 return false;
             //if (parameters.ContainsKey(Trevor.ILLEGAL_MOVES_KEY))
             //{
@@ -445,7 +444,7 @@ namespace CPF_experiment
         /// <returns></returns>
         public bool IsValid(TimedMove toCheck)
         {
-            if (isValidTile(toCheck.x, toCheck.y) == false)
+            if (IsValidTile(toCheck.x, toCheck.y) == false)
                 return false;
 
             if (parameters.ContainsKey(Trevor.ILLEGAL_MOVES_KEY))
@@ -465,7 +464,7 @@ namespace CPF_experiment
             return true;
         }
 
-        public bool isValidTile(int x, int y)
+        public bool IsValidTile(int x, int y)
         {
             if (x < 0 || x >= GetMaxX())
                 return false;

@@ -75,7 +75,7 @@ namespace CPF_experiment
             int lastMove = agentTurn - 1;
             if (agentTurn == 0)
                 lastMove = allAgentsState.Length - 1;
-            if (allAgentsState[lastMove].last_move.isColliding(conflictAvoidance)) // Behavior change: this didn't check for head-on collisions
+            if (allAgentsState[lastMove].lastMove.isColliding(conflictAvoidance)) // Behavior change: this didn't check for head-on collisions
                 ans++;
             return ans;
         }

@@ -51,7 +51,7 @@ namespace CPF_experiment
             Data.Remove(other);
         }
 
-        public void print()
+        public void Print()
         {
             foreach (HashSet<T> set in Data)
             {

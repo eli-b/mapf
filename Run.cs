@@ -233,25 +233,25 @@ namespace CPF_experiment
             {
                 for (int i = 0; i < agentsNum; i++)
                 {
-                    goals[aStart[i].last_move.x][aStart[i].last_move.y] = false; // We're going to move the goal somewhere else
+                    goals[aStart[i].lastMove.x][aStart[i].lastMove.y] = false; // We're going to move the goal somewhere else
                     while (true)
                     {
                         Move.Direction op = (Move.Direction)rand.Next(0, 5); // TODO: fixme
-                        aStart[i].last_move.Update(op);
-                        if (problem.IsValid(aStart[i].last_move) &&
-                            !goals[aStart[i].last_move.x][aStart[i].last_move.y]) // this spot isn't another agent's goal
+                        aStart[i].lastMove.Update(op);
+                        if (problem.IsValid(aStart[i].lastMove) &&
+                            !goals[aStart[i].lastMove.x][aStart[i].lastMove.y]) // this spot isn't another agent's goal
                             break;
                         else
-                            aStart[i].last_move.setOppositeMove(); // Rollback
+                            aStart[i].lastMove.setOppositeMove(); // Rollback
                     }
-                    goals[aStart[i].last_move.x][aStart[i].last_move.y] = true; // Claim agent's new goal
+                    goals[aStart[i].lastMove.x][aStart[i].lastMove.y] = true; // Claim agent's new goal
                 }
             }
 
             // Zero the agents' timesteps
             foreach (AgentState agentStart in aStart) 
             {
-                agentStart.last_move.time = 0;
+                agentStart.lastMove.time = 0;
             }
 
             // TODO: There is some repetition here of previous instantiation of ProblemInstance. Think how to elegantly bypass this.
@@ -264,7 +264,7 @@ namespace CPF_experiment
         /// Solve given instance with a list of algorithms 
         /// </summary>
         /// <param name="instance">The instance to solve</param>
-        public void solveGivenProblem(ProblemInstance instance)
+        public void SolveGivenProblem(ProblemInstance instance)
         {
             // Preparing a list of agent indices (not agent nums) for the heuristics' init() method
             List<uint> agentList = Enumerable.Range(0, instance.m_vAgents.Length).Select<int, uint>(x=> (uint)x).ToList<uint>(); // FIXME: Must the heuristics really receive a list of uints?
@@ -272,7 +272,7 @@ namespace CPF_experiment
             // Solve using the different algorithms
             Debug.WriteLine("Solving instance " + instance);
             int gridSize = instance.m_vGrid.Length;
-            this.printProblemStatistics(instance);
+            this.PrintProblemStatistics(instance);
             //double cr0 = instance.getConflictRation(0);
             //double cr1 = instance.getConflictRation(1);
 
@@ -320,7 +320,7 @@ namespace CPF_experiment
                 
                 Console.WriteLine();
             }
-            this.continueToNextLine();
+            this.ContinueToNextLine();
         }
 
         /// <summary>
@@ -351,7 +351,7 @@ namespace CPF_experiment
             Console.WriteLine("Time In milliseconds: {0}", elapsedTime);
            // Console.WriteLine("Total Unique/Full Expanded Nodes: {0}", solver.GetNodesPassedPruningCounter());
 
-            this.printStatistics(instance, solver, elapsedTime);
+            this.PrintStatistics(instance, solver, elapsedTime);
             solver.Clear();
             solver.GetHeuristic().ClearStatistics();
         }
@@ -359,7 +359,7 @@ namespace CPF_experiment
         /// <summary>
         /// Print the header of the results file
         /// </summary>
-        public void printResultsFileHeader()
+        public void PrintResultsFileHeader()
         {
             this.resultsWriter.Write("Grid Size");
             this.resultsWriter.Write(Run.RESULTS_DELIMITER);
@@ -404,16 +404,16 @@ namespace CPF_experiment
         /// <summary>
         /// Print the solver statistics to the results file.
         /// </summary>
-        /// <param name="instance">The problem instance that was solved</param>
+        /// <param name="instance">The problem instance that was solved. Not used!</param>
         /// <param name="solver">The solver that solved the problem instance</param>
         /// <param name="runtimeInMillis">The time it took the given solver to solve the given instance</param>
-        private void printStatistics(ProblemInstance instance, ISolver solver, double runtimeInMillis)
+        private void PrintStatistics(ProblemInstance instance, ISolver solver, double runtimeInMillis)
         {
             // Success col:
             if (solver.GetSolutionCost() < 0)
-                this.resultsWriter.Write(0 + RESULTS_DELIMITER);
+                this.resultsWriter.Write(0 + RESULTS_DELIMITER); // FIXME: Magic:
             else
-                this.resultsWriter.Write(1 + RESULTS_DELIMITER);
+                this.resultsWriter.Write(1 + RESULTS_DELIMITER); // FIXME: Magic:
             // Runtime col:
             this.resultsWriter.Write(runtimeInMillis + RESULTS_DELIMITER);
             // Solution Cost col:
@@ -426,7 +426,7 @@ namespace CPF_experiment
             this.resultsWriter.Write(solver.GetSolutionDepth() + RESULTS_DELIMITER);
         }
 
-        private void printProblemStatistics(ProblemInstance instance)
+        private void PrintProblemStatistics(ProblemInstance instance)
         {
             // Grid Size col:
             this.resultsWriter.Write(instance.m_vGrid.GetLength(0) + RESULTS_DELIMITER);
@@ -437,7 +437,7 @@ namespace CPF_experiment
             // Instance Id col:
             this.resultsWriter.Write(instance.instanceId + RESULTS_DELIMITER);
         }
-        private void continueToNextLine()
+        private void ContinueToNextLine()
         {
             this.resultsWriter.WriteLine();
             this.resultsWriter.Flush();
@@ -462,17 +462,6 @@ namespace CPF_experiment
                 outOfTimeCounter[i] = 0;
             }
         }
-
-        //public void setOutOfTimeCounter()
-        //{
-        //    Console.WriteLine("Enter Fail Count Out Of Total - " + Constants.MAX_FAIL_COUNT);
-        //    Console.WriteLine("---------------------------------------");
-        //    for (int i = 0; i < solvers.Count; i++)
-        //    {
-        //        Console.WriteLine("Enter Fail Count For " + solvers[i]);
-        //        this.outOfTimeCounter[i] = Int16.Parse(Console.ReadLine());
-        //    }
-        //}
 
         private double ElapsedMillisecondsTotal()
         {
