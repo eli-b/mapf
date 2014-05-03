@@ -234,5 +234,13 @@ namespace CPF_experiment
             }
             return ans;
         }
+        
+        public virtual ProblemInstance ToProblemInstance(ProblemInstance initial)
+        {
+            // Notice this is not a subproblem in the number of agents but
+            // in the steps from the start.
+            // It might even be harder if the steps were away from the goal.
+            return initial.Subproblem(this.allAgentsState);
+        }
     }
 }

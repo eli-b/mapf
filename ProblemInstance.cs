@@ -57,9 +57,12 @@ namespace CPF_experiment
         /// </summary>
         public Int32[,] m_vCardinality;
 
-        public ProblemInstance()
+        public ProblemInstance(IDictionary<String,Object> parameters = null)
         {
-            this.parameters = new Dictionary<String, Object>();
+            if (parameters != null)
+                this.parameters = parameters;
+            else
+                this.parameters = new Dictionary<String, Object>();
         }
 
         /// <summary>
@@ -69,13 +72,11 @@ namespace CPF_experiment
         /// <returns></returns>
         public ProblemInstance Subproblem(AgentState[] selectedAgents)
         {
-            // Not explicitly checking whether selectedAgents are really a subset of our agents?
+            // Notice selected agents may actually be a completely different set of agents.
             // Not copying instance id. This isn't the same problem.
-            ProblemInstance subproblemInstance = new ProblemInstance();
-            subproblemInstance.init(selectedAgents, this.m_vGrid, (int)this.m_nObstacles, (int)this.m_nLocations, this.m_vPermutations, this.m_vCardinality);
+            ProblemInstance subproblemInstance = new ProblemInstance(this.parameters);
+            subproblemInstance.Init(selectedAgents, this.m_vGrid, (int)this.m_nObstacles, (int)this.m_nLocations, this.m_vPermutations, this.m_vCardinality);
             subproblemInstance.singleAgentShortestPaths = this.singleAgentShortestPaths; // Each subproblem holds every agent's single shortest paths just so this.singleAgentShortestPaths[agent_num] would easily work
-            // TODO: For a very large number of agents this may not be feasible. Consider not assuming agent x is in row x but instead having a dictionary mapping from agent nums to their paths
-            subproblemInstance.parameters = this.parameters;
             return subproblemInstance;
         }
 

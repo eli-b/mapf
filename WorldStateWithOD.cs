@@ -36,6 +36,33 @@ namespace CPF_experiment
             this.potentialConflictsCount = 0;
         }
 
+        public override ProblemInstance ToProblemInstance(ProblemInstance initial)
+        {
+            WorldState state = this;
+            if (this.agentTurn != 0)
+            {
+                // CBS doesn't handle partially expanded nodes well.
+                // Use the last fully expanded node and add the additional moves as must conds:
+                state = this.prevStep; // Points to the last fully expanded node.
+            }
+
+            ProblemInstance subproblem = initial.Subproblem(state.allAgentsState); // Can't use base's method because we're operating on a different object
+
+            if (this.agentTurn != 0)
+            {
+                subproblem.parameters = new Dictionary<string,object>(subproblem.parameters); // Use a copy to not pollute general problem instance with the must conds
+                if (subproblem.parameters.ContainsKey(CBS_LocalConflicts.MUST_CONSTRAINTS) == false)
+                    subproblem.parameters[CBS_LocalConflicts.MUST_CONSTRAINTS] = new List<CbsConstraint>();
+                var mustConstraints = (List<CbsConstraint>)subproblem.parameters[CBS_LocalConflicts.MUST_CONSTRAINTS];
+                for (int i = 0; i < this.agentTurn; ++i)
+                {
+                    mustConstraints.Add(new CbsConstraint(this.allAgentsState[i].agent.agentNum, this.allAgentsState[i].lastMove));
+                }
+            }
+
+            return subproblem;
+        }
+
         /// <summary>
         /// Returns a hash value for the given state (used in Hash based data structures).
         /// </summary>
