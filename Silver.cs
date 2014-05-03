@@ -52,6 +52,12 @@ namespace CPF_experiment
 
         public int GetSolutionCost() { return this.totalTime; }
 
+        public void OutputStatisticsHeader(TextWriter output)
+        {
+            output.Write("expanded" + Run.RESULTS_DELIMITER);
+            output.Write("generated" + Run.RESULTS_DELIMITER);
+        }
+        
         /// <summary>
         /// Prints statistics of a single run to the given output. 
         /// </summary>
@@ -59,10 +65,14 @@ namespace CPF_experiment
         {
             output.Write(this.expanded + Run.RESULTS_DELIMITER);
             output.Write(this.generated + Run.RESULTS_DELIMITER);
-            output.Write("N/A" + Run.RESULTS_DELIMITER);
-            output.Write("N/A" + Run.RESULTS_DELIMITER);
-            output.Write("N/A" + Run.RESULTS_DELIMITER);
-            output.Write(Process.GetCurrentProcess().VirtualMemorySize64 + Run.RESULTS_DELIMITER);
+        }
+
+        public int NumStatsColumns
+        {
+            get
+            {
+                return 2;
+            }
         }
 
         public bool Solve(Run aRunner)

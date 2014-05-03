@@ -73,6 +73,14 @@ namespace CPF_experiment
             output.Write(this.lowLevelGenerated + Run.RESULTS_DELIMITER);
         }
 
+        public int NumStatsColumns
+        {
+            get
+            {
+                return 4;
+            }
+        }
+
         public bool Solve()
         {
             //Debug.WriteLine("Solving Sub-problem On Level - " + mergeThreshold);

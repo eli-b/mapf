@@ -59,6 +59,11 @@ namespace CPF_experiment
         void OutputStatistics(TextWriter output);
 
         /// <summary>
+        /// To fill out them out when an algorithm isn't run
+        /// </summary>
+        int NumStatsColumns { get; }
+
+        /// <summary>
         /// Gets the delta of (actual solution cost - first state heuristics)
         /// </summary>
         int GetSolutionDepth();

@@ -174,5 +174,13 @@ namespace CPF_experiment
 
             output.Write(this.expandedFullStates + Run.RESULTS_DELIMITER);
         }
+
+        public int NumStatsColumns
+        {
+            get
+            {
+                return 1 + base.NumStatsColumns;
+            }
+        }
     }
 }

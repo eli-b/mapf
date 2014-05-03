@@ -87,9 +87,6 @@ namespace CPF_experiment
 
         public virtual String GetName() { return name; }
 
-        public WorldState GetGoal() { throw new NotSupportedException("Standley's A* might find a goal without having an explicit goal state, due to independance checks"); }
-
-
         /// <summary>
         /// Calculate the full plan for all the agents that has been found by the algorithm
         /// </summary>
@@ -110,6 +107,18 @@ namespace CPF_experiment
         }
 
         public int GetSolutionCost() { return this.totalCost; }
+
+        public virtual void OutputStatisticsHeader(TextWriter output)
+        {
+            output.Write(this.ToString() + " Expanded (HL)");
+            output.Write(Run.RESULTS_DELIMITER);
+            output.Write(this.ToString() + " Generated (HL)");
+            output.Write(Run.RESULTS_DELIMITER);
+            output.Write(this.ToString() + " Max Group");
+            output.Write(Run.RESULTS_DELIMITER);
+            output.Write(this.ToString() + " Min Group");
+            output.Write(Run.RESULTS_DELIMITER);
+        }
 
         /// <summary>
         /// Prints statistics of a single run to the given output. 
@@ -137,9 +146,14 @@ namespace CPF_experiment
 
             output.Write(this.maxGroup + Run.RESULTS_DELIMITER);
             output.Write(this.minGroup + Run.RESULTS_DELIMITER);
-            output.Write(this.maxSolutionDepth + Run.RESULTS_DELIMITER);
-            output.Write(this.passed + Run.RESULTS_DELIMITER);
-            output.Write(/*Process.GetCurrentProcess().VirtualMemorySize64*/"NA" + Run.RESULTS_DELIMITER);
+        }
+
+        public int NumStatsColumns
+        {
+            get
+            {
+                return 4;
+            }
         }
 
         public int GetMaxGroupSize()
@@ -307,7 +321,6 @@ namespace CPF_experiment
                 this.generatedHL += compositeGroup.generatedHL;
                 this.expandedLL += compositeGroup.expandedLL;
                 this.generatedLL += compositeGroup.generatedLL;
-                this.passed += compositeGroup.passed;
 
                 if (compositeGroup.allAgentsState.Length > this.maxGroup)
                     this.maxGroup = compositeGroup.allAgentsState.Length;
@@ -354,8 +367,6 @@ namespace CPF_experiment
                 this.generatedHL += agentGroupNode.Value.generatedHL;
                 this.expandedLL += agentGroupNode.Value.expandedLL;
                 this.generatedLL += agentGroupNode.Value.generatedLL;
-
-                this.passed += agentGroupNode.Value.passed;
 
                 agentGroupNode = agentGroupNode.Next;
             }
@@ -413,7 +424,6 @@ namespace CPF_experiment
         public int GetLowLevelExpanded() { return this.expandedLL; }
         public int GetLowLevelGenerated() { return this.generatedLL; }
         public int GetSolutionDepth() { return maxSolutionDepth; }
-        public int GetNodesPassedPruningCounter() { return passed; }
         public long GetMemoryUsed() { return Process.GetCurrentProcess().VirtualMemorySize64; }
     }
 
@@ -432,7 +442,6 @@ namespace CPF_experiment
         public int expandedLL;
         public int generatedLL;
         public int depthOfSolution;
-        public int passed;
         public long timeTillLastNode;
 
         private ISolver solver;
@@ -466,7 +475,6 @@ namespace CPF_experiment
             this.expandedLL = solver.GetLowLevelExpanded();
             this.generatedLL = solver.GetLowLevelGenerated();
             this.depthOfSolution = solver.GetSolutionDepth();
-            this.passed = solver.GetNodesPassedPruningCounter();
             this.timeTillLastNode = solver.GetMemoryUsed();
 
             // Clear memory

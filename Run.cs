@@ -65,7 +65,7 @@ namespace CPF_experiment
         /// Open the results file for output. Currently the file is opened in append mode.
         /// </summary>
         /// <param name="fileName">The name of the results file</param>
-        public void openResultsFile(string fileName)
+        public void OpenResultsFile(string fileName)
         {
             this.resultsWriter = new StreamWriter(fileName, true); // 2nd arguments indicate the "append" mode
         }
@@ -73,7 +73,7 @@ namespace CPF_experiment
         /// <summary>
         /// Closes the results file.
         /// </summary>
-        public void closeResultsFile()
+        public void CloseResultsFile()
         {
             this.resultsWriter.Close();
         }
@@ -86,7 +86,7 @@ namespace CPF_experiment
         /// <summary>
         /// Counts the number of times each algorithm went out of time consecutively
         /// </summary>
-        public int[] outOfTimeCounter;
+        public int[] outOfTimeCounters;
 
         /// <summary>
         /// Construct with chosen algorithms.
@@ -159,10 +159,10 @@ namespace CPF_experiment
            // solvers.Add(new Trevor(new ClassicAStar()));
            // solvers.Add(new Trevor());
 
-            outOfTimeCounter = new int[solvers.Count];
-            for (int i = 0; i < outOfTimeCounter.Length; i++)
+            outOfTimeCounters = new int[solvers.Count];
+            for (int i = 0; i < outOfTimeCounters.Length; i++)
             {
-                outOfTimeCounter[i] = 0;
+                outOfTimeCounters[i] = 0;
             }
         }
 
@@ -175,7 +175,7 @@ namespace CPF_experiment
         /// <param name="agentsNum"></param>
         /// <param name="obstaclesNum"></param>
         /// <returns></returns>
-        public ProblemInstance generateProblemInstance(int gridSize, int agentsNum, int obstaclesNum)
+        public ProblemInstance GenerateProblemInstance(int gridSize, int agentsNum, int obstaclesNum)
         {
             /**
              * Randomization based on timer is disabled for purposes of getting
@@ -266,7 +266,7 @@ namespace CPF_experiment
         /// <param name="instance">The instance to solve</param>
         public void SolveGivenProblem(ProblemInstance instance)
         {
-            // Preparing a list of agent indices (not agent nums) for the heuristics' init() method
+            // Preparing a list of agent indices (not agent nums) for the heuristics' Init() method
             List<uint> agentList = Enumerable.Range(0, instance.m_vAgents.Length).Select<int, uint>(x=> (uint)x).ToList<uint>(); // FIXME: Must the heuristics really receive a list of uints?
             
             // Solve using the different algorithms
@@ -283,7 +283,7 @@ namespace CPF_experiment
 
             for (int i = 0; i < solvers.Count; i++)
             {
-                if (outOfTimeCounter[i] < Constants.MAX_FAIL_COUNT) // After "MAX_FAIL_COUNT" consecutive failures of a given algorithm we stop running it.
+                if (outOfTimeCounters[i] < Constants.MAX_FAIL_COUNT) // After "MAX_FAIL_COUNT" consecutive failures of a given algorithm we stop running it.
                                                                     // Assuming problem difficulties are non-decreasing, if it consistently failed on several problems it won't suddenly succeed in solving the next problem.
                 {
                     GC.Collect();
@@ -296,7 +296,7 @@ namespace CPF_experiment
                     if (solvers[i].GetSolutionCost() >= 0) // Solved successfully
                     {
                         solvers[i].GetPlan().PrintPlan();
-                        outOfTimeCounter[i] = 0;
+                        outOfTimeCounters[i] = 0;
 
                         // Validate solution:
                         if (i != 0 && solvers[0].GetSolutionCost() >= 0)
@@ -311,12 +311,12 @@ namespace CPF_experiment
                     }
                     else
                     {
-                        outOfTimeCounter[i]++;
+                        outOfTimeCounters[i]++;
                         Console.WriteLine("-FAILURE- ):");
                     }
                 }
                 else
-                    printNullStatistics();
+                    PrintNullStatistics(solvers[i]);
                 
                 Console.WriteLine();
             }
@@ -443,23 +443,28 @@ namespace CPF_experiment
             this.resultsWriter.Flush();
         }
 
-        private void printNullStatistics()
+        private void PrintNullStatistics(ISolver solver)
         {
+            // Success col:
             this.resultsWriter.Write(0 + RESULTS_DELIMITER);
+            // Runtime col:
             this.resultsWriter.Write(Constants.MAX_TIME + RESULTS_DELIMITER);
+            // Solution Cost col:
             this.resultsWriter.Write("irrelevant" + RESULTS_DELIMITER);
+            // Algorithm specific cols:
+            for (int i = 0; i < solver.NumStatsColumns; ++i)
+                this.resultsWriter.Write("irrelevant" + RESULTS_DELIMITER);
+            // Max Group col:
             this.resultsWriter.Write("irrelevant" + RESULTS_DELIMITER);
-            this.resultsWriter.Write("irrelevant" + RESULTS_DELIMITER);
-            this.resultsWriter.Write("irrelevant" + RESULTS_DELIMITER);
-            this.resultsWriter.Write("irrelevant" + RESULTS_DELIMITER);
+            // Solution Depth col:
             this.resultsWriter.Write("irrelevant" + RESULTS_DELIMITER);
         }
         
-        public void resetOutOfTimeCounter()
+        public void ResetOutOfTimeCounters()
         {
-            for (int i = 0; i < outOfTimeCounter.Length; i++)
+            for (int i = 0; i < outOfTimeCounters.Length; i++)
             {
-                outOfTimeCounter[i] = 0;
+                outOfTimeCounters[i] = 0;
             }
         }
 

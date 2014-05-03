@@ -154,6 +154,14 @@ namespace CPF_experiment
             this.heuristic.OutputStatistics(output);
         }
 
+        public int NumStatsColumns
+        {
+            get
+            {
+                return 3 + this.heuristic.NumStatsColumns;
+            }
+        }
+
         /// <summary>
         /// Runs the algorithm until the problem is solved or memory/time is exhausted
         /// </summary>

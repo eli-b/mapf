@@ -30,6 +30,11 @@ namespace CPF_experiment
         void OutputStatistics(TextWriter output);
 
         /// <summary>
+        /// To fill out them out when an algorithm isn't run
+        /// </summary>
+        int NumStatsColumns { get; }
+
+        /// <summary>
         /// Clears statistics.
         /// </summary>
         void ClearStatistics();

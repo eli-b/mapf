@@ -107,6 +107,14 @@ namespace CPF_experiment
             output.Write(this.expandedFullStates + Run.RESULTS_DELIMITER);
             // Isn't there a CSV module in C# instead of fussing with the delimeter everywhere?
         }
+
+        public int NumStatsColumns
+        {
+            get
+            {
+                return 2 + base.NumStatsColumns;
+            }
+        }
     }
     
 
@@ -183,9 +191,31 @@ namespace CPF_experiment
             if (currentNode.remainingDeltaF != 0) // No more moves to do, remaining delta F must be zero
                 return false;
 
-
-
  	        return base.ProcessGeneratedNode(currentNode);
+        }
+
+        public override void OutputStatisticsHeader(TextWriter output)
+        {
+            base.OutputStatisticsHeader(output);
+            output.Write(this.ToString() + " Expanded Full States (LL)");
+            output.Write(Run.RESULTS_DELIMITER);
+        }
+
+        public override void OutputStatistics(TextWriter output)
+        {
+            base.OutputStatistics(output);
+
+            Console.WriteLine("Expanded Full States (Low-Level): {0}", this.expandedFullStates);
+
+            output.Write(this.expandedFullStates + Run.RESULTS_DELIMITER);
+        }
+
+        public int NumStatsColumns
+        {
+            get
+            {
+                return 1 + base.NumStatsColumns;
+            }
         }
     }
 }

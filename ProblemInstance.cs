@@ -84,7 +84,7 @@ namespace CPF_experiment
         /// </summary>
         /// <param name="agentStartStates"></param>
         /// <param name="grid"></param>
-        public void init(AgentState[] agentStartStates, bool[][] grid, int nObstacles=-1, int nLocations=-1, ulong[] permutations=null, int[,] cardinality=null)
+        public void Init(AgentState[] agentStartStates, bool[][] grid, int nObstacles=-1, int nLocations=-1, ulong[] permutations=null, int[,] cardinality=null)
         {
             m_vAgents = agentStartStates;
             m_vGrid = grid;
@@ -221,7 +221,7 @@ namespace CPF_experiment
         /// </summary>
         /// <param name="ags"></param>
         [Obsolete("Need to have some justification for using this. Currently I believe it will always cause bugs.")]
-        public void init(AgentState[] ags)
+        public void Init(AgentState[] ags)
         {
             m_vAgents = ags;
             PrecomputePermutations();
@@ -304,7 +304,7 @@ namespace CPF_experiment
 
             // Generate the problem instance
             ProblemInstance instance = new ProblemInstance();
-            instance.init(states, grid);
+            instance.Init(states, grid);
             instance.instanceId = instanceId;
             instance.ComputeSingleAgentShortestPaths();
             return instance;
@@ -457,7 +457,7 @@ namespace CPF_experiment
             //if (parameters.ContainsKey(CBS_LocalConflicts.CONSTRAINTS))
             //{
             //    CbsConstraint nextStepLocation = new CbsConstraint();
-            //    nextStepLocation.Init(-1, toCheck.x, toCheck.y, toCheck.time, toCheck.direction);
+            //    nextStepLocation.Init(?, toCheck.x, toCheck.y, toCheck.time, toCheck.direction);
             //    if (((HashSet_U<CbsConstraint>)parameters[CBS_LocalConflicts.CONSTRAINTS]).Contains(nextStepLocation))
             //        return false;
             //}

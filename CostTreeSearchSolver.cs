@@ -161,7 +161,15 @@ namespace CPF_experiment
             output.Write(this.generatedHL + Run.RESULTS_DELIMITER);
             output.Write(this.expandedLL + Run.RESULTS_DELIMITER);
             output.Write(this.generatedLL + Run.RESULTS_DELIMITER);
-            output.Write(passed + Run.RESULTS_DELIMITER);
+            output.Write(CostTreeSearchSolver.passed + Run.RESULTS_DELIMITER);
+        }
+
+        public int NumStatsColumns
+        {
+            get
+            {
+                return 5;
+            }
         }
 
         /// <summary>
