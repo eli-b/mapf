@@ -118,14 +118,7 @@ namespace CPF_experiment
         /// </summary>
         public virtual void CalculateG()
         {
-            g = 0;
-            foreach (AgentState singleAgentState in allAgentsState)
-            {
-                if (singleAgentState.atGoal())
-                    g += singleAgentState.arrivalTime;
-                else
-                    g += singleAgentState.last_move.time;
-            }
+            g = allAgentsState.Sum<AgentState>(agent => agent.g);
         }
 
         public override string ToString()

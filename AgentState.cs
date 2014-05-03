@@ -72,6 +72,17 @@ namespace CPF_experiment
             return this.agent.Goal.Equals(this.lastMove); // Comparing Move to TimedMove is allowed, the reverse isn't.
         }
 
+        public int g
+        {
+            get
+            {
+                if (this.AtGoal())
+                    return this.arrivalTime;
+                else
+                    return this.lastMove.time;
+            }
+        }
+
         /// <summary>
         /// BH_Item implementation
         /// </summary>
