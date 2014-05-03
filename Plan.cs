@@ -21,7 +21,8 @@ namespace CPF_experiment
             this.locationsAtTimes = new LinkedList<List<Move>>(); // TODO: Initialize list with #agents
             while (currentNode != null)
             {
-                this.locationsAtTimes.AddFirst(currentNode.GetAgentsMoves());
+                List<Move> agentMoves = currentNode.GetAgentsMoves();
+                this.locationsAtTimes.AddFirst(agentMoves);
                 currentNode = currentNode.prevStep;
             }
         }
@@ -113,6 +114,29 @@ namespace CPF_experiment
             }
         }
 
+        /// <summary>
+        /// Add actions of other plan after actions of plan.
+        /// If this plan ends where the other starts,
+        /// the first timestep of the other plan is skipped
+        /// </summary>
+        /// <param name="other"></param>
+        public void ContinueWith(Plan other)
+        {
+            bool first = true;
+            foreach (List<Move> newLocationsAtTime in other.locationsAtTimes)
+            {
+                if (first)
+                {
+                    first = false;
+                    if (newLocationsAtTime.SequenceEqual<Move>(this.locationsAtTimes.Last.Value))
+                        continue;
+                }
+                this.locationsAtTimes.AddLast(newLocationsAtTime);
+            }
+        }
+
+        // TODO: Add GetCost and GetMakespan methods!
+
         public SinglePlan[] getSinglePlans()
         {
             LinkedList<Move>[] allroutes = new LinkedList<Move>[this.locationsAtTimes.First().Count];
@@ -145,12 +169,17 @@ namespace CPF_experiment
         /// <returns>A list of points that are the locations of the different agents at the requested time</returns>
         public List<Move> GetLocationsAt(int time)
         {
-            if (time < this.locationsAtTimes.Count)
-                return this.locationsAtTimes.ElementAt<List<Move>>(time); // FIXME: Expensive!
-            else
-                return this.locationsAtTimes.ElementAt<List<Move>>(this.locationsAtTimes.Count - 1);
+            time = Math.Min(time, this.locationsAtTimes.Count - 1);
+            return this.locationsAtTimes.ElementAt<List<Move>>(time); // FIXME: Expensive!
         }
 
+        /// <summary>
+        /// NOT the cost, which:
+        /// A) could depend on steps taken before solving started,
+        /// B) is 1 smaller than the size (a plan that starts at the goal costs zero)
+        /// Useful only for iteration over the relevant part of the plan.
+        /// </summary>
+        /// <returns>The size of the plan, assuming is doesn't end with steps where all agents WAIT at the goal (which should be discounted).</returns>
         public int GetSize()
         {
             return this.locationsAtTimes.Count;
@@ -181,10 +210,10 @@ namespace CPF_experiment
         /// </summary>
         public void PrintPlan()
         {
-            for (int time = 0; time < this.locationsAtTimes.Count; time++)
+            foreach (List<Move> locationsAtTime in this.locationsAtTimes)
             {
                 Console.Write("|");
-                foreach (Move aMove in this.GetLocationsAt(time))
+                foreach (Move aMove in locationsAtTime)
                 {
                     Console.Write(aMove.ToString() + "|");
                 }                
@@ -285,11 +314,18 @@ namespace CPF_experiment
                 return this.locationAtTimes[this.locationAtTimes.Length - 1];
         }
 
+        /// <summary>
+        /// NOT the cost, which:
+        /// A) could depend on steps taken before solving started,
+        /// B) is 1 smaller than the size (a plan that starts at the goal costs zero)
+        /// Useful only for iteration over the relevant part of the plan.
+        /// </summary>
+        /// <returns>The size of the plan, excluding WAITs at the goal</returns>
         public int GetSize()
         {
             int ans = this.locationAtTimes.Length;
             Move goal = this.locationAtTimes[ans - 1];
-            while (ans > 1 && goal.x == locationAtTimes[ans - 2].x && goal.y == locationAtTimes[ans - 2].y)
+            while (ans >= 2 && goal.x == locationAtTimes[ans - 2].x && goal.y == locationAtTimes[ans - 2].y)
                 ans--;
             return ans;
         }
