@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using System.Collections.Generic;
+using System.Diagnostics;
 
 namespace CPF_experiment
 {
@@ -21,6 +22,8 @@ namespace CPF_experiment
         /// The last move of all agents that have already moved in this turn. Used for making sure the next agent move doesn't collide with moves already made.
         /// </summary>
         public HashSet<TimedMove> currentMoves;
+        protected Plan plan;
+        protected static readonly int NOT_SET = -1;
 
         /// <summary>
         /// Create a state with the given state for every agent.
@@ -34,6 +37,7 @@ namespace CPF_experiment
             this.potentialConflictsCount = 0;
             this.cbsInternalConflictsCount = 0;
             this.currentMoves = new HashSet<TimedMove>();
+            this.goalCost = NOT_SET;
         }
 
         /// <summary>
@@ -51,6 +55,7 @@ namespace CPF_experiment
                 this.allAgentsState[i] = new AgentState(cpy.allAgentsState[i]);
             }
             this.currentMoves = new HashSet<TimedMove>(cpy.currentMoves);
+            this.goalCost = NOT_SET;
         }
 
         /// <summary>
@@ -73,10 +78,69 @@ namespace CPF_experiment
         public bool GoalTest(int minDepth)
         {
             if (makespan >= minDepth)
+            {
+                if (this.plan != null) // If we know the optimal solution, it doesn't matter if this is a goal node or not, we can finish.
+                    return true;
+                
                 return h == 0; // That's crazy! A node that is close to the goal might also get h==0.
                                // Our specific heuristic doesn't behave that way, though.
                                // FIXME: Implement a proper goal test and use it when h==0.
+            }
             return false;
+        }
+
+        /// <summary>
+        /// Set the optimal solution of this node as a problem instance.
+        /// </summary>
+        /// <param name="solution"></param>
+        public void SetSolution(Plan solution)
+        {
+            this.plan = new Plan(this); // This node may be a partial solution itself, need to start from the real root.
+            this.plan.ContinueWith(solution);
+        }
+
+        /// <summary>
+        /// Returns the optimal plan to the goal through this node, if this is a goal node (of any kind),
+        /// else returns the optimal plan to this node.
+        /// </summary>
+        /// <returns></returns>
+        public Plan GetPlan()
+        {
+            if (this.plan == null)
+                this.plan = new Plan(this);
+            return this.plan;
+        }
+
+        protected int goalCost;
+
+        /// <summary>
+        /// Returns the optimal cost to the goal from the start through this node.
+        /// </summary>
+        /// <returns></returns>
+        public int GetGoalCost()
+        {
+            Debug.Assert(this.GoalTest());
+
+            if (goalCost == NOT_SET) // This is just a proper goal
+            {
+                return this.g;
+            }
+            else
+                return this.goalCost;
+        }
+
+        /// <summary>
+        /// Set the optimal cost from the start to the goal through this node
+        /// </summary>
+        /// <param name="cost"></param>
+        public void SetGoalCost(int cost)
+        {
+            this.goalCost = cost;
+        }
+
+        public int[] GetSingleCosts()
+        {
+            return allAgentsState.Select<AgentState, int>(agent => agent.g).ToArray<int>();
         }
 
         /// <summary>
