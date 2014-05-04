@@ -19,6 +19,9 @@ namespace CPF_experiment
         public int expanded;
         public int generated;
         public int reopened;
+        public int bpmxBoosts;
+        public int reopenedWithOldH;
+        public int noReopenHUpdates;
         public int totalCost;
         public int numOfAgents;
         protected int maxCost;
@@ -28,18 +31,18 @@ namespace CPF_experiment
         protected int expandedFullStates;
         protected HashSet<TimedMove> illegalMoves;
         protected HashSet_U<CbsConstraint> constraintList;
+        /// <summary>
+        /// For each constrained timestep, a list of must constraints.
+        /// </summary>
+        protected List<CbsConstraint>[] mustConstraints;
         protected Run runner;
-        public WorldState goal; // This will contain the goal node if such was found
+        protected Plan solution;
         /// <summary>
         /// For CBS-A*
         /// </summary>
         protected int minDepth;
         protected int internalConflictCount;
         protected int externalConflictCount;
-        /// <summary>
-        /// For CBS-IDA* - not used
-        /// </summary>
-        protected List<CbsConstraint>[] mustConstraints;
 
         /// <summary>
         /// Default constructor.
@@ -59,13 +62,15 @@ namespace CPF_experiment
             this.instance = problemInstance;
             this.runner = runner;
             WorldState root = this.CreateSearchRoot();
-            root.h = (int)this.heuristic.h(root); // g was already set to 0 in the constructor
+            root.h = (int)this.heuristic.h(root); // g was already set in the constructor
             this.openList.Add(root);
             this.closedList.Add(root, root);
             this.expanded = 0;
             this.generated = 1;
             this.reopened = 0;
-            this.expandedFullStates = 0;
+            this.bpmxBoosts = 0;
+            this.reopenedWithOldH = 0;
+            this.noReopenHUpdates = 0;
             this.totalCost = 0;
             this.solutionDepth = -1;
             this.numOfAgents = problemInstance.m_vAgents.Length;
@@ -122,8 +127,6 @@ namespace CPF_experiment
             return this.GetName() + "/" + this.heuristic;
         }
 
-        public WorldState GetGoal() { return this.goal; }
-
         public int GetSolutionCost() { return this.totalCost; }
 
         public virtual void OutputStatisticsHeader(TextWriter output)
@@ -133,6 +136,12 @@ namespace CPF_experiment
             output.Write(this.ToString() + " Generated (LL)");
             output.Write(Run.RESULTS_DELIMITER);
             output.Write(this.ToString() + " Reopened (LL)");
+            output.Write(Run.RESULTS_DELIMITER);
+            output.Write(this.ToString() + " BPMX boosts (LL)");
+            output.Write(Run.RESULTS_DELIMITER);
+            output.Write(this.ToString() + " Reopened With Old H (LL)");
+            output.Write(Run.RESULTS_DELIMITER);
+            output.Write(this.ToString() + " H Updated From Other Area (LL)");
             output.Write(Run.RESULTS_DELIMITER);
             
             this.heuristic.OutputStatisticsHeader(output);
@@ -146,10 +155,16 @@ namespace CPF_experiment
             Console.WriteLine("Total Expanded Nodes (Low-Level): {0}", this.GetLowLevelExpanded());
             Console.WriteLine("Total Generated Nodes (Low-Level): {0}", this.GetLowLevelGenerated());
             Console.WriteLine("Total Reopened Nodes (Low-Level): {0}", this.reopened);
+            Console.WriteLine("Num BPMX boosts (Low-Level): {0}", this.bpmxBoosts);
+            Console.WriteLine("Reopened Nodes With Old H (Low-Level): {0}", this.reopenedWithOldH);
+            Console.WriteLine("No Reopen H Updates (Low-Level): {0}", this.noReopenHUpdates);
 
             output.Write(this.expanded + Run.RESULTS_DELIMITER);
             output.Write(this.generated + Run.RESULTS_DELIMITER);
             output.Write(this.reopened + Run.RESULTS_DELIMITER);
+            output.Write(this.bpmxBoosts + Run.RESULTS_DELIMITER);
+            output.Write(this.reopenedWithOldH + Run.RESULTS_DELIMITER);
+            output.Write(this.noReopenHUpdates + Run.RESULTS_DELIMITER);
 
             this.heuristic.OutputStatistics(output);
         }
@@ -158,7 +173,7 @@ namespace CPF_experiment
         {
             get
             {
-                return 3 + this.heuristic.NumStatsColumns;
+                return 6 + this.heuristic.NumStatsColumns;
             }
         }
 
@@ -168,7 +183,11 @@ namespace CPF_experiment
         /// <returns>True if solved</returns>
         public bool Solve()
         {
-            this.solutionDepth = ((WorldState)openList.Peek()).h;
+            int initialEstimate = ((WorldState)openList.Peek()).h;
+
+            int lastF = -1;
+            WorldState lastNode = null;
+            bool debug = false;
 
             while (openList.Count > 0)
             {
@@ -183,12 +202,18 @@ namespace CPF_experiment
 
                 var currentNode = (WorldState)openList.Remove();
 
-                // Check if node is the goal
+                Debug.Assert(currentNode.g + currentNode.h >= lastF,
+                             "A* node with decreasing F: " + (currentNode.g + currentNode.h) + " < " + lastF + ".");
+                lastF = currentNode.g + currentNode.h;
+                lastNode = currentNode;
+
+                // Check if node is the goal, or knows how to get to it
                 if (currentNode.GoalTest(minDepth))
                 {
-                    this.totalCost = currentNode.g;
-                    this.goal = currentNode;
-                    this.solutionDepth = this.totalCost - this.solutionDepth;
+                    this.totalCost = currentNode.GetGoalCost();
+                    this.singleCosts = currentNode.GetSingleCosts();
+                    this.solution = currentNode.GetPlan();
+                    this.solutionDepth = this.totalCost - initialEstimate;
                     this.Clear();
                     return true;
                 }
@@ -227,10 +252,47 @@ namespace CPF_experiment
 
             foreach (var currentNode in finalGeneratedNodes)
             {
-                currentNode.h = (int)this.heuristic.h(currentNode);
-                currentNode.makespan++;
+                if (runner.ElapsedMilliseconds() > Constants.MAX_TIME)
+                    return;
                 currentNode.CalculateG();
-                ProcessGeneratedNode(currentNode);
+                currentNode.makespan++;
+                currentNode.h = (int)this.heuristic.h(currentNode);
+            }
+
+            // BPMX (Felner et al. 2005) stage:
+            // Reverse Path-Max
+            WorldState parent = node;
+            int maxChildH = -1;
+            int deltaGOfChildWithMaxH = 0;
+            foreach (var child in finalGeneratedNodes)
+            {
+                if (child.h > maxChildH)
+                {
+                    maxChildH = child.h;
+                    deltaGOfChildWithMaxH = child.g - parent.g;
+                }
+            }
+            if (parent.h < maxChildH - deltaGOfChildWithMaxH)
+            {
+                parent.h = maxChildH - deltaGOfChildWithMaxH;
+                ++bpmxBoosts;
+            }
+            // Forward Path-Max
+            foreach (var child in finalGeneratedNodes)
+            {
+                int deltaG = child.g - parent.g; // == (parent.g + c(parent, current)) - parent.g == c(parent, current)
+
+                if (child.h < parent.h - deltaG)
+                {
+                    child.h = parent.h - deltaG;
+                    ++bpmxBoosts;
+                }
+            }
+            
+            // Enter the generated nodes into the open list
+            foreach (var child in finalGeneratedNodes)
+            {
+                ProcessGeneratedNode(child);
             }
         }
         
@@ -245,9 +307,6 @@ namespace CPF_experiment
         protected virtual List<WorldState> ExpandOneAgent(List<WorldState> intermediateNodes, int agentIndex)
         {
             var GeneratedNodes = new List<WorldState>();
-            CbsConstraint nextStepLocation = null;
-            if (this.constraintList != null)
-                nextStepLocation = new CbsConstraint();
             WorldState childNode;
 
             foreach (var currentNode in intermediateNodes)
@@ -255,23 +314,9 @@ namespace CPF_experiment
                 // Try all legal moves of the agents
                 foreach (TimedMove agentLocation in currentNode.allAgentsState[agentIndex].lastMove.GetNextMoves(Constants.ALLOW_DIAGONAL_MOVE))
                 {
-                    if (IsValid(agentLocation, currentNode.currentMoves) == false)
+                    if (IsValid(agentLocation, currentNode.currentMoves, currentNode.makespan + 1,
+                        instance.m_vAgents[agentIndex].agent.agentNum) == false)
                         continue;
-
-                    if (this.constraintList != null)
-                    {
-                        nextStepLocation.init(instance.m_vAgents[agentIndex].agent.agentNum, agentLocation); // Throws nullreference exception when running CBS. Has something to do 
-                        
-                        if (this.constraintList.Contains(nextStepLocation))
-                            continue;
-                    }
-                    if (this.mustConstraints != null && this.mustConstraints.Length > currentNode.makespan + 1 && // not >=?
-                        this.mustConstraints[currentNode.makespan + 1] != null)
-                    {
-                        if (this.mustConstraints[currentNode.makespan + 1].Any<CbsConstraint>(
-                            con => con.ViolatesMustCond((byte)instance.m_vAgents[agentIndex].agent.agentNum, agentLocation)))
-                            continue;
-                    }
 
                     childNode = CreateSearchNode(currentNode);
                     childNode.allAgentsState[agentIndex].MoveTo(agentLocation);
@@ -285,7 +330,6 @@ namespace CPF_experiment
                     GeneratedNodes.Add(childNode);
                 }
             }
-            intermediateNodes.Clear();
             return GeneratedNodes;
         }
 
@@ -301,17 +345,33 @@ namespace CPF_experiment
 
         /// <summary>
         /// Check if the move is valid, i.e. not colliding into walls or other agents.
-        /// This method is here instead of in ProblemInstance to enable unused algorithmic tweaks.
+        /// This method is here instead of in ProblemInstance to enable algorithmic tweaks.
         /// </summary>
         /// <param name="possibleMove">The move to check if possible</param>
         /// <returns>true, if the move is possible.</returns>
-        protected bool IsValid(TimedMove possibleMove, HashSet<TimedMove> currentMoves)
+        protected bool IsValid(TimedMove possibleMove, HashSet<TimedMove> currentMoves, int makespan, int agentNum)
         {
             // Check if the proposed move is reserved in the plan of another agent.
             // This is used in Trevor's IndependenceDetection.
             if (this.illegalMoves != null) 
             {
                 if (possibleMove.isColliding(illegalMoves))
+                    return false;
+            } // FIXME: Also checked in IsValid later.
+
+            if (this.constraintList != null)
+            {
+                CbsConstraint nextStepLocation = new CbsConstraint(agentNum, possibleMove);
+
+                if (this.constraintList.Contains(nextStepLocation))
+                    return false;
+            }
+
+            if (this.mustConstraints != null && makespan < this.mustConstraints.Length && // There may be a constraint on the timestep of the generated node
+                this.mustConstraints[makespan] != null)
+            {
+                if (this.mustConstraints[makespan].Any<CbsConstraint>(
+                    con => con.ViolatesMustConstraint((byte)agentNum, possibleMove)))
                     return false;
             }
 
@@ -325,12 +385,11 @@ namespace CPF_experiment
 
         /// <summary>
         /// Returns the found plan, or null if no plan was found.
-        /// This never returns null, don't lie to me.
         /// </summary>
         /// <returns></returns>
         public virtual Plan GetPlan()
         {
-            return new Plan(this.GetGoal());
+            return this.solution;
         }
 
         public virtual SinglePlan[] GetSinglePlans()
@@ -405,33 +464,43 @@ namespace CPF_experiment
                 // If in closed list - only reopen if F is lower
                 if (this.closedList.ContainsKey(currentNode) == true)
                 {
-                    var inClosedList = this.closedList[currentNode];
-                    // TODO: Some code dup with CompareTo method of WorldState, not sure if avoidable
-                    var g_inClosedList = inClosedList.g;
-                    var potentialConflictsCount_inClosedList = inClosedList.potentialConflictsCount;
-                    var cbsInternalConflictsCount_inClosedList = inClosedList.cbsInternalConflictsCount;
+                    WorldState inClosedList = this.closedList[currentNode];
+                    // Since the nodes are equal, give them both the max of their H
+                    bool improvedHOfThisNode = false;
+                    bool improvedHOfOldNode = false;
+                    if (currentNode.h < inClosedList.h)
+                    {
+                        currentNode.h = inClosedList.h;
+                        improvedHOfThisNode = true;
+                    }
+                    if (inClosedList.h < currentNode.h)
+                    {
+                        inClosedList.h = currentNode.h;
+                        improvedHOfOldNode = true;
+                    }
 
-                    // if g is smaller or
-                    //    g is equal but current node has fewer potential conflicts or
-                    //                   current node has same number of potential conflicts but current node has fewer CBS internal conflicts than remove the old world state
-                    if (g_inClosedList > currentNode.g ||
-                        (g_inClosedList == currentNode.g && (potentialConflictsCount_inClosedList > currentNode.potentialConflictsCount ||
-                                                                (potentialConflictsCount_inClosedList == currentNode.potentialConflictsCount && cbsInternalConflictsCount_inClosedList > currentNode.cbsInternalConflictsCount))))
-                    // Alternative view:
-                    // if g is smaller than remove the old world state
-                    // if g is equal but current node has fewer potential conflicts than remove the old world state
-                    // if g is equal and current node has same number of potential conflicts but current node has fewer CBS internal conflicts than remove the old world state
-                    //if (g_inClosedList > currentNode.g || 
-                    //    (g_inClosedList == currentNode.g && potentialConflictsCount_inClosedList > currentNode.potentialConflictsCount) ||
-                    //    (g_inClosedList == currentNode.g && potentialConflictsCount_inClosedList == currentNode.potentialConflictsCount && cbsInternalConflictsCount_inClosedList > currentNode.cbsInternalConflictsCount))
+                    int compareVal = currentNode.CompareTo(inClosedList);
+                    if (compareVal == -1) // This node has smaller f, or preferred due to other consideration.
+                                          // Since we equalised their h, a smaller f means smaller g.
                     {
                         this.reopened++;
-                        closedList.Remove(inClosedList);
-                        openList.Remove(inClosedList);
-                        // Items are searched for in the heap using their binaryHeapIndex, which is only intialized when they're put into it,
+                        this.closedList.Remove(inClosedList);
+                        this.openList.Remove(inClosedList);
+                        // Items are searched for in the heap using their binaryHeapIndex, which is only initialized when they're put into it,
                         // and not their hash or their Equals or CompareTo methods, so it's important to call Remove with inClosedList,
                         // which might be in the heap, and not currentNode, which may be Equal to it, but was never in the heap so it
                         // doesn't have a binaryHeapIndex initialized.
+                        if (improvedHOfThisNode)
+                            ++reopenedWithOldH;
+                    }
+                    else if (improvedHOfOldNode)
+                    {
+                        // Reinsert old node with new higher F, if it's still in the closed list
+                        if (this.openList.Remove(inClosedList)) // Cheap if it isn't there
+                        {
+                            this.openList.Add(inClosedList);
+                            ++noReopenHUpdates;
+                        }
                     }
                 }
 

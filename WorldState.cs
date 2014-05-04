@@ -49,6 +49,7 @@ namespace CPF_experiment
             this.makespan = cpy.makespan;
             this.g = cpy.g;
             this.h = cpy.h;
+            this.potentialConflictsCount = cpy.potentialConflictsCount;
             this.allAgentsState = new AgentState[cpy.allAgentsState.Length];
             for (int i = 0; i < allAgentsState.Length; i++)
             {
@@ -73,7 +74,7 @@ namespace CPF_experiment
         public WorldState(AgentState[] allAgentsState, List<uint> vAgents)
             // Copy specified agents only
             : this(vAgents.Select<uint, AgentState>(index => new AgentState(allAgentsState[index])).ToArray<AgentState>())
-        {}        
+        {}
         
         public bool GoalTest(int minDepth)
         {
@@ -119,7 +120,7 @@ namespace CPF_experiment
         /// <returns></returns>
         public int GetGoalCost()
         {
-            Debug.Assert(this.GoalTest());
+            Debug.Assert(this.GoalTest(-1), "Only call for goal nodes!");
 
             if (goalCost == NOT_SET) // This is just a proper goal
             {
@@ -157,6 +158,14 @@ namespace CPF_experiment
                 return 1;
 
             // Tie breaking:
+
+            if (this.GoalTest(-1) == true && that.GoalTest(-1) == false) // We don't have the minDepth here so a "too early" goal might pop before a real goal, but that's not too expensive.
+                                                                         // The elaborate form is necessary to keep the comparison consistent. Otherwise goalA<goalB and goalB<goalA
+                                                                         // FIXME: Consider saving the minDepth in the root and propagating it from there.
+                return -1;
+            if (that.GoalTest(-1) == true && this.GoalTest(-1) == false)
+                return 1;
+
             if (this.potentialConflictsCount < that.potentialConflictsCount)
                 return -1;
             if (this.potentialConflictsCount > that.potentialConflictsCount)
@@ -210,7 +219,7 @@ namespace CPF_experiment
             return ans;
         }
 
-        public Move getSingleAgentMove(int index)
+        public Move GetSingleAgentMove(int index)
         {
             return new Move(allAgentsState[index].lastMove);
         }
@@ -277,7 +286,7 @@ namespace CPF_experiment
             return this.allAgentsState.SequenceEqual<AgentState>(that.allAgentsState);
         }
         
-        public virtual int conflictsCount(HashSet<TimedMove> conflictAvoidance)
+        public virtual int ConflictsCount(HashSet<TimedMove> conflictAvoidance)
         {
             int ans = 0;
             for (int i = 0; i < allAgentsState.Length; i++)
