@@ -25,10 +25,6 @@ namespace CPF_experiment
         public int totalCost;
         public int numOfAgents;
         protected int maxCost;
-        /// <summary>
-        /// For derived algorithms that use partial expansion
-        /// </summary>
-        protected int expandedFullStates;
         protected HashSet<TimedMove> illegalMoves;
         protected HashSet_U<CbsConstraint> constraintList;
         /// <summary>

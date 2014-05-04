@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using System.Diagnostics;
 
 namespace CPF_experiment
 {
@@ -50,20 +51,25 @@ namespace CPF_experiment
             : base(cpy)
         {
             alreadyExpanded = false; // Creating a new unexpanded node from cpy
+
+            // For intermediate nodes created during expansion (fully expanded nodes have these fields recalculated when they're expanded)
             remainingDeltaF = cpy.remainingDeltaF;
             singleAgentDeltaFs = cpy.singleAgentDeltaFs; // Notice that after an agent is moved its row won't be up-to-date.
-            fLookup = null; // Notice that after an agent is moved, all rows up to and including the one of the agent that moved won't be up-to-date.
-            maxDeltaF = 0; // cpy.maxDeltaF // TODO: Same.
+            fLookup = cpy.fLookup; // Notice that after an agent is moved, all rows up to and including the one of the agent that moved won't be up-to-date.
+            maxDeltaF = cpy.maxDeltaF; // Not necessarily achievable after some of the agents moved.
+            // The above is OK because we won't be using data for agents that already moved.
         }
 
         /// <summary>
-        /// Calculates for each agent and each direction it can go, the effect of that move on F. Illegal moves get byte.MaxValue
+        /// Calculates for each agent and each direction it can go, the effect of that move on F. Illegal moves get byte.MaxValue.
+        /// Also calcs maxDeltaF.
+        /// Implicitly uses the SIC heuristic.
         /// </summary>
         /// <param name="problem"></param>
         /// <returns></returns>
         public void calcSingleAgentDeltaFs(ProblemInstance problem)
         {
-            //init
+            //Init
             this.singleAgentDeltaFs = new byte[allAgentsState.Length][];
             for (int i = 0; i < singleAgentDeltaFs.Length; i++)
             {
@@ -88,6 +94,10 @@ namespace CPF_experiment
                             continue;
                         }
                     }
+
+                    // FIXME: Check for Constraints too, or better yet, use ClassisAStar.IsValid().
+                    // The current implementation without the check may unnecessarily go over deltaFs that have no valid children
+                    // when run as a low level solver for CBS (never).
                     
                     if (problem.IsValidTile(check.x, check.y))
                     {
@@ -98,7 +108,7 @@ namespace CPF_experiment
                         else if (hAfter != 0) // If agent moved from its goal we must count and add all the steps it was stationed at the goal, since they're now part of its g difference
                             singleAgentDeltaFs[i][(int)check.direction] = (byte)(hAfter - hBefore + makespan - allAgentsState[i].arrivalTime + 1);
                         else
-                            singleAgentDeltaFs[i][(int)check.direction] = 0;
+                            singleAgentDeltaFs[i][(int)check.direction] = 0; // This is a WAIT move at the goal.
                     }
                     else
                     {
@@ -108,17 +118,15 @@ namespace CPF_experiment
             }
 
             // Sum across all agents of max F difference by a legal move
-            this.maxDeltaF = singleAgentDeltaFs.Select<byte[], byte>(
-                        agentFDifferences => agentFDifferences.Where<byte>(
-                            x => (x < byte.MaxValue)
-                        ).Max<byte>()
-                   ).Max<byte>();
+            this.maxDeltaF = (byte) singleAgentDeltaFs.Select<byte[], byte>(
+                        deltaFs => deltaFs.Where<byte>(x => (x < byte.MaxValue)).Max<byte>()
+                   ).Sum<byte>(max => max);
 
             fLookup = new sbyte[allAgentsState.Length][];
             for (int i = 0; i < fLookup.Length; i++)
             {
                 fLookup[i] = new sbyte[this.maxDeltaF + 1]; // Towards the last agents most of the row will be wasted (the last one can do delta F of 0 or 1),
-                                                             // but it's easier than fiddling with array sizes
+                                                            // but it's easier than fiddling with array sizes
             }
         }
 
@@ -136,7 +144,7 @@ namespace CPF_experiment
             return alreadyExpanded;
         }
 
-        public bool hasChildrenForCurrentF(int agentNum=0)
+        public bool hasChildrenForCurrentDeltaF(int agentNum=0)
         {
             return existsChildForF(agentNum, this.remainingDeltaF);
         }
@@ -145,35 +153,35 @@ namespace CPF_experiment
         /// Recursive func. Kind of dynamic programming as it updates the lookup table as it goes to refrain from computing answers twice.
         /// </summary>
         /// <param name="agentNum"></param>
-        /// <param name="remainingTargetFChange"></param>
+        /// <param name="remainingTargetDeltaF"></param>
         /// <returns></returns>
-        protected bool existsChildForF(int agentNum, byte remainingTargetFChange)
+        protected bool existsChildForF(int agentNum, byte remainingTargetDeltaF)
         {
             // Stopping conditions:
             if (agentNum == allAgentsState.Length)
             {
-                if (remainingTargetFChange == 0)
+                if (remainingTargetDeltaF == 0)
                     return true;
                 return false;
             }
             
-            if (fLookup[agentNum][remainingTargetFChange] != 0) // Answer known (arrays are initialized to zero). TODO: Replace the magic.
+            if (fLookup[agentNum][remainingTargetDeltaF] != 0) // Answer known (arrays are initialized to zero). TODO: Replace the magic.
             {
-                return fLookup[agentNum][remainingTargetFChange] == 1; // Return known answer. TODO: Replace the magic
+                return fLookup[agentNum][remainingTargetDeltaF] == 1; // Return known answer. TODO: Replace the magic
             }
 
             // Recursive actions:
             for (int direction = 0; direction < Constants.NUM_ALLOWED_DIRECTIONS; direction++)
             {
-                if (singleAgentDeltaFs[agentNum][direction] > remainingTargetFChange) // Small optimization - no need to make the recursive call just to request a negative target from it and get false (because we assume the heuristic function is consistent)
+                if (singleAgentDeltaFs[agentNum][direction] > remainingTargetDeltaF) // Small optimization - no need to make the recursive call just to request a negative target from it and get false (because we assume the heuristic function is consistent)
                     continue;
-                if (existsChildForF(agentNum + 1, (byte)(remainingTargetFChange - singleAgentDeltaFs[agentNum][direction])))
+                if (existsChildForF(agentNum + 1, (byte)(remainingTargetDeltaF - singleAgentDeltaFs[agentNum][direction])))
                 {
-                    fLookup[agentNum][remainingTargetFChange] = 1;
+                    fLookup[agentNum][remainingTargetDeltaF] = 1;
                     return true;
                 }
             }
-            fLookup[agentNum][remainingTargetFChange] = -1;
+            fLookup[agentNum][remainingTargetDeltaF] = -1;
             return false;
         }
 
@@ -181,12 +189,14 @@ namespace CPF_experiment
         /// An agent was moved between calculating the singleAgentDeltaFs and this call. Using the data that describes its delta F potential before the move.
         /// </summary>
         /// <param name="agentIndex"></param>
-        public void UpdateRemainingFChange(int agentIndex) {
-            byte fChangeFromLastMove = this.singleAgentDeltaFs[agentIndex][(int)this.allAgentsState[agentIndex].lastMove.direction];
-            if (fChangeFromLastMove != byte.MaxValue && this.remainingDeltaF >= fChangeFromLastMove)
-                this.remainingDeltaF -= fChangeFromLastMove;
+        public void UpdateRemainingDeltaF(int agentIndex) {
+            Debug.Assert(this.remainingDeltaF != byte.MaxValue);
+
+            byte lastMoveDeltaF = this.singleAgentDeltaFs[agentIndex][(int)this.allAgentsState[agentIndex].lastMove.direction];
+            if (lastMoveDeltaF != byte.MaxValue && this.remainingDeltaF >= lastMoveDeltaF)
+                this.remainingDeltaF -= lastMoveDeltaF;
             else
-                this.remainingDeltaF = byte.MaxValue;
+                this.remainingDeltaF = byte.MaxValue; // Either because last move was illegal or because the delta F from the last move was more than the entire remaining delta F budget
         }
     }
 }

@@ -9,12 +9,19 @@ namespace CPF_experiment
     /// </summary>
     public class AStarWithOD : ClassicAStar
     {
+        protected int expandedFullStates;
+
         public AStarWithOD(HeuristicCalculator heuristic = null)
             : base(heuristic) { }
 
         override protected WorldState CreateSearchRoot()
         {
             return new WorldStateWithOD(this.instance.m_vAgents);
+        }
+
+        protected override WorldState CreateSearchNode(WorldState from)
+        {
+            return new WorldStateWithOD((WorldStateWithOD)from);
         }
 
         override public string GetName() { return "A*+OD"; }

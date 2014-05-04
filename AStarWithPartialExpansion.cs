@@ -7,6 +7,8 @@ namespace CPF_experiment
 {
     class AStarWithPartialExpansion : ClassicAStar 
     {
+        protected int expandedFullStates;
+
         public AStarWithPartialExpansion(HeuristicCalculator heuristic = null)
             : base(heuristic) { }
 
@@ -27,13 +29,15 @@ namespace CPF_experiment
         {
             var node = (WorldStateForPartialExpansion)nodeP;
 
-            node.calcSingleAgentDeltaFs(instance);
-
             if (node.isAlreadyExpanded() == false)
             {
+                node.calcSingleAgentDeltaFs(instance);
                 expandedFullStates++;
                 node.alreadyExpanded = true;
                 node.targetDeltaF = 0; // Assuming a consistent heuristic (as done in the paper), the min delta F is zero.
+                node.remainingDeltaF = node.targetDeltaF; // Just for the hasChildrenForCurrentDeltaF call.
+                while (node.hasMoreChildren() && node.hasChildrenForCurrentDeltaF() == false) // DeltaF=0 may not be possible if all nodes have obstacles between their location and the goal
+                    node.targetDeltaF++;
             }
             //Debug.Print("Expanding node " + node);
 
@@ -43,42 +47,32 @@ namespace CPF_experiment
 
             node.targetDeltaF++;
 
-            while (node.hasMoreChildren() && node.hasChildrenForCurrentF() == false)
+            while (node.hasMoreChildren() && node.hasChildrenForCurrentDeltaF() == false)
                 node.targetDeltaF++;
 
-            if (node.hasMoreChildren() && node.hasChildrenForCurrentF() && node.h + node.g + node.targetDeltaF <= this.maxCost)
+            if (node.hasMoreChildren() && node.hasChildrenForCurrentDeltaF() && node.h + node.g + node.targetDeltaF <= this.maxCost)
                 openList.Add(node);
             return;
         }
 
         protected override List<WorldState> ExpandOneAgent(List<WorldState> intermediateNodes, int agentIndex)
         {
-            // Prune nodes that can't get to the target F
-            foreach (WorldState node in intermediateNodes)
-                ((WorldStateForPartialExpansion)node).calcSingleAgentDeltaFs(this.instance);
-            intermediateNodes = intermediateNodes.Where<WorldState>(
-                node => ((WorldStateForPartialExpansion)node).remainingDeltaF != byte.MaxValue && // last move was good
-                        ((WorldStateForPartialExpansion)node).hasChildrenForCurrentF(agentIndex)
-                                                                    ).ToList<WorldState>();
             // Expand the agent
             List<WorldState> generated = base.ExpandOneAgent(intermediateNodes, agentIndex);
             
             // Update target F
             foreach (WorldState simpleLookingNode in generated) {
                 var node = (WorldStateForPartialExpansion)simpleLookingNode;
-                node.UpdateRemainingFChange(agentIndex);
+                node.UpdateRemainingDeltaF(agentIndex);
             }
 
+            // Prune nodes that can't get to the target F - even before their real H is calculated!
+            generated = generated.Where<WorldState>(
+                node => ((WorldStateForPartialExpansion)node).remainingDeltaF != byte.MaxValue && // last move was good
+                        ((WorldStateForPartialExpansion)node).hasChildrenForCurrentDeltaF(agentIndex+1)
+                                                                    ).ToList<WorldState>();
+
             return generated;
-        }
-
-        protected override bool ProcessGeneratedNode(WorldState simpleLookingNode)
-        {
-            var currentNode = (WorldStateForPartialExpansion)simpleLookingNode;
-            if (currentNode.remainingDeltaF != 0) // No more moves to do, remaining delta F must be zero
-                return false;
-
- 	        return base.ProcessGeneratedNode(currentNode);
         }
 
         public override void OutputStatisticsHeader(TextWriter output)
