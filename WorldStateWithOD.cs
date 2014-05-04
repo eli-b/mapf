@@ -20,20 +20,16 @@ namespace CPF_experiment
         public WorldStateWithOD(AgentState[] states) : base(states)
         {
             this.agentTurn = 0;
-            this.potentialConflictsCount = 0;
         }
         
         public WorldStateWithOD(WorldStateWithOD cpy) : base(cpy)
         {
-            this.g = cpy.g;
             this.agentTurn = cpy.agentTurn;
-            this.potentialConflictsCount = cpy.potentialConflictsCount;
         }
         
         public WorldStateWithOD(AgentState[] states, List<uint> relevantAgents) : base(states, relevantAgents)
         {
             this.agentTurn = 0;
-            this.potentialConflictsCount = 0;
         }
 
         public override ProblemInstance ToProblemInstance(ProblemInstance initial)
@@ -96,7 +92,7 @@ namespace CPF_experiment
         /// </summary>
         /// <param name="conflictAvoidance"></param>
         /// <returns></returns>
-        override public int conflictsCount(HashSet<TimedMove> conflictAvoidance)
+        override public int ConflictsCount(HashSet<TimedMove> conflictAvoidance)
         {
             int ans = 0;
             int lastMove = agentTurn - 1;
