@@ -294,14 +294,15 @@ namespace CPF_experiment
                 node.totalCost += (ushort)(conflict.timeStep + 1 - agentAOldCost);
                 openList.Add(node); // Re-insert node into open list with higher cost
             }
-            else // Agent A expansion already skipped in the past or not forcing A from its goal - finally generate the child:
+            else if (node.agentAExpansion != CbsNode.ExpansionState.EXPANDED)
+            // Agent A expansion already skipped in the past or not forcing A from its goal - finally generate the child:
             {
                 con = new CbsConstraint(conflict, instance, true);
                 toAdd = new CbsNode(node, con, conflict.agentA);
 
                 if (closedList.ContainsKey(toAdd) == false)
                 {
-                    if (toAdd.Replan(conflict.agentA, Math.Max(minDepth, conflict.timeStep),
+                    if (toAdd.Replan(conflict.agentA, minDepth, // The node takes the max between minDepth and the max time over all constraints.
                                      ref highLevelExpanded, ref highLevelGenerated, ref lowLevelExpanded, ref lowLevelGenerated))
                     {
                         if (toAdd.totalCost <= this.maxCost)
@@ -330,14 +331,14 @@ namespace CPF_experiment
                 openList.Add(node); // Re-insert node into open list with higher cost
                 // TODO: Code duplication with agentA. Make this into a function.
             }
-            else
+            else if (node.agentBExpansion != CbsNode.ExpansionState.EXPANDED)
             {
                 con = new CbsConstraint(conflict, instance, false);
                 toAdd = new CbsNode(node, con, conflict.agentB);
 
                 if (closedList.ContainsKey(toAdd) == false)
                 {
-                    if (toAdd.Replan(conflict.agentB, Math.Max(minDepth, conflict.timeStep),
+                    if (toAdd.Replan(conflict.agentB, minDepth, // The node takes the max between minDepth and the max time over all constraints.
                                      ref highLevelExpanded, ref highLevelGenerated, ref lowLevelExpanded, ref lowLevelGenerated))
                     {
                         if (toAdd.totalCost <= this.maxCost)

@@ -61,6 +61,14 @@ namespace CPF_experiment
             this.Init(agent, move.x, move.y, move.direction, move.time);
         }
 
+        public int time
+        {
+            get
+            {
+                return this.move.time;
+            }
+        }
+
         /// <summary>
         /// If fullyEqual, checks that the agent sets are equal, otherwise checks that this.agents is a subset of obj.agents.
         /// If not fullyEqual, this doesn't implement commutativity!

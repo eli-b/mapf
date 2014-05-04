@@ -112,9 +112,15 @@ namespace CPF_experiment
         {
             this.totalCost = 0;
             var newInternalCAT = new HashSet<TimedMove>();
-            var newConstraints = this.GetConstraints();
+            HashSet<CbsConstraint> newConstraints = this.GetConstraints();
             var internalCAT = (HashSet_U<TimedMove>)problem.parameters[CBS_LocalConflicts.INTERNAL_CAT];
             var constraints = (HashSet_U<CbsConstraint>)problem.parameters[CBS_LocalConflicts.CONSTRAINTS];
+
+            if (newConstraints.Count != 0)
+            {
+                int maxConstraintTimeStep = newConstraints.Max<CbsConstraint>(constraint => constraint.time);
+                depthToReplan = Math.Max(depthToReplan, maxConstraintTimeStep); // Give all constraints a chance to affect the plan
+            }
 
             bool success = true;
 
@@ -180,6 +186,12 @@ namespace CPF_experiment
             HashSet<CbsConstraint> newConstraints = this.GetConstraints();
             var internalCAT = (HashSet_U<TimedMove>)problem.parameters[CBS_LocalConflicts.INTERNAL_CAT];
             var constraints = (HashSet_U<CbsConstraint>)problem.parameters[CBS_LocalConflicts.CONSTRAINTS];
+
+            if (newConstraints.Count != 0)
+            {
+                int maxConstraintTimeStep = newConstraints.Max<CbsConstraint>(constraint => constraint.time);
+                depthToReplan = Math.Max(depthToReplan, maxConstraintTimeStep); // Give all constraints a chance to affect the plan
+            }
 
             int maxPlanSize = this.allSingleAgentPlans.Max<SinglePlan>(plan => plan.GetSize());
 
@@ -398,17 +410,28 @@ namespace CPF_experiment
                 return 1;
 
             // Tie breaking:
+            // Prefer less external conflicts, even over goal nodes
             if (this.externalConflictsCount < other.externalConflictsCount)
                 return -1;
             if (this.externalConflictsCount > other.externalConflictsCount)
                 return 1;
-            if (this.conflict == null)
+            // Prefer goal nodes. The elaborate form is to keep the comparison consistent. Without it goalA<goalB and also goalB<goalA.
+            if (this.GoalTest() == true && other.GoalTest() == false)
                 return -1;
-            if (other.conflict == null)
+            if (other.GoalTest() == true && this.GoalTest() == false)
                 return 1;
+            // Prefer more depth. WHY???
             if (this.depth > other.depth)
                 return -1;
             if (this.depth < other.depth)
+                return 1;
+            // Prefer partially expanded nodes. They're less work because they have less constraints and only one child to generate.
+            // The elaborate form, again, is to keep the comparison consistent. Without it partiallyExpandedA<partiallyExpandedB and partiallyExpandedA>partiallyExpandedB
+            if ((this.agentAExpansion == CbsNode.ExpansionState.DEFERRED || this.agentBExpansion == CbsNode.ExpansionState.DEFERRED) &&
+                other.agentAExpansion == CbsNode.ExpansionState.NOT_EXPANDED && other.agentBExpansion == CbsNode.ExpansionState.NOT_EXPANDED)
+                return -1;
+            if ((other.agentAExpansion == CbsNode.ExpansionState.DEFERRED || other.agentBExpansion == CbsNode.ExpansionState.DEFERRED) &&
+                this.agentAExpansion == CbsNode.ExpansionState.NOT_EXPANDED && this.agentBExpansion == CbsNode.ExpansionState.NOT_EXPANDED)
                 return 1;
             return 0;
         }
@@ -629,6 +652,12 @@ namespace CPF_experiment
             HashSet_U<CbsConstraint> Constraints = (HashSet_U<CbsConstraint>)problem.parameters[CBS_LocalConflicts.CONSTRAINTS];
             List<CbsConstraint> mustConstraints = this.GetMustConstraints();
             problem.parameters[CBS_LocalConflicts.MUST_CONSTRAINTS] = mustConstraints;
+
+            if (newConstraints.Count != 0)
+            {
+                int maxConstraintTimeStep = newConstraints.Max<CbsConstraint>(constraint => constraint.time);
+                depthToReplan = Math.Max(depthToReplan, maxConstraintTimeStep); // Give all constraints a chance to affect the plan
+            }
 
             //Debug.WriteLine("Sub-problem:");
 
