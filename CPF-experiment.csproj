@@ -83,6 +83,7 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="AStarWithPartialExpansion.cs" />
+    <Compile Include="AStarWithPartialExpansionBasic.cs" />
     <Compile Include="CBS.cs" />
     <Compile Include="CBS_IDA.cs" />
     <Compile Include="CBS_NoDD.cs" />
