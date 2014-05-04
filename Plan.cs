@@ -248,7 +248,7 @@ namespace CPF_experiment
             LinkedList<Move> locations = new LinkedList<Move>();
             while (currentNode != null)
             {
-                locations.AddFirst(currentNode.getSingleAgentMove(agentIndex));
+                locations.AddFirst(currentNode.GetSingleAgentMove(agentIndex));
                 currentNode = currentNode.prevStep;
             }
         }
