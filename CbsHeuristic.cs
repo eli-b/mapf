@@ -147,24 +147,24 @@ namespace CPF_experiment
 
         public override string ToString()
         {
-            return "CBSH(" + this.reportSolution + ", " + this.minAboveSic + ")";
+            return "CBSH(" + this.reportSolution + " " + this.minAboveSic + ")";
         }
 
         public virtual void OutputStatisticsHeader(TextWriter output)
         {
-            output.Write("\"" + this.ToString() + " Expanded (HL)\"");
+            output.Write(this.ToString() + " Expanded (HL)");
             output.Write(Run.RESULTS_DELIMITER);
-            output.Write("\"" + this.ToString() + " Generated (HL)\"");
+            output.Write(this.ToString() + " Generated (HL)");
             output.Write(Run.RESULTS_DELIMITER);
-            output.Write("\"" + this.ToString() + " Expanded (LL)\"");
+            output.Write(this.ToString() + " Expanded (LL)");
             output.Write(Run.RESULTS_DELIMITER);
-            output.Write("\"" + this.ToString() + " Generated (LL)\"");
+            output.Write(this.ToString() + " Generated (LL)");
             output.Write(Run.RESULTS_DELIMITER);
-            output.Write("\"" + this + " Averge Runtime\"");
+            output.Write(this + " Averge Runtime");
             output.Write(Run.RESULTS_DELIMITER);
-            output.Write("\"" + this + " Averge Improvement Over SIC\"");
+            output.Write(this + " Averge Improvement Over SIC");
             output.Write(Run.RESULTS_DELIMITER);
-            output.Write("\"" + this + " Num Calls\"");
+            output.Write(this + " Num Calls");
             output.Write(Run.RESULTS_DELIMITER);
         }
 
