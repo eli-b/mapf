@@ -26,6 +26,12 @@ namespace CPF_experiment
 
         override public string GetName() { return "A*+OD"; }
 
+        public override void Setup(ProblemInstance problemInstance, Run runner)
+        {
+            base.Setup(problemInstance, runner);
+            this.expandedFullStates = 0;
+        }
+
         /// <summary>
         /// Expand a given node. This includes:
         /// - Generating all possible children

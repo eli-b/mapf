@@ -25,6 +25,12 @@ namespace CPF_experiment
 
         override public string GetName() { return "EPEA*"; }
 
+        public override void Setup(ProblemInstance problemInstance, Run runner)
+        {
+            base.Setup(problemInstance, runner);
+            this.expandedFullStates = 0;
+        }
+
         public override void Expand(WorldState nodeP)
         {
             var node = (WorldStateForPartialExpansion)nodeP;
@@ -36,7 +42,7 @@ namespace CPF_experiment
                 node.alreadyExpanded = true;
                 node.targetDeltaF = 0; // Assuming a consistent heuristic (as done in the paper), the min delta F is zero.
                 node.remainingDeltaF = node.targetDeltaF; // Just for the hasChildrenForCurrentDeltaF call.
-                while (node.hasMoreChildren() && node.hasChildrenForCurrentDeltaF() == false) // DeltaF=0 may not be possible if all nodes have obstacles between their location and the goal
+                while (node.hasMoreChildren() && node.hasChildrenForCurrentDeltaF() == false) // DeltaF=0 may not be possible if all agents have obstacles between their location and the goal
                     node.targetDeltaF++;
             }
             //Debug.Print("Expanding node " + node);

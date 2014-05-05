@@ -39,6 +39,7 @@ namespace CPF_experiment
         { 
             base.Setup(problemInstance, runner);
             this.generatedAndDiscarded = 0;
+            this.expandedFullStates = 0;
         }
 
         override public string GetName() { return "(B)PEA*"; }
