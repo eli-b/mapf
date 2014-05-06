@@ -47,6 +47,8 @@ namespace CPF_experiment
             }
             //Debug.Print("Expanding node " + node);
 
+            // If this node was already expanded, notice its h was updated, so the deltaF refers to its original H
+
             node.remainingDeltaF = node.targetDeltaF;
 
             base.Expand(node);
@@ -57,8 +59,24 @@ namespace CPF_experiment
                 node.targetDeltaF++;
 
             if (node.hasMoreChildren() && node.hasChildrenForCurrentDeltaF() && node.h + node.g + node.targetDeltaF <= this.maxCost)
+            {
+                // Increment H before re-insertion into open list
+                int sicEstimate = node.allAgentsState.Sum<AgentState>(agent => this.instance.GetSingleAgentShortestPath(agent)); // Re-compute even if the heuristic use is SIC since this may be a second expansion
+                if (node.h < sicEstimate + node.targetDeltaF)
+                {
+                    // Assuming the heuristic used doesn't give a lower estimate than SIC for each and every one of the node's children,
+                    // (an ok assumption since SIC is quite basic, no heuristic we use is ever worse than it)
+                    // then the current target deltaF is really exhausted, since the deltaG is always correct,
+                    // and the deltaH predicted by SIC is less than or equal to the finalDeltaH.
+                    // So if the heuristic gives the same estimate as SIC for this node
+                    // (and that mainly happens when SIC happens to give a perfect estimate),
+                    // we can increment the node's h to SIC+targetDeltaH
+                    node.h = sicEstimate + node.targetDeltaF;
+                }
+                
+                // Re-insert node into open list
                 openList.Add(node);
-            return;
+            }
         }
 
         protected override List<WorldState> ExpandOneAgent(List<WorldState> intermediateNodes, int agentIndex)

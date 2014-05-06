@@ -60,6 +60,9 @@ namespace CPF_experiment
             // The above is OK because we won't be using data for agents that already moved.
         }
 
+        // Notice is isn't necessary to implement a CompareTo method that further tie-breaks in favor of lower targetDeltaF's
+        // because the targetDeltaF is already taken into account in the node's H.
+
         /// <summary>
         /// Calculates for each agent and each direction it can go, the effect of that move on F. Illegal moves get byte.MaxValue.
         /// Also calcs maxDeltaF.
@@ -81,7 +84,7 @@ namespace CPF_experiment
             //set values
             for (int i = 0; i < allAgentsState.Length; i++)
             {
-                hBefore = problem.GetSingleAgentShortestPath(allAgentsState[i]);
+                hBefore = problem.GetSingleAgentShortestPath(allAgentsState[i]); // According to SIC
 
                 foreach (TimedMove check in allAgentsState[i].lastMove.GetNextMoves(Constants.ALLOW_DIAGONAL_MOVE))
                 {
@@ -101,10 +104,10 @@ namespace CPF_experiment
                     
                     if (problem.IsValidTile(check.x, check.y))
                     {
-                        hAfter = problem.GetSingleAgentShortestPath(allAgentsState[i].agent.agentNum, check.x, check.y);
+                        hAfter = problem.GetSingleAgentShortestPath(allAgentsState[i].agent.agentNum, check); // According to SIC
 
                         if (hBefore != 0)
-                            singleAgentDeltaFs[i][(int)check.direction] = (byte)(hAfter - hBefore + 1); // h difference + g difference
+                            singleAgentDeltaFs[i][(int)check.direction] = (byte)(hAfter - hBefore + 1); // h difference + g difference in this specific domain
                         else if (hAfter != 0) // If agent moved from its goal we must count and add all the steps it was stationed at the goal, since they're now part of its g difference
                             singleAgentDeltaFs[i][(int)check.direction] = (byte)(hAfter - hBefore + makespan - allAgentsState[i].arrivalTime + 1);
                         else
