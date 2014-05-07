@@ -36,6 +36,10 @@ namespace CPF_experiment
         /// </summary>
         protected int maxCost;
         /// <summary>
+        /// Search is stopped when the minimum cost passes the target
+        /// </summary>
+        public int targetCost {set; get;}
+        /// <summary>
         /// For the low lever solver
         /// </summary>
         protected HeuristicCalculator heuristic;
@@ -75,6 +79,7 @@ namespace CPF_experiment
             this.maxSizeGroup = 1;
             this.totalCost = 0;
             this.solutionDepth = -1;
+            this.targetCost = int.MaxValue;
 
             if (problemInstance.parameters.ContainsKey(Trevor.MAXIMUM_COST_KEY))
                 this.maxCost = (int)(problemInstance.parameters[Trevor.MAXIMUM_COST_KEY]);
@@ -122,7 +127,6 @@ namespace CPF_experiment
         {
             this.openList.Clear();
             this.closedList.Clear();
-            this.instance = null;
             this.solver.Clear();
         }
 
@@ -225,6 +229,16 @@ namespace CPF_experiment
                     this.Clear();
                     return true;
                 }
+
+                // Check if node is good enough
+                if (currentNode.totalCost >= this.targetCost) {
+                    if (debug)
+                        Debug.WriteLine("-------------------------");
+                    this.totalCost = currentNode.totalCost; // This is the min possible cost so far.
+                    this.openList.Add(currentNode); // To be able to continue the search later
+                    return false;
+                }
+                
                 // Expand
                 Expand(currentNode);
                 highLevelExpanded++;
