@@ -235,7 +235,8 @@ namespace CPF_experiment
                     if (debug)
                         Debug.WriteLine("-------------------------");
                     this.totalCost = currentNode.totalCost; // This is the min possible cost so far.
-                    this.openList.Add(currentNode); // To be able to continue the search later
+                    //this.openList.Add(currentNode); // To be able to continue the search later
+                    this.Clear();
                     return false;
                 }
                 
