@@ -47,8 +47,7 @@ namespace CPF_experiment
             this.runner = runner;
 
             this.reportSolution = reportSolution;
-            minAboveSic = Math.Max(minAboveSic, 1);
-            this.minAboveSic = minAboveSic;
+            this.minAboveSic = Math.Max(minAboveSic, 1);
 
             this.validate = validate;
         }
@@ -61,9 +60,27 @@ namespace CPF_experiment
         /// <returns></returns>
         public uint h(WorldState s)
         {
-            uint sicEstimate = this.cbs.GetHeuristic().h(s);
+            uint sicEstimate = SumIndividualCosts.h(s, this.instance);
             if (sicEstimate == 0)
                 return 0;
+            int targetCost = s.g + (int)sicEstimate + this.minAboveSic; // Ariel's idea - using SIC directly here to calc the target
+            // CBS gets an explicitly partially solved state - the agents' g may be greater than zero.
+            // So the cost CBS is going to calc is not of this node but of the initial problem instance,
+            // this is accounted for later too.
+            // (Notice node usually has a (possibly very wrong) h set already - copied from the parent)
+            return this.h(s, targetCost, sicEstimate);
+        }
+
+        /// <summary>
+        /// 
+        /// Assumes g of node was already calculated and h isn't zero.
+        /// </summary>
+        /// <param name="s"></param>
+        /// <param name="targetCost"></param>
+        /// <param name="sicEstimate">For a debug assertion and a statistic</param>
+        /// <returns></returns>
+        protected uint h(WorldState s, int targetCost, uint sicEstimate)
+        {
 
             double start = Process.GetCurrentProcess().TotalProcessorTime.TotalMilliseconds;
 
@@ -72,14 +89,10 @@ namespace CPF_experiment
             this.cbs.Setup(sAsProblemInstance, s.makespan, this.runner); // s isn't the goal (checked earlier in the method), so we must search at least until the next depth. This forces must conds to be upheld when dealing with A*+OD nodes.
 
             if (this.cbs.openList.Count > 0)
-                Debug.Assert(((CbsNode)this.cbs.openList.Peek()).totalCost - s.g == (int)this.cbs.GetHeuristic().h(s),
+                Debug.Assert(((CbsNode)this.cbs.openList.Peek()).totalCost - s.g == (int)sicEstimate,
                     "Total cost of CBS root not same as SIC + g");
 
-            this.cbs.targetCost = s.g + (int)sicEstimate + this.minAboveSic; // Ariel's idea - using SIC directly here to calc the target
-            // CBS gets an explicitly partially solved state - the agents' g may be greater than zero.
-            // So the cost CBS is going to calc is not of this node but of the initial problem instance,
-            // this is accounted for later too.
-            // (Notice node usually has a (possibly very wrong) h set already - copied from the parent)
+            this.cbs.targetCost = targetCost;
 
             bool solved = this.cbs.Solve();
 
@@ -105,10 +118,12 @@ namespace CPF_experiment
             Debug.Assert(this.cbs.totalCost > s.g, "CBS total cost is smaller than starting problem's initial cost."); // > and not >= because we already checked in the beginning that s isn't the goal.
 
             uint cbsEstimate = (uint)(this.cbs.totalCost - s.g);
+            // Discounting the moves the agents did before we started solving
+            // (This is easier than making a copy of each AgentState just to zero its lastMove.time)
 
             this.totalImprovement += cbsEstimate - sicEstimate;
-
-            if (validate && nCalls > 180)
+            
+            if (validate)
             {
                 // Brute-force validation of admissability of estimate:
                 var sic = this.cbs.GetHeuristic();
@@ -119,13 +134,11 @@ namespace CPF_experiment
                     Debug.Assert(epeastarsic.totalCost - s.g >= this.cbs.totalCost - s.g, "Inadmissable!!");
             }
 
-            // Discounting the moves the agents did before we started solving
-            // (This is easier than making a copy of each AgentState just to zero its lastMove.time)
             return cbsEstimate;
         }
 
         /// <summary>
-        /// Part of the HeuristicCalculator interface. Irrelevant since each WorldState is a new ProblemInstance for us
+        /// Part of the HeuristicCalculator interface.
         /// </summary>
         /// <param name="pi"></param>
         /// <param name="vAgents">Only passed to the underlying heuristic. TODO: Consider using in h() too.</param>
@@ -133,7 +146,6 @@ namespace CPF_experiment
         {
             this.cbs.GetHeuristic().init(pi, vAgents); // Doesn't do anything special in SIC, but notice anyway that we're not init'ing with the PI that we're going to solve
             this.instance = pi;
-            //this.cbs.instance = pi;
 
             this.highLevelExpanded = 0;
             this.highLevelGenerated = 0;
@@ -207,6 +219,31 @@ namespace CPF_experiment
         {
             this.totalRuntime = 0;
             this.nCalls = 0;
+        }
+    }
+
+    class DyanamicLazyCbsh : CbsHeuristic, LazyHeuristic
+    {
+        public DyanamicLazyCbsh(CBS_LocalConflicts cbs, Run runner, bool reportSolution = false, bool validate = false)
+            : base(cbs, runner, reportSolution, -1, validate) {}
+
+        /// <summary>
+        /// Assumes g of node was already calculated.
+        /// </summary>
+        /// <param name="s"></param>
+        /// <param name="target"></param>
+        /// <returns></returns>
+        public uint h(WorldState s, int target)
+        {
+            uint sicEstimate = SumIndividualCosts.h(s, this.instance);
+            if (sicEstimate == 0)
+                return 0;
+            return this.h(s, target, sicEstimate);
+        }
+
+        public override string ToString()
+        {
+            return "DynamicLazyCBSH(" + this.reportSolution + ")";
         }
     }
 }

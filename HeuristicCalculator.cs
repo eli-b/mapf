@@ -9,7 +9,6 @@ namespace CPF_experiment
         /// <param name="s">The current state.</param>
         uint h(WorldState s);
 
-
         /// <summary>
         /// Initializes the pattern database by storing references to the
         /// problem instance and also the subset of agents that the pattern
@@ -38,5 +37,13 @@ namespace CPF_experiment
         /// Clears statistics.
         /// </summary>
         void ClearStatistics();
+    }
+
+    public interface LazyHeuristic : HeuristicCalculator
+    {
+        /// <summary>Returns the heuristic estimate.</summary>
+        /// <param name="s">The current state.</param>
+        /// <param name="target">The lowest target estimate to return, if possible.</param>
+        uint h(WorldState s, int target);
     }
 }

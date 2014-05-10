@@ -1,7 +1,6 @@
 ﻿using System;
 using System.IO;
-using System.Collections;
-using System.Collections.Generic;
+using System.Linq;
 
 namespace CPF_experiment
 {
@@ -43,6 +42,11 @@ namespace CPF_experiment
                 nHeuristic += (uint)this.m_Problem.GetSingleAgentShortestPath(state);
             }
             return nHeuristic;
+        }
+
+        public static uint h(WorldState s, ProblemInstance instance)
+        {
+            return (uint) s.allAgentsState.Sum(state => instance.GetSingleAgentShortestPath(state));
         }
 
         public override string ToString()
