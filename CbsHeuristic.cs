@@ -81,7 +81,6 @@ namespace CPF_experiment
         /// <returns></returns>
         protected uint h(WorldState s, int targetCost, uint sicEstimate)
         {
-
             double start = Process.GetCurrentProcess().TotalProcessorTime.TotalMilliseconds;
 
             // Calc the h:
@@ -164,13 +163,21 @@ namespace CPF_experiment
 
         public virtual void OutputStatisticsHeader(TextWriter output)
         {
-            output.Write(this.ToString() + " Expanded (HL)");
+            output.Write(this.ToString() + " Total Expanded (HL)");
             output.Write(Run.RESULTS_DELIMITER);
-            output.Write(this.ToString() + " Generated (HL)");
+            output.Write(this.ToString() + " Total Generated (HL)");
             output.Write(Run.RESULTS_DELIMITER);
-            output.Write(this.ToString() + " Expanded (LL)");
+            output.Write(this.ToString() + " Total Expanded (LL)");
             output.Write(Run.RESULTS_DELIMITER);
-            output.Write(this.ToString() + " Generated (LL)");
+            output.Write(this.ToString() + " Total Generated (LL)");
+            output.Write(Run.RESULTS_DELIMITER);
+            output.Write(this.ToString() + " Average Expanded (HL)");
+            output.Write(Run.RESULTS_DELIMITER);
+            output.Write(this.ToString() + " Average Generated (HL)");
+            output.Write(Run.RESULTS_DELIMITER);
+            output.Write(this.ToString() + " Average Expanded (LL)");
+            output.Write(Run.RESULTS_DELIMITER);
+            output.Write(this.ToString() + " Average Generated (LL)");
             output.Write(Run.RESULTS_DELIMITER);
             output.Write(this + " Averge Runtime");
             output.Write(Run.RESULTS_DELIMITER);
@@ -186,11 +193,19 @@ namespace CPF_experiment
             Console.WriteLine("{0} Total Generated Nodes (High-Level): {1}", this, this.highLevelGenerated);
             Console.WriteLine("{0} Total Expanded Nodes (Low-Level): {1}", this, this.lowLevelExpanded);
             Console.WriteLine("{0} Total Generated Nodes (Low-Level): {1}", this, this.lowLevelGenerated);
+            Console.WriteLine("{0} Average Expanded Nodes (High-Level): {1}", this, this.highLevelExpanded / this.nCalls);
+            Console.WriteLine("{0} Average Generated Nodes (High-Level): {1}", this, this.highLevelGenerated / this.nCalls);
+            Console.WriteLine("{0} Average Expanded Nodes (Low-Level): {1}", this, this.lowLevelExpanded / this.nCalls);
+            Console.WriteLine("{0} Average Generated Nodes (Low-Level): {1}", this, this.lowLevelGenerated / this.nCalls);
 
             output.Write(this.highLevelExpanded + Run.RESULTS_DELIMITER);
             output.Write(this.highLevelGenerated + Run.RESULTS_DELIMITER);
             output.Write(this.lowLevelExpanded + Run.RESULTS_DELIMITER);
             output.Write(this.lowLevelGenerated + Run.RESULTS_DELIMITER);
+            output.Write(this.highLevelExpanded / this.nCalls + Run.RESULTS_DELIMITER);
+            output.Write(this.highLevelGenerated / this.nCalls + Run.RESULTS_DELIMITER);
+            output.Write(this.lowLevelExpanded / this.nCalls + Run.RESULTS_DELIMITER);
+            output.Write(this.lowLevelGenerated / this.nCalls + Run.RESULTS_DELIMITER);
 
             double averageRunTime = this.totalRuntime / this.nCalls;
             double averageImprovement = this.totalImprovement / this.nCalls;
@@ -208,7 +223,7 @@ namespace CPF_experiment
         {
             get
             {
-                return 7;
+                return 11;
             }
         }
 
@@ -233,12 +248,12 @@ namespace CPF_experiment
         /// <param name="s"></param>
         /// <param name="target"></param>
         /// <returns></returns>
-        public uint h(WorldState s, int target)
+        public uint h(WorldState s, int targetH)
         {
             uint sicEstimate = SumIndividualCosts.h(s, this.instance);
             if (sicEstimate == 0)
                 return 0;
-            return this.h(s, target, sicEstimate);
+            return this.h(s, s.g + targetH, sicEstimate);
         }
 
         public override string ToString()
