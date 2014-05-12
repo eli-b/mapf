@@ -67,7 +67,7 @@ namespace CPF_experiment
         /// <param name="fileName">The name of the results file</param>
         public void OpenResultsFile(string fileName)
         {
-            this.resultsWriter = new StreamWriter(fileName, true); // 2nd arguments indicate the "append" mode
+            this.resultsWriter = new StreamWriter(fileName, true); // 2nd argument indicates the "append" mode
         }
 
         /// <summary>

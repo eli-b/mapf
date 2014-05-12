@@ -60,9 +60,10 @@ namespace CPF_experiment
 
             bool continueFromLastRun = false; 
             string[] LastProblemDetails = null;
-            if (File.Exists(Directory.GetCurrentDirectory() + "\\Instances\\current problem")) //if we're continuing running from last time
+            string currentProblemFileName = Directory.GetCurrentDirectory() + "\\Instances\\current problem-" + Process.GetCurrentProcess().ProcessName;
+            if (File.Exists(currentProblemFileName)) //if we're continuing running from last time
             {
-                var lastProblemFile = new StreamReader(Directory.GetCurrentDirectory() + "\\Instances\\current problem");
+                var lastProblemFile = new StreamReader(currentProblemFileName);
                 LastProblemDetails = lastProblemFile.ReadLine().Split(',');  //get the last problem
                 lastProblemFile.Close();
                 continueFromLastRun = true;
@@ -118,9 +119,9 @@ namespace CPF_experiment
                             runner.SolveGivenProblem(instance);
 
                             // Save the latest problem
-                            if (File.Exists(Directory.GetCurrentDirectory() + "\\Instances\\current problem"))
-                                File.Delete(Directory.GetCurrentDirectory() + "\\Instances\\current problem");
-                            var lastProblemFile = new StreamWriter(Directory.GetCurrentDirectory() + "\\Instances\\current problem");
+                            if (File.Exists(currentProblemFileName))
+                                File.Delete(currentProblemFileName);
+                            var lastProblemFile = new StreamWriter(currentProblemFileName);
                             lastProblemFile.Write("{0},{1},{2},{3}", gs, obs, ag, i);
                             for (int j = 0; j < runner.outOfTimeCounters.Length; j++)
                             {
