@@ -16,7 +16,6 @@ namespace CPF_experiment
         HashSet<TimedMove> ID_CAT;
         HashSet_U<TimedMove> CBS_CAT;
 
-
         public AStarMDD(MDD[] problem, Run runner, HashSet<TimedMove> conflicts, HashSet_U<TimedMove> CBS_CAT)
         {
             this.expanded = 0;
@@ -40,9 +39,8 @@ namespace CPF_experiment
             conflictAvoidanceViolations = 0;
         }
        
-        public LinkedList<Move>[] solve()
+        public LinkedList<Move>[] Solve()
         {
-
             MDDStep currentNode;
             ExpandedNode toExpand = new ExpandedNode();
 
@@ -54,10 +52,10 @@ namespace CPF_experiment
                 }
                  currentNode = (MDDStep)openList.Remove();
                 // Check if node is the goal
-                if (goalTest(currentNode))
+                if (this.GoalTest(currentNode))
                 {
                     conflictAvoidanceViolations=currentNode.conflicts;
-                    return getAnswear(currentNode);
+                    return GetAnswer(currentNode);
                 }
 
                 // Expand
@@ -73,7 +71,7 @@ namespace CPF_experiment
             MDDStep child = currentNode.getNextChild();
             while (child != null)
             {
-                if (isLegalMove(child))
+                if (IsLegalMove(child))
                 {
                         child.conflicts = currentNode.parent.conflicts;
                         child.setConflicts(ID_CAT, CBS_CAT);
@@ -99,7 +97,10 @@ namespace CPF_experiment
             }
         }
 
-        public void clearIllegal()
+        /// <summary>
+        /// Not used.
+        /// </summary>
+        public void ClearIllegal()
         {
             foreach (MDD mdd in problem)
                 foreach (LinkedList<MDDNode> level in mdd.levels)
@@ -108,7 +109,10 @@ namespace CPF_experiment
                             node.delete();
         }
 
-        public void resetIllegal()
+        /// <summary>
+        /// Not used.
+        /// </summary>
+        public void ResetIllegal()
         {
             foreach (MDD mdd in problem)
                 for (int i = 1; i < mdd.levels.Length; i++)
@@ -116,18 +120,18 @@ namespace CPF_experiment
                             node.legal = false;
         }
 
-        public int getGenerated() { return this.generated; }
+        public int GetGenerated() { return this.generated; }
         
-        public int getExpanded() { return this.expanded; }
+        public int GetExpanded() { return this.expanded; }
         
-        private bool goalTest(MDDStep toCheck)
+        private bool GoalTest(MDDStep toCheck)
         {
             if (toCheck.getDepth() == problem[0].levels.Length - 1)
                 return true;
             return false;
         }
 
-        private LinkedList<Move>[] getAnswear(MDDStep finish)
+        private LinkedList<Move>[] GetAnswer(MDDStep finish)
         {
             if (finish == null)
                 return new LinkedList<Move>[1];
@@ -152,7 +156,7 @@ namespace CPF_experiment
             return ans;
         }
         
-        private bool checkIfLegal(MDDNode from1, MDDNode to1, MDDNode from2, MDDNode to2)
+        private bool CheckIfLegal(MDDNode from1, MDDNode to1, MDDNode from2, MDDNode to2)
         {
             if (to1.getX() == to2.getX() && to1.getY() == to2.getY())
                 return false;
@@ -161,7 +165,7 @@ namespace CPF_experiment
             return true;
         }
         
-        private bool isLegalMove(MDDStep to)
+        private bool IsLegalMove(MDDStep to)
         {
             if (to == null)
                 return false;
@@ -171,7 +175,7 @@ namespace CPF_experiment
             {
                 for (int j = i+1; j < to.allSteps.Length; j++)
                 {
-                    if (checkIfLegal(to.prevStep.allSteps[i], to.allSteps[i], to.prevStep.allSteps[j], to.allSteps[j]) == false)
+                    if (CheckIfLegal(to.prevStep.allSteps[i], to.allSteps[i], to.prevStep.allSteps[j], to.allSteps[j]) == false)
                         return false;
                 }
             }

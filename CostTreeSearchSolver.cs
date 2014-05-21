@@ -216,7 +216,7 @@ namespace CPF_experiment
             //        next = new CostTreeNodeSolverDDBF(problem, costTreeNode,runner);
             //        generated++;
             //        ans = next.Solve(conflictTable);
-            //        expanded += next.getExpanded();
+            //        expanded += next.GetExpanded();
             //        if (ans != null)
             //        {
             //            if (ans[0] != null)

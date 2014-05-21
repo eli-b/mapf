@@ -173,7 +173,7 @@ namespace CPF_experiment
             CostTreeSearchSolver.passed++;
             AStarMDD findSolution = new AStarMDD(allMDDs, runner, conflictTable, CBS_CAT);
             
-            LinkedList<Move>[] ans =  findSolution.solve();
+            LinkedList<Move>[] ans =  findSolution.Solve();
             generated = findSolution.generated;
             expanded = findSolution.expanded;
             caViolations = findSolution.conflictAvoidanceViolations;
@@ -195,7 +195,7 @@ namespace CPF_experiment
                 if (allMDDs[i].levels == null)
                     return null;
             AStarMDD findSolution = new AStarMDD(allMDDs, runner, conflictTable,CBS_CAT);
-            LinkedList<Move>[] ans = findSolution.solve();
+            LinkedList<Move>[] ans = findSolution.Solve();
             generated = findSolution.generated;
             expanded = findSolution.expanded;
             caViolations = findSolution.conflictAvoidanceViolations;
@@ -241,7 +241,7 @@ namespace CPF_experiment
 
                         findSolution = new AStarMDD(match, runner, conflictTable,CBS_CAT);
 
-                        subCheck = findSolution.solve();
+                        subCheck = findSolution.Solve();
                         if (subCheck == null || subCheck[0] == null)
                         {
                             return null;
@@ -266,7 +266,7 @@ namespace CPF_experiment
                             //if (matcher.pruneMDDs() == false)
                             findSolution = new AStarMDD(match, runner,conflictTable,CBS_CAT);
 
-                            subCheck = findSolution.solve();
+                            subCheck = findSolution.Solve();
                             if (subCheck == null || subCheck[0] == null)
                             {
                                 return null;
@@ -295,7 +295,7 @@ namespace CPF_experiment
                                 //if (matcher.pruneMDDs() == false)
                                 findSolution = new AStarMDD(match, runner,conflictTable,CBS_CAT);
 
-                                subCheck = findSolution.solve();
+                                subCheck = findSolution.Solve();
                                 if (subCheck == null || subCheck[0] == null)
                                 {
                                     return null;
@@ -311,7 +311,7 @@ namespace CPF_experiment
             if (allMDDs[0].levels == null)
                 return null;
             findSolution = new AStarMDD(allMDDs, runner, conflictTable,CBS_CAT);
-            LinkedList<Move>[] ans = findSolution.solve();
+            LinkedList<Move>[] ans = findSolution.Solve();
             generated = findSolution.generated;
             expanded = findSolution.expanded;
             caViolations = findSolution.conflictAvoidanceViolations;
@@ -387,7 +387,7 @@ namespace CPF_experiment
             if (allMDDs[0].levels == null)
                 return null;
             AStarMDD findSolution = new AStarMDD(allMDDs, runner, conflictTable,CBS_CAT);
-            LinkedList<Move>[] ans = findSolution.solve();
+            LinkedList<Move>[] ans = findSolution.Solve();
             generated = findSolution.generated;
             expanded = findSolution.expanded;
             caViolations = findSolution.conflictAvoidanceViolations;
