@@ -17,7 +17,7 @@ namespace CPF_experiment
         public int agentTurn;
         public WorldStateWithOD mirrorState;
 
-        public WorldStateWithOD(AgentState[] states) : base(states)
+        public WorldStateWithOD(AgentState[] states, int minDepth = -1) : base(states, minDepth)
         {
             this.agentTurn = 0;
         }

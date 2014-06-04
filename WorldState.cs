@@ -18,8 +18,10 @@ namespace CPF_experiment
         private int binaryHeapIndex;
         public int potentialConflictsCount;
         public int cbsInternalConflictsCount;
+        public int minDepth;
         /// <summary>
-        /// The last move of all agents that have already moved in this turn. Used for making sure the next agent move doesn't collide with moves already made.
+        /// The last move of all agents that have already moved in this turn.
+        /// Used for making sure the next agent move doesn't collide with moves already made.
         /// </summary>
         public HashSet<TimedMove> currentMoves;
         protected Plan plan;
@@ -37,13 +39,14 @@ namespace CPF_experiment
         /// Create a state with the given state for every agent.
         /// </summary>
         /// <param name="allAgentsState"></param>
-        public WorldState(AgentState[] allAgentsState)
+        public WorldState(AgentState[] allAgentsState, int minDepth = -1)
         {
             this.allAgentsState = allAgentsState.ToArray<AgentState>();
             this.makespan = allAgentsState.Max<AgentState>(state => state.lastMove.time); // We expect to only find at most two G values within the agent group
             this.CalculateG(); // G not necessarily zero when solving a partially solved problem.
             this.potentialConflictsCount = 0;
             this.cbsInternalConflictsCount = 0;
+            this.minDepth = minDepth;
             this.currentMoves = new HashSet<TimedMove>();
             this.goalCost = NOT_SET;
         }
@@ -57,11 +60,12 @@ namespace CPF_experiment
             this.makespan = cpy.makespan;
             this.g = cpy.g;
             this.h = cpy.h;
-            this.potentialConflictsCount = cpy.potentialConflictsCount;
+            // The potentialConflictsCount and cbsInternalConflictsCount are only copied later if necessary.
+            this.minDepth = cpy.minDepth;
             this.allAgentsState = new AgentState[cpy.allAgentsState.Length];
             for (int i = 0; i < allAgentsState.Length; i++)
             {
-                this.allAgentsState[i] = new AgentState(cpy.allAgentsState[i]);
+                this.allAgentsState[i] = new AgentState(cpy.allAgentsState[i]); // Shallow copy - it's still the same lastMove inside.
             }
             this.currentMoves = new HashSet<TimedMove>(cpy.currentMoves);
             this.goalCost = NOT_SET;
@@ -84,9 +88,9 @@ namespace CPF_experiment
             : this(vAgents.Select<uint, AgentState>(index => new AgentState(allAgentsState[index])).ToArray<AgentState>())
         {}
         
-        public bool GoalTest(int minDepth)
+        public bool GoalTest()
         {
-            if (makespan >= minDepth)
+            if (makespan >= this.minDepth)
             {
                 if (this.plan != null) // If we know the optimal solution, it doesn't matter if this is a goal node or not, we can finish.
                     return true;
@@ -102,7 +106,7 @@ namespace CPF_experiment
         /// Set the optimal solution of this node as a problem instance.
         /// </summary>
         /// <param name="solution"></param>
-        public void SetSolution(Plan solution)
+        public virtual void SetSolution(Plan solution)
         {
             this.plan = new Plan(this); // This node may be a partial solution itself, need to start from the real root.
             this.plan.ContinueWith(solution);
@@ -128,7 +132,7 @@ namespace CPF_experiment
         /// <returns></returns>
         public int GetGoalCost()
         {
-            Debug.Assert(this.GoalTest(-1), "Only call for goal nodes!");
+            Debug.Assert(this.GoalTest(), "Only call for goal nodes!");
 
             if (goalCost == NOT_SET) // This is just a proper goal
             {
@@ -149,7 +153,12 @@ namespace CPF_experiment
 
         public int[] GetSingleCosts()
         {
-            return allAgentsState.Select<AgentState, int>(agent => agent.g).ToArray<int>();
+            return allAgentsState.Select<AgentState, int>(agent => agent.g).ToArray<int>(); // FIXME! Doesn't account for generalised goal states!
+        }
+
+        protected virtual WorldState Parent()
+        {
+            return this.prevStep;
         }
 
         /// <summary>
@@ -166,12 +175,11 @@ namespace CPF_experiment
                 return 1;
 
             // Tie breaking:
-
-            if (this.GoalTest(-1) == true && that.GoalTest(-1) == false) // We don't have the minDepth here so a "too early" goal might pop before a real goal, but that's not too expensive.
-                                                                         // The elaborate form is necessary to keep the comparison consistent. Otherwise goalA<goalB and goalB<goalA
-                                                                         // FIXME: Consider saving the minDepth in the root and propagating it from there.
+            bool thisIsGoal = this.GoalTest();
+            bool thatIsGoal = that.GoalTest();
+            if (thisIsGoal == true && thatIsGoal == false) // The elaborate form is necessary to keep the comparison consistent. Otherwise goalA<goalB and goalB<goalA
                 return -1;
-            if (that.GoalTest(-1) == true && this.GoalTest(-1) == false)
+            if (thatIsGoal == true && thisIsGoal == false)
                 return 1;
 
             if (this.potentialConflictsCount < that.potentialConflictsCount)

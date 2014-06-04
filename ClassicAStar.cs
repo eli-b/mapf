@@ -61,11 +61,11 @@ namespace CPF_experiment
         /// <summary>
         /// Setup the relevant data structures for a run.
         /// </summary>
-        public virtual void Setup(ProblemInstance problemInstance, Run runner)
+        public virtual void Setup(ProblemInstance problemInstance, int minDepth, Run runner)
         {
             this.instance = problemInstance;
             this.runner = runner;
-            WorldState root = this.CreateSearchRoot();
+            WorldState root = this.CreateSearchRoot(minDepth);
             root.h = (int)this.heuristic.h(root); // g was already set in the constructor
             this.openList.Add(root);
             this.closedList.Add(root, root);
@@ -81,12 +81,29 @@ namespace CPF_experiment
             else
                 this.maxCost = int.MaxValue;
 
-            if (problemInstance.parameters.ContainsKey(Trevor.ILLEGAL_MOVES_KEY))
+            if (problemInstance.parameters.ContainsKey(Trevor.ILLEGAL_MOVES_KEY) &&
+                ((HashSet<TimedMove>)problemInstance.parameters[Trevor.ILLEGAL_MOVES_KEY]).Count != 0)
                 this.illegalMoves = (HashSet<TimedMove>)(problemInstance.parameters[Trevor.ILLEGAL_MOVES_KEY]);
             else
                 this.illegalMoves = null;
 
-            this.minDepth = 0;
+            if (problemInstance.parameters.ContainsKey(CBS_LocalConflicts.CONSTRAINTS) &&
+                ((HashSet_U<CbsConstraint>)problemInstance.parameters[CBS_LocalConflicts.CONSTRAINTS]).Count != 0)
+                 this.constraintList = (HashSet_U<CbsConstraint>)problemInstance.parameters[CBS_LocalConflicts.CONSTRAINTS];
+ 
+             if (problemInstance.parameters.ContainsKey(CBS_LocalConflicts.MUST_CONSTRAINTS) &&
+                 ((List<CbsConstraint>)problemInstance.parameters[CBS_LocalConflicts.MUST_CONSTRAINTS]).Count != 0)
+             {
+                 List<CbsConstraint> musts = (List<CbsConstraint>)problemInstance.parameters[CBS_LocalConflicts.MUST_CONSTRAINTS];
+                 this.mustConstraints = new List<CbsConstraint>[musts.Max<CbsConstraint>(con => con.GetTimeStep()) + 1]; // To have index MAX, array needs MAX + 1 places.
+                 foreach (CbsConstraint con in musts)
+                 {
+                     int timeStep = con.GetTimeStep();
+                     if (this.mustConstraints[timeStep] == null)
+                         this.mustConstraints[timeStep] = new List<CbsConstraint>();
+                     this.mustConstraints[timeStep].Add(con);
+                 }
+             }
         }
 
         /// <summary>
@@ -94,9 +111,9 @@ namespace CPF_experiment
         /// This will be the first state to be inserted to OPEN.
         /// </summary>
         /// <returns>The root of the search tree</returns>
-        protected virtual WorldState CreateSearchRoot()
+        protected virtual WorldState CreateSearchRoot(int minDepth = -1)
         {
-            return new WorldState(this.instance.m_vAgents);
+            return new WorldState(this.instance.m_vAgents, minDepth);
         }
 
         /// <summary>
@@ -269,7 +286,7 @@ namespace CPF_experiment
         /// Runs the algorithm until the problem is solved or memory/time is exhausted
         /// </summary>
         /// <returns>True if solved</returns>
-        public bool Solve()
+        public virtual bool Solve()
         {
             int initialEstimate = ((WorldState)openList.Peek()).h;
 
@@ -302,7 +319,7 @@ namespace CPF_experiment
                 maxExpansionDelay = Math.Max(maxExpansionDelay, expansionDelay);
 
                 // Check if node is the goal, or knows how to get to it
-                if (currentNode.GoalTest(minDepth))
+                if (currentNode.GoalTest())
                 {
                     this.totalCost = currentNode.GetGoalCost();
                     this.singleCosts = currentNode.GetSingleCosts();
@@ -503,32 +520,9 @@ namespace CPF_experiment
         public int GetSolutionDepth() { return this.solutionDepth; }
         public long GetMemoryUsed() { return Process.GetCurrentProcess().VirtualMemorySize64; }
 
-        // CBS SOLVER
-        public void Setup(ProblemInstance problemInstance, int minDepth, Run runner)
+        public void Setup(ProblemInstance problemInstance, Run runner)
         {
-            this.Setup(problemInstance, runner);
-            this.minDepth = minDepth;
-            this.internalConflictCount = 0;
-            this.externalConflictCount = 0;
-
-            if (problemInstance.parameters.ContainsKey(CBS_LocalConflicts.CONSTRAINTS))
-                this.constraintList = (HashSet_U<CbsConstraint>)problemInstance.parameters[CBS_LocalConflicts.CONSTRAINTS];
-
-            if (problemInstance.parameters.ContainsKey(CBS_LocalConflicts.MUST_CONSTRAINTS))
-            {
-                List<CbsConstraint> musts = (List<CbsConstraint>)problemInstance.parameters[CBS_LocalConflicts.MUST_CONSTRAINTS];
-                if (musts != null && musts.Count > 0)
-                {
-                    this.mustConstraints = new List<CbsConstraint>[musts.Max<CbsConstraint>(con => con.GetTimeStep()) + 1]; // To have index MAX, array needs MAX + 1 places.
-                    foreach (CbsConstraint con in musts)
-                    {
-                        int timeStep = con.GetTimeStep();
-                        if (this.mustConstraints[timeStep] == null)
-                            this.mustConstraints[timeStep] = new List<CbsConstraint>();
-                        this.mustConstraints[timeStep].Add(con);
-                    }
-                }
-            }
+            this.Setup(problemInstance, -1, runner);
         }
 
         /// <summary>
@@ -565,6 +559,8 @@ namespace CPF_experiment
                 {
                     ++this.closedListHits;
                     WorldState inClosedList = this.closedList[currentNode];
+                    // Notice the agents may have gotten to their location from a different direction in this node.
+
                     // Since the nodes are equal, give them both the max of their H
                     bool improvedHOfThisNode = false;
                     bool improvedHOfOldNode = false;

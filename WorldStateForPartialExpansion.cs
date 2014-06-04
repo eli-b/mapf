@@ -35,12 +35,12 @@ namespace CPF_experiment
         /// Create a state with the given state for every agent.
         /// </summary>
         /// <param name="allAgentsState"></param>
-        public WorldStateForPartialExpansion(AgentState[] allAgentsState): base(allAgentsState)
+        public WorldStateForPartialExpansion(AgentState[] allAgentsState, int minDepth = -1): base(allAgentsState, minDepth)
         {
-            alreadyExpanded = false;
-            maxDeltaF = 0;
-            singleAgentDeltaFs = null;
-            fLookup = null; 
+            this.alreadyExpanded = false;
+            this.maxDeltaF = 0;
+            this.singleAgentDeltaFs = null;
+            this.fLookup = null; 
         }
 
         /// <summary>
