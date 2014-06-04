@@ -8,7 +8,7 @@ namespace CPF_experiment
     {
         // Constants
         private const int DEFAULT_SIZE = 4;
-        private const int REMOVED_FROM_HEAP = -1;
+        public const int REMOVED_FROM_HEAP = -1;
 
         // Fields
         private IBinaryHeapItem[] _data;
@@ -100,7 +100,7 @@ namespace CPF_experiment
         /// <summary>
         /// Removes and returns the first item in the heap.
         /// </summary>
-        /// <returns>The next value in the heap.</returns>
+        /// <returns>The next item in the heap.</returns>
         public IBinaryHeapItem Remove()
         {
             if (this._count == 0)
@@ -295,7 +295,7 @@ namespace CPF_experiment
                 return false;
 
             _data[child_index].SetIndexInHeap(REMOVED_FROM_HEAP);
-            if (child_index == 0)
+            if (child_index == 0) // This seems unnecessary
             {
                 Remove();
                 return true;
@@ -315,7 +315,7 @@ namespace CPF_experiment
             }
             //we got to 0
             _data[0] = to_remove;
-            Remove();
+            Remove(); // Ignoring the returned value.
             return true;
         }
     }

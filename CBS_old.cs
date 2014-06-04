@@ -20,7 +20,7 @@ namespace CPF_experiment
         public static string NEW_INTERNAL_CAT = "newInternalCAT";
 
         protected ProblemInstance instance;
-        public BinaryHeap openList;
+        public OpenList openList;
         public Dictionary<CbsNode, CbsNode> closedList;
         protected int highLevelExpanded;
         protected int highLevelGenerated;
@@ -46,7 +46,7 @@ namespace CPF_experiment
         public CBS_old(ICbsSolver solver, int maxThreshold = -1, int currentThreshold = -1)
         {
             this.closedList = new Dictionary<CbsNode, CbsNode>();
-            this.openList = new BinaryHeap();
+            this.openList = new OpenList(this);
             this.mergeThreshold = currentThreshold;
             this.solver = solver;
             this.lowLevelSolver = solver;
@@ -367,7 +367,7 @@ namespace CPF_experiment
         public CBS_GlobalConflicts_OLD(ICbsSolver solver, int maxThreshold, int currentThreshold)
         {
             this.closedList = new Dictionary<CbsNode, CbsNode>();
-            this.openList = new BinaryHeap();
+            this.openList = new OpenList(this);
             this.mergeThreshold = currentThreshold;
             this.solver = solver;
             this.lowLevelSolver = solver;

@@ -91,6 +91,7 @@
     <Compile Include="CBS_old.cs" />
     <Compile Include="CbsConflict.cs" />
     <Compile Include="IStatisticsCsvWriter.cs" />
+    <Compile Include="OpenList.cs" />
     <Compile Include="HashSet_U.cs" />
     <Compile Include="IBinaryHeapItem.cs" />
     <Compile Include="CostTreeSearch.cs" />

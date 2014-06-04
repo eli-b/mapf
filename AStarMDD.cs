@@ -9,7 +9,7 @@ namespace CPF_experiment
         MDD[] problem;
         Dictionary<MDDStep, MDDStep> closedList;
         Run runner;
-        BinaryHeap openList;
+        BinaryHeap openList; // TODO: Is A*MDD a best-first-search? Is it safe to use OpenList instead?
         public int expanded;
         public int generated;
         public int conflictAvoidanceViolations;

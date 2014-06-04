@@ -12,7 +12,7 @@ namespace CPF_experiment
     class CBS_NoDD : ISolver
     {
         protected ProblemInstance instance;
-        public BinaryHeap openList;
+        public OpenList openList;
         public int highLevelExpanded;
         public int highLevelGenerated;
         public int totalCost;
@@ -32,7 +32,7 @@ namespace CPF_experiment
 
         public CBS_NoDD(ICbsSolver solver, int maxThreshold = -1, int currentThreshold = -1)
         {
-            this.openList = new BinaryHeap();
+            this.openList = new OpenList(this);
             this.mergeThreshold = currentThreshold;
             this.solver = solver;
             this.lowLevelSolver = solver;
@@ -310,7 +310,7 @@ namespace CPF_experiment
     {
 
         protected ProblemInstance instance;
-        public BinaryHeap openList;
+        public OpenList openList;
         public int highLevelExpanded;
         public int highLevelGenerated;
         public int totalCost;
@@ -330,7 +330,7 @@ namespace CPF_experiment
 
         public CBS_NoDDb3(ICbsSolver solver, int maxThreshold = -1, int currentThreshold = -1)
         {
-            this.openList = new BinaryHeap();
+            this.openList = new OpenList(this);
             this.mergeThreshold = currentThreshold;
             this.solver = solver;
             this.lowLevelSolver = solver;

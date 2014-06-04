@@ -20,7 +20,7 @@ namespace CPF_experiment
 
         public AStarForSingleAgent()
         {
-            this.openList = new BinaryHeap();
+            this.openList = new BinaryHeap(); // Can't use an OpenList because AStarForSingleAgent doesn't implement ISolver, and OpenList expects ISolver users.
             this.closedList = new Dictionary<AgentState, AgentState>();
         }
 

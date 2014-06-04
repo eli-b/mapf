@@ -13,7 +13,7 @@ namespace CPF_experiment
     {
         protected ProblemInstance instance;
         protected HeuristicCalculator heuristic;
-        public BinaryHeap openList;
+        public OpenList openList;
         public Dictionary<WorldState, WorldState> closedList;
         public int solutionDepth;
         protected int expanded;
@@ -54,7 +54,7 @@ namespace CPF_experiment
         public ClassicAStar(HeuristicCalculator heuristic = null)
         {
             this.closedList = new Dictionary<WorldState, WorldState>();
-            this.openList = new BinaryHeap();
+            this.openList = new OpenList(this);
             this.heuristic = heuristic;
         }
 

@@ -95,7 +95,7 @@ namespace CPF_experiment
 
         private bool singleAgentA_Star(AgentState agent)
         {
-            BinaryHeap openList = new BinaryHeap();
+            BinaryHeap openList = new BinaryHeap(); // TODO: Safe to use OpenList here instead?
             HashSet<AgentState> closedList = new HashSet<AgentState>();
             openList.Add(agent);
             AgentState temp = agent;
