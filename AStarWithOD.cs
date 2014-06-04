@@ -10,6 +10,7 @@ namespace CPF_experiment
     public class AStarWithOD : ClassicAStar
     {
         protected int expandedFullStates;
+        protected int accExpandedFullStates;
 
         public AStarWithOD(HeuristicCalculator heuristic = null)
             : base(heuristic) { }
@@ -175,7 +176,7 @@ namespace CPF_experiment
         {
             base.OutputStatisticsHeader(output);
 
-            output.Write(this.ToString() + " Expanded Full States (LL)");
+            output.Write(this.ToString() + " Expanded Full States");
             output.Write(Run.RESULTS_DELIMITER);
         }
 
@@ -183,17 +184,40 @@ namespace CPF_experiment
         {
             base.OutputStatistics(output);
 
-            Console.WriteLine("Total Expanded Full States (Low-Level): {0}", this.expandedFullStates);
+            Console.WriteLine("Total Expanded Full States: {0}", this.expandedFullStates);
 
             output.Write(this.expandedFullStates + Run.RESULTS_DELIMITER);
         }
 
-        public int NumStatsColumns
+        public override int NumStatsColumns
         {
             get
             {
                 return 1 + base.NumStatsColumns;
             }
+        }
+
+        public override void ClearAccumulatedStatistics()
+        {
+            base.ClearAccumulatedStatistics();
+
+            this.accExpandedFullStates = 0;
+        }
+
+        public override void AccumulateStatistics()
+        {
+            base.AccumulateStatistics();
+
+            this.accExpandedFullStates += this.expandedFullStates;
+        }
+
+        public override void OutputAccumulatedStatistics(TextWriter output)
+        {
+            base.OutputAccumulatedStatistics(output);
+
+            Console.WriteLine("Total Expanded Full States (Low-Level): {0}", this.accExpandedFullStates);
+
+            output.Write(this.accExpandedFullStates + Run.RESULTS_DELIMITER);
         }
     }
 }

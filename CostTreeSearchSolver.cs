@@ -17,6 +17,10 @@ namespace CPF_experiment
         public int expandedHL;
         public int expandedLL;
         public int generatedLL;
+        int accExpandedHL;
+        int accGeneratedHL;
+        int accExpandedLL;
+        int accGeneratedLL;
         protected ProblemInstance problem;
         protected Run runner;
         public CostTreeNode costTreeNode;
@@ -26,7 +30,7 @@ namespace CPF_experiment
         protected int maxCost;
         protected LinkedList<Move>[] solution;
         protected int initialHeuristics;
-        public static int passed;
+        public static int passed; // FIXME: Why static?
         protected HashSet<TimedMove> ID_CAT;
         protected HashSet_U<TimedMove> CBS_CAT;
         protected int minCAViolations;
@@ -157,6 +161,12 @@ namespace CPF_experiment
         /// </summary>
         public void OutputStatistics(TextWriter output)
         {
+            Console.WriteLine("Total Expanded Nodes (High-Level): {0}", this.GetHighLevelExpanded());
+            Console.WriteLine("Total Generated Nodes (High-Level): {0}", this.GetHighLevelGenerated());
+            Console.WriteLine("Total Expanded Nodes (Low-Level): {0}", this.GetLowLevelExpanded());
+            Console.WriteLine("Total Generated Nodes (Low-Level): {0}", this.GetLowLevelGenerated());
+            Console.WriteLine("\"passed\": {0}", CostTreeSearchSolver.passed);
+
             output.Write(this.expandedHL + Run.RESULTS_DELIMITER);
             output.Write(this.generatedHL + Run.RESULTS_DELIMITER);
             output.Write(this.expandedLL + Run.RESULTS_DELIMITER);
@@ -170,6 +180,43 @@ namespace CPF_experiment
             {
                 return 5;
             }
+        }
+
+        public void ClearStatistics()
+        {
+            // Own statistics cleared on Setup.
+        }
+
+        public void ClearAccumulatedStatistics()
+        {
+            this.accExpandedHL = 0;
+            this.accGeneratedHL = 0;
+            this.accExpandedLL = 0;
+            this.accGeneratedLL = 0;
+        }
+
+        public void AccumulateStatistics()
+        {
+            this.accExpandedHL += this.expandedHL;
+            this.accGeneratedHL += this.generatedHL;
+            this.accExpandedLL += this.expandedLL;
+            this.accGeneratedLL += this.generatedLL;
+        }
+
+        public void OutputAccumulatedStatistics(TextWriter output)
+        {
+            Console.WriteLine("Total Expanded Nodes (High-Level): {0}", this.accExpandedHL);
+            Console.WriteLine("Total Generated Nodes (High-Level): {0}", this.accGeneratedHL);
+            Console.WriteLine("Total Expanded Nodes (Low-Level): {0}", this.accExpandedLL);
+            Console.WriteLine("Total Generated Nodes (Low-Level): {0}", this.accGeneratedLL);
+            Console.WriteLine("\"passed\": ?");
+
+            output.Write(this.accExpandedHL + Run.RESULTS_DELIMITER);
+            output.Write(this.accGeneratedHL + Run.RESULTS_DELIMITER);
+            output.Write(this.accExpandedLL + Run.RESULTS_DELIMITER);
+            output.Write(this.accGeneratedLL + Run.RESULTS_DELIMITER);
+
+            output.Write("" + Run.RESULTS_DELIMITER); // TODO: Can't accumulate what I don't yet understand...
         }
 
         /// <summary>
@@ -241,6 +288,10 @@ namespace CPF_experiment
         public int GetHighLevelGenerated() { return this.generatedHL; }
         public int GetLowLevelExpanded() { return this.expandedLL; }
         public int GetLowLevelGenerated() { return this.generatedLL; }
+        public int GetExpanded() { return this.expandedHL; }
+        public int GetGenerated() { return this.generatedHL; }
+        public int GetAccumulatedExpanded() { return this.accExpandedHL; }
+        public int GetAccumulatedGenerated() { return this.accGeneratedHL; }
         public int GetSolutionDepth() { return this.totalCost - initialHeuristics; }
         public long GetMemoryUsed() { return Process.GetCurrentProcess().VirtualMemorySize64; }
         public int GetMaxGroupSize() { return problem.m_vAgents.Length; }

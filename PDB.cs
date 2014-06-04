@@ -137,14 +137,14 @@ namespace CPF_experiment
         /// <summary>
         /// Prints header of statistics of a single run to the given output. 
         /// </summary>
-        public void OutputStatisticsHeader(TextWriter output) { }
+        public virtual void OutputStatisticsHeader(TextWriter output) { }
 
         /// <summary>
         /// Prints statistics of a single run to the given output.
         /// </summary>
-        public void OutputStatistics(TextWriter output) { }
+        public virtual void OutputStatistics(TextWriter output) { }
 
-        public int NumStatsColumns
+        public virtual int NumStatsColumns
         {
             get
             {
@@ -155,6 +155,10 @@ namespace CPF_experiment
         /// <summary>
         /// Clears statistics.
         /// </summary>
-        public void ClearStatistics() { }
+        public virtual void ClearStatistics() { }
+
+        public virtual void ClearAccumulatedStatistics() { }
+        public virtual void AccumulateStatistics() { }
+        public virtual void OutputAccumulatedStatistics(TextWriter output) { }
     }
 }

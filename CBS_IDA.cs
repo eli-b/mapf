@@ -16,8 +16,6 @@ namespace CPF_experiment
         protected CbsNode goalNode;
         protected Plan solution;
         protected int maxCost;
-        protected int lowLevelExpanded;
-        protected int lowLevelGenerated;
         protected ICbsSolver solver;
         protected ICbsSolver lowLevelSolver;
         protected int mergeThreshold, nextF, fBound;
@@ -27,6 +25,7 @@ namespace CPF_experiment
         protected HeuristicCalculator heuristic;
         int[][] globalConflictsCounter;
         CbsNode root;
+        bool topMost;
 
         public CBS_IDA(ICbsSolver solver, int maxThreshold = -1, int currentThreshold = -1)
         {
@@ -54,33 +53,42 @@ namespace CPF_experiment
             output.Write(Run.RESULTS_DELIMITER);
             output.Write(this.ToString() + " Generated (HL)");
             output.Write(Run.RESULTS_DELIMITER);
-            output.Write(this.ToString() + " Expanded (LL)");
-            output.Write(Run.RESULTS_DELIMITER);
-            output.Write(this.ToString() + " Generated (LL)");
-            output.Write(Run.RESULTS_DELIMITER);
+
+            this.solver.OutputStatisticsHeader(output);
         }
 
         public void OutputStatistics(TextWriter output)
         {
+            Console.WriteLine("Total Expanded Nodes (High-Level): {0}", this.GetHighLevelExpanded());
+            Console.WriteLine("Total Generated Nodes (High-Level): {0}", this.GetHighLevelGenerated());
+
             output.Write(this.highLevelExpanded + Run.RESULTS_DELIMITER);
             output.Write(this.highLevelGenerated + Run.RESULTS_DELIMITER);
-            output.Write(this.lowLevelExpanded + Run.RESULTS_DELIMITER);
-            output.Write(this.lowLevelGenerated + Run.RESULTS_DELIMITER);
+
+            this.solver.OutputAccumulatedStatistics(output);
         }
 
-        public int NumStatsColumns
+        public virtual int NumStatsColumns
         {
             get
             {
-                return 4;
+                return 2 + this.solver.NumStatsColumns;
             }
+        }
+
+        public void ClearStatistics()
+        {
+            // Own statistics cleared on Setup.
+
+            if (this.topMost)
+                this.solver.ClearAccumulatedStatistics();
         }
 
         public bool Solve()
         {
             //Debug.WriteLine("Solving Sub-problem On Level - " + mergeThreshold);
 
-            if (root.Solve(minCost, ref highLevelExpanded, ref highLevelGenerated, ref lowLevelExpanded, ref lowLevelGenerated) == false)
+            if (root.Solve(minCost) == false)
             {
                 return false;
             }
@@ -139,7 +147,7 @@ namespace CPF_experiment
                     toAdd = new CbsNode(node, con1, conflict.agentA);
                     toAdd.SetMustConstraint(con2);
 
-                    if (toAdd.Replan3b(conflict.agentA, Math.Max(minCost, conflict.timeStep), ref highLevelExpanded, ref highLevelGenerated, ref lowLevelExpanded, ref lowLevelGenerated))
+                    if (toAdd.Replan3b(conflict.agentA, Math.Max(minCost, conflict.timeStep)))
                     {
                         this.highLevelGenerated++;
                         if (toAdd.totalCost <= fBound)
@@ -161,7 +169,7 @@ namespace CPF_experiment
                     toAdd = new CbsNode(node, con2, conflict.agentB);
                     toAdd.SetMustConstraint(con1);
 
-                    if (toAdd.Replan3b(conflict.agentB, Math.Max(minCost, conflict.timeStep), ref highLevelExpanded, ref highLevelGenerated, ref lowLevelExpanded, ref lowLevelGenerated))
+                    if (toAdd.Replan3b(conflict.agentB, Math.Max(minCost, conflict.timeStep)))
                     {
                         this.highLevelGenerated++;
                         if (toAdd.totalCost <= fBound)
@@ -178,12 +186,13 @@ namespace CPF_experiment
             if (ok1 && ok2)
             {
                 toAdd = new CbsNode(node, con1, conflict.agentA);
-                if (toAdd.Replan3b(conflict.agentA, Math.Max(minCost, conflict.timeStep), ref highLevelExpanded, ref highLevelGenerated, ref lowLevelExpanded, ref lowLevelGenerated))
+                if (toAdd.Replan3b(conflict.agentA, Math.Max(minCost, conflict.timeStep)))
                 {
                     if (toAdd.totalCost <= fBound)
                     {
                         toAdd = new CbsNode(toAdd, con2, conflict.agentB);
-                        if (toAdd.Replan(conflict.agentB, Math.Max(minCost, conflict.timeStep), ref highLevelExpanded, ref highLevelGenerated, ref lowLevelExpanded, ref lowLevelGenerated))
+                        if (toAdd.Replan(conflict.agentB, Math.Max(minCost, conflict.timeStep)))
+                            // FIXME: Should this really use the regular Replan() or was this a typo?
                         {
                             this.highLevelGenerated++;
                             if (toAdd.totalCost <= fBound)
@@ -217,8 +226,10 @@ namespace CPF_experiment
         }
         public int GetHighLevelExpanded() { return highLevelExpanded; }
         public int GetHighLevelGenerated() { return highLevelGenerated; }
-        public int GetLowLevelExpanded() { return lowLevelExpanded; }
-        public int GetLowLevelGenerated() { return lowLevelGenerated; }
+        public int GetLowLevelExpanded() { return this.solver.GetAccumulatedExpanded(); }
+        public int GetLowLevelGenerated() { return this.solver.GetAccumulatedGenerated(); }
+        public int GetExpanded() { return highLevelExpanded; }
+        public int GetGenerated() { return highLevelGenerated; }
         public int GetMaxGroupSize()
         {
             return this.maxSizeGroup;
@@ -235,25 +246,30 @@ namespace CPF_experiment
                     globalConflictsCounter[i][j] = 0;
                 }
             }
+
             this.instance = problemInstance;
             this.runner = runner;
             root = new CbsNode(instance.m_vAgents.Length, problemInstance, this.solver, this.lowLevelSolver, runner);
             this.highLevelExpanded = 0;
             this.highLevelGenerated = 1;
-            lowLevelExpanded = 0;
-            lowLevelGenerated = 0;
             maxSizeGroup = 1;
             this.totalCost = 0;
+
             if (problemInstance.parameters.ContainsKey(Trevor.MAXIMUM_COST_KEY))
                 this.maxCost = (int)(problemInstance.parameters[Trevor.MAXIMUM_COST_KEY]);
             else
                 this.maxCost = int.MaxValue;
+
             if (problemInstance.parameters.ContainsKey(CBS_LocalConflicts.INTERNAL_CAT) == false) // Top-most CBS only
             {
                 problemInstance.parameters[CBS_LocalConflicts.INTERNAL_CAT] = new HashSet_U<TimedMove>();
                 problemInstance.parameters[CBS_LocalConflicts.CONSTRAINTS] = new HashSet_U<CbsConstraint>();
                 problemInstance.parameters[CBS_LocalConflicts.MUST_CONSTRAINTS] = new List<CbsConstraint>();
+                this.topMost = true;
             }
+            else
+                this.topMost = false;
+
             minCost = 0;
         }
 

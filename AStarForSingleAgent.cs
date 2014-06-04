@@ -41,7 +41,7 @@ namespace CPF_experiment
             this.expanded = 0;
             externalConflicts = 0;
 
-            // Store parameters used by Trevor's Independant Detection algorithm
+            // Store parameters used by Trevor's Independence Detection algorithm
             if (problemInstance.parameters.ContainsKey(Trevor.CONFLICT_AVOIDANCE))
                 this.conflictTableOtherGroups = (HashSet<TimedMove>)(problemInstance.parameters[Trevor.CONFLICT_AVOIDANCE]);
             else
@@ -50,7 +50,7 @@ namespace CPF_experiment
 
         public int GetSolutionCost() { return this.solutionCost; }
 
-        public Plan getPlan()
+        public Plan GetPlan()
         {
             return plan;
         }

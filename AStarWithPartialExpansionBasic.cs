@@ -14,6 +14,8 @@ namespace CPF_experiment
     {
         protected int generatedAndDiscarded;
         protected int expandedFullStates;
+        protected int accGeneratedAndDiscarded;
+        protected int accExpandedFullStates;
 
         bool hasMoreSuccessors;
         /// <summary>
@@ -91,9 +93,9 @@ namespace CPF_experiment
         public override void OutputStatisticsHeader(TextWriter output)
         {
             base.OutputStatisticsHeader(output);
-            output.Write(this.ToString() + " Generated And Discarded (LL)");
+            output.Write(this.ToString() + " Generated And Discarded");
             output.Write(Run.RESULTS_DELIMITER);
-            output.Write(this.ToString() + " Expanded Full States (LL)");
+            output.Write(this.ToString() + " Expanded Full States");
             output.Write(Run.RESULTS_DELIMITER);
         }
 
@@ -101,20 +103,47 @@ namespace CPF_experiment
         {
             base.OutputStatistics(output);
 
-            Console.WriteLine("Generated And Discarded (Low-Level): {0}", this.generatedAndDiscarded);
-            Console.WriteLine("Expanded Full States (Low-Level): {0}", this.expandedFullStates);
+            Console.WriteLine("Generated And Discarded: {0}", this.generatedAndDiscarded);
+            Console.WriteLine("Expanded Full States: {0}", this.expandedFullStates);
 
             output.Write(this.generatedAndDiscarded + Run.RESULTS_DELIMITER);
             output.Write(this.expandedFullStates + Run.RESULTS_DELIMITER);
             // Isn't there a CSV module in C# instead of fussing with the delimeter everywhere?
         }
 
-        public int NumStatsColumns
+        public override int NumStatsColumns
         {
             get
             {
                 return 2 + base.NumStatsColumns;
             }
+        }
+
+        public override void ClearAccumulatedStatistics()
+        {
+            base.ClearAccumulatedStatistics();
+
+            this.accGeneratedAndDiscarded = 0;
+            this.accExpandedFullStates = 0;
+        }
+
+        public override void AccumulateStatistics()
+        {
+            base.AccumulateStatistics();
+
+            this.accGeneratedAndDiscarded += this.generatedAndDiscarded;
+            this.accExpandedFullStates += this.expandedFullStates;
+        }
+
+        public override void OutputAccumulatedStatistics(TextWriter output)
+        {
+            base.OutputAccumulatedStatistics(output);
+
+            Console.WriteLine("Generated And Discarded (Low-Level): {0}", this.accGeneratedAndDiscarded);
+            Console.WriteLine("Expanded Full States (Low-Level): {0}", this.accExpandedFullStates);
+
+            output.Write(this.accGeneratedAndDiscarded + Run.RESULTS_DELIMITER);
+            output.Write(this.accExpandedFullStates + Run.RESULTS_DELIMITER);
         }
     }
 }

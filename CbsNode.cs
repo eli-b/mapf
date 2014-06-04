@@ -5,7 +5,7 @@ using System.Diagnostics;
 
 namespace CPF_experiment
 {
-    class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem
+    public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem
     {
         public ushort totalCost;
         public ushort externalConflictsCount;
@@ -103,12 +103,8 @@ namespace CPF_experiment
         /// Can this just call Replan consecutively please?
         /// </summary>
         /// <param name="depthToReplan"></param>
-        /// <param name="highLevelExpanded"></param>
-        /// <param name="highLevelGenerated"></param>
-        /// <param name="lowLevelExpanded"></param>
-        /// <param name="lowLevelGenerated"></param>
         /// <returns></returns>
-        public bool Solve(int depthToReplan, ref int highLevelExpanded, ref int highLevelGenerated, ref int lowLevelExpanded, ref int lowLevelGenerated)
+        public bool Solve(int depthToReplan)
         {
             this.totalCost = 0;
             var newInternalCAT = new HashSet<TimedMove>();
@@ -138,11 +134,9 @@ namespace CPF_experiment
 
                 this.lowLevelSolver.Setup(subProblem, depthToReplan, runner);
                 success = this.lowLevelSolver.Solve();
-
-                highLevelExpanded += this.lowLevelSolver.GetHighLevelExpanded();
-                highLevelGenerated += this.lowLevelSolver.GetHighLevelGenerated();
-                lowLevelExpanded += this.lowLevelSolver.GetLowLevelExpanded();
-                lowLevelGenerated += this.lowLevelSolver.GetLowLevelGenerated();
+                
+                this.lowLevelSolver.AccumulateStatistics();
+                this.lowLevelSolver.ClearStatistics();
                 
                 internalCAT.Seperate(newInternalCAT);
                 
@@ -152,7 +146,7 @@ namespace CPF_experiment
                 allSingleAgentPlans[i] = this.lowLevelSolver.GetSinglePlans()[0];
                 allSingleAgentCosts[i] = this.lowLevelSolver.GetSolutionCost();
                 totalCost += (ushort)allSingleAgentCosts[i];
-                allSingleAgentPlans[i].addPlanToHashSet(newInternalCAT, totalCost * 2); // This is kind of an arbitrary value.
+                allSingleAgentPlans[i].AddPlanToHashSet(newInternalCAT, totalCost * 2); // This is kind of an arbitrary value.
                                                                                         // The next plan could be 100 times longer than the total cost so far,
                                                                                         // and we won't detect the internal conflicts it causes by entering the other agents' goal long after they reached it.
                                                                                         // TODO: Think of a way to mark the last step in the plan as a "forever after" step that applies to all the next steps.
@@ -180,7 +174,7 @@ namespace CPF_experiment
         /// <param name="lowLevelExpanded"></param>
         /// <param name="lowLevelGenerated"></param>
         /// <returns></returns>
-        public bool Replan(int agentForReplan, int depthToReplan, ref int highLevelExpanded, ref int highLevelGenerated, ref int lowLevelExpanded, ref int lowLevelGenerated)
+        public bool Replan(int agentForReplan, int depthToReplan)
         {
             var newInternalCAT = new HashSet<TimedMove>();
             HashSet<CbsConstraint> newConstraints = this.GetConstraints();
@@ -223,10 +217,8 @@ namespace CPF_experiment
             solver.Setup(subProblem, depthToReplan, runner);
             bool solved = solver.Solve();
 
-            highLevelExpanded += solver.GetHighLevelExpanded();
-            highLevelGenerated += solver.GetHighLevelGenerated();
-            lowLevelExpanded += solver.GetLowLevelExpanded();
-            lowLevelGenerated += solver.GetLowLevelGenerated();
+            solver.AccumulateStatistics();
+            solver.ClearStatistics();
 
             internalCAT.Seperate(newInternalCAT);
             constraints.Seperate(newConstraints);
@@ -639,12 +631,8 @@ namespace CPF_experiment
         /// </summary>
         /// <param name="agentForReplan"></param>
         /// <param name="depthToReplan"></param>
-        /// <param name="highLevelExpanded"></param>
-        /// <param name="highLevelGenerated"></param>
-        /// <param name="lowLevelExpanded"></param>
-        /// <param name="lowLevelGenerated"></param>
         /// <returns></returns>
-        public bool Replan3b(int agentForReplan, int depthToReplan, ref int highLevelExpanded, ref int highLevelGenerated, ref int lowLevelExpanded, ref int lowLevelGenerated)
+        public bool Replan3b(int agentForReplan, int depthToReplan)
         {
             var newInternalCAT = new HashSet<TimedMove>();
             HashSet<CbsConstraint> newConstraints = this.GetConstraints();
@@ -689,20 +677,17 @@ namespace CPF_experiment
             //constraints.Print();
 
             solver.Setup(subProblem, depthToReplan, runner);
-            if (solver.Solve() == false)
+            bool solved = solver.Solve();
+
+            solver.AccumulateStatistics();
+            solver.ClearStatistics();
+
+            if (solved == false)
             {
-                highLevelExpanded += solver.GetHighLevelExpanded();
-                highLevelGenerated += solver.GetHighLevelGenerated();
-                lowLevelExpanded += solver.GetLowLevelExpanded();
-                lowLevelGenerated += solver.GetLowLevelGenerated();
                 InternalCAT.Seperate(newInternalCAT);
                 Constraints.Seperate(newConstraints);
                 return false;
             }
-            highLevelExpanded += solver.GetHighLevelExpanded();
-            highLevelGenerated += solver.GetHighLevelGenerated();
-            lowLevelExpanded += solver.GetLowLevelExpanded();
-            lowLevelGenerated += solver.GetLowLevelGenerated();
 
             int j = 0;
             SinglePlan[] singlePlans = solver.GetSinglePlans();

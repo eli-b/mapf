@@ -16,12 +16,22 @@ namespace CPF_experiment
         public BinaryHeap openList;
         public Dictionary<WorldState, WorldState> closedList;
         public int solutionDepth;
-        public int expanded;
-        public int generated;
-        public int reopened;
-        public int bpmxBoosts;
-        public int reopenedWithOldH;
-        public int noReopenHUpdates;
+        protected int expanded;
+        protected int generated;
+        protected int reopened;
+        protected int bpmxBoosts;
+        protected int reopenedWithOldH;
+        protected int noReopenHUpdates;
+        protected int maxExpansionDelay;
+        protected int closedListHits;
+        protected int accExpanded;
+        protected int accGenerated;
+        protected int accReopened;
+        protected int accBpmxBoosts;
+        protected int accReopenedWithOldH;
+        protected int accNoReopenHUpdates;
+        protected int accMaxExpansionDelay;
+        protected int accClosedListHits;
         public int totalCost;
         public int numOfAgents;
         protected int maxCost;
@@ -34,11 +44,9 @@ namespace CPF_experiment
         protected Run runner;
         protected Plan solution;
         /// <summary>
-        /// For CBS-A*
+        /// For CBS/A*
         /// </summary>
         protected int minDepth;
-        protected int internalConflictCount;
-        protected int externalConflictCount;
 
         /// <summary>
         /// Default constructor.
@@ -61,12 +69,8 @@ namespace CPF_experiment
             root.h = (int)this.heuristic.h(root); // g was already set in the constructor
             this.openList.Add(root);
             this.closedList.Add(root, root);
-            this.expanded = 0;
-            this.generated = 1;
-            this.reopened = 0;
-            this.bpmxBoosts = 0;
-            this.reopenedWithOldH = 0;
-            this.noReopenHUpdates = 0;
+            this.ClearPrivateStatistics();
+            this.generated++; // The root
             this.totalCost = 0;
             this.solutionDepth = -1;
             this.numOfAgents = problemInstance.m_vAgents.Length;
@@ -125,22 +129,40 @@ namespace CPF_experiment
 
         public int GetSolutionCost() { return this.totalCost; }
 
+        protected void ClearPrivateStatistics()
+        {
+            this.expanded = 0;
+            this.generated = 0;
+            this.reopened = 0;
+            this.bpmxBoosts = 0;
+            this.reopenedWithOldH = 0;
+            this.noReopenHUpdates = 0;
+            this.closedListHits = 0;
+            this.maxExpansionDelay = -1;
+        }
+
         public virtual void OutputStatisticsHeader(TextWriter output)
         {
-            output.Write(this.ToString() + " Expanded (LL)");
+            output.Write(this.ToString() + " Expanded");
             output.Write(Run.RESULTS_DELIMITER);
-            output.Write(this.ToString() + " Generated (LL)");
+            output.Write(this.ToString() + " Generated");
             output.Write(Run.RESULTS_DELIMITER);
-            output.Write(this.ToString() + " Reopened (LL)");
+            output.Write(this.ToString() + " Reopened");
             output.Write(Run.RESULTS_DELIMITER);
-            output.Write(this.ToString() + " BPMX boosts (LL)");
+            output.Write(this.ToString() + " BPMX boosts");
             output.Write(Run.RESULTS_DELIMITER);
-            output.Write(this.ToString() + " Reopened With Old H (LL)");
+            output.Write(this.ToString() + " Closed List Hits");
             output.Write(Run.RESULTS_DELIMITER);
-            output.Write(this.ToString() + " H Updated From Other Area (LL)");
+            output.Write(this.ToString() + " Reopened With Old H");
+            output.Write(Run.RESULTS_DELIMITER);
+            output.Write(this.ToString() + " H Updated From Other Area");
+            output.Write(Run.RESULTS_DELIMITER);
+            output.Write(this.ToString() + " Max expansion delay");
             output.Write(Run.RESULTS_DELIMITER);
             
             this.heuristic.OutputStatisticsHeader(output);
+
+            this.openList.OutputStatisticsHeader(output);
         }
 
         /// <summary>
@@ -148,29 +170,99 @@ namespace CPF_experiment
         /// </summary>
         public virtual void OutputStatistics(TextWriter output)
         {
-            Console.WriteLine("Total Expanded Nodes (Low-Level): {0}", this.GetLowLevelExpanded());
-            Console.WriteLine("Total Generated Nodes (Low-Level): {0}", this.GetLowLevelGenerated());
-            Console.WriteLine("Total Reopened Nodes (Low-Level): {0}", this.reopened);
-            Console.WriteLine("Num BPMX boosts (Low-Level): {0}", this.bpmxBoosts);
-            Console.WriteLine("Reopened Nodes With Old H (Low-Level): {0}", this.reopenedWithOldH);
-            Console.WriteLine("No Reopen H Updates (Low-Level): {0}", this.noReopenHUpdates);
+            Console.WriteLine("Total Expanded Nodes: {0}", this.GetExpanded());
+            Console.WriteLine("Total Generated Nodes: {0}", this.GetGenerated());
+            Console.WriteLine("Total Reopened Nodes: {0}", this.reopened);
+            Console.WriteLine("Num BPMX boosts: {0}", this.bpmxBoosts);
+            Console.WriteLine("Closed list hits: {0}", this.closedListHits);
+            Console.WriteLine("Reopened Nodes With Old H: {0}", this.reopenedWithOldH);
+            Console.WriteLine("No Reopen H Updates: {0}", this.noReopenHUpdates);
+            Console.WriteLine("Max expansion delay: {0}", this.maxExpansionDelay);
 
             output.Write(this.expanded + Run.RESULTS_DELIMITER);
             output.Write(this.generated + Run.RESULTS_DELIMITER);
             output.Write(this.reopened + Run.RESULTS_DELIMITER);
             output.Write(this.bpmxBoosts + Run.RESULTS_DELIMITER);
+            output.Write(this.closedListHits + Run.RESULTS_DELIMITER);
             output.Write(this.reopenedWithOldH + Run.RESULTS_DELIMITER);
             output.Write(this.noReopenHUpdates + Run.RESULTS_DELIMITER);
+            output.Write(this.maxExpansionDelay + Run.RESULTS_DELIMITER);
 
             this.heuristic.OutputStatistics(output);
+
+            this.openList.OutputStatistics(output);
         }
 
-        public int NumStatsColumns
+        public virtual int NumStatsColumns
         {
             get
             {
-                return 6 + this.heuristic.NumStatsColumns;
+                return 8 + this.heuristic.NumStatsColumns + this.openList.NumStatsColumns;
             }
+        }
+
+        public virtual void ClearStatistics()
+        {
+            this.ClearPrivateStatistics();
+            this.heuristic.ClearStatistics();
+            this.openList.ClearStatistics();
+        }
+
+        public virtual void ClearAccumulatedStatistics()
+        {
+            this.accExpanded = 0;
+            this.accGenerated = 0;
+            this.accReopened = 0;
+            this.accBpmxBoosts = 0;
+            this.accClosedListHits = 0;
+            this.accReopenedWithOldH = 0;
+            this.accNoReopenHUpdates = 0;
+            this.accMaxExpansionDelay = 0;
+
+            this.heuristic.ClearAccumulatedStatistics();
+
+            this.openList.ClearAccumulatedStatistics();
+        }
+
+        public virtual void AccumulateStatistics()
+        {
+            this.accExpanded += this.expanded;
+            this.accGenerated += this.generated;
+            this.accReopened += this.reopened;
+            this.accBpmxBoosts += this.bpmxBoosts;
+            this.accClosedListHits += this.closedListHits;
+            this.accReopenedWithOldH += this.reopenedWithOldH;
+            this.accNoReopenHUpdates += this.noReopenHUpdates;
+            this.accMaxExpansionDelay = Math.Max(this.accMaxExpansionDelay, this.maxExpansionDelay);
+
+            this.heuristic.AccumulateStatistics();
+
+            this.openList.AccumulateStatistics();
+        }
+
+        public virtual void OutputAccumulatedStatistics(TextWriter output)
+        {
+            Console.WriteLine("Total Expanded Nodes (Low-Level): {0}", this.accExpanded);
+            Console.WriteLine("Total Generated Nodes (Low-Level): {0}", this.accGenerated);
+            Console.WriteLine("Total Reopened Nodes (Low-Level): {0}", this.accReopened);
+            Console.WriteLine("Num BPMX boosts (Low-Level): {0}", this.accBpmxBoosts);
+            Console.WriteLine("Closed list hits (Low-Level): {0}", this.accClosedListHits);
+            Console.WriteLine("Reopened Nodes With Old H (Low-Level): {0}", this.accReopenedWithOldH);
+            Console.WriteLine("No Reopen H Updates (Low-Level): {0}", this.accNoReopenHUpdates);
+            Console.WriteLine("Max expansion delay (Low-Level): {0}", this.accMaxExpansionDelay);
+
+            output.Write(this.accExpanded + Run.RESULTS_DELIMITER);
+            output.Write(this.accGenerated + Run.RESULTS_DELIMITER);
+            output.Write(this.accReopened + Run.RESULTS_DELIMITER);
+            output.Write(this.accBpmxBoosts + Run.RESULTS_DELIMITER);
+            output.Write(this.accClosedListHits + Run.RESULTS_DELIMITER);
+            output.Write(this.accReopenedWithOldH + Run.RESULTS_DELIMITER);
+            output.Write(this.accNoReopenHUpdates + Run.RESULTS_DELIMITER);
+            output.Write(this.accMaxExpansionDelay + Run.RESULTS_DELIMITER);
+
+            this.heuristic.OutputAccumulatedStatistics(output);
+
+            this.openList.OutputAccumulatedStatistics(output);
         }
 
         /// <summary>
@@ -200,8 +292,14 @@ namespace CPF_experiment
 
                 Debug.Assert(currentNode.g + currentNode.h >= lastF,
                              "A* node with decreasing F: " + (currentNode.g + currentNode.h) + " < " + lastF + ".");
+                // FIXME: Better to use the whole rich comparison. Save the last node and use compareTo.
+                //        The only time a node is allowed to be smaller than the last one is if it's the goal.
                 lastF = currentNode.g + currentNode.h;
                 lastNode = currentNode;
+
+                // Calculate expansion delay
+                int expansionDelay = this.expanded - currentNode.expandedCountWhenGenerated - 1; // -1 to make the delay zero when a node is expanded immediately after being generated.
+                maxExpansionDelay = Math.Max(maxExpansionDelay, expansionDelay);
 
                 // Check if node is the goal, or knows how to get to it
                 if (currentNode.GoalTest(minDepth))
@@ -270,7 +368,7 @@ namespace CPF_experiment
             }
             if (parent.h < maxChildH - deltaGOfChildWithMaxH)
             {
-                parent.h = maxChildH - deltaGOfChildWithMaxH;
+                parent.h = maxChildH - deltaGOfChildWithMaxH; // Good for partial expansion algs that reinsert the expanded node into the open list.
                 ++bpmxBoosts;
             }
             // Forward Path-Max
@@ -316,7 +414,8 @@ namespace CPF_experiment
 
                     childNode = CreateSearchNode(currentNode);
                     childNode.allAgentsState[agentIndex].MoveTo(agentLocation);
-                    childNode.prevStep = currentNode.prevStep; // Most node objects are just temporary ones used during expansion process - skip them
+
+                    childNode.prevStep = currentNode.prevStep; // Skip temporary node objects used during expansion process.
                     if (agentIndex == 0)
                     {
                         childNode.prevStep = currentNode;
@@ -357,7 +456,7 @@ namespace CPF_experiment
 
             if (this.constraintList != null)
             {
-                CbsConstraint nextStepLocation = new CbsConstraint(agentNum, possibleMove);
+                CbsConstraint nextStepLocation = new CbsConstraint(agentNum, possibleMove); // OPTIMIZE ME!!
 
                 if (this.constraintList.Contains(nextStepLocation))
                     return false;
@@ -448,6 +547,8 @@ namespace CPF_experiment
                     currentNode.potentialConflictsCount = currentNode.prevStep.potentialConflictsCount;
                     currentNode.potentialConflictsCount += currentNode.ConflictsCount(
                         ((HashSet<TimedMove>)instance.parameters[Trevor.CONFLICT_AVOIDANCE]));
+                    // We're counting conflicts along the entire path, so the parent's conflicts count
+                    // is added to the child's
                 }
 
                 if (instance.parameters.ContainsKey(CBS_LocalConflicts.INTERNAL_CAT))
@@ -455,11 +556,14 @@ namespace CPF_experiment
                     currentNode.cbsInternalConflictsCount = currentNode.prevStep.cbsInternalConflictsCount;
                     currentNode.cbsInternalConflictsCount += currentNode.ConflictsCount(
                         ((HashSet_U<TimedMove>)instance.parameters[CBS_LocalConflicts.INTERNAL_CAT]));
+                    // We're counting conflicts along the entire path, so the parent's conflicts count
+                    // is added to the child's
                 }
 
                 // If in closed list - only reopen if F is lower
                 if (this.closedList.ContainsKey(currentNode) == true)
                 {
+                    ++this.closedListHits;
                     WorldState inClosedList = this.closedList[currentNode];
                     // Since the nodes are equal, give them both the max of their H
                     bool improvedHOfThisNode = false;
@@ -491,7 +595,8 @@ namespace CPF_experiment
                     }
                     else if (improvedHOfOldNode)
                     {
-                        // Reinsert old node with new higher F, if it's still in the closed list
+                        // Reinsert old node with new higher F, if it's still in the closed list.
+                        // This pushes it further back in the open list so it certainly won't be smaller than the currently expanded node, so monotonicity is maintained.
                         if (this.openList.Remove(inClosedList)) // Cheap if it isn't there
                         {
                             this.openList.Add(inClosedList);
@@ -505,6 +610,7 @@ namespace CPF_experiment
                     this.closedList.Add(currentNode, currentNode);
                     this.generated++; // Reopned nodes are also recounted here.
                     this.openList.Add(currentNode);
+                    currentNode.expandedCountWhenGenerated = this.expanded;
                     return true;
                 }
 
@@ -516,10 +622,10 @@ namespace CPF_experiment
             return false;
         }
 
-        public int GetHighLevelExpanded() { return 0; }
-        public int GetHighLevelGenerated() { return 0; }
-        public int GetLowLevelExpanded() { return expanded; }
-        public int GetLowLevelGenerated() { return generated; }
+        public int GetExpanded() { return expanded; }
+        public int GetGenerated() { return generated; }
+        public int GetAccumulatedExpanded() { return accExpanded; }
+        public int GetAccumulatedGenerated() { return accGenerated; }
         public int GetMaxGroupSize() { return numOfAgents; }
     }
 }

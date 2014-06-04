@@ -22,22 +22,24 @@ namespace CPF_experiment
         protected ProblemInstance instance;
         public BinaryHeap openList;
         public Dictionary<CbsNode, CbsNode> closedList;
-        public int highLevelExpanded;
-        public int highLevelGenerated;
+        protected int highLevelExpanded;
+        protected int highLevelGenerated;
+        protected int closedListHits;
+        protected int accHLExpanded;
+        protected int accHLGenerated;
+        protected int accClosedListHits;
         public int totalCost;
         protected Run runner;
         protected CbsNode goalNode;
         protected Plan solution;
         protected int maxCost;
-        protected int lowLevelExpanded;
-        protected int lowLevelGenerated;
         protected ICbsSolver solver;
         protected ICbsSolver lowLevelSolver;
         protected int mergeThreshold;
         protected int minDepth;
         protected int maxThreshold;
         protected int maxSizeGroup;
-        protected HeuristicCalculator heuristic;
+        protected bool topMost;
 
         public CBS_old() { }
 
@@ -63,8 +65,6 @@ namespace CPF_experiment
             this.openList.Add(root);
             this.highLevelExpanded = 0;
             this.highLevelGenerated = 1;
-            this.lowLevelExpanded = 0;
-            this.lowLevelGenerated = 0;
             this.maxSizeGroup = 1;
             this.totalCost = 0;
             if (problemInstance.parameters.ContainsKey(Trevor.MAXIMUM_COST_KEY))
@@ -75,7 +75,10 @@ namespace CPF_experiment
             {
                 problemInstance.parameters[CBS_LocalConflicts.INTERNAL_CAT] = new HashSet_U<TimedMove>();
                 problemInstance.parameters[CBS_LocalConflicts.CONSTRAINTS] = new HashSet_U<CbsConstraint>();
+                this.topMost = true;
             }
+            else
+                this.topMost = false;
             
             if (this.minDepth == -1)
                 this.minDepth = 0;
@@ -89,20 +92,18 @@ namespace CPF_experiment
 
         public void SetHeuristic(HeuristicCalculator heuristic)
         {
-            this.heuristic = heuristic;
             this.solver.SetHeuristic(heuristic);
         }
 
         public HeuristicCalculator GetHeuristic()
         {
-            return this.heuristic;
+            return this.solver.GetHeuristic();
         }
 
         public void Clear()
         {
             this.openList.Clear();
             this.closedList.Clear();
-            this.instance = null;
             this.solver.Clear();
             this.minDepth = -1;
         }
@@ -116,32 +117,93 @@ namespace CPF_experiment
 
         public int GetSolutionCost() { return this.totalCost; }
 
+        protected void ClearPrivateStatistics()
+        {
+            this.highLevelExpanded = 0;
+            this.highLevelGenerated = 0;
+            this.closedListHits = 0;
+        }
+        
         public virtual void OutputStatisticsHeader(TextWriter output)
         {
             output.Write(this.ToString() + " Expanded (HL)");
             output.Write(Run.RESULTS_DELIMITER);
             output.Write(this.ToString() + " Generated (HL)");
             output.Write(Run.RESULTS_DELIMITER);
-            output.Write(this.ToString() + " Expanded (LL)");
+            output.Write(this.ToString() + " Closed List Hits (HL)");
             output.Write(Run.RESULTS_DELIMITER);
-            output.Write(this.ToString() + " Generated (LL)");
-            output.Write(Run.RESULTS_DELIMITER);
+
+            this.solver.OutputStatisticsHeader(output);
+
+            this.openList.OutputStatisticsHeader(output);
         }
 
-        public void OutputStatistics(TextWriter output)
+        public virtual void OutputStatistics(TextWriter output)
         {
+            Console.WriteLine("Total Expanded Nodes (High-Level): {0}", this.GetHighLevelExpanded());
+            Console.WriteLine("Total Generated Nodes (High-Level): {0}", this.GetHighLevelGenerated());
+            Console.WriteLine("Closed List Hits (High-Level): {0}", this.closedListHits);
+
             output.Write(this.highLevelExpanded + Run.RESULTS_DELIMITER);
             output.Write(this.highLevelGenerated + Run.RESULTS_DELIMITER);
-            output.Write(this.lowLevelExpanded + Run.RESULTS_DELIMITER);
-            output.Write(this.lowLevelGenerated + Run.RESULTS_DELIMITER);
+            output.Write(this.closedListHits + Run.RESULTS_DELIMITER);
+
+            this.solver.OutputAccumulatedStatistics(output);
+
+            this.openList.OutputStatistics(output);
         }
 
-        public int NumStatsColumns
+        public virtual int NumStatsColumns
         {
             get
             {
-                return 4;
+                return 3 + this.solver.NumStatsColumns + this.openList.NumStatsColumns;
             }
+        }
+
+        public virtual void ClearStatistics()
+        {
+            if (this.topMost)
+                this.solver.ClearAccumulatedStatistics();
+            this.ClearPrivateStatistics();
+            this.openList.ClearStatistics();
+        }
+
+        public virtual void ClearAccumulatedStatistics()
+        {
+            this.accHLExpanded = 0;
+            this.accHLGenerated = 0;
+            this.accClosedListHits = 0;
+
+            this.solver.ClearAccumulatedStatistics();
+
+            this.openList.ClearAccumulatedStatistics();
+        }
+
+        public virtual void AccumulateStatistics()
+        {
+            this.accHLExpanded += this.highLevelExpanded;
+            this.accHLGenerated += this.highLevelGenerated;
+            this.accClosedListHits += this.closedListHits;
+
+            // this.solver statistics are accumulated every time it's used.
+
+            this.openList.AccumulateStatistics();
+        }
+
+        public virtual void OutputAccumulatedStatistics(TextWriter output)
+        {
+            Console.WriteLine("{0} Total Expanded Nodes (High-Level): {1}", this, this.accHLExpanded);
+            Console.WriteLine("{0} Total Generated Nodes (High-Level): {1}", this, this.accHLGenerated);
+            Console.WriteLine("{0} Closed List Hits (High-Level): {1}", this, this.accClosedListHits);
+
+            output.Write(this.accHLExpanded + Run.RESULTS_DELIMITER);
+            output.Write(this.accHLGenerated + Run.RESULTS_DELIMITER);
+            output.Write(this.accClosedListHits + Run.RESULTS_DELIMITER);
+
+            this.solver.OutputAccumulatedStatistics(output);
+
+            this.openList.OutputAccumulatedStatistics(output);
         }
 
         public bool Solve()
@@ -151,7 +213,7 @@ namespace CPF_experiment
             CbsConflict conflict;
             CbsNode currentNode = (CbsNode)openList.Remove();
             highLevelExpanded++;
-            if (currentNode.Solve(minDepth, ref highLevelExpanded,ref highLevelGenerated, ref lowLevelExpanded,ref lowLevelGenerated) == false)
+            if (currentNode.Solve(minDepth) == false)
             {
                 return false;
             }
@@ -205,7 +267,7 @@ namespace CPF_experiment
                 if (MergeConflicting(node))
                 {
                     closedList.Add(node, node); // With new hash code
-                    bool solved = node.Replan(conflict.agentA, this.minDepth, ref highLevelExpanded, ref highLevelGenerated, ref lowLevelExpanded, ref lowLevelGenerated);
+                    bool solved = node.Replan(conflict.agentA, this.minDepth);
                     this.maxSizeGroup = Math.Max(this.maxSizeGroup, node.replanSize);
                     if (solved == false)
                         return true;
@@ -226,7 +288,7 @@ namespace CPF_experiment
 
             if (closedList.ContainsKey(toAdd) == false)
             {
-                if (toAdd.Replan(conflict.agentA, Math.Max(minDepth, conflict.timeStep), ref highLevelExpanded, ref highLevelGenerated, ref lowLevelExpanded, ref lowLevelGenerated))
+                if (toAdd.Replan(conflict.agentA, Math.Max(minDepth, conflict.timeStep)))
                 {
                     if (toAdd.totalCost <= this.maxCost)
                     {
@@ -237,13 +299,15 @@ namespace CPF_experiment
                     }
                 }
             }
+            else
+                this.closedListHits++;
 
             con = new CbsConstraint(conflict, instance, false);
             toAdd = new CbsNode(node, con, conflict.agentB);
 
             if (closedList.ContainsKey(toAdd) == false)
             {
-                if (toAdd.Replan(conflict.agentB, Math.Max(minDepth, conflict.timeStep), ref highLevelExpanded, ref highLevelGenerated, ref lowLevelExpanded, ref lowLevelGenerated))
+                if (toAdd.Replan(conflict.agentB, Math.Max(minDepth, conflict.timeStep)))
                 {
                     if (toAdd.totalCost <= this.maxCost)
                     {
@@ -255,6 +319,9 @@ namespace CPF_experiment
                 }
 
             }
+            else
+                this.closedListHits++;
+
             return true;
         }
 
@@ -277,8 +344,12 @@ namespace CPF_experiment
         }
         public int GetHighLevelExpanded() { return highLevelExpanded; }
         public int GetHighLevelGenerated() { return highLevelGenerated; }
-        public int GetLowLevelExpanded() { return lowLevelExpanded; }
-        public int GetLowLevelGenerated() { return lowLevelGenerated; }
+        public int GetLowLevelExpanded() { return this.solver.GetAccumulatedExpanded(); }
+        public int GetLowLevelGenerated() { return this.solver.GetAccumulatedGenerated(); }
+        public int GetExpanded() { return highLevelExpanded; }
+        public int GetGenerated() { return highLevelGenerated; }
+        public int GetAccumulatedExpanded() { return accHLExpanded; }
+        public int GetAccumulatedGenerated() { return accHLGenerated; }
         public int GetMaxGroupSize()
         {
             return this.maxSizeGroup;

@@ -3,7 +3,7 @@ using System.IO;
 
 namespace CPF_experiment
 {
-    public interface ISolver
+    public interface ISolver : IStatisticsCsvWriter
     {
         /// <summary>
         /// Return the name of the solver, useful for outputing results.
@@ -49,21 +49,6 @@ namespace CPF_experiment
         int GetSolutionCost();
 
         /// <summary>
-        /// Prints header of statistics of a single run to the given output. 
-        /// </summary>
-        void OutputStatisticsHeader(TextWriter output);
-        
-        /// <summary>
-        /// Prints statistics of a single run to the given output.
-        /// </summary>
-        void OutputStatistics(TextWriter output);
-
-        /// <summary>
-        /// To fill out them out when an algorithm isn't run
-        /// </summary>
-        int NumStatsColumns { get; }
-
-        /// <summary>
         /// Gets the delta of (actual solution cost - first state heuristics)
         /// </summary>
         int GetSolutionDepth();
@@ -71,17 +56,17 @@ namespace CPF_experiment
         long GetMemoryUsed();
         int GetMaxGroupSize();
 
-        int GetHighLevelExpanded();
-        int GetHighLevelGenerated();
-        int GetLowLevelExpanded();
-        int GetLowLevelGenerated();
+        int GetExpanded();
+        int GetGenerated();
     }
 
-    public interface ICbsSolver : ISolver
+    public interface ICbsSolver : ISolver, IAccumulatingStatisticsCsvWriter
     {
         void Setup(ProblemInstance problemInstance, int minDepth, Run runner);
         SinglePlan[] GetSinglePlans();
         int[] GetSingleCosts();
 
+        int GetAccumulatedExpanded();
+        int GetAccumulatedGenerated();
     }
 }

@@ -3,7 +3,7 @@ using System.IO;
 
 namespace CPF_experiment
 {
-    public interface HeuristicCalculator
+    public interface HeuristicCalculator : IAccumulatingStatisticsCsvWriter
     {
         /// <summary>Returns the heuristic estimate.</summary>
         /// <param name="s">The current state.</param>
@@ -17,26 +17,6 @@ namespace CPF_experiment
         /// <param name="pi">The problem instance.</param>
         /// <param name="vAgents">The agents that the pattern database should keep track of.</param>
         void init(ProblemInstance pi, List<uint> vAgents);
-
-        /// <summary>
-        /// Prints header of statistics of a single run to the given output. 
-        /// </summary>
-        void OutputStatisticsHeader(TextWriter output);
-
-        /// <summary>
-        /// Prints statistics of a single run to the given output.
-        /// </summary>
-        void OutputStatistics(TextWriter output);
-
-        /// <summary>
-        /// To fill out them out when an algorithm isn't run
-        /// </summary>
-        int NumStatsColumns { get; }
-
-        /// <summary>
-        /// Clears statistics.
-        /// </summary>
-        void ClearStatistics();
     }
 
     public interface LazyHeuristic : HeuristicCalculator

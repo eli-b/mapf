@@ -24,6 +24,14 @@ namespace CPF_experiment
         public HashSet<TimedMove> currentMoves;
         protected Plan plan;
         protected static readonly int NOT_SET = -1;
+        /// <summary>
+        /// For computing expansion delay
+        /// </summary>
+        public int expandedCountWhenGenerated;
+        /// <summary>
+        /// For lazy heuristics
+        /// </summary>
+        public CBS_LocalConflicts cbsState;
 
         /// <summary>
         /// Create a state with the given state for every agent.
@@ -32,7 +40,7 @@ namespace CPF_experiment
         public WorldState(AgentState[] allAgentsState)
         {
             this.allAgentsState = allAgentsState.ToArray<AgentState>();
-            this.makespan = allAgentsState.Min<AgentState>(state => state.lastMove.time); // We expect to only find at most two G values within the agent group
+            this.makespan = allAgentsState.Max<AgentState>(state => state.lastMove.time); // We expect to only find at most two G values within the agent group
             this.CalculateG(); // G not necessarily zero when solving a partially solved problem.
             this.potentialConflictsCount = 0;
             this.cbsInternalConflictsCount = 0;
@@ -292,7 +300,7 @@ namespace CPF_experiment
             for (int i = 0; i < allAgentsState.Length; i++)
             {
                 if (allAgentsState[i].lastMove.isColliding(conflictAvoidance))
-                    ans++;
+                    ans++; // Assuming there are no collision within the table, it's correct to only add 1.
             }
             return ans;
         }

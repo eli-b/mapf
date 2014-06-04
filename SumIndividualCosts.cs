@@ -57,14 +57,14 @@ namespace CPF_experiment
         /// <summary>
         /// Prints header of statistics of a single run to the given output. 
         /// </summary>
-        void OutputStatisticsHeader(TextWriter output) { }
+        public override void OutputStatisticsHeader(TextWriter output) { }
 
         /// <summary>
         /// Prints statistics of a single run to the given output.
         /// </summary>
-        void OutputStatistics(TextWriter output) { }
+        public override void OutputStatistics(TextWriter output) { }
 
-        public int NumStatsColumns
+        public override int NumStatsColumns
         {
             get
             {
@@ -75,6 +75,10 @@ namespace CPF_experiment
         /// <summary>
         /// Clears statistics.
         /// </summary>
-        void ClearStatistics() { }
+        public override void ClearStatistics() { }
+
+        public override void ClearAccumulatedStatistics() { }
+        public override void AccumulateStatistics() { }
+        public override void OutputAccumulatedStatistics(TextWriter output) { }
     }
 }

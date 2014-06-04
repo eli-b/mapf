@@ -18,10 +18,10 @@ namespace CPF_experiment
 
         protected LinkedList<AgentsGroup> allGroups;
         protected ProblemInstance instance;
-        int expandedHL;
-        int generatedHL;
-        int expandedLL;
-        int generatedLL;
+        protected int expanded;
+        protected int generated;
+        protected int accExpanded;
+        protected int accGenerated;
         public int totalCost;
         protected Run runner;
 
@@ -30,8 +30,10 @@ namespace CPF_experiment
         /// </summary>
         public Plan foundPlan;
         
-        public int maxGroup;
-        public int minGroup;
+        protected int maxGroup;
+        protected int minGroup;
+        protected int accMaxGroup;
+        protected int accMinGroup;
         public ISolver groupSolver;
         protected HeuristicCalculator heuristic;
         private IList<Conflict> allConflicts;
@@ -63,15 +65,17 @@ namespace CPF_experiment
         {
             this.instance = instance;
             this.runner = runner;
-            this.expandedHL = 0;
-            this.generatedHL = 0;
+            this.expanded = 0;
+            this.generated = 0;
             this.totalCost = 0;
             this.maxGroup = 1;
+            this.minGroup = instance.m_vAgents.Length;
+            this.accMaxGroup = 1;
             this.minGroup = instance.m_vAgents.Length;
             this.conflictAvoidance = new HashSet<TimedMove>();
             // Initialize the agent group collection with a group for every agent
             foreach (AgentState agentStartState in instance.m_vAgents)
-                this.allGroups.AddFirst(new AgentsGroup(this.instance,  new AgentState[1] { agentStartState }, this.groupSolver));
+                this.allGroups.AddFirst(new AgentsGroup(this.instance, new AgentState[1] { agentStartState }, this.groupSolver));
         }
 
         public void SetHeuristic(HeuristicCalculator heuristic)
@@ -110,9 +114,10 @@ namespace CPF_experiment
 
         public virtual void OutputStatisticsHeader(TextWriter output)
         {
-            output.Write(this.ToString() + " Expanded (HL)");
+            // TODO: Use the solver's statistics, as done in CBS.
+            output.Write(this.ToString() + " Expanded");
             output.Write(Run.RESULTS_DELIMITER);
-            output.Write(this.ToString() + " Generated (HL)");
+            output.Write(this.ToString() + " Generated");
             output.Write(Run.RESULTS_DELIMITER);
             output.Write(this.ToString() + " Max Group");
             output.Write(Run.RESULTS_DELIMITER);
@@ -125,8 +130,11 @@ namespace CPF_experiment
         /// </summary>
         public void OutputStatistics(TextWriter output)
         {
-            output.Write(this.expandedHL + Run.RESULTS_DELIMITER);
-            output.Write(this.generatedHL + Run.RESULTS_DELIMITER);
+            Console.WriteLine("Total Expanded Nodes: {0}", this.expanded);
+            Console.WriteLine("Total Generated Nodes: {0}", this.generated);
+
+            output.Write(this.expanded + Run.RESULTS_DELIMITER);
+            output.Write(this.generated + Run.RESULTS_DELIMITER);
 
             // Output the maximum group size
             this.maxGroup = 0;
@@ -138,11 +146,14 @@ namespace CPF_experiment
                 if (group.allAgentsState.Length > this.maxGroup)
                 {
                     this.maxGroup = group.allAgentsState.Length;
-                    this.maxSolutionDepth = group.depthOfSolution;
+                    this.maxSolutionDepth = group.depthOfSolution; // The solution depth of the max size group is always the max solution depth?
                 }
                 if (group.allAgentsState.Length < this.minGroup)
                     this.minGroup = group.allAgentsState.Length;
             }
+
+            Console.WriteLine("Max Group: {0}", this.maxGroup);
+            Console.WriteLine("Min Group: {0}", this.minGroup);
 
             output.Write(this.maxGroup + Run.RESULTS_DELIMITER);
             output.Write(this.minGroup + Run.RESULTS_DELIMITER);
@@ -154,6 +165,41 @@ namespace CPF_experiment
             {
                 return 4;
             }
+        }
+
+        public void ClearStatistics()
+        {
+            // Own statistics cleared on Setup.
+            this.heuristic.ClearStatistics();
+        }
+
+        public void ClearAccumulatedStatistics()
+        {
+            this.accExpanded = 0;
+            this.accGenerated = 0;
+        }
+
+        public void AccumulateStatistics()
+        {
+            this.accExpanded += this.expanded;
+            this.accGenerated += this.generated;
+            this.accMaxGroup = Math.Max(this.accMaxGroup, this.maxGroup);
+            this.accMinGroup = Math.Min(this.accMinGroup, this.minGroup);
+        }
+
+        public void OutputAccumulatedStatistics(TextWriter output)
+        {
+            Console.WriteLine("Total Expanded Nodes (Low-Level): {0}", this.accExpanded);
+            Console.WriteLine("Total Generated Nodes (Low-Level): {0}", this.accGenerated);
+
+            output.Write(this.accExpanded + Run.RESULTS_DELIMITER);
+            output.Write(this.accGenerated + Run.RESULTS_DELIMITER);
+
+            Console.WriteLine("Max Group (Low-Level): {0}", this.accMaxGroup);
+            Console.WriteLine("Min Group (Low-Level): {0}", this.accMinGroup);
+
+            output.Write(this.accMaxGroup + Run.RESULTS_DELIMITER);
+            output.Write(this.accMinGroup + Run.RESULTS_DELIMITER);
         }
 
         public int GetMaxGroupSize()
@@ -299,7 +345,7 @@ namespace CPF_experiment
                 // Groups are conflicting - need to join them to a single group
                 allGroups.Remove(conflict.group1);
                 allGroups.Remove(conflict.group2);
-                //remove both groups from avoidance table
+                // Remove both groups from avoidance table
                 conflict.group1.removeGroupFromCA(conflictAvoidance);
                 conflict.group2.removeGroupFromCA(conflictAvoidance);
 
@@ -317,10 +363,8 @@ namespace CPF_experiment
                 compositeGroup.addGroupToCA(conflictAvoidance, maxDepth);
                 allGroups.AddFirst(compositeGroup);
 
-                this.expandedHL += compositeGroup.expandedHL;
-                this.generatedHL += compositeGroup.generatedHL;
-                this.expandedLL += compositeGroup.expandedLL;
-                this.generatedLL += compositeGroup.generatedLL;
+                this.expanded += compositeGroup.expanded;
+                this.generated += compositeGroup.generated;
 
                 if (compositeGroup.allAgentsState.Length > this.maxGroup)
                     this.maxGroup = compositeGroup.allAgentsState.Length;
@@ -356,17 +400,16 @@ namespace CPF_experiment
 
             while (agentGroupNode != null)
             {
-                agentGroupNode.Value.instance.parameters[CONFLICT_AVOIDANCE] = conflictAvoidance;
-                agentGroupNode.Value.Solve(runner);
-                if (agentGroupNode.Value.solutionCost > maxDepth)
-                    maxDepth = agentGroupNode.Value.solutionCost;
-                //add group to conflict avoidance table
-                agentGroupNode.Value.addGroupToCA(conflictAvoidance, maxDepth);
+                AgentsGroup group = agentGroupNode.Value;
+                group.instance.parameters[CONFLICT_AVOIDANCE] = conflictAvoidance;
+                group.Solve(runner);
+                if (group.solutionCost > maxDepth)
+                    maxDepth = group.solutionCost;
+                // Add group to conflict avoidance table
+                group.addGroupToCA(conflictAvoidance, maxDepth);
 
-                this.expandedHL += agentGroupNode.Value.expandedHL;
-                this.generatedHL += agentGroupNode.Value.generatedHL;
-                this.expandedLL += agentGroupNode.Value.expandedLL;
-                this.generatedLL += agentGroupNode.Value.generatedLL;
+                this.expanded += group.expanded;
+                this.generated += group.generated;
 
                 agentGroupNode = agentGroupNode.Next;
             }
@@ -413,16 +456,16 @@ namespace CPF_experiment
                 end = end.prevStep;
             }
         }
+
         private void print()
         {
-            Console.WriteLine("Expanded - " + expandedHL);
-            Console.WriteLine("Generated - " + generatedHL);
+            Console.WriteLine("Expanded - " + expanded);
+            Console.WriteLine("Generated - " + generated);
             Console.WriteLine("Total cost - " + totalCost);
         }
-        public int GetHighLevelExpanded() { return this.expandedHL; }
-        public int GetHighLevelGenerated() { return this.generatedHL; }
-        public int GetLowLevelExpanded() { return this.expandedLL; }
-        public int GetLowLevelGenerated() { return this.generatedLL; }
+
+        public int GetExpanded() { return this.expanded; }
+        public int GetGenerated() { return this.generated; }
         public int GetSolutionDepth() { return maxSolutionDepth; }
         public long GetMemoryUsed() { return Process.GetCurrentProcess().VirtualMemorySize64; }
     }
@@ -437,10 +480,8 @@ namespace CPF_experiment
         public WorldState solution;
         public int solutionCost;
         public ProblemInstance instance;
-        public int expandedHL;
-        public int generatedHL;
-        public int expandedLL;
-        public int generatedLL;
+        public int expanded;
+        public int generated;
         public int depthOfSolution;
         public long timeTillLastNode;
 
@@ -468,12 +509,9 @@ namespace CPF_experiment
                 return false;
 
             // Store the plan found by the solver
-            this.solutionCost = this.solver.GetSolutionCost();
             this.plan = this.solver.GetPlan();
-            this.expandedHL = solver.GetHighLevelExpanded();
-            this.generatedHL = solver.GetHighLevelGenerated();
-            this.expandedLL = solver.GetLowLevelExpanded();
-            this.generatedLL = solver.GetLowLevelGenerated();
+            this.expanded = solver.GetExpanded();
+            this.generated = solver.GetGenerated();
             this.depthOfSolution = solver.GetSolutionDepth();
             this.timeTillLastNode = solver.GetMemoryUsed();
 

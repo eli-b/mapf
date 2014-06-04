@@ -147,5 +147,9 @@ namespace CPF_experiment
         /// Clears statistics.
         /// </summary>
         public void ClearStatistics() { }
+
+        public void ClearAccumulatedStatistics() { }
+        public void AccumulateStatistics() { }
+        public void OutputAccumulatedStatistics(TextWriter output) { }
     }
 }
