@@ -33,143 +33,53 @@ namespace CPF_experiment
             this.expandedFullStates = 0;
         }
 
+        protected bool alreadyExpanded;
+
+        // Problem 59 of 3 agents and 9 obstacles is a good example of why
+        // equivalence over different times is difficult to get right
+        // with A*+OD (but possible).
+
         /// <summary>
         /// Expand a given node. This includes:
         /// - Generating all possible children
         /// - Inserting them to OPEN
         /// - Insert the generated nodes to the hashtable of nodes, currently implmented together with the closed list.
         /// </summary>
-        override public void Expand(WorldState node)
+        public override void Expand(WorldState node)
         {
-            ExpandRecursively(node);
-        }
-
-        protected bool ExpandRecursively(WorldState node)
-        {
-            if (runner.ElapsedMilliseconds() > Constants.MAX_TIME)
-                return false;
             if (((WorldStateWithOD)node).agentTurn == 0)
                 expandedFullStates++;
-            //Debug.Print("Expanding node " + node);
-            WorldStateWithOD parent = (WorldStateWithOD)node;
-            int agentTurn = parent.agentTurn;
-            WorldStateWithOD childNode;
+            this.alreadyExpanded = false;
+            base.Expand(node);
+        }
+
+        protected override List<WorldState> ExpandOneAgent(List<WorldState> intermediateNodes, int agentIndex)
+        {
+            if (this.alreadyExpanded == true)  // Necessary because after expansion, the generated nodes have an incremented agentTurn that once again equals agentIndex
+                                               // and because it's possible that a node may have valid children that aren't already in the closed list
+                return intermediateNodes; // Do nothing to this agent
+
+            WorldStateWithOD parent = (WorldStateWithOD)intermediateNodes[0];
+
+            if (agentIndex < parent.agentTurn)
+                return intermediateNodes; // Do nothing to this agent
+
+            var generated = base.ExpandOneAgent(intermediateNodes, agentIndex);
+
             int childAgentTurn = ((parent.agentTurn + 1) % (this.instance.m_vAgents.Length));
-            
-            // Try all legal moves of the agents
-            foreach (TimedMove newMove in parent.allAgentsState[agentTurn].last_move.GetNextMoves(Constants.ALLOW_DIAGONAL_MOVE))
+            foreach (var node in generated)
             {
-                if (this.IsValid(newMove, parent.currentMoves))
-                {
-                    childNode = new WorldStateWithOD(parent);
-                    childNode.allAgentsState[agentTurn].move(newMove);
-                    childNode.prevStep = parent;
-                    childNode.agentTurn = childAgentTurn;
-                    childNode.h = (int)this.heuristic.h(childNode);
-                    // Makespan increases only if this is the move of the first agent
-                    if (parent.agentTurn == 0)
-                        childNode.makespan = parent.makespan + 1;
-                    childNode.currentMoves.Add(newMove);
+                WorldStateWithOD childNode = (WorldStateWithOD)node;
 
-                    // g of child is equal to g of parent only when newMove is a STAY move and agent has already arrived at its goal
-                    childNode.CalculateG();  
+                childNode.agentTurn = childAgentTurn;
 
-                    if (childNode.h + childNode.g <= this.maxCost)
-                    {
-                        if (instance.parameters.ContainsKey(Trevor.CONFLICT_AVOIDANCE))
-                        {
-                            childNode.potentialConflictsCount = parent.potentialConflictsCount;
-                            childNode.potentialConflictsCount += childNode.conflictsCount(((HashSet<TimedMove>)instance.parameters[Trevor.CONFLICT_AVOIDANCE]));
-                        }
-
-                        if (instance.parameters.ContainsKey(CBS_LocalConflicts.INTERNAL_CAT))
-                        {
-                            childNode.cbsInternalConflictsCount = parent.prevStep.cbsInternalConflictsCount;
-                            childNode.cbsInternalConflictsCount += parent.conflictsCount(((HashSet<TimedMove>)instance.parameters[CBS_LocalConflicts.INTERNAL_CAT]));
-                        }
-
-                        //if in closed list
-                        if (this.closedList.ContainsKey(childNode) == true)
-                        {
-                            WorldStateWithOD inClosedList = (WorldStateWithOD)this.closedList[childNode];
-                            if (inClosedList.mirrorState != null)
-                                inClosedList = inClosedList.mirrorState; // Is mirror state guaranteed to also be in the closed list?
-                            //if g is smaller than remove the old world state than remove state
-                            if (inClosedList.g > childNode.g || 
-                                (inClosedList.g == childNode.g && (inClosedList.potentialConflictsCount > childNode.potentialConflictsCount ||
-                                (inClosedList.potentialConflictsCount == childNode.potentialConflictsCount && inClosedList.cbsInternalConflictsCount > childNode.cbsInternalConflictsCount))))
-                            {
-                                closedList.Remove(inClosedList); // Not removing the original, non-mirror state?
-                                openList.Remove(inClosedList);
-                            }
-                        }
-
-                        if (this.closedList.ContainsKey(childNode) == false)
-                        {
-                            this.generated++;
-                            this.addToClosedList(childNode);
-                            if (childNode.h + childNode.g + childNode.potentialConflictsCount == node.h + node.g + node.potentialConflictsCount)
-                            {
-                                if (childNode.h == 0)
-                                {
-                                    this.openList.Add(childNode);
-                                    return true;
-                                }
-                                // Expanding the child node immediately - WHY???
-                                this.expanded++;
-                                if (ExpandRecursively(childNode))
-                                    return true;
-                            }
-                            else
-                                this.openList.Add(childNode);
-                        }
-                    }
-                }
+                // Makespan increases only if this is the move of the first agent
+                if (parent.agentTurn != 0)
+                    childNode.makespan--; // Cancel the increment in base
             }
-            return false;
-        }
 
-        /// <summary>
-        /// What's the logic behind this func?
-        /// </summary>
-        /// <param name="toAdd"></param>
-        private void addToClosedList(WorldStateWithOD toAdd)
-        {
-            WorldStateWithOD cpy = new WorldStateWithOD(toAdd);
-            cpy.mirrorState = toAdd;
-            bool restricting;
-            bool shouldAdd = false;
-            for (int i = 0; i < cpy.agentTurn; i++)
-            {
-                restricting = false;
-                for (int j = cpy.agentTurn; j < cpy.allAgentsState.Length && restricting == false ; j++)
-                {
-                    if (cpy.allAgentsState[i].last_move.isColliding(cpy.allAgentsState[j].last_move)) // Behavior change: this didn't check for head-on collisions
-                    {
-                        restricting = true;
-                        break;
-                    }
-                }
-                if (restricting == false)
-                {
-                    cpy.allAgentsState[i].last_move.direction = Move.Direction.NO_DIRECTION; // ??
-                    shouldAdd = true;
-                }
-            }
-            if (shouldAdd || (toAdd.agentTurn == 0))
-            {
-                closedList.Add(cpy, cpy);
-            }
-        }
-
-        /// <summary>
-        /// Returns the found plan, or null if no plan was found.
-        /// The returned plan contains only full states (and not the intermediate states).
-        /// </summary>
-        /// <returns></returns>
-        public override Plan GetPlan()
-        {
-            return new Plan(((WorldStateWithOD)(this.GetGoal())));
+            this.alreadyExpanded = true;
+            return generated;
         }
 
         public override void OutputStatisticsHeader(TextWriter output)

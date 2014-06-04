@@ -156,11 +156,6 @@ namespace CPF_experiment
             return allAgentsState.Select<AgentState, int>(agent => agent.g).ToArray<int>(); // FIXME! Doesn't account for generalised goal states!
         }
 
-        protected virtual WorldState Parent()
-        {
-            return this.prevStep;
-        }
-
         /// <summary>
         /// Used when WorldState objects are put in the open list priority queue
         /// </summary>

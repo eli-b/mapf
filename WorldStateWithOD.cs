@@ -15,7 +15,6 @@ namespace CPF_experiment
         /// while agents with higher index have not chosen their move yet.
         /// </summary>
         public int agentTurn;
-        public WorldStateWithOD mirrorState;
 
         public WorldStateWithOD(AgentState[] states, int minDepth = -1) : base(states, minDepth)
         {
@@ -27,6 +26,11 @@ namespace CPF_experiment
             this.agentTurn = cpy.agentTurn;
         }
         
+        /// <summary>
+        /// Used for PDB stuff only
+        /// </summary>
+        /// <param name="states"></param>
+        /// <param name="relevantAgents"></param>
         public WorldStateWithOD(AgentState[] states, List<uint> relevantAgents) : base(states, relevantAgents)
         {
             this.agentTurn = 0;
@@ -46,7 +50,7 @@ namespace CPF_experiment
 
             if (this.agentTurn != 0)
             {
-                subproblem.parameters = new Dictionary<string,object>(subproblem.parameters); // Use a copy to not pollute general problem instance with the must conds
+                subproblem.parameters = new Dictionary<string,object>(subproblem.parameters); // Use a copy to not pollute general problem instance with the must constraints
                 if (subproblem.parameters.ContainsKey(CBS_LocalConflicts.MUST_CONSTRAINTS) == false)
                     subproblem.parameters[CBS_LocalConflicts.MUST_CONSTRAINTS] = new List<CbsConstraint>();
                 var mustConstraints = (List<CbsConstraint>)subproblem.parameters[CBS_LocalConflicts.MUST_CONSTRAINTS];
@@ -57,6 +61,21 @@ namespace CPF_experiment
             }
 
             return subproblem;
+        }
+
+        /// <summary>
+        /// Set the optimal solution of this node as a problem instance.
+        /// </summary>
+        /// <param name="solution"></param>
+        public override void SetSolution(Plan solution)
+        {
+            if (this.agentTurn == 0)
+                this.plan = new Plan(this);
+            else
+                this.plan = new Plan(this.prevStep); // ToProblemInstance gives the last proper state as the problem to solve,
+                                                     // with must constraints to make the solution go through the steps already
+                                                     // taken from there.
+            this.plan.ContinueWith(solution);
         }
 
         /// <summary>
@@ -74,21 +93,98 @@ namespace CPF_experiment
             }
         }
 
-        /// <summary>
-        /// Returns false even if this is the same location and smaller g, as that's the behavior we need for the closed list.
-        /// Also ignores the mirrorState, as that's also used by A*.
-        /// </summary>
-        /// <param name="obj"></param>
-        /// <returns></returns>
         public override bool Equals(object obj)
         {
             if (((WorldStateWithOD)obj).agentTurn != this.agentTurn)
+            // It's tempting to think that this check is enough to allow equivalence over different times,
+            // because it differentiates between a state where all agents have moved and its
+            // child where the first agent WAITed, allowing the child
+            // to be generated because it isn't a hit in the closed list.
+            // But it isn't enough.
+            // This may a partially generated node,
+            // and we may have already gotten to this specific set of agent positions,
+            // but from a different set of locations, so the allowed moves of the remaining agents
+            // that haven't already moved would be different.
                 return false;
-            return base.Equals(obj);
+            if (obj == null)
+                return false;
+            WorldState that = (WorldState)obj;
+
+            if (this.agentTurn == 0) // All agents have moved, safe to ignore direction information.
+                return base.Equals(obj);
+
+            for (int i = 0; i < this.allAgentsState.Length; ++i)
+            {
+                if (i >= this.agentTurn) // Agent moved in the previous timestep, but not yet in this one
+                {
+                    if (this.allAgentsState[i].Equals(that.allAgentsState[i]) == false)
+                        return false;
+                }
+                else
+                {
+                    bool mightCollideLater = false;
+                    for (int j = this.agentTurn; j < this.allAgentsState.Length; j++)
+                    {
+                        if (this.allAgentsState[i].lastMove.x == this.allAgentsState[j].lastMove.x &&
+                            this.allAgentsState[i].lastMove.y == this.allAgentsState[j].lastMove.y) // Can't just remove the direction and use IsColliding since the moves' time is different, so they'll never collide
+                        {
+                            mightCollideLater = true;
+                            break;
+                        }
+                    }
+                    if (mightCollideLater == false) // Safe to ignore the direction and the time
+                    {
+                        if (this.allAgentsState[i].Equals(that.allAgentsState[i]) == false)
+                            return false;
+                    }
+                    else // Don't ignore the direction but ignore the time
+                    {
+                        if (this.allAgentsState[i].agent.Equals(that.allAgentsState[i].agent) == false)
+                            return false;
+                        if (this.allAgentsState[i].lastMove.x != that.allAgentsState[i].lastMove.x ||
+                            this.allAgentsState[i].lastMove.y != that.allAgentsState[i].lastMove.y ||
+                            (this.allAgentsState[i].lastMove.direction != Move.Direction.NO_DIRECTION &&
+                             that.allAgentsState[i].lastMove.direction != Move.Direction.NO_DIRECTION &&
+                             this.allAgentsState[i].lastMove.direction != that.allAgentsState[i].lastMove.direction)) // Can't just use this.allAgentsState[i].lastMove.Equals(that.allAgentsState[i].lastMove) because TimedMoves don't ignore the time.
+                            return false;
+                    }
+                }
+            }
+            return true;
         }
 
         /// <summary>
-        /// Returns count for last agent to move only.
+        /// Used when WorldStateWithOD objects are put in the open list priority queue.
+        /// All other things being equal, prefers nodes where more agents have moved.
+        /// G is already preferred, but this helps when the last move was a WAIT at the
+        /// goal, which doesn't increment G.
+        /// </summary>
+        /// <param name="other"></param>
+        /// <returns></returns>
+        public override int CompareTo(IBinaryHeapItem other)
+        {
+            int res = base.CompareTo(other);
+            if (res != 0)
+                return res;
+
+            var that = (WorldStateWithOD)other;
+
+            // Further tie-breaking
+            // Prefer more fully generated nodes:
+            // For the same F, they're probably closer to the goal.
+            // The goal isn't necessarily a fully expanded node.
+            // A*+OD may finish when all agents reached their goal even if it isn't a fully expanded state, and that's a nice feature!
+            // So we prefer more fully generated nodes just because it gives a more DFS-like behavior
+            // on the heuristic's fast path to the goal.
+            if (this.agentTurn == 0 && that.agentTurn != 0)
+                return -1;
+            if (that.agentTurn == 0 && this.agentTurn != 0)
+                return 1;
+            return that.agentTurn.CompareTo(this.agentTurn); // Notice the order inversion - bigger is better.
+        }
+
+        /// <summary>
+        /// Returns count for last agent to move only, the counts from the previous agents to move are accumulated from the parent node.
         /// </summary>
         /// <param name="conflictAvoidance"></param>
         /// <returns></returns>
