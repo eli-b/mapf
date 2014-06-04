@@ -15,9 +15,9 @@ namespace CPF_experiment
         public AStarWithOD(HeuristicCalculator heuristic = null)
             : base(heuristic) { }
 
-        override protected WorldState CreateSearchRoot()
+        override protected WorldState CreateSearchRoot(int minDepth = -1)
         {
-            return new WorldStateWithOD(this.instance.m_vAgents);
+            return new WorldStateWithOD(this.instance.m_vAgents, minDepth);
         }
 
         protected override WorldState CreateSearchNode(WorldState from)
@@ -27,9 +27,9 @@ namespace CPF_experiment
 
         override public string GetName() { return "A*+OD"; }
 
-        public override void Setup(ProblemInstance problemInstance, Run runner)
+        public override void Setup(ProblemInstance problemInstance, int minDepth, Run runner)
         {
-            base.Setup(problemInstance, runner);
+            base.Setup(problemInstance, minDepth, runner);
             this.expandedFullStates = 0;
         }
 

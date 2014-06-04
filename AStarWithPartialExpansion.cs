@@ -13,9 +13,9 @@ namespace CPF_experiment
         public AStarWithPartialExpansion(HeuristicCalculator heuristic = null)
             : base(heuristic) { }
 
-        override protected WorldState CreateSearchRoot()
+        override protected WorldState CreateSearchRoot(int minDepth = -1)
         {
-            WorldStateForPartialExpansion root = new WorldStateForPartialExpansion(this.instance.m_vAgents);
+            WorldStateForPartialExpansion root = new WorldStateForPartialExpansion(this.instance.m_vAgents, minDepth);
             return root;
         }
 
@@ -26,9 +26,9 @@ namespace CPF_experiment
 
         override public string GetName() { return "EPEA*"; }
 
-        public override void Setup(ProblemInstance problemInstance, Run runner)
+        public override void Setup(ProblemInstance problemInstance, int minDepth, Run runner)
         {
-            base.Setup(problemInstance, runner);
+            base.Setup(problemInstance, minDepth, runner);
             this.expandedFullStates = 0;
         }
 
@@ -62,7 +62,7 @@ namespace CPF_experiment
             if (node.hasMoreChildren() && node.hasChildrenForCurrentDeltaF() && node.h + node.g + node.targetDeltaF <= this.maxCost)
             {
                 // Increment H before re-insertion into open list
-                int sicEstimate = node.allAgentsState.Sum<AgentState>(agent => this.instance.GetSingleAgentShortestPath(agent)); // Re-compute even if the heuristic use is SIC since this may be a second expansion
+                int sicEstimate = node.allAgentsState.Sum<AgentState>(agent => this.instance.GetSingleAgentShortestPath(agent)); // Re-compute even if the heuristic used is SIC since this may be a second expansion
                 if (node.h < sicEstimate + node.targetDeltaF)
                 {
                     // Assuming the heuristic used doesn't give a lower estimate than SIC for each and every one of the node's children,
