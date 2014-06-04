@@ -171,7 +171,7 @@ namespace CPF_experiment
         {
             if (this.problem.IsValid(move))
             {
-                if (move.isColliding(RT) == false)
+                if (move.IsColliding(RT) == false)
                 {
                     Move key = new Move(move.x, move.y, Move.Direction.NO_DIRECTION);
                     if (!parked.Contains(key) || (int)(parked[key]) > move.time)

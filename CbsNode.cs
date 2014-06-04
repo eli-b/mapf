@@ -200,7 +200,7 @@ namespace CPF_experiment
                     subGroup.Add(problem.m_vAgents[i]);
                 }
                 else
-                    allSingleAgentPlans[i].addPlanToHashSet(newInternalCAT, maxPlanSize);
+                    allSingleAgentPlans[i].AddPlanToHashSet(newInternalCAT, maxPlanSize);
             }
 
             this.replanSize = (ushort)subGroup.Count;
@@ -275,9 +275,9 @@ namespace CPF_experiment
                 for (int i = 0; i < allSingleAgentPlans.Length; i++)
                 {
                     checkMove.setup(allSingleAgentPlans[i].GetLocationAt(time), time);
-                    if (checkMove.isColliding(externalCAT))
+                    if (checkMove.IsColliding(externalCAT))
                         externalConflictsCount++;
-                    if (checkMove.isColliding(CbsExternalCAT))
+                    if (checkMove.IsColliding(CbsExternalCAT))
                         externalConflictsCount++;
                     for (int j = i + 1; j < allSingleAgentPlans.Length; j++)
                     {
@@ -594,9 +594,9 @@ namespace CPF_experiment
         /// <returns></returns>
         public int PathLength(int agent)
         {
-            Move[] moves = allSingleAgentPlans[agent].locationAtTimes;
-            Move goal = moves[moves.Length - 1];
-            for (int i = moves.Length - 2; i >= 0; i--)
+            List<Move> moves = allSingleAgentPlans[agent].locationAtTimes;
+            Move goal = moves[moves.Count - 1];
+            for (int i = moves.Count - 2; i >= 0; i--)
             {
                 if (moves[i].Equals(goal) == false) // Note the move that gets to the goal is different to the move that first waits in it.
                     return  i + 1;
@@ -659,7 +659,7 @@ namespace CPF_experiment
                     // Debug.WriteLine(i);
                 }
                 else
-                    allSingleAgentPlans[i].addPlanToHashSet(newInternalCAT, totalCost);
+                    allSingleAgentPlans[i].AddPlanToHashSet(newInternalCAT, totalCost);
             }
 
             this.replanSize = (ushort)subGroup.Count;

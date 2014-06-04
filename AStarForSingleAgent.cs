@@ -103,9 +103,9 @@ namespace CPF_experiment
                         nextStep.potentialConflicts = currentNode.potentialConflicts;
                         nextStep.potentialConflictsID = currentNode.potentialConflictsID;
 
-                        if (nextMove.isColliding(conflictTableThisGroup))
+                        if (nextMove.IsColliding(conflictTableThisGroup))
                             nextStep.potentialConflicts++;
-                        if (nextMove.isColliding(conflictTableOtherGroups))
+                        if (nextMove.IsColliding(conflictTableOtherGroups))
                             nextStep.potentialConflictsID++;
                         
                         if (this.closedList.ContainsKey(nextStep) == true)

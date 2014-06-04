@@ -137,7 +137,7 @@ namespace CPF_experiment
 
         // TODO: Add GetCost and GetMakespan methods!
 
-        public SinglePlan[] getSinglePlans()
+        public SinglePlan[] GetSinglePlans()
         {
             LinkedList<Move>[] allroutes = new LinkedList<Move>[this.locationsAtTimes.First().Count];
             for (int i = 0; i < allroutes.Length; i++)
@@ -198,7 +198,7 @@ namespace CPF_experiment
             // TODO: Think about better implementation of this
             foreach (Move aMove in thisLocations)
                 foreach (Move bMove in otherLocations)
-                    if (aMove.isColliding(bMove) == true)
+                    if (aMove.IsColliding(bMove) == true)
                         return true;
 
             return false;
@@ -221,7 +221,7 @@ namespace CPF_experiment
             }
         }
 
-        public HashSet<TimedMove> addPlanToHashSet(HashSet<TimedMove> addTo, int until)
+        public HashSet<TimedMove> AddPlanToHashSet(HashSet<TimedMove> addTo, int until)
         {
             for (int i = 1; i <= until; i++)
             {
@@ -238,9 +238,14 @@ namespace CPF_experiment
 
     public class SinglePlan
     {
-        public Move[] locationAtTimes { get; private set; }
+        public List<Move> locationAtTimes { get; private set; }
         int agentIndex;
 
+        /// <summary>
+        /// Not used
+        /// </summary>
+        /// <param name="goalState"></param>
+        /// <param name="agentIndex"></param>
         public SinglePlan(WorldState goalState, int agentIndex)
         {
             this.agentIndex = agentIndex;
@@ -251,6 +256,7 @@ namespace CPF_experiment
                 locations.AddFirst(currentNode.GetSingleAgentMove(agentIndex));
                 currentNode = currentNode.prevStep;
             }
+            this.locationAtTimes = locations.ToList<Move>();
         }
 
         public SinglePlan(AgentState goalState)
@@ -263,55 +269,48 @@ namespace CPF_experiment
                 locations.AddFirst(currentNode.GetMove());
                 currentNode = currentNode.prev;
             }
-            this.locationAtTimes = locations.ToArray();
+            this.locationAtTimes = locations.ToList<Move>();
         }
 
         public SinglePlan(LinkedList<Move> route, int agentIndex)
         {
             this.agentIndex = agentIndex;
-            locationAtTimes = route.ToArray();
+            locationAtTimes = route.ToList<Move>();
         }
-
-        ///// <summary>
-        ///// Reconstructs a plan by going backwards from a goal state, returning only moves in a full states
-        ///// and ignoring intermediate states.
-        ///// </summary>
-        ///// <param name="goalState"></param>
-        //public SinglePlan(WorldStateWithOD goalState)
-        //{
-        //    WorldState currentNode = goalState;
-        //    LinkedList<Move> locations = new LinkedList<Move>();
-        //    this.locationsAtTimes.Insert(0, goalState.GetAgentsMoves());
-        //    currentNode = currentNode.prevStep;
-        //    int currentMakespan = goalState.makespan;
-        //    while (currentNode != null)
-        //    {
-        //        // Insert agent's moves only if all the agents have moved (in order to return only full states and not intermediate states)
-        //        if (currentNode.makespan < currentMakespan)
-        //        {
-        //            this.locationsAtTimes.Insert(0, currentNode.GetAgentsMoves());
-        //            currentMakespan = currentNode.makespan;
-        //        }
-        //        currentNode = currentNode.prevStep;
-        //    }
-        //}
 
         public SinglePlan(SinglePlan cpy)
         {
-            this.locationAtTimes = new Move[cpy.locationAtTimes.Length];
-            for (int i = 0; i < locationAtTimes.Length; i++)
-            {
-                this.locationAtTimes[i] = new Move(cpy.locationAtTimes[i]);
-            }
+            this.locationAtTimes = cpy.locationAtTimes.ToList<Move>(); // Behavior change: used to do a deep copy, with cloned moves.
             this.agentIndex = cpy.agentIndex;
         }
 
         public Move GetLocationAt(int time)
         {
-            if (time < this.locationAtTimes.Length)
+            if (time < this.locationAtTimes.Count)
                 return this.locationAtTimes[time];
             else
-                return this.locationAtTimes[this.locationAtTimes.Length - 1];
+                return this.locationAtTimes[this.locationAtTimes.Count - 1];
+        }
+
+        /// <summary>
+        /// Add actions of other plan after actions of plan.
+        /// If this plan ends where the other starts,
+        /// the first timestep of the other plan is skipped
+        /// </summary>
+        /// <param name="other"></param>
+        public void ContinueWith(SinglePlan other)
+        {
+            bool first = true;
+            foreach (Move newLocationAtTime in other.locationAtTimes)
+            {
+                if (first)
+                {
+                    first = false;
+                    if (this.locationAtTimes[this.locationAtTimes.Count - 1].Equals(newLocationAtTime)) // Order important - we're comparing a Move to a TimedMove
+                        continue;
+                }
+                this.locationAtTimes.Add(newLocationAtTime);
+            }
         }
 
         /// <summary>
@@ -323,7 +322,7 @@ namespace CPF_experiment
         /// <returns>The size of the plan, excluding WAITs at the goal</returns>
         public int GetSize()
         {
-            int ans = this.locationAtTimes.Length;
+            int ans = this.locationAtTimes.Count;
             Move goal = this.locationAtTimes[ans - 1];
             while (ans >= 2 && goal.x == locationAtTimes[ans - 2].x && goal.y == locationAtTimes[ans - 2].y)
                 ans--;
@@ -340,7 +339,7 @@ namespace CPF_experiment
             Move thisLocation = this.GetLocationAt(time);
             Move otherLocation = otherPlan.GetLocationAt(time);
 
-            if (thisLocation.isColliding(otherLocation) == true)
+            if (thisLocation.IsColliding(otherLocation) == true)
                 return true;
 
             return false;
@@ -352,7 +351,7 @@ namespace CPF_experiment
         /// </summary>
         public void PrintPlan()
         {
-            for (int time = 0; time < this.locationAtTimes.Length; time++)
+            for (int time = 0; time < this.locationAtTimes.Count; time++)
             {
                 Console.Write("|");
                 Console.Write(this.GetLocationAt(time).ToString() + "|");
@@ -360,7 +359,7 @@ namespace CPF_experiment
             }
         }
 
-        public HashSet<TimedMove> addPlanToHashSet(HashSet<TimedMove> addTo, int until)
+        public HashSet<TimedMove> AddPlanToHashSet(HashSet<TimedMove> addTo, int until)
         {
             for (int i = 0; i <= until; i++)
             {
@@ -370,7 +369,7 @@ namespace CPF_experiment
             return addTo;
         }
 
-        public static SinglePlan[] getSinglePlans(WorldState goalState) // FIXME: Duplication with other methods.
+        public static SinglePlan[] GetSinglePlans(WorldState goalState) // FIXME: Duplication with other methods.
         {
             WorldState currentNode = goalState;
             LinkedList<List<Move>> locationsAtTimes = new LinkedList<List<Move>>();
@@ -401,7 +400,7 @@ namespace CPF_experiment
             return ans;
         }
 
-        public static SinglePlan[] getSinglePlans(LinkedList<Move>[] allRoutes)
+        public static SinglePlan[] GetSinglePlans(LinkedList<Move>[] allRoutes)
         {
             SinglePlan[] ans = new SinglePlan[allRoutes.Length];
             for (int i = 0; i < ans.Length; i++)

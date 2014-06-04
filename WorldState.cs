@@ -255,7 +255,7 @@ namespace CPF_experiment
                 for (int j = i+1; j < this.allAgentsState.Length; j++)
                 {
                     // Internal conflict
-                    if (this.allAgentsState[i].lastMove.isColliding(this.allAgentsState[j].lastMove))
+                    if (this.allAgentsState[i].lastMove.IsColliding(this.allAgentsState[j].lastMove))
                         return false;
                 }
             }
@@ -293,13 +293,13 @@ namespace CPF_experiment
             WorldState that = (WorldState)obj;
             return this.allAgentsState.SequenceEqual<AgentState>(that.allAgentsState);
         }
-        
-        public virtual int ConflictsCount(HashSet<TimedMove> conflictAvoidance)
+
+        public virtual int ConflictsCount(ICollection<TimedMove> conflictAvoidance)
         {
             int ans = 0;
             for (int i = 0; i < allAgentsState.Length; i++)
             {
-                if (allAgentsState[i].lastMove.isColliding(conflictAvoidance))
+                if (allAgentsState[i].lastMove.IsColliding(conflictAvoidance))
                     ans++; // Assuming there are no collision within the table, it's correct to only add 1.
             }
             return ans;

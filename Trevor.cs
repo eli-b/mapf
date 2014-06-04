@@ -579,7 +579,7 @@ namespace CPF_experiment
             WorldState oldSolution = this.solution;
             Plan oldPlan=this.plan;
             HashSet<TimedMove> reserved = new HashSet<TimedMove>();
-            plan.addPlanToHashSet(reserved, Math.Max(plan.GetSize(), this.plan.GetSize())-1);
+            plan.AddPlanToHashSet(reserved, Math.Max(plan.GetSize(), this.plan.GetSize())-1);
 
             this.instance.parameters[Trevor.ILLEGAL_MOVES_KEY] = reserved;
             this.instance.parameters[Trevor.MAXIMUM_COST_KEY] = solutionCost;

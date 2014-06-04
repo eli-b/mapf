@@ -118,7 +118,8 @@ namespace CPF_experiment
 
         public int GetX() { return this.move.x; } // Not used anywhere
         public int GetY() { return this.move.y; } // Not used anywhere
-        public int GetTimeStep() { return this.move.time; }
+        public int GetTimeStep() { return this.move.time; } // FIXME: Make this and the above into properties
+        public List<byte> GetAgents() { return this.agents; }
 
         public Move.Direction GetDirection()
         {

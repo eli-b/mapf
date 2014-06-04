@@ -92,13 +92,13 @@ namespace CPF_experiment
         /// </summary>
         /// <param name="conflictAvoidance"></param>
         /// <returns></returns>
-        override public int ConflictsCount(HashSet<TimedMove> conflictAvoidance)
+        override public int ConflictsCount(ICollection<TimedMove> conflictAvoidance)
         {
             int ans = 0;
             int lastMove = agentTurn - 1;
             if (agentTurn == 0)
                 lastMove = allAgentsState.Length - 1;
-            if (allAgentsState[lastMove].lastMove.isColliding(conflictAvoidance)) // Behavior change: this didn't check for head-on collisions
+            if (allAgentsState[lastMove].lastMove.IsColliding(conflictAvoidance))
                 ans++;
             return ans;
         }

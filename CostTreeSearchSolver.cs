@@ -295,7 +295,7 @@ namespace CPF_experiment
         public int GetSolutionDepth() { return this.totalCost - initialHeuristics; }
         public long GetMemoryUsed() { return Process.GetCurrentProcess().VirtualMemorySize64; }
         public int GetMaxGroupSize() { return problem.m_vAgents.Length; }
-        public SinglePlan[] GetSinglePlans() { return SinglePlan.getSinglePlans(solution); }
+        public SinglePlan[] GetSinglePlans() { return SinglePlan.GetSinglePlans(solution); }
 
         public virtual int[] GetSingleCosts()
         {

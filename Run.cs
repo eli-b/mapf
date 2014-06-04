@@ -169,7 +169,7 @@ namespace CPF_experiment
         /// <summary>
         /// Generates a problem instance, including a board, start and goal locations of desired number of agents
         /// and desired precentage of obstacles
-        ///  TODO: Refactor to use operators.
+        /// TODO: Refactor to use operators.
         /// </summary>
         /// <param name="gridSize"></param>
         /// <param name="agentsNum"></param>
@@ -225,9 +225,9 @@ namespace CPF_experiment
                 aStart[i] = new AgentState(aGoals[i].Goal.x, aGoals[i].Goal.y, aGoals[i]);
             }
 
-            // Initialzied here only for the IsValid() call. TODO: Think how this can be sidestepped elegantly.
+            // Initialized here only for the IsValid() call. TODO: Think how this can be sidestepped elegantly.
             ProblemInstance problem = new ProblemInstance();
-            problem.init(aStart, grid);
+            problem.Init(aStart, grid);
             
             for (int j = 0; j < RANDOM_WALK_STEPS; j++)
             {
@@ -256,7 +256,7 @@ namespace CPF_experiment
 
             // TODO: There is some repetition here of previous instantiation of ProblemInstance. Think how to elegantly bypass this.
             problem = new ProblemInstance();
-            problem.init(aStart, grid);
+            problem.Init(aStart, grid);
             return problem;            
         }
 
@@ -302,8 +302,8 @@ namespace CPF_experiment
                         if (i != 0 && solvers[0].GetSolutionCost() >= 0)
                         {
                             Debug.Assert(solvers[0].GetSolutionCost() == solvers[i].GetSolutionCost(), solvers[0] + " solution cost is different than that of " + solvers[i]); // Assuming algs are supposed to find an optimal solution, this is an error.
-                            //Debug.Assert(solvers[0].getExpanded() == solvers[i].getExpanded(), "Different Expanded");
-                            //Debug.Assert(solvers[0].getGenerated() == solvers[i].getGenerated(), "Different Generated");
+                            //Debug.Assert(solvers[0].GetExpanded() == solvers[i].GetExpanded(), "Different Expanded");
+                            //Debug.Assert(solvers[0].GetGenerated() == solvers[i].GetGenerated(), "Different Generated");
                             //Debug.Assert(solvers[0].GetSolutionDepth() == solvers[i].GetSolutionDepth(), "Depth Bug " + solvers[i]);
                         }
 
@@ -352,8 +352,8 @@ namespace CPF_experiment
            // Console.WriteLine("Total Unique/Full Expanded Nodes: {0}", solver.GetNodesPassedPruningCounter());
 
             this.PrintStatistics(instance, solver, elapsedTime);
-            solver.Clear();
-            solver.GetHeuristic().ClearStatistics();
+            // Solver clears itself when it finishes the search.
+            solver.ClearStatistics();
         }
 
         /// <summary>
@@ -369,10 +369,6 @@ namespace CPF_experiment
             this.resultsWriter.Write(Run.RESULTS_DELIMITER);
             this.resultsWriter.Write("Instance Id");
             this.resultsWriter.Write(Run.RESULTS_DELIMITER);
-            //this.resultsWriter.Write("Conflict1");
-            //this.resultsWriter.Write(Run.RESULTS_DELIMITER);
-            //this.resultsWriter.Write("Conflict2");
-            //this.resultsWriter.Write(Run.RESULTS_DELIMITER);
 
             for (int i = 0; i < solvers.Count; i++)
             {
@@ -392,8 +388,6 @@ namespace CPF_experiment
                 //this.resultsWriter.Write(name + "Min Group / G&D");
                 //this.resultsWriter.Write(Run.RESULTS_DELIMITER);
                 //this.resultsWriter.Write(name + "Max depth");
-                //this.resultsWriter.Write(Run.RESULTS_DELIMITER);
-                //this.resultsWriter.Write(name + "Passed Nodes/Expanded Full States");
                 //this.resultsWriter.Write(Run.RESULTS_DELIMITER);
                 //this.resultsWriter.Write(name + "Memory Used");
                 //this.resultsWriter.Write(Run.RESULTS_DELIMITER);

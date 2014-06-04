@@ -91,7 +91,7 @@ namespace CPF_experiment
                     if (problem.parameters.ContainsKey(Trevor.ILLEGAL_MOVES_KEY))
                     {
                         HashSet<TimedMove> reserved = (HashSet<TimedMove>)(problem.parameters[Trevor.ILLEGAL_MOVES_KEY]);
-                        if (check.isColliding(reserved))
+                        if (check.IsColliding(reserved))
                         {
                             singleAgentDeltaFs[i][(int)check.direction] = byte.MaxValue;
                             continue;

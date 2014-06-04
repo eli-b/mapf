@@ -201,9 +201,9 @@ namespace CPF_experiment
         /// </summary>
         /// <param name="other"></param>
         /// <returns></returns>
-        public bool isColliding(Move other)
+        public bool IsColliding(Move other)
         {
-            return isColliding(other.x, other.y, other.direction);
+            return IsColliding(other.x, other.y, other.direction);
         }
 
         /// <summary>
@@ -218,7 +218,7 @@ namespace CPF_experiment
         /// <param name="y"></param>
         /// <param name="direction"></param>
         /// <returns></returns>
-        public bool isColliding(int other_x, int other_y, Direction other_direction)
+        public bool IsColliding(int other_x, int other_y, Direction other_direction)
         {
             // Same target check
             if (this.x == other_x && this.y == other_y)
@@ -231,7 +231,7 @@ namespace CPF_experiment
             return this.x == other_source_x && this.y == other_source_y && other_x == source_x && other_y == source_y;
         }
 
-        public bool isColliding(ISet<Move> group)
+        public bool IsColliding(ISet<Move> group)
         {
             // Same target check
             Direction saved_direction = direction;

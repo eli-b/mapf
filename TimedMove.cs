@@ -86,17 +86,17 @@ namespace CPF_experiment
         /// </summary>
         /// <param name="other"></param>
         /// <returns></returns>
-        public bool isColliding(TimedMove other)
+        public bool IsColliding(TimedMove other)
         {
-            return isColliding(other.x, other.y, other.direction, other.time);
+            return IsColliding(other.x, other.y, other.direction, other.time);
         }
 
-        public bool isColliding(int other_x, int other_y, Direction other_direction, int time)
+        public bool IsColliding(int other_x, int other_y, Direction other_direction, int time)
         {
             if (this.time != time)
                 return false;
 
-            return base.isColliding(other_x, other_y, other_direction);
+            return base.IsColliding(other_x, other_y, other_direction);
         }
 
         public new TimedMove GetOppositeMove()
@@ -124,10 +124,10 @@ namespace CPF_experiment
             this.time = time;
         }
 
-        public bool isColliding(HashSet<TimedMove> CAT)
+        public bool IsColliding(ICollection<TimedMove> CAT)
         {
-            // Sadly, since there's currently no System.Collections.Generic.IReadOnlySet, Move.isColliding accepts an ISet<Move>,
-            // so the compiler doesn't let us just call base.isColliding(CAT) because base might put a Move that isn't a TimedMove in CAT,
+            // Sadly, since there's currently no System.Collections.Generic.IReadOnlySet, Move.IsColliding accepts an ISet<Move>,
+            // so the compiler doesn't let us just call base.IsColliding(CAT) because base might put a Move that isn't a TimedMove in CAT,
             if (CAT == null)
                 return false;
 

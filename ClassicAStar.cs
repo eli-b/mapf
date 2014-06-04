@@ -450,7 +450,7 @@ namespace CPF_experiment
             // This is used in Trevor's IndependenceDetection.
             if (this.illegalMoves != null) 
             {
-                if (possibleMove.isColliding(illegalMoves))
+                if (possibleMove.IsColliding(illegalMoves))
                     return false;
             } // FIXME: Also checked in IsValid later.
 
@@ -475,7 +475,7 @@ namespace CPF_experiment
                 return false;
 
             // Check against all the agents that have already moved to see if current move collides with their move
-            return (possibleMove.isColliding(currentMoves) == false);
+            return (possibleMove.IsColliding(currentMoves) == false);
         }
 
         /// <summary>
@@ -489,7 +489,7 @@ namespace CPF_experiment
 
         public virtual SinglePlan[] GetSinglePlans()
         {
-            return this.GetPlan().getSinglePlans();
+            return this.GetPlan().GetSinglePlans();
         }
 
         protected int[] singleCosts;

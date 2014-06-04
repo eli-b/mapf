@@ -440,16 +440,9 @@ namespace CPF_experiment
             {
                 var reserved = (HashSet<TimedMove>)parameters[Trevor.ILLEGAL_MOVES_KEY];
 
-                return (toCheck.isColliding(reserved) == false);
-            }
+                return (toCheck.IsColliding(reserved) == false);
+            } // FIXME: Should this be here?
 
-            //if (parameters.ContainsKey(CBS_LocalConflicts.CONSTRAINTS))
-            //{
-            //    CbsConstraint nextStepLocation = new CbsConstraint();
-            //    nextStepLocation.Init(?, toCheck.x, toCheck.y, toCheck.time, toCheck.direction);
-            //    if (((HashSet_U<CbsConstraint>)parameters[CBS_LocalConflicts.CONSTRAINTS]).Contains(nextStepLocation))
-            //        return false;
-            //}
             return true;
         }
 
