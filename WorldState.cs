@@ -169,9 +169,11 @@ namespace CPF_experiment
         public virtual int CompareTo(IBinaryHeapItem other)
         {
             WorldState that = (WorldState)other;
-            if (this.h + this.g < that.h + that.g)
+            int thisF = this.h + this.g;
+            int thatF = that.h + that.g;
+            if (thisF < thatF)
                 return -1;
-            if (this.h + this.g > that.h + that.g)
+            if (thisF > thatF)
                 return 1;
 
             // Tie breaking:

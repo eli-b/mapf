@@ -420,7 +420,7 @@ namespace CPF_experiment
                 return 1;
 
             // Tie breaking:
-            // Prefer less external conflicts, even over goal nodes
+            // Prefer less external conflicts, even over goal nodes, as goal nodes with less external conflicts are better.
             if (this.externalConflictsCount < other.externalConflictsCount)
                 return -1;
             if (this.externalConflictsCount > other.externalConflictsCount)
@@ -430,11 +430,10 @@ namespace CPF_experiment
                 return -1;
             if (other.GoalTest() == true && this.GoalTest() == false)
                 return 1;
-            // Prefer more depth. WHY???
-            if (this.depth > other.depth)
-                return -1;
-            if (this.depth < other.depth)
-                return 1;
+
+            // Not preferring more depth because it makes no sense. It's not like preferring larger g,
+            // which is smart because that part of the cost isn't an estimate.
+
             // Prefer partially expanded nodes. They're less work because they have less constraints and only one child to generate.
             // The elaborate form, again, is to keep the comparison consistent. Without it partiallyExpandedA<partiallyExpandedB and partiallyExpandedA>partiallyExpandedB
             if ((this.agentAExpansion == CbsNode.ExpansionState.DEFERRED || this.agentBExpansion == CbsNode.ExpansionState.DEFERRED) &&
