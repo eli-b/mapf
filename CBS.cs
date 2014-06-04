@@ -92,14 +92,7 @@ namespace CPF_experiment
             else
                 this.maxCost = int.MaxValue;
 
-            if (problemInstance.parameters.ContainsKey(CBS_LocalConflicts.INTERNAL_CAT) == false) // Top-most CBS solver
-            {
-                problemInstance.parameters[CBS_LocalConflicts.INTERNAL_CAT] = new HashSet_U<TimedMove>();
-                problemInstance.parameters[CBS_LocalConflicts.CONSTRAINTS] = new HashSet_U<CbsConstraint>();
-                this.topMost = true;
-            }
-            else
-                this.topMost = false;
+            this.topMost = this.SetGlobals();
 
             this.minDepth = minDepth;
 
@@ -249,8 +242,42 @@ namespace CPF_experiment
 
         private bool debug = false;
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns>Whether this is the top-most CBS</returns>
+        protected bool SetGlobals()
+        {
+            AgentState.EquivalenceOverDifferentTimes = false;
+            if (this.instance.parameters.ContainsKey(CBS_LocalConflicts.INTERNAL_CAT) == false) // Top-most CBS solver
+            {
+                this.instance.parameters[CBS_LocalConflicts.INTERNAL_CAT] = new HashSet_U<TimedMove>();
+                this.instance.parameters[CBS_LocalConflicts.CONSTRAINTS] = new HashSet_U<CbsConstraint>();
+                return true;
+            }
+            else
+                return false;
+        }
+
+        protected void CleanGlobals()
+        {
+            AgentState.EquivalenceOverDifferentTimes = true;
+            if (this.topMost) // Clear problem parameters
+            {
+                this.instance.parameters.Remove(CBS_LocalConflicts.INTERNAL_CAT);
+                this.instance.parameters.Remove(CBS_LocalConflicts.CONSTRAINTS);
+                // Don't remove must constraints:
+                // A) It wasn't CBS that added them.
+                // B) Must constraints only appear in temporary problems.
+                //    There's no danger of leaking them to other solvers because if they exist then this is a temporary problem.
+                // C) We don't have the information to re-create them later.
+            }
+        }
+
         public bool Solve()
         {
+            this.SetGlobals(); // Again, because we might be resuming a search that was stopped.
+
             //Debug.WriteLine("Solving Sub-problem On Level - " + mergeThreshold);
             int initialEstimate = 0;
             if (openList.Count > 0)
@@ -266,6 +293,7 @@ namespace CPF_experiment
                     totalCost = Constants.TIMEOUT_COST;
                     Console.WriteLine("Out of time");
                     this.Clear();
+                    this.CleanGlobals();
                     return false;
                 }
                 var currentNode = (CbsNode)openList.Remove();
@@ -297,6 +325,7 @@ namespace CPF_experiment
                     this.goalNode = currentNode;
                     this.solution = currentNode.CalculateJointPlan();
                     this.Clear();
+                    this.CleanGlobals();
                     return true;
                 }
 
@@ -305,8 +334,8 @@ namespace CPF_experiment
                     if (debug)
                         Debug.WriteLine("-------------------------");
                     this.totalCost = currentNode.totalCost; // This is the min possible cost so far.
-                    //this.openList.Add(currentNode); // To be able to continue the search later
-                    this.Clear();
+                    this.openList.Add(currentNode); // To be able to continue the search later
+                    this.CleanGlobals();
                     return false;
                 }
                 
@@ -320,6 +349,7 @@ namespace CPF_experiment
 
             this.totalCost = Constants.NO_SOLUTION_COST;
             this.Clear();
+            this.CleanGlobals();
             return false;
         }
 

@@ -22,6 +22,10 @@ namespace CPF_experiment
         public int potentialConflicts;
         public ushort potentialConflictsID;
         [NonSerialized] public AgentState prev;
+        /// <summary>
+        /// For CBS this must be set to false.
+        /// </summary>
+        public static bool EquivalenceOverDifferentTimes = true;
 
         public AgentState(int pos_X, int pos_Y, Agent agent)
         {
@@ -60,7 +64,7 @@ namespace CPF_experiment
 
             // If performed a non WAIT move and reached the agent's goal - store the arrival time
             if ((move.direction != Move.Direction.Wait) && (this.AtGoal()))
-                this.arrivalTime = lastMove.time;
+                this.arrivalTime = move.time;
         }
 
         /// <summary>
@@ -94,23 +98,35 @@ namespace CPF_experiment
         public void SetIndexInHeap(int index) { binaryHeapIndex = index; }
 
         /// <summary>
-        /// Checks lastMove and agent
+        /// When equivalence over different times is necessary,
+        /// checks this.agent and last position only,
+        /// ignoring data that would make this state different to other equivalent states:
+        /// It doesn't matter from which direction the agent got to its current location.
+        /// It's also necessary to ignore the agents' move time - we want the same positions
+        /// in any time to be equivalent.
         /// </summary>
         /// <param name="obj"></param>
         /// <returns></returns>
         public override bool Equals(object obj)
         {
             AgentState that = (AgentState)obj;
-            
-            if (this.lastMove.Equals(that.lastMove) && this.agent.Equals(that.agent))
+
+            if (AgentState.EquivalenceOverDifferentTimes)
             {
-                return true;
+                return this.agent.Equals(that.agent) &&
+                       this.lastMove.x == that.lastMove.x && 
+                       this.lastMove.y == that.lastMove.y; // Ignoring the time and the direction
             }
-            return false;
+            else
+            {            
+                return this.agent.Equals(that.agent) && this.lastMove.Equals(that.lastMove); // Might still ignore the direction
+                                                                                             // if it isn't set in both of the moves.
+            }
         }
 
         /// <summary>
-        /// Uses lastMove and agent.
+        /// When equivalence over different times is necessary,
+        /// uses this.agent and last position only, ignoring direction and time.
         /// </summary>
         /// <param name="obj"></param>
         /// <returns></returns>
@@ -118,7 +134,10 @@ namespace CPF_experiment
         {
             unchecked
             {
-                return 3 * this.agent.GetHashCode() + 5 * this.lastMove.GetHashCode(); // Behavior change: now uses currentStep too.
+                if (AgentState.EquivalenceOverDifferentTimes)
+                    return 3 * this.agent.GetHashCode() + 5 * this.lastMove.x + 7 * this.lastMove.y;
+                else
+                    return 3 * this.agent.GetHashCode() + 5 * this.lastMove.GetHashCode();
             }
         }
 
@@ -150,9 +169,12 @@ namespace CPF_experiment
             if (this.potentialConflicts > that.potentialConflicts)
                 return 1;
 
+            // TODO: Prefer goal nodes.
+
+            // Prefer larger g:
             if (this.lastMove.time < that.lastMove.time)
                 return 1;
-            if (this.lastMove.time > that.lastMove.time) // Prefer larger g
+            if (this.lastMove.time > that.lastMove.time)
                 return -1;
             return 0;
         }

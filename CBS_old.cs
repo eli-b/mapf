@@ -59,6 +59,9 @@ namespace CPF_experiment
 
         public virtual void Setup(ProblemInstance problemInstance, Run runner)
         {
+            AgentState.EquivalenceOverDifferentTimes = false;
+            this.Clear();
+
             this.instance = problemInstance;
             this.runner = runner;
             CbsNode root = new CbsNode(instance.m_vAgents.Length, problemInstance, this.solver, this.lowLevelSolver, runner);
@@ -215,6 +218,7 @@ namespace CPF_experiment
             highLevelExpanded++;
             if (currentNode.Solve(minDepth) == false)
             {
+                AgentState.EquivalenceOverDifferentTimes = true;
                 return false;
             }
             if (currentNode.totalCost <= this.maxCost)
@@ -231,6 +235,7 @@ namespace CPF_experiment
                     totalCost = Constants.TIMEOUT_COST;
                     Console.WriteLine("Out of time");
                     this.Clear();
+                    AgentState.EquivalenceOverDifferentTimes = true;
                     return false;
                 }
                 currentNode = (CbsNode)openList.Remove();
@@ -242,6 +247,7 @@ namespace CPF_experiment
                     this.goalNode = currentNode;
                     this.solution = currentNode.CalculateJointPlan();
                     this.Clear();
+                    AgentState.EquivalenceOverDifferentTimes = true;
                     return true;
                 }
                 // Expand
@@ -251,6 +257,7 @@ namespace CPF_experiment
             }
             totalCost = Constants.NO_SOLUTION_COST;
             this.Clear();
+            AgentState.EquivalenceOverDifferentTimes = true;
             return false;
         }
 
