@@ -434,10 +434,12 @@ namespace CPF_experiment
 
                     childNode.prevStep = currentNode.prevStep; // Skip temporary node objects used during expansion process.
                     if (agentIndex == 0)
-                    {
                         childNode.prevStep = currentNode;
-                    }
-                    childNode.currentMoves.Add(agentLocation);
+
+                    if (agentIndex < currentNode.allAgentsState.Length - 1) // More agents need to move
+                        childNode.currentMoves.Add(agentLocation);
+                    else // Moved the last agent
+                        childNode.currentMoves.Clear(); // To reduce memory load and lookup times, even though it's correct to leave the old moves since they're timed.
 
                     GeneratedNodes.Add(childNode);
                 }
