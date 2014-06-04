@@ -169,44 +169,58 @@ namespace CPF_experiment
                 continueFromLastRun = true;
             }
 
+            string[] mapFileNames = {"den502d.map", "ost003d.map", "brc202d.map"};
+
             for (int ag = 0; ag < agentListSizes.Length; ag++)
             {
                 for (int i = 0; i < instances; i++)
                 {
-                    if (continueFromLastRun)//set the latest problem
+                    foreach (string mapFileName in mapFileNames)
                     {
-                        ag = int.Parse(lineParts[0]);
-                        i = int.Parse(lineParts[1]);
-                        for (int j = 2; j < lineParts.Length; j++)
+                        if (continueFromLastRun) //set the latest problem
                         {
-                            runner.outOfTimeCounters[j - 2] = int.Parse(lineParts[j]);
+                            ag = int.Parse(lineParts[0]);
+                            i = int.Parse(lineParts[1]);
+                            for (int j = 2; j < lineParts.Length; j++)
+                            {
+                                runner.outOfTimeCounters[j - 2] = int.Parse(lineParts[j]);
+                            }
+                            continueFromLastRun = false;
+                            continue;
                         }
-                        continueFromLastRun = false;
-                        continue;
-                    }
-                    if (runner.outOfTimeCounters.Sum() == runner.outOfTimeCounters.Length * 20) // All algs should be skipped
-                        break;
-                    instanceName = agentListSizes[ag]+" agents i-"+i;
-                    try
-                    {
-                        instance = ProblemInstance.Import(Directory.GetCurrentDirectory() + "\\Instances\\" + instanceName);
-                    }
-                    catch (Exception importException)
-                    {
-                        throw new Exception("missing map " + instanceName);
-                    }
+                        if (runner.outOfTimeCounters.Sum() == runner.outOfTimeCounters.Length * 20) // All algs should be skipped
+                            break;
+                        instanceName = mapFileName + "-" + agentListSizes[ag] + "-" + i;
+                        try
+                        {
+                            instance = ProblemInstance.Import(Directory.GetCurrentDirectory() + "\\Instances\\" + instanceName);
+                        }
+                        catch (Exception importException)
+                        {
+                            if (onlyReadInstances)
+                            {
+                                Console.WriteLine("File " + instanceName + "  dosen't exist");
+                                return;
+                            }
 
-                    runner.SolveGivenProblem(instance);
+                            instance = runner.GenerateDragonAgeProblemInstance(mapFileName, agentListSizes[ag]);
+                            instance.ComputeSingleAgentShortestPaths();
+                            instance.instanceId = i;
+                            instance.Export(mapFileName + "-" + agentListSizes[ag] + "-" + i);
+                        }
 
-                    //save the latest problem
-                    File.Delete(Directory.GetCurrentDirectory() + "\\Instances\\current problem");
-                    output = new StreamWriter(Directory.GetCurrentDirectory() + "\\Instances\\current problem");
-                    output.WriteLine("{0},{1}",ag, i);
-                    for (int j = 0; j < runner.outOfTimeCounters.Length; j++)
-                    {
-                        output.Write("," + runner.outOfTimeCounters[j]);
+                        runner.SolveGivenProblem(instance);
+
+                        //save the latest problem
+                        File.Delete(currentProblemFileName);
+                        output = new StreamWriter(currentProblemFileName);
+                        output.WriteLine("{0},{1}", ag, i);
+                        for (int j = 0; j < runner.outOfTimeCounters.Length; j++)
+                        {
+                            output.Write("," + runner.outOfTimeCounters[j]);
+                        }
+                        output.Close();
                     }
-                    output.Close();
                 }
             }
             runner.CloseResultsFile();
@@ -239,31 +253,34 @@ namespace CPF_experiment
 
             int instances = 100;
 
-            //int[] gridSizes = new int[] { 3 };
-            //Constants.MAX_TIME = 2400000;
-            //int[] agentListSizes = new int[] { 2, 3, 4, 5, 6, 7, 8 };
+            bool runGrids = true;
+            bool runDragonAge = false;
+            bool runSpecific = false;
 
-            int[] gridSizes = new int[] { 8 };
-            int[] agentListSizes = new int[] { 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18 };
-            //int[] agentListSizes = new int[] { 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34, 36, 38, 40, 42, 44, 46, 48, 50 };
+            if (runGrids == true)
+            {
+                int[] gridSizes = new int[] { 8, 32 };
+                int[] agentListSizes = new int[] { 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18 };
+                //int[] agentListSizes = new int[] { 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34, 36, 38, 40, 42, 44, 46, 48, 50 };
 
-            //int[] gridSizes = new int[] { 32 };
-           // int[] agentListSizes = new int[] { 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100, 105, 110, 115, 120, 125, 130, 135, 140, 145, 150 };
-            //int[] agentListSizes = new int[] { 20 };
+                //int[] gridSizes = new int[] { 32 };
+                //int[] agentListSizes = new int[] { 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100, 105, 110, 115, 120, 125, 130, 135, 140, 145, 150 };
+                //int[] agentListSizes = new int[] { 20 };
 
-           // int[] agentListSizes = new int[] { 4 };
-            //int[] obstaclesProbs = new int[] { 0, 5, 10, 15, 20, 25, 30, 35 };
+                int[] obstaclesPercents = new int[] { /*0, 5, 10,*/ 15, 20, 25, 30 };
+                me.RunExperimentSet(gridSizes, agentListSizes, obstaclesPercents, instances);
+            }
+            else if (runDragonAge == true)
+                me.RunDragonAgeExperimentSet(instances); // Obstacles Percents and grid sizes built-in to the maps.
+            else if (runSpecific == true)
+            {
+                // A function for running a single instance that is loaded from this file.
+                me.RunInstance("corridor1");
+                me.RunInstance("corridor2");
+                me.RunInstance("corridor3");
+                me.RunInstance("corridor4");
+            }
 
-           // int[] obstaclesProbs = new int[] { 0,10,20,30 };
-
-            int[] obstaclesProbs = new int[] { 0};
-            me.RunExperimentSet(gridSizes,agentListSizes,obstaclesProbs,instances);
-
-           //me.RunDragonAgeExperimentSet(instances);
-
-
-            // A function for running a single instance that is loaded from this file.
-            // me.RunInstance("Instance-3-0-4-829");
             // A function to be used by Eric's PDB code
             //me.runForPdb();
             Console.WriteLine("*********************THE END**************************");

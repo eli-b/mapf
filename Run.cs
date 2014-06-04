@@ -261,6 +261,119 @@ namespace CPF_experiment
         }
 
         /// <summary>
+        /// Generates a problem instance based on a DAO map file.
+        /// TODO: Fix code dup with GenerateProblemInstance and Import later.
+        /// </summary>
+        /// <param name="agentsNum"></param>
+        /// <returns></returns>
+        public ProblemInstance GenerateDragonAgeProblemInstance(string mapFileName, int agentsNum)
+        {
+            /**
+             * Randomization based on timer is disabled for purposes of getting
+             * reproducible experiments.
+             */
+            //Random rand = new Random();
+
+            TextReader input = new StreamReader("dao_maps\\" + mapFileName);
+            string[] lineParts;
+            string line;
+            int instanceId = 0;
+
+            line = input.ReadLine();
+            Debug.Assert(line.StartsWith("type octile"));
+
+            // Read grid dimensions
+            line = input.ReadLine();
+            lineParts = line.Split(' ');
+            Debug.Assert(lineParts[0].StartsWith("height"));
+            int maxX = int.Parse(lineParts[1]);
+            line = input.ReadLine();
+            lineParts = line.Split(' ');
+            Debug.Assert(lineParts[0].StartsWith("width"));
+            int maxY = int.Parse(lineParts[1]);
+            line = input.ReadLine();
+            Debug.Assert(line.StartsWith("map"));
+            bool[][] grid = new bool[maxX][];
+            char cell;
+            for (int i = 0; i < maxX; i++)
+            {
+                grid[i] = new bool[maxY];
+                line = input.ReadLine();
+                for (int j = 0; j < maxY; j++)
+                {
+                    cell = line.ElementAt(j);
+                    if (cell == '@' || cell == 'O' || cell == 'T' || cell == 'W' /* Water isn't traversable from land */)
+                        grid[i][j] = true;
+                    else
+                        grid[i][j] = false;
+                }
+            }
+
+            int x;
+            int y;
+            Agent[] aGoals = new Agent[agentsNum];
+            AgentState[] aStart = new AgentState[agentsNum];
+            bool[][] goals = new bool[maxX][];
+
+            for (int i = 0; i < maxX; i++)
+                goals[i] = new bool[maxY];
+
+            // Choose random goal locations
+            for (int i = 0; i < agentsNum; i++)
+            {
+                x = rand.Next(maxX);
+                y = rand.Next(maxY);
+                if (goals[x][y] || grid[x][y])
+                    i--;
+                else
+                {
+                    goals[x][y] = true;
+                    aGoals[i] = new Agent(x, y, i);
+                }
+            }
+
+            // Select random start/goal locations for every agent by performing a random walk
+            for (int i = 0; i < agentsNum; i++)
+            {
+                aStart[i] = new AgentState(aGoals[i].Goal.x, aGoals[i].Goal.y, aGoals[i]);
+            }
+
+            // Initialzied here only for the IsValid() call. TODO: Think how this can be sidestepped elegantly.
+            ProblemInstance problem = new ProblemInstance();
+            problem.Init(aStart, grid);
+
+            for (int j = 0; j < RANDOM_WALK_STEPS; j++)
+            {
+                for (int i = 0; i < agentsNum; i++)
+                {
+                    goals[aStart[i].lastMove.x][aStart[i].lastMove.y] = false; // We're going to move the goal somewhere else
+                    while (true)
+                    {
+                        Move.Direction op = (Move.Direction)rand.Next(0, 5); // TODO: fixme
+                        aStart[i].lastMove.Update(op);
+                        if (problem.IsValid(aStart[i].lastMove) &&
+                            !goals[aStart[i].lastMove.x][aStart[i].lastMove.y]) // This spot isn't another agent's goal
+                            break;
+                        else
+                            aStart[i].lastMove.setOppositeMove(); // Rollback
+                    }
+                    goals[aStart[i].lastMove.x][aStart[i].lastMove.y] = true; // Claim agent's new goal
+                }
+            }
+
+            // Zero the agents' timesteps
+            foreach (AgentState agentStart in aStart)
+            {
+                agentStart.lastMove.time = 0;
+            }
+
+            // TODO: There is some repetition here of previous instantiation of ProblemInstance. Think how to elegantly bypass this.
+            problem = new ProblemInstance();
+            problem.Init(aStart, grid);
+            return problem;
+        }
+
+        /// <summary>
         /// Solve given instance with a list of algorithms 
         /// </summary>
         /// <param name="instance">The instance to solve</param>
@@ -294,7 +407,12 @@ namespace CPF_experiment
                     Console.WriteLine();
                     if (solvers[i].GetSolutionCost() >= 0) // Solved successfully
                     {
-                        solvers[i].GetPlan().PrintPlan();
+                        Plan plan = solvers[i].GetPlan();
+                        int planSize = plan.GetSize();
+                        if (planSize < 15)
+                            plan.PrintPlan();
+                        else
+                            Console.WriteLine("Plan is too long to print (" + planSize + " steps).");
                         outOfTimeCounters[i] = 0;
 
                         // Validate solution:

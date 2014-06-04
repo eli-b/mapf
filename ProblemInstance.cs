@@ -309,7 +309,7 @@ namespace CPF_experiment
                 for (int j = 0; j < maxY; j++)
                 {
                     cell = line.ElementAt(j);
-                    if (cell == '@')
+                    if (cell == '@' || cell == 'O' || cell == 'T' || cell == 'W' /* Water isn't traversable from land */)
                         grid[i][j] = true;
                     else
                         grid[i][j] = false;
@@ -371,7 +371,7 @@ namespace CPF_experiment
                         
             for (int i = 0; i < this.m_vGrid.GetLength(0); i++)
             {
-                for (int j = 0; j < this.m_vGrid.GetLength(0); j++)
+                for (int j = 0; j < this.m_vGrid[0].GetLength(0); j++)
                 {
                     if (this.m_vGrid[i][j] == true)
                         output.Write('@');
