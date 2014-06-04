@@ -34,11 +34,18 @@ namespace CPF_experiment
         public AgentState[] m_vAgents;
         
         /// <summary>
-        /// This is a matrix that contains the optimal path to the goal of every agent from any point in the grid.
+        /// This is a matrix that contains the cost of the optimal path to the goal of every agent from any point in the grid.
         /// The first dimension of the matrix is the number of agents.
         /// The second dimension of the matrix is the cardinality of the location from which we want the shortest path.
         /// </summary>
         public int[][] singleAgentShortestPaths;
+
+        /// <summary>
+        /// This is a matrix that contains the best move towards the goal of every agent from any point in the grid.
+        /// The first dimension of the matrix is the number of agents.
+        /// The second dimension of the matrix is the cardinality of the location from which we want the shortest path.
+        /// </summary>
+        public Move[][] singleAgentOptimalMoves;
 
         public uint m_nObstacles;
         public uint m_nLocations;
@@ -77,6 +84,7 @@ namespace CPF_experiment
             ProblemInstance subproblemInstance = new ProblemInstance(this.parameters);
             subproblemInstance.Init(selectedAgents, this.m_vGrid, (int)this.m_nObstacles, (int)this.m_nLocations, this.m_vPermutations, this.m_vCardinality);
             subproblemInstance.singleAgentShortestPaths = this.singleAgentShortestPaths; // Each subproblem holds every agent's single shortest paths just so this.singleAgentShortestPaths[agent_num] would easily work
+            subproblemInstance.singleAgentOptimalMoves = this.singleAgentOptimalMoves;
             return subproblemInstance;
         }
 
@@ -118,53 +126,55 @@ namespace CPF_experiment
         public void ComputeSingleAgentShortestPaths()
         {
             Debug.WriteLine("Computing the single agent shortest path for all agents...");
-            int[] shortestPaths;
-            int entry;
-            WorldState state, childState;
-            AgentState agentState;
-            AgentState currentAgentState;
-            Queue<WorldState> openlist = new Queue<WorldState>();
 
             this.singleAgentShortestPaths = new int[this.GetNumOfAgents()][];
+            this.singleAgentOptimalMoves = new Move[this.GetNumOfAgents()][];
+
             for (int agentId = 0; agentId < this.GetNumOfAgents(); agentId++)
             {
                 // Run a single source shortest path algorithm from the _goal_ of the agent
-                shortestPaths = new int[this.m_nLocations];
+                var shortestPaths = new int[this.m_nLocations];
+                var optimalMoves = new Move[this.m_nLocations];
                 for (int i = 0; i < m_nLocations; i++)
                     shortestPaths[i] = -1;
-                openlist.Clear();
+                for (int i = 0; i < m_nLocations; i++)
+                    optimalMoves[i] = null;
+                var openlist = new Queue<AgentState>();
 
                 // Create initial state
-                agentState = new AgentState(this.m_vAgents[agentId].agent.Goal.x,
+                var goalState = new AgentState(this.m_vAgents[agentId].agent.Goal.x,
                         this.m_vAgents[agentId].agent.Goal.y, -1, -1, agentId);
-                entry = this.GetCardinality(agentState.lastMove);
-                shortestPaths[entry] = 0;
-                openlist.Enqueue(new WorldState(new AgentState[1] { agentState }));
+                int goalIndex = this.GetCardinality(goalState.lastMove);
+                shortestPaths[goalIndex] = 0;
+                optimalMoves[goalIndex] = null;
+                openlist.Enqueue(goalState);
+
                 while (openlist.Count > 0)
                 {
-                    state = openlist.Dequeue();
-                    currentAgentState = state.allAgentsState[0];
+                    AgentState state = openlist.Dequeue();
 
                     // Generate child states
-                    foreach (TimedMove aMove in currentAgentState.lastMove.GetNextMoves(Constants.ALLOW_DIAGONAL_MOVE))
+                    foreach (TimedMove aMove in state.lastMove.GetNextMoves(Constants.ALLOW_DIAGONAL_MOVE))
                     {
                         if (IsValid(aMove))
                         {
-                            entry = m_vCardinality[aMove.x, aMove.y];
+                            int entry = m_vCardinality[aMove.x, aMove.y];
                             // If move will generate a new or better state - add it to the queue
-                            if ((shortestPaths[entry] < 0) || (shortestPaths[entry] > state.g + 1))
+                            if ((shortestPaths[entry] == -1) || (shortestPaths[entry] > state.g + 1))
                             {
-                                childState = new WorldState(state);
-                                childState.allAgentsState[0].MoveTo(aMove);
-                                childState.g = state.g + 1;
-                                shortestPaths[entry] = state.g + 1;
+                                var childState = new AgentState(state);
+                                childState.MoveTo(aMove);
+                                shortestPaths[entry] = childState.g;
+                                optimalMoves[entry] = aMove.GetOppositeMove();
                                 openlist.Enqueue(childState);
                             }
                         }
                     }
 
                 }
+
                 this.singleAgentShortestPaths[agentId] = shortestPaths;
+                this.singleAgentOptimalMoves[agentId] = optimalMoves;
             }
         }
 
@@ -200,6 +210,28 @@ namespace CPF_experiment
         public int GetSingleAgentShortestPath(AgentState agent)
         {
             return this.singleAgentShortestPaths[agent.agent.agentNum][this.m_vCardinality[agent.lastMove.x, agent.lastMove.y]];
+        }
+
+        /// <summary>
+        /// The returned plan wasn't constructed considering a CAT, so it's possible there's an alternative plan with the same cost and less collisions.
+        /// </summary>
+        /// <param name="agent"></param>
+        /// <returns></returns>
+        public SinglePlan GetSingleAgentOptimalPlan(AgentState agent)
+        {
+            LinkedList<Move> moves = new LinkedList<Move>();
+            moves.AddLast(agent.lastMove); // The starting position
+
+            int agentNum = agent.agent.agentNum;
+            Move current = this.singleAgentOptimalMoves[agentNum][this.GetCardinality(agent.lastMove)];
+
+            while (current != null)
+            {
+                moves.AddLast(current);
+                current = this.singleAgentOptimalMoves[agentNum][this.GetCardinality(current)];
+            }
+
+            return new SinglePlan(moves, agentNum);
         }
 
         /// <summary>

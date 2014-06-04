@@ -111,6 +111,11 @@ namespace CPF_experiment
             HashSet<CbsConstraint> newConstraints = this.GetConstraints();
             var internalCAT = (HashSet_U<TimedMove>)problem.parameters[CBS_LocalConflicts.INTERNAL_CAT];
             var constraints = (HashSet_U<CbsConstraint>)problem.parameters[CBS_LocalConflicts.CONSTRAINTS];
+            bool haveMustConstraints = problem.parameters.ContainsKey(CBS_LocalConflicts.MUST_CONSTRAINTS) == true &&
+                                       ((List<CbsConstraint>)problem.parameters[CBS_LocalConflicts.MUST_CONSTRAINTS]).Count > 0;
+            Dictionary<int,int> agentsWithMustConstraints = null; // To quiet the compiler
+            if (haveMustConstraints)
+                agentsWithMustConstraints = ((List<CbsConstraint>)problem.parameters[CBS_LocalConflicts.MUST_CONSTRAINTS]).Select<CbsConstraint, int>(constraint => constraint.GetAgents()[0]).Distinct().ToDictionary<int,int>(x=>x); // ToDictionary because there's no ToSet...
 
             if (newConstraints.Count != 0)
             {
@@ -124,32 +129,45 @@ namespace CPF_experiment
 
             for (int i = 0; i < problem.m_vAgents.Length; i++)
             {
-                AgentState[] subGroup = new AgentState[] { problem.m_vAgents[i] };
-                ProblemInstance subProblem = problem.Subproblem(subGroup);
                 
                 // This mechanism of adding the constraints to the possibly pre-existing constraints allows having
                 // layers of CBS solver, each one adding its own constraints and respecting those of the solvers above it
                 // in CbsLocalConflicts
                 internalCAT.Join(newInternalCAT);
 
-                this.lowLevelSolver.Setup(subProblem, depthToReplan, runner);
-                success = this.lowLevelSolver.Solve();
+                if (constraints.Count == 0 && // TODO: Do a similar check to see if the constraints actually affect this agent
+                    (haveMustConstraints == false ||
+                     agentsWithMustConstraints.ContainsKey(i) == false)) // Top-most CBS with no must constraints on this agent. Shortcut available (ignoring the CAT thought)
+                {
+                    allSingleAgentPlans[i] = new SinglePlan(problem.m_vAgents[i]); // All moves up to starting pos
+                    allSingleAgentPlans[i].ContinueWith(this.problem.GetSingleAgentOptimalPlan(problem.m_vAgents[i]));
+                    allSingleAgentCosts[i] = problem.m_vAgents[i].g + this.problem.GetSingleAgentShortestPath(problem.m_vAgents[i]);
+                    totalCost += (ushort)allSingleAgentCosts[i];
+                }
+                else
+                {
+                    AgentState[] subGroup = new AgentState[] { problem.m_vAgents[i] };
+                    ProblemInstance subProblem = problem.Subproblem(subGroup);
                 
-                this.lowLevelSolver.AccumulateStatistics();
-                this.lowLevelSolver.ClearStatistics();
-                
-                internalCAT.Seperate(newInternalCAT);
-                
-                if (!success) // Usually means a timeout occured.
-                    break;
+                    this.lowLevelSolver.Setup(subProblem, depthToReplan, runner);
+                    success = this.lowLevelSolver.Solve();
 
-                allSingleAgentPlans[i] = this.lowLevelSolver.GetSinglePlans()[0];
-                allSingleAgentCosts[i] = this.lowLevelSolver.GetSolutionCost();
-                totalCost += (ushort)allSingleAgentCosts[i];
+                    this.lowLevelSolver.AccumulateStatistics();
+                    this.lowLevelSolver.ClearStatistics();
+
+                    if (!success) // Usually means a timeout occured.
+                        break;
+
+                    allSingleAgentPlans[i] = this.lowLevelSolver.GetSinglePlans()[0];
+                    allSingleAgentCosts[i] = this.lowLevelSolver.GetSolutionCost();
+                    totalCost += (ushort)allSingleAgentCosts[i];
+                }
+
                 allSingleAgentPlans[i].AddPlanToHashSet(newInternalCAT, totalCost * 2); // This is kind of an arbitrary value.
-                                                                                        // The next plan could be 100 times longer than the total cost so far,
-                                                                                        // and we won't detect the internal conflicts it causes by entering the other agents' goal long after they reached it.
-                                                                                        // TODO: Think of a way to mark the last step in the plan as a "forever after" step that applies to all the next steps.
+                // The next plan could be 100 times longer than the total cost so far,
+                // and we won't detect the internal conflicts it causes by entering the other agents' goal long after they reached it.
+                // TODO: Think of a way to mark the last step in the plan as a "forever after" step that applies to all the next steps.
+                internalCAT.Seperate(newInternalCAT);
             }
 
             constraints.Seperate(newConstraints);
