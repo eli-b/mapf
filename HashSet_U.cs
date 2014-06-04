@@ -1,14 +1,15 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace CPF_experiment
 {
     // <summary>
     // This class represents a union of HashSets.
-    // TODO: Make sure it's really better than using HashSet.UnionWith().
     // </summary>
     [Serializable]
-    public class HashSet_U<T> : HashSet<T>
+    public class HashSet_U<T> : ICollection<T>
     {
         List<HashSet<T>> Data;
         public HashSet_U()
@@ -16,13 +17,32 @@ namespace CPF_experiment
             this.Data = new List<HashSet<T>>();
         }
 
-        public new void Add(T value)
+        public void Add(T value)
         {
             throw new Exception("Illegal Operation");
         }
-        // TODO: illegalify the rest of the unwanted inherited methods of HashSet
 
-        public new bool Contains(T key)
+        public void CopyTo(T[] array, int arrayIndex)
+        {
+            throw new Exception("Illegal Operation"); // Lazy...
+        }
+
+        public bool Remove(T item)
+        {
+            throw new Exception("Illegal Operation");
+        }
+
+        public IEnumerator<T> GetEnumerator()
+        {
+            throw new Exception("Illegal Operation");
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            throw new Exception("Illegal Operation");
+        }
+
+        public bool Contains(T key)
         {
             foreach (HashSet<T> item in Data)
             {
@@ -32,7 +52,10 @@ namespace CPF_experiment
             return false;
         }
 
-        public new void Clear()
+        /// <summary>
+        /// Hardly used.
+        /// </summary>
+        public void Clear()
         {
             foreach (HashSet<T> item in Data)
             {
@@ -51,6 +74,9 @@ namespace CPF_experiment
             Data.Remove(other);
         }
 
+        /// <summary>
+        /// Not used.
+        /// </summary>
         public void Print()
         {
             foreach (HashSet<T> set in Data)
@@ -61,5 +87,17 @@ namespace CPF_experiment
                 }
             }
         }
+
+        /// <summary>
+        /// Gets the number of values in the HashSet. 
+        /// </summary>
+        public int Count
+        {
+            get { 
+                return this.Data.Sum<HashSet<T>>(set => set.Count);
+            }
+        }
+
+        public bool IsReadOnly { get { return true; } } // Using Add() it's read-only
     }
 }
