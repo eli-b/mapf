@@ -270,8 +270,7 @@ namespace CPF_experiment
             List<uint> agentList = Enumerable.Range(0, instance.m_vAgents.Length).Select<int, uint>(x=> (uint)x).ToList<uint>(); // FIXME: Must the heuristics really receive a list of uints?
             
             // Solve using the different algorithms
-            Debug.WriteLine("Solving instance " + instance);
-            int gridSize = instance.m_vGrid.Length;
+            Debug.WriteLine("Solving " + instance);
             this.PrintProblemStatistics(instance);
             //double cr0 = instance.getConflictRation(0);
             //double cr1 = instance.getConflictRation(1);

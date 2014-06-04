@@ -36,8 +36,10 @@ namespace CPF_experiment
         public void RunInstance(string fileName)
         {
             Run runner = new Run();
+            bool resultsFileExisted = File.Exists(RESULTS_FILE_NAME);
             runner.OpenResultsFile(RESULTS_FILE_NAME);
-            runner.PrintResultsFileHeader();
+            if (resultsFileExisted == false)
+                runner.PrintResultsFileHeader();
             ProblemInstance instance = ProblemInstance.Import(Directory.GetCurrentDirectory() + "\\Instances\\" + fileName);
             runner.SolveGivenProblem(instance);
             runner.CloseResultsFile();
@@ -150,16 +152,18 @@ namespace CPF_experiment
             runner.OpenResultsFile(RESULTS_FILE_NAME);
             if (resultsFileExisted == false)
                 runner.PrintResultsFileHeader();
+            // FIXME: Code dup with RunExperimentSet
 
             TextWriter output;
-            int[] agentListSizes = {5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200, 250, 300 };
+            int[] agentListSizes = {5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200, 250, 300};
 
             bool continueFromLastRun = false;
             string[] lineParts = null;
 
-            if (File.Exists(Directory.GetCurrentDirectory() + "\\Instances\\current problem")) //if we're continuing running from last time
+            string currentProblemFileName = Directory.GetCurrentDirectory() + "\\Instances\\current problem-" + Process.GetCurrentProcess().ProcessName;
+            if (File.Exists(currentProblemFileName)) //if we're continuing running from last time
             {
-                TextReader input = new StreamReader(Directory.GetCurrentDirectory() + "\\Instances\\current problem");
+                TextReader input = new StreamReader(currentProblemFileName);
                 lineParts = input.ReadLine().Split(',');  //get the last problem
                 input.Close();
                 continueFromLastRun = true;
@@ -230,18 +234,6 @@ namespace CPF_experiment
             {
                 Directory.CreateDirectory(Directory.GetCurrentDirectory() + "\\Instances");
             }
-
-
-            //Console.WriteLine("Only Pre-Made Instances? <(ENTER)-no,(1)-yes>");
-            //if (Console.ReadLine() == "1")
-            //{
-            //    Program.onlyReadInstances = true;
-            //    Console.WriteLine("You Choose Only Pre-Made Instances");
-            //}
-            //else
-            //    Console.WriteLine("You Choose To Allow Creation Of New Instances");
-
-            // Console.ReadLine();
 
             Program.onlyReadInstances = false;
 
