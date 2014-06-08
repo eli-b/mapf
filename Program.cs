@@ -115,7 +115,7 @@ namespace CPF_experiment
                                 instance = runner.GenerateProblemInstance(gridSizes[gs], agentListSizes[ag], obstaclesProbs[obs] * gridSizes[gs] * gridSizes[gs] / 100);
                                 instance.ComputeSingleAgentShortestPaths();
                                 instance.instanceId = i;
-                                instance.Export("Instance-" + gridSizes[gs] + "-" + obstaclesProbs[obs] + "-" + agentListSizes[ag] + "-" + i);
+                                instance.Export(instanceName);
                             }
 
                             runner.SolveGivenProblem(instance);
@@ -175,22 +175,24 @@ namespace CPF_experiment
             {
                 for (int i = 0; i < instances; i++)
                 {
-                    foreach (string mapFileName in mapFileNames)
+                    for (int map = 0; map < mapFileNames.Length; map++)
                     {
                         if (continueFromLastRun) //set the latest problem
                         {
                             ag = int.Parse(lineParts[0]);
                             i = int.Parse(lineParts[1]);
-                            for (int j = 2; j < lineParts.Length; j++)
+                            map = int.Parse(lineParts[2]);
+                            for (int j = 3; j < lineParts.Length; j++)
                             {
-                                runner.outOfTimeCounters[j - 2] = int.Parse(lineParts[j]);
+                                runner.outOfTimeCounters[j - 3] = int.Parse(lineParts[j]);
                             }
                             continueFromLastRun = false;
                             continue;
                         }
                         if (runner.outOfTimeCounters.Sum() == runner.outOfTimeCounters.Length * 20) // All algs should be skipped
                             break;
-                        instanceName = mapFileName + "-" + agentListSizes[ag] + "-" + i;
+                        string mapFileName = mapFileNames[map];
+                        instanceName = Path.GetFileNameWithoutExtension(mapFileName) + "-" + agentListSizes[ag] + "-" + i;
                         try
                         {
                             instance = ProblemInstance.Import(Directory.GetCurrentDirectory() + "\\Instances\\" + instanceName);
@@ -206,7 +208,7 @@ namespace CPF_experiment
                             instance = runner.GenerateDragonAgeProblemInstance(mapFileName, agentListSizes[ag]);
                             instance.ComputeSingleAgentShortestPaths();
                             instance.instanceId = i;
-                            instance.Export(mapFileName + "-" + agentListSizes[ag] + "-" + i);
+                            instance.Export(instanceName);
                         }
 
                         runner.SolveGivenProblem(instance);
@@ -214,7 +216,7 @@ namespace CPF_experiment
                         //save the latest problem
                         File.Delete(currentProblemFileName);
                         output = new StreamWriter(currentProblemFileName);
-                        output.WriteLine("{0},{1}", ag, i);
+                        output.Write("{0},{1},{2}", ag, i, map);
                         for (int j = 0; j < runner.outOfTimeCounters.Length; j++)
                         {
                             output.Write("," + runner.outOfTimeCounters[j]);
