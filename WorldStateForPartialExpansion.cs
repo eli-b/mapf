@@ -54,55 +54,59 @@ namespace CPF_experiment
 
             // For intermediate nodes created during expansion (fully expanded nodes have these fields recalculated when they're expanded)
             remainingDeltaF = cpy.remainingDeltaF;
-            singleAgentDeltaFs = cpy.singleAgentDeltaFs; // Notice that after an agent is moved its row won't be up-to-date.
-            fLookup = cpy.fLookup; // Notice that after an agent is moved, all rows up to and including the one of the agent that moved won't be up-to-date.
+            singleAgentDeltaFs = cpy.singleAgentDeltaFs; // For the UpdateRemainingDeltaF call on temporary nodes.
+                                                         // Notice that after an agent is moved its row won't be up-to-date.
+            fLookup = cpy.fLookup; // For the hasChildrenForCurrentDeltaF call on temporary nodes.
+                                   // Notice that after an agent is moved, all rows up to and including the one of the agent that moved won't be up-to-date.
             maxDeltaF = cpy.maxDeltaF; // Not necessarily achievable after some of the agents moved.
             // The above is OK because we won't be using data for agents that already moved.
         }
 
+        /// <summary>
+        /// From generated nodes. Allows expansion table to be garbage collected before all generated nodes are expanded.
+        /// </summary>
+        public void ClearExpansionData()
+        {
+            this.singleAgentDeltaFs = null;
+            this.fLookup = null;
+        }
+
         // Notice is isn't necessary to implement a CompareTo method that further tie-breaks in favor of lower targetDeltaF's
         // because the targetDeltaF is already taken into account in the node's H.
+
+        public delegate bool ValidityChecker(TimedMove move, HashSet<TimedMove> currentMoves, int makespan, int agentNum);
 
         /// <summary>
         /// Calculates for each agent and each direction it can go, the effect of that move on F. Illegal moves get byte.MaxValue.
         /// Also calcs maxDeltaF.
         /// Implicitly uses the SIC heuristic.
         /// </summary>
-        /// <param name="problem"></param>
+        /// <param name="problem">For GetSingleAgentOptimalCost</param>
         /// <returns></returns>
-        public void calcSingleAgentDeltaFs(ProblemInstance problem)
+        public void calcSingleAgentDeltaFs(ProblemInstance problem, ValidityChecker isValid)
         {
-            //Init
+            var noMoves = new HashSet<TimedMove>();
+            // Init
             this.singleAgentDeltaFs = new byte[allAgentsState.Length][];
             for (int i = 0; i < singleAgentDeltaFs.Length; i++)
             {
-                singleAgentDeltaFs[i] = new byte[Constants.NUM_ALLOWED_DIRECTIONS];
+                this.singleAgentDeltaFs[i] = new byte[Constants.NUM_ALLOWED_DIRECTIONS];
             }
 
             int hBefore, hAfter;
 
-            //set values
+            // Set values
             for (int i = 0; i < allAgentsState.Length; i++)
             {
                 hBefore = problem.GetSingleAgentShortestPath(allAgentsState[i]); // According to SIC
 
                 foreach (TimedMove check in allAgentsState[i].lastMove.GetNextMoves(Constants.ALLOW_DIAGONAL_MOVE))
                 {
-                    if (problem.parameters.ContainsKey(Trevor.ILLEGAL_MOVES_KEY))
+                    if (isValid(check, noMoves, this.makespan + 1, i) == false)
                     {
-                        HashSet<TimedMove> reserved = (HashSet<TimedMove>)(problem.parameters[Trevor.ILLEGAL_MOVES_KEY]);
-                        if (check.IsColliding(reserved))
-                        {
-                            singleAgentDeltaFs[i][(int)check.direction] = byte.MaxValue;
-                            continue;
-                        }
+                         singleAgentDeltaFs[i][(int)check.direction] = byte.MaxValue;
                     }
-
-                    // FIXME: Check for Constraints too, or better yet, use ClassisAStar.IsValid().
-                    // The current implementation without the check may unnecessarily go over deltaFs that have no valid children
-                    // when run as a low level solver for CBS (never).
-                    
-                    if (problem.IsValidTile(check.x, check.y))
+                    else
                     {
                         hAfter = problem.GetSingleAgentShortestPath(allAgentsState[i].agent.agentNum, check); // According to SIC
 
@@ -112,10 +116,6 @@ namespace CPF_experiment
                             singleAgentDeltaFs[i][(int)check.direction] = (byte)(hAfter - hBefore + makespan - allAgentsState[i].arrivalTime + 1);
                         else
                             singleAgentDeltaFs[i][(int)check.direction] = 0; // This is a WAIT move at the goal.
-                    }
-                    else
-                    {
-                        singleAgentDeltaFs[i][(int)check.direction] = byte.MaxValue;
                     }
                 }
             }
@@ -200,6 +200,19 @@ namespace CPF_experiment
                 this.remainingDeltaF -= lastMoveDeltaF;
             else
                 this.remainingDeltaF = byte.MaxValue; // Either because last move was illegal or because the delta F from the last move was more than the entire remaining delta F budget
+        }
+
+        /// <summary>
+        /// For fully expanded nodes.
+        /// Notice ClearExpansionData does a similar thing, but for different reasons.
+        /// </summary>
+        public void Clear()
+        {
+            this.alreadyExpanded = false; // Enables reopening
+            // The following info could be reused when reopening the node, saving the time it takes to generate it,
+            // but reopening a node is rare in our domain, and the memory saved can be significant
+            this.fLookup = null; // Save a lot of memory
+            this.singleAgentDeltaFs = null; // Save some more memory
         }
     }
 }

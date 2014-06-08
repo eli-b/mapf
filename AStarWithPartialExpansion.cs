@@ -38,7 +38,7 @@ namespace CPF_experiment
 
             if (node.isAlreadyExpanded() == false)
             {
-                node.calcSingleAgentDeltaFs(instance);
+                node.calcSingleAgentDeltaFs(instance, this.IsValid);
                 expandedFullStates++;
                 node.alreadyExpanded = true;
                 node.targetDeltaF = 0; // Assuming a consistent heuristic (as done in the paper), the min delta F is zero.
@@ -62,7 +62,7 @@ namespace CPF_experiment
             if (node.hasMoreChildren() && node.hasChildrenForCurrentDeltaF() && node.h + node.g + node.targetDeltaF <= this.maxCost)
             {
                 // Increment H before re-insertion into open list
-                int sicEstimate = node.allAgentsState.Sum<AgentState>(agent => this.instance.GetSingleAgentShortestPath(agent)); // Re-compute even if the heuristic used is SIC since this may be a second expansion
+                int sicEstimate = (int)SumIndividualCosts.h(node, this.instance); // Re-compute even if the heuristic used is SIC since this may be a second expansion
                 if (node.h < sicEstimate + node.targetDeltaF)
                 {
                     // Assuming the heuristic used doesn't give a lower estimate than SIC for each and every one of the node's children,
@@ -78,6 +78,8 @@ namespace CPF_experiment
                 // Re-insert node into open list
                 openList.Add(node);
             }
+            else
+                node.Clear();
         }
 
         protected override List<WorldState> ExpandOneAgent(List<WorldState> intermediateNodes, int agentIndex)
@@ -98,6 +100,15 @@ namespace CPF_experiment
                                                                     ).ToList<WorldState>();
 
             return generated;
+        }
+
+        protected override bool ProcessGeneratedNode(WorldState currentNode)
+        {
+            bool ret = base.ProcessGeneratedNode(currentNode);
+
+            var node = (WorldStateForPartialExpansion)currentNode;
+            node.ClearExpansionData();
+            return ret;
         }
 
         public override void OutputStatisticsHeader(TextWriter output)
