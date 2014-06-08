@@ -16,7 +16,9 @@ namespace CPF_experiment
         /// <summary>
         /// Delimiter used for export/import purposes
         /// </summary>
-        private static char EXPORT_DELIMITER = ',';
+        private static readonly char EXPORT_DELIMITER = ',';
+
+        private static readonly string GRID_NAME_KEY = "Grid Name";
 
         /// <summary>
         /// This contains extra data of this problem instance (used for special problem instances, e.g. subproblems of a bigger problem instance).
@@ -283,11 +285,15 @@ namespace CPF_experiment
             string[] lineParts;
             string line;
             int instanceId = 0;
+            string gridName = "Random Grid"; // The default
 
             line = input.ReadLine();
             if (line.StartsWith("Grid:") == false)
-            { 
-                instanceId = int.Parse(line);
+            {
+                lineParts = line.Split(',');
+                instanceId = int.Parse(lineParts[0]);
+                if (lineParts.Length > 1)
+                    gridName = lineParts[1];
                 line = input.ReadLine();
             }
 
@@ -351,6 +357,7 @@ namespace CPF_experiment
             ProblemInstance instance = new ProblemInstance();
             instance.Init(states, grid);
             instance.instanceId = instanceId;
+            instance.parameters[ProblemInstance.GRID_NAME_KEY] = gridName;
             instance.ComputeSingleAgentShortestPaths();
             return instance;
         }
@@ -363,7 +370,10 @@ namespace CPF_experiment
         {
             TextWriter output = new StreamWriter(Directory.GetCurrentDirectory() + "\\Instances\\"+fileName);
             // Output the instance ID
-            output.WriteLine(this.instanceId);
+            if (this.parameters.ContainsKey(ProblemInstance.GRID_NAME_KEY))
+                output.WriteLine(this.instanceId.ToString() + "," + this.parameters[ProblemInstance.GRID_NAME_KEY]);
+            else
+                output.WriteLine(this.instanceId);
 
             // Output the grid
             output.WriteLine("Grid:");
@@ -489,8 +499,11 @@ namespace CPF_experiment
 
         public override string ToString()
         {
-            return "Problem instance:"+instanceId+" #Agents:" + m_vAgents.Length
-                    + ", GridCells:" + m_nLocations + ", #Obstacles:" + m_nObstacles;                
+            string str = "Problem instance:" + instanceId;
+            if (this.parameters.ContainsKey(ProblemInstance.GRID_NAME_KEY))
+                str += " Grid Name:" + this.parameters[ProblemInstance.GRID_NAME_KEY];
+            str += " #Agents:" + m_vAgents.Length + ", GridCells:" + m_nLocations + ", #Obstacles:" + m_nObstacles;
+            return str;
         }
     }
 }
