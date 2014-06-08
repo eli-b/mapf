@@ -157,5 +157,10 @@ namespace CPF_experiment
 
             output.Write(this.accExpandedFullStates + Run.RESULTS_DELIMITER);
         }
+
+        public override float GetEffectiveBranchingFactor()
+        {
+            return ((float)this.GetGenerated() - 1) / this.expandedFullStates;
+        }
     }
 }

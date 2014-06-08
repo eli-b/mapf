@@ -632,6 +632,11 @@ namespace CPF_experiment
         public int GetAccumulatedExpanded() { return accExpanded; }
         public int GetAccumulatedGenerated() { return accGenerated; }
         public int GetMaxGroupSize() { return numOfAgents; }
+
+        public virtual float GetEffectiveBranchingFactor()
+        {
+            return ((float)this.GetGenerated() - 1) / this.GetExpanded();
+        }
     }
 }
 
