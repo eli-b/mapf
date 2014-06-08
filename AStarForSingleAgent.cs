@@ -30,7 +30,7 @@ namespace CPF_experiment
             this.instance = problemInstance;
             this.constraintsInGroup = constraints;
             AgentState root = problemInstance.m_vAgents[agentNum];
-            root.h = problemInstance.GetSingleAgentShortestPath(root);
+            root.h = problemInstance.GetSingleAgentOptimalCost(root);
             root.potentialConflicts = 0;
             this.closedList.Clear();
             this.openList.Clear();
@@ -98,7 +98,7 @@ namespace CPF_experiment
                         nextStep = new AgentState(currentNode);
                         nextStep.prev = currentNode;
                         nextStep.MoveTo(nextMove);
-                        nextStep.h = Math.Max(instance.GetSingleAgentShortestPath(nextStep),
+                        nextStep.h = Math.Max(instance.GetSingleAgentOptimalCost(nextStep),
                                               minDepth - nextStep.lastMove.time);
                         nextStep.potentialConflicts = currentNode.potentialConflicts;
                         nextStep.potentialConflictsID = currentNode.potentialConflictsID;

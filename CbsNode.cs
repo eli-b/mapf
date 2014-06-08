@@ -141,7 +141,7 @@ namespace CPF_experiment
                 {
                     allSingleAgentPlans[i] = new SinglePlan(problem.m_vAgents[i]); // All moves up to starting pos
                     allSingleAgentPlans[i].ContinueWith(this.problem.GetSingleAgentOptimalPlan(problem.m_vAgents[i]));
-                    allSingleAgentCosts[i] = problem.m_vAgents[i].g + this.problem.GetSingleAgentShortestPath(problem.m_vAgents[i]);
+                    allSingleAgentCosts[i] = problem.m_vAgents[i].g + this.problem.GetSingleAgentOptimalCost(problem.m_vAgents[i]);
                     totalCost += (ushort)allSingleAgentCosts[i];
                 }
                 else

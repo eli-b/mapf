@@ -49,7 +49,7 @@ namespace CPF_experiment
         }
 
         /// <summary>
-        /// build the generalized MDD
+        /// Build the generalized MDD
         /// </summary>
         /// <returns></returns>
         private bool buildGeneralMDD()

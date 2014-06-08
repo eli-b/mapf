@@ -102,7 +102,7 @@ namespace CPF_experiment
             foreach (TimedMove move in father.move.GetNextMoves(Constants.ALLOW_DIAGONAL_MOVE))
             {
                 if ((this.problem.IsValid(move)) &&
-                    (this.problem.GetSingleAgentShortestPath(this.agentNum, move.x, move.y) <= heuristicBound))
+                    (this.problem.GetSingleAgentOptimalCost(this.agentNum, move.x, move.y) <= heuristicBound))
                 {
                     MDDNode child = new MDDNode(move, numOfAgents, this);
                     children.AddFirst(child);

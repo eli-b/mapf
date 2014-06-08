@@ -98,7 +98,7 @@ namespace CPF_experiment
             // Set values
             for (int i = 0; i < allAgentsState.Length; i++)
             {
-                hBefore = problem.GetSingleAgentShortestPath(allAgentsState[i]); // According to SIC
+                hBefore = problem.GetSingleAgentOptimalCost(allAgentsState[i]); // According to SIC
 
                 foreach (TimedMove check in allAgentsState[i].lastMove.GetNextMoves(Constants.ALLOW_DIAGONAL_MOVE))
                 {
@@ -108,7 +108,7 @@ namespace CPF_experiment
                     }
                     else
                     {
-                        hAfter = problem.GetSingleAgentShortestPath(allAgentsState[i].agent.agentNum, check); // According to SIC
+                        hAfter = problem.GetSingleAgentOptimalCost(allAgentsState[i].agent.agentNum, check); // According to SIC
 
                         if (hBefore != 0)
                             singleAgentDeltaFs[i][(int)check.direction] = (byte)(hAfter - hBefore + 1); // h difference + g difference in this specific domain

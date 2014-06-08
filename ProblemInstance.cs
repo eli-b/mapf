@@ -18,7 +18,7 @@ namespace CPF_experiment
         /// </summary>
         private static readonly char EXPORT_DELIMITER = ',';
 
-        private static readonly string GRID_NAME_KEY = "Grid Name";
+        public static readonly string GRID_NAME_KEY = "Grid Name";
 
         /// <summary>
         /// This contains extra data of this problem instance (used for special problem instances, e.g. subproblems of a bigger problem instance).
@@ -40,7 +40,7 @@ namespace CPF_experiment
         /// The first dimension of the matrix is the number of agents.
         /// The second dimension of the matrix is the cardinality of the location from which we want the shortest path.
         /// </summary>
-        public int[][] singleAgentShortestPaths;
+        public int[][] singleAgentOptimalCosts;
 
         /// <summary>
         /// This is a matrix that contains the best move towards the goal of every agent from any point in the grid.
@@ -85,7 +85,7 @@ namespace CPF_experiment
             // Not copying instance id. This isn't the same problem.
             ProblemInstance subproblemInstance = new ProblemInstance(this.parameters);
             subproblemInstance.Init(selectedAgents, this.m_vGrid, (int)this.m_nObstacles, (int)this.m_nLocations, this.m_vPermutations, this.m_vCardinality);
-            subproblemInstance.singleAgentShortestPaths = this.singleAgentShortestPaths; // Each subproblem holds every agent's single shortest paths just so this.singleAgentShortestPaths[agent_num] would easily work
+            subproblemInstance.singleAgentOptimalCosts = this.singleAgentOptimalCosts; // Each subproblem knows every agent's single shortest paths so this.singleAgentOptimalCosts[agent_num] would easily work
             subproblemInstance.singleAgentOptimalMoves = this.singleAgentOptimalMoves;
             return subproblemInstance;
         }
@@ -129,7 +129,7 @@ namespace CPF_experiment
         {
             Debug.WriteLine("Computing the single agent shortest path for all agents...");
 
-            this.singleAgentShortestPaths = new int[this.GetNumOfAgents()][];
+            this.singleAgentOptimalCosts = new int[this.GetNumOfAgents()][];
             this.singleAgentOptimalMoves = new Move[this.GetNumOfAgents()][];
 
             for (int agentId = 0; agentId < this.GetNumOfAgents(); agentId++)
@@ -175,7 +175,7 @@ namespace CPF_experiment
 
                 }
 
-                this.singleAgentShortestPaths[agentId] = shortestPaths;
+                this.singleAgentOptimalCosts[agentId] = shortestPaths;
                 this.singleAgentOptimalMoves[agentId] = optimalMoves;
             }
         }
@@ -187,9 +187,9 @@ namespace CPF_experiment
         /// <param name="x"></param>
         /// <param name="y"></param>
         /// <returns>The length of the shortest path from x,y to the goal of the agent.</returns>
-        public int GetSingleAgentShortestPath(int agentNum, int x, int y)
+        public int GetSingleAgentOptimalCost(int agentNum, int x, int y)
         {
-            return this.singleAgentShortestPaths[agentNum][this.m_vCardinality[x, y]];
+            return this.singleAgentOptimalCosts[agentNum][this.m_vCardinality[x, y]];
         }
 
         /// <summary>
@@ -199,9 +199,9 @@ namespace CPF_experiment
         /// <param name="x"></param>
         /// <param name="y"></param>
         /// <returns>The length of the shortest path from x,y to the goal of the agent.</returns>
-        public int GetSingleAgentShortestPath(int agentNum, Move move)
+        public int GetSingleAgentOptimalCost(int agentNum, Move move)
         {
-            return this.singleAgentShortestPaths[agentNum][this.m_vCardinality[move.x, move.y]];
+            return this.singleAgentOptimalCosts[agentNum][this.m_vCardinality[move.x, move.y]];
         }
 
         /// <summary>
@@ -209,9 +209,9 @@ namespace CPF_experiment
         /// </summary>
         /// <param name="agent"></param>
         /// <returns>The length of the shortest path between a given agent's location and the goal of that agent</returns>
-        public int GetSingleAgentShortestPath(AgentState agent)
+        public int GetSingleAgentOptimalCost(AgentState agent)
         {
-            return this.singleAgentShortestPaths[agent.agent.agentNum][this.m_vCardinality[agent.lastMove.x, agent.lastMove.y]];
+            return this.singleAgentOptimalCosts[agent.agent.agentNum][this.m_vCardinality[agent.lastMove.x, agent.lastMove.y]];
         }
 
         /// <summary>

@@ -5,7 +5,7 @@ using System.Linq;
 namespace CPF_experiment
 {
     /// <summary>
-    /// This class forms a wrapper around m_Problem.GetSingleAgentShortestPath().
+    /// This class forms a wrapper around m_Problem.GetSingleAgentOptimalCost().
     /// It represents the single shortest path heuristic, precomputed for every agent.
     /// </summary>
 
@@ -14,7 +14,7 @@ namespace CPF_experiment
     {
         /// <summary>
         /// Since this class simply refers via a table-lookup to the globally
-        /// available m_Problem.GetSingleAgentShortestPath class, we incur no memory.
+        /// available m_Problem.GetSingleAgentOptimalCost class, we incur no memory.
         /// </summary>
         /// <returns>0 by definition.</returns>
         public override UInt64 estimateSize()
@@ -24,7 +24,7 @@ namespace CPF_experiment
 
         /// <summary>
         /// The building function for this class doesn't do anything because we
-        /// are simply wrapping the functionality of the m_Problem.GetSingleAgentShortestPath
+        /// are simply wrapping the functionality of the m_Problem.GetSingleAgentOptimalCost
         /// class.
         /// </summary>
         public override void build() {}
@@ -39,14 +39,14 @@ namespace CPF_experiment
             uint nHeuristic = 0;
             foreach (AgentState state in s.allAgentsState)
             {
-                nHeuristic += (uint)this.m_Problem.GetSingleAgentShortestPath(state);
+                nHeuristic += (uint)this.m_Problem.GetSingleAgentOptimalCost(state);
             }
             return nHeuristic;
         }
 
         public static uint h(WorldState s, ProblemInstance instance)
         {
-            return (uint) s.allAgentsState.Sum(state => instance.GetSingleAgentShortestPath(state));
+            return (uint) s.allAgentsState.Sum(state => instance.GetSingleAgentOptimalCost(state));
         }
 
         public override string ToString()
