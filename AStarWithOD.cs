@@ -11,6 +11,8 @@ namespace CPF_experiment
     {
         protected int expandedFullStates;
         protected int accExpandedFullStates;
+        protected int generatedFullStates;
+        protected int accGeneratedFullStates;
 
         public AStarWithOD(HeuristicCalculator heuristic = null)
             : base(heuristic) { }
@@ -31,6 +33,7 @@ namespace CPF_experiment
         {
             base.Setup(problemInstance, minDepth, runner);
             this.expandedFullStates = 0;
+            this.generatedFullStates = 0;
         }
 
         protected bool alreadyExpanded;
@@ -82,11 +85,22 @@ namespace CPF_experiment
             return generated;
         }
 
+        protected override bool ProcessGeneratedNode(WorldState currentNode)
+        {
+            bool ret = base.ProcessGeneratedNode(currentNode);
+            var node = (WorldStateWithOD)currentNode;
+            if (node.agentTurn == 0)
+                this.generatedFullStates++;
+            return ret;
+        }
+
         public override void OutputStatisticsHeader(TextWriter output)
         {
             base.OutputStatisticsHeader(output);
 
             output.Write(this.ToString() + " Expanded Full States");
+            output.Write(Run.RESULTS_DELIMITER);
+            output.Write(this.ToString() + " Generated Full States");
             output.Write(Run.RESULTS_DELIMITER);
         }
 
@@ -95,15 +109,17 @@ namespace CPF_experiment
             base.OutputStatistics(output);
 
             Console.WriteLine("Total Expanded Full States: {0}", this.expandedFullStates);
+            Console.WriteLine("Total Generated Full States: {0}", this.generatedFullStates);
 
             output.Write(this.expandedFullStates + Run.RESULTS_DELIMITER);
+            output.Write(this.generatedFullStates + Run.RESULTS_DELIMITER);
         }
 
         public override int NumStatsColumns
         {
             get
             {
-                return 1 + base.NumStatsColumns;
+                return 2 + base.NumStatsColumns;
             }
         }
 
@@ -112,6 +128,7 @@ namespace CPF_experiment
             base.ClearAccumulatedStatistics();
 
             this.accExpandedFullStates = 0;
+            this.accGeneratedFullStates = 0;
         }
 
         public override void AccumulateStatistics()
@@ -119,6 +136,7 @@ namespace CPF_experiment
             base.AccumulateStatistics();
 
             this.accExpandedFullStates += this.expandedFullStates;
+            this.accGeneratedFullStates += this.generatedFullStates;
         }
 
         public override void OutputAccumulatedStatistics(TextWriter output)
@@ -126,8 +144,10 @@ namespace CPF_experiment
             base.OutputAccumulatedStatistics(output);
 
             Console.WriteLine("Total Expanded Full States (Low-Level): {0}", this.accExpandedFullStates);
+            Console.WriteLine("Total Generated Full States (Low-Level): {0}", this.accGeneratedFullStates);
 
             output.Write(this.accExpandedFullStates + Run.RESULTS_DELIMITER);
+            output.Write(this.accGeneratedFullStates + Run.RESULTS_DELIMITER);
         }
     }
 }
