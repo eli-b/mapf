@@ -277,7 +277,6 @@ namespace CPF_experiment
             TextReader input = new StreamReader("dao_maps\\" + mapFileName);
             string[] lineParts;
             string line;
-            int instanceId = 0;
 
             line = input.ReadLine();
             Debug.Assert(line.StartsWith("type octile"));
@@ -311,14 +310,14 @@ namespace CPF_experiment
 
             int x;
             int y;
-            Agent[] aGoals = new Agent[agentsNum];
-            AgentState[] aStart = new AgentState[agentsNum];
+            Agent[] agentGoals = new Agent[agentsNum];
+            AgentState[] agentStates = new AgentState[agentsNum];
             bool[][] goals = new bool[maxX][];
 
             for (int i = 0; i < maxX; i++)
                 goals[i] = new bool[maxY];
 
-            // Choose random goal locations
+            // Choose random valid unclaimed goal locations
             for (int i = 0; i < agentsNum; i++)
             {
                 x = rand.Next(maxX);
@@ -328,48 +327,44 @@ namespace CPF_experiment
                 else
                 {
                     goals[x][y] = true;
-                    aGoals[i] = new Agent(x, y, i);
+                    agentGoals[i] = new Agent(x, y, i);
                 }
             }
 
             // Select random start/goal locations for every agent by performing a random walk
             for (int i = 0; i < agentsNum; i++)
             {
-                aStart[i] = new AgentState(aGoals[i].Goal.x, aGoals[i].Goal.y, aGoals[i]);
+                agentStates[i] = new AgentState(agentGoals[i].Goal.x, agentGoals[i].Goal.y, agentGoals[i]);
             }
 
-            // Initialzied here only for the IsValid() call. TODO: Think how this can be sidestepped elegantly.
             ProblemInstance problem = new ProblemInstance();
-            problem.Init(aStart, grid);
+            problem.parameters[ProblemInstance.GRID_NAME_KEY] = Path.GetFileNameWithoutExtension(mapFileName);
+            problem.Init(agentStates, grid);
 
             for (int j = 0; j < RANDOM_WALK_STEPS; j++)
             {
                 for (int i = 0; i < agentsNum; i++)
                 {
-                    goals[aStart[i].lastMove.x][aStart[i].lastMove.y] = false; // We're going to move the goal somewhere else
+                    goals[agentStates[i].lastMove.x][agentStates[i].lastMove.y] = false; // We're going to move the goal somewhere else
+                    // Move in a random legal direction:
                     while (true)
                     {
                         Move.Direction op = (Move.Direction)rand.Next(0, 5); // TODO: fixme
-                        aStart[i].lastMove.Update(op);
-                        if (problem.IsValid(aStart[i].lastMove) &&
-                            !goals[aStart[i].lastMove.x][aStart[i].lastMove.y]) // This spot isn't another agent's goal
+                        agentStates[i].lastMove.Update(op);
+                        if (problem.IsValid(agentStates[i].lastMove) &&
+                            !goals[agentStates[i].lastMove.x][agentStates[i].lastMove.y]) // This spot isn't another agent's goal
                             break;
                         else
-                            aStart[i].lastMove.setOppositeMove(); // Rollback
+                            agentStates[i].lastMove.setOppositeMove(); // Rollback
                     }
-                    goals[aStart[i].lastMove.x][aStart[i].lastMove.y] = true; // Claim agent's new goal
+                    goals[agentStates[i].lastMove.x][agentStates[i].lastMove.y] = true; // Claim agent's new goal
                 }
             }
 
             // Zero the agents' timesteps
-            foreach (AgentState agentStart in aStart)
-            {
+            foreach (AgentState agentStart in agentStates)
                 agentStart.lastMove.time = 0;
-            }
 
-            // TODO: There is some repetition here of previous instantiation of ProblemInstance. Think how to elegantly bypass this.
-            problem = new ProblemInstance();
-            problem.Init(aStart, grid);
             return problem;
         }
 
@@ -478,7 +473,11 @@ namespace CPF_experiment
         /// </summary>
         public void PrintResultsFileHeader()
         {
-            this.resultsWriter.Write("Grid Size");
+            this.resultsWriter.Write("Grid Name");
+            this.resultsWriter.Write(Run.RESULTS_DELIMITER);
+            this.resultsWriter.Write("Grid Rows");
+            this.resultsWriter.Write(Run.RESULTS_DELIMITER);
+            this.resultsWriter.Write("Grid Columns");
             this.resultsWriter.Write(Run.RESULTS_DELIMITER);
             this.resultsWriter.Write("Num Of Agents");
             this.resultsWriter.Write(Run.RESULTS_DELIMITER);
@@ -539,8 +538,15 @@ namespace CPF_experiment
 
         private void PrintProblemStatistics(ProblemInstance instance)
         {
-            // Grid Size col:
-            this.resultsWriter.Write(instance.m_vGrid.GetLength(0) + RESULTS_DELIMITER);
+            // Grid Name col:
+            if (instance.parameters.ContainsKey(ProblemInstance.GRID_NAME_KEY))
+                this.resultsWriter.Write(instance.parameters[ProblemInstance.GRID_NAME_KEY] + RESULTS_DELIMITER);
+            else
+                this.resultsWriter.Write(RESULTS_DELIMITER);
+            // Grid Rows col:
+            this.resultsWriter.Write(instance.m_vGrid.Length + RESULTS_DELIMITER);
+            // Grid Columns col:
+            this.resultsWriter.Write(instance.m_vGrid[0].Length + RESULTS_DELIMITER);
             // Num Of Agents col:
             this.resultsWriter.Write(instance.m_vAgents.Length + RESULTS_DELIMITER);
             // Num Of Obstacles col:
@@ -548,6 +554,7 @@ namespace CPF_experiment
             // Instance Id col:
             this.resultsWriter.Write(instance.instanceId + RESULTS_DELIMITER);
         }
+
         private void ContinueToNextLine()
         {
             this.resultsWriter.WriteLine();
