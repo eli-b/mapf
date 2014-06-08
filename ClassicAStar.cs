@@ -56,6 +56,8 @@ namespace CPF_experiment
             this.closedList = new Dictionary<WorldState, WorldState>();
             this.openList = new OpenList(this);
             this.heuristic = heuristic;
+            
+            this.tempConstraint = new CbsConstraint();
         }
 
         /// <summary>
@@ -458,6 +460,11 @@ namespace CPF_experiment
         }
 
         /// <summary>
+        /// Just an optimization
+        /// </summary>
+        private CbsConstraint tempConstraint;
+
+        /// <summary>
         /// Check if the move is valid, i.e. not colliding into walls or other agents.
         /// This method is here instead of in ProblemInstance to enable algorithmic tweaks.
         /// </summary>
@@ -475,9 +482,9 @@ namespace CPF_experiment
 
             if (this.constraintList != null)
             {
-                CbsConstraint nextStepLocation = new CbsConstraint(agentNum, possibleMove); // OPTIMIZE ME!!
+                tempConstraint.Init(agentNum, possibleMove);
 
-                if (this.constraintList.Contains(nextStepLocation))
+                if (this.constraintList.Contains(tempConstraint))
                     return false;
             }
 
