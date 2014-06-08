@@ -93,6 +93,8 @@ namespace CPF_experiment
         /// </summary>
         public Run()
         {
+            this.watch = Stopwatch.StartNew();
+
             // Preparing the heuristics:
             var sic = new SumIndividualCosts();
             
@@ -586,10 +588,10 @@ namespace CPF_experiment
             }
         }
 
+        private Stopwatch watch;
         private double ElapsedMillisecondsTotal()
         {
-            TimeSpan interval = Process.GetCurrentProcess().TotalProcessorTime;
-            return interval.TotalMilliseconds;
+            return this.watch.ElapsedMilliseconds;
         }
 
         public double ElapsedMilliseconds()
