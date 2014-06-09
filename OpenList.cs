@@ -254,7 +254,7 @@ namespace CPF_experiment
 
         public virtual void OutputAccumulatedStatistics(TextWriter output)
         {
-            Console.WriteLine(this.user.ToString() + " Quick insertions: {0}", this.quickInsertionCount);
+            Console.WriteLine(this.user.ToString() + " Accumulated Quick insertions: {0}", this.quickInsertionCount);
 
             output.Write(this.accQuickInsertionCount + Run.RESULTS_DELIMITER);
         }

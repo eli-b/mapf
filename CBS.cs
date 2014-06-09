@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Linq;
 using System.Collections.Generic;
 using System.IO;
 using System.Diagnostics;
@@ -82,10 +81,11 @@ namespace CPF_experiment
             this.runner = runner;
 
             this.ClearPrivateStatistics();
-            this.maxSizeGroup = 1;
             this.totalCost = 0;
             this.solutionDepth = -1;
             this.targetCost = int.MaxValue;
+            this.lowLevelGeneratedCap = int.MaxValue;
+            this.milliCap = int.MaxValue;
 
             if (problemInstance.parameters.ContainsKey(Trevor.MAXIMUM_COST_KEY))
                 this.maxCost = (int)(problemInstance.parameters[Trevor.MAXIMUM_COST_KEY]);
@@ -156,6 +156,7 @@ namespace CPF_experiment
             this.highLevelExpanded = 0;
             this.highLevelGenerated = 0;
             this.closedListHits = 0;
+            this.maxSizeGroup = 1;
         }
 
         public virtual void OutputStatisticsHeader(TextWriter output)
@@ -165,6 +166,8 @@ namespace CPF_experiment
             output.Write(this.ToString() + " Generated (HL)");
             output.Write(Run.RESULTS_DELIMITER);
             output.Write(this.ToString() + " Closed List Hits (HL)");
+            output.Write(Run.RESULTS_DELIMITER);
+            output.Write(this.ToString() + " Max Group Size (HL)");
             output.Write(Run.RESULTS_DELIMITER);
 
             this.solver.OutputStatisticsHeader(output);
@@ -177,10 +180,12 @@ namespace CPF_experiment
             Console.WriteLine("Total Expanded Nodes (High-Level): {0}", this.GetHighLevelExpanded());
             Console.WriteLine("Total Generated Nodes (High-Level): {0}", this.GetHighLevelGenerated());
             Console.WriteLine("Closed List Hits (High-Level): {0}", this.closedListHits);
+            Console.WriteLine("Max Group Size (High-Level): {0}", this.maxSizeGroup);
 
             output.Write(this.highLevelExpanded + Run.RESULTS_DELIMITER);
             output.Write(this.highLevelGenerated + Run.RESULTS_DELIMITER);
             output.Write(this.closedListHits + Run.RESULTS_DELIMITER);
+            output.Write(this.maxSizeGroup + Run.RESULTS_DELIMITER);
 
             this.solver.OutputAccumulatedStatistics(output);
 
@@ -191,14 +196,14 @@ namespace CPF_experiment
         {
             get
             {
-                return 3 + this.solver.NumStatsColumns + this.openList.NumStatsColumns;
+                return 4 + this.solver.NumStatsColumns + this.openList.NumStatsColumns;
             }
         }
 
         public virtual void ClearStatistics()
         {
             if (this.topMost)
-                this.solver.ClearAccumulatedStatistics();
+                this.solver.ClearAccumulatedStatistics(); // Is this correct? Or is it better not to do it?
             this.ClearPrivateStatistics();
             this.openList.ClearStatistics();
         }
@@ -227,9 +232,9 @@ namespace CPF_experiment
 
         public virtual void OutputAccumulatedStatistics(TextWriter output)
         {
-            Console.WriteLine("{0} Total Expanded Nodes (High-Level): {1}", this, this.accHLExpanded);
-            Console.WriteLine("{0} Total Generated Nodes (High-Level): {1}", this, this.accHLGenerated);
-            Console.WriteLine("{0} Closed List Hits (High-Level): {1}", this, this.accClosedListHits);
+            Console.WriteLine("{0} Accumulated Expanded Nodes (High-Level): {1}", this, this.accHLExpanded);
+            Console.WriteLine("{0} Accumulated Generated Nodes (High-Level): {1}", this, this.accHLGenerated);
+            Console.WriteLine("{0} Accumulated Closed List Hits (High-Level): {1}", this, this.accClosedListHits);
 
             output.Write(this.accHLExpanded + Run.RESULTS_DELIMITER);
             output.Write(this.accHLGenerated + Run.RESULTS_DELIMITER);
@@ -292,7 +297,7 @@ namespace CPF_experiment
                 {
                     totalCost = Constants.TIMEOUT_COST;
                     Console.WriteLine("Out of time");
-                    this.Clear();
+                    this.Clear(); // Total search time exceeded - we're not going to resume this search.
                     this.CleanGlobals();
                     return false;
                 }
@@ -324,13 +329,21 @@ namespace CPF_experiment
                     this.solutionDepth = this.totalCost - initialEstimate;
                     this.goalNode = currentNode;
                     this.solution = currentNode.CalculateJointPlan();
-                    this.Clear();
+                    this.Clear(); // Goal found - we're not going to resume this search
                     this.CleanGlobals();
                     return true;
                 }
 
-                // Check if node is good enough
-                if (currentNode.totalCost >= this.targetCost) {
+                if (currentNode.totalCost >= this.targetCost || // Node is good enough
+                    //(this.targetCost != int.MaxValue &&
+                     //this.lowLevelGenerated > Math.Pow(Constants.NUM_ALLOWED_DIRECTIONS, this.instance.m_vAgents.Length))
+                    this.solver.GetAccumulatedGenerated() > this.lowLevelGeneratedCap || // Stop because this is taking too long.
+                                                                                         // We're looking at _generated_ low level nodes since that's an indication to the amount of work done,
+                                                                                         // while expanded nodes is an indication of the amount of good work done.
+                                                                                         // b**k is the maximum amount of nodes we'll generate if we expand this node with A*.
+                    (this.milliCap != int.MaxValue && // (This check is much cheaper than the method call)
+                     this.runner.ElapsedMilliseconds() > this.milliCap)) // Search is taking too long.
+                {
                     if (debug)
                         Debug.WriteLine("-------------------------");
                     this.totalCost = currentNode.totalCost; // This is the min possible cost so far.
@@ -342,13 +355,14 @@ namespace CPF_experiment
                 // Expand
                 Expand(currentNode);
                 highLevelExpanded++;
+                // Consider moving the following into Expand()
                 if (currentNode.agentAExpansion == CbsNode.ExpansionState.EXPANDED &&
                     currentNode.agentBExpansion == CbsNode.ExpansionState.EXPANDED) // Fully expanded
                     currentNode.Clear();
             }
 
             this.totalCost = Constants.NO_SOLUTION_COST;
-            this.Clear();
+            this.Clear(); // unsolvable problem - we're not going to resume it
             this.CleanGlobals();
             return false;
         }
@@ -500,10 +514,7 @@ namespace CPF_experiment
         public int GetGenerated() { return highLevelGenerated; }
         public int GetAccumulatedExpanded() { return accHLExpanded; }
         public int GetAccumulatedGenerated() { return accHLGenerated; }
-        public int GetMaxGroupSize()
-        {
-            return this.maxSizeGroup;
-        }
+        public int GetMaxGroupSize() { return this.maxSizeGroup; }
     }
 
     public class CBS_GlobalConflicts : CBS_LocalConflicts

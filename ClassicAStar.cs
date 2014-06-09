@@ -143,7 +143,7 @@ namespace CPF_experiment
 
         public override string ToString()
         {
-            return this.GetName() + "/" + this.heuristic;
+            return this.GetName() + "/" + this.heuristic + " with " + this.openList;
         }
 
         public int GetSolutionCost() { return this.totalCost; }
@@ -261,14 +261,14 @@ namespace CPF_experiment
 
         public virtual void OutputAccumulatedStatistics(TextWriter output)
         {
-            Console.WriteLine("Total Expanded Nodes (Low-Level): {0}", this.accExpanded);
-            Console.WriteLine("Total Generated Nodes (Low-Level): {0}", this.accGenerated);
-            Console.WriteLine("Total Reopened Nodes (Low-Level): {0}", this.accReopened);
-            Console.WriteLine("Num BPMX boosts (Low-Level): {0}", this.accBpmxBoosts);
-            Console.WriteLine("Closed list hits (Low-Level): {0}", this.accClosedListHits);
-            Console.WriteLine("Reopened Nodes With Old H (Low-Level): {0}", this.accReopenedWithOldH);
-            Console.WriteLine("No Reopen H Updates (Low-Level): {0}", this.accNoReopenHUpdates);
-            Console.WriteLine("Max expansion delay (Low-Level): {0}", this.accMaxExpansionDelay);
+            Console.WriteLine("{0} Accumulated Expanded Nodes (Low-Level): {1}", this, this.accExpanded);
+            Console.WriteLine("{0} Accumulated Generated Nodes (Low-Level): {1}", this, this.accGenerated);
+            Console.WriteLine("{0} Accumulated Reopened Nodes (Low-Level): {1}", this, this.accReopened);
+            Console.WriteLine("{0} Accumulated BPMX boosts (Low-Level): {1}", this, this.accBpmxBoosts);
+            Console.WriteLine("{0} Accumulated Closed list hits (Low-Level): {1}", this, this.accClosedListHits);
+            Console.WriteLine("{0} Accumulated Reopened Nodes With Old H (Low-Level): {1}", this, this.accReopenedWithOldH);
+            Console.WriteLine("{0} Accumulated No Reopen H Updates (Low-Level): {1}", this, this.accNoReopenHUpdates);
+            Console.WriteLine("{0} Accumulated Max expansion delay (Low-Level): {1}", this, this.accMaxExpansionDelay);
 
             output.Write(this.accExpanded + Run.RESULTS_DELIMITER);
             output.Write(this.accGenerated + Run.RESULTS_DELIMITER);

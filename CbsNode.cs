@@ -382,21 +382,13 @@ namespace CPF_experiment
             while (current.depth > 0) // The root is shared, and has no constraints
             {
                 ++constraint_count;
-                //if (this.agentsGroupAssignment[current.prev.conflict.agentA] != this.agentsGroupAssignment[current.prev.conflict.agentB]) // See my comments for GetHashCode(). This tries to do the same thing.
-                //{
-                    //current.constraint.group = (byte)this.agentsGroupAssignment[current.constraint.getAgentNum()];
-                    if (other_constraints.Contains(current.constraint) == false)
-                    {
-                        //if (OtherAgentsGroupAssignment != null)
-                        //    other.agentsGroupAssignment = OtherAgentsGroupAssignment;
-                        CbsConstraint.fullyEqual = false;
-                        return false;
-                    }
-                //}
+                if (other_constraints.Contains(current.constraint) == false)
+                {
+                    CbsConstraint.fullyEqual = false;
+                    return false;
+                }
                 current = current.prev;
             }
-            //if (OtherAgentsGroupAssignment != null)
-            //    other.agentsGroupAssignment = OtherAgentsGroupAssignment;
             CbsConstraint.fullyEqual = false;
             return constraint_count == other_constraints.Count;
         }

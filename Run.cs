@@ -398,6 +398,18 @@ namespace CPF_experiment
                     GC.Collect();
                     GC.WaitForPendingFinalizers();
                     solvers[i].GetHeuristic().init(instance, agentList);
+
+                    // FIXME: Hack!!
+                    if (solvers[i] is ClassicAStar)
+                    {
+                        var astar = (ClassicAStar)solvers[i];
+                        if (astar.openList is DynamicLazyOpenList)
+                            ((DynamicLazyOpenList)astar.openList).expensive.init(instance, agentList);
+                        if (astar.openList is DynamicRationalLazyOpenList)
+                            ((DynamicRationalLazyOpenList)astar.openList).expensive.init(instance, agentList);
+                    }
+                    // FIXME: /Hack!!
+
                     this.run(solvers[i], instance);
 
 

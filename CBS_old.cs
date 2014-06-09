@@ -196,9 +196,9 @@ namespace CPF_experiment
 
         public virtual void OutputAccumulatedStatistics(TextWriter output)
         {
-            Console.WriteLine("{0} Total Expanded Nodes (High-Level): {1}", this, this.accHLExpanded);
-            Console.WriteLine("{0} Total Generated Nodes (High-Level): {1}", this, this.accHLGenerated);
-            Console.WriteLine("{0} Closed List Hits (High-Level): {1}", this, this.accClosedListHits);
+            Console.WriteLine("{0} Accumulated Expanded Nodes (High-Level): {1}", this, this.accHLExpanded);
+            Console.WriteLine("{0} Accumulated Generated Nodes (High-Level): {1}", this, this.accHLGenerated);
+            Console.WriteLine("{0} Accumulated Closed List Hits (High-Level): {1}", this, this.accClosedListHits);
 
             output.Write(this.accHLExpanded + Run.RESULTS_DELIMITER);
             output.Write(this.accHLGenerated + Run.RESULTS_DELIMITER);

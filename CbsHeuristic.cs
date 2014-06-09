@@ -24,20 +24,13 @@ namespace CPF_experiment
         protected double totalRuntime;
         protected int totalImprovement;
         protected int nCalls;
-        protected int highLevelExpanded;
-        protected int highLevelGenerated;
-        protected int lowLevelExpanded;
-        protected int lowLevelGenerated;
+        protected int nodesSolved;
         protected double accTotalRuntime;
         protected int accTotalImprovement;
         protected int accNCalls;
-        protected int accHighLevelExpanded;
-        protected int accHighLevelGenerated;
-        protected int accLowLevelExpanded;
-        protected int accLowLevelGenerated;
+        protected int accNodesSolved;
 
         /// <summary>
-        /// 
         /// </summary>
         /// <param name="cbs">The underlying CBS to use</param>
         /// <param name="runner"></param>
@@ -79,43 +72,70 @@ namespace CPF_experiment
         }
 
         /// <summary>
-        /// 
+        /// Computes a heuristic by running a bounded CBS search from the given node.
         /// Assumes g of node was already calculated and h isn't zero.
         /// </summary>
         /// <param name="s"></param>
-        /// <param name="targetCost"></param>
-        /// <param name="sicEstimate">For a debug assertion and a statistic</param>
+        /// <param name="targetCost">Stop when the target cost is reached</param>
+        /// <param name="sicEstimate">For a debug assertion.</param>
+        /// <param name="lowLevelGeneratedCap">The number of low level nodes to generated</param>
+        /// <param name="milliCap">The process total millisecond count to stop at</param>
         /// <returns></returns>
-        protected uint h(WorldState s, int targetCost, uint sicEstimate)
+        protected uint h(WorldState s, int targetCost, int sicEstimate=-1, int lowLevelGeneratedCap=-1, int milliCap=int.MaxValue)
         {
-            double start = Process.GetCurrentProcess().TotalProcessorTime.TotalMilliseconds;
+            double start = this.runner.ElapsedMilliseconds();
 
-            // Calc the h:
-            ProblemInstance sAsProblemInstance = s.ToProblemInstance(this.instance);
-            this.cbs.Setup(sAsProblemInstance, s.makespan, this.runner); // s isn't the goal (checked earlier in the method), so we must search at least until the next depth. This forces must conds to be upheld when dealing with A*+OD nodes.
+            if (lowLevelGeneratedCap == -1)
+            {
+                // Rough estimate of the branching factor:
+                lowLevelGeneratedCap = (int) Math.Pow(Constants.NUM_ALLOWED_DIRECTIONS, this.instance.m_vAgents.Length);
+            }
+
+            ProblemInstance sAsProblemInstance;
+            // TODO: Don't duplicate the instance for every call.
+            sAsProblemInstance = s.ToProblemInstance(this.instance);
+            this.cbs.Setup(sAsProblemInstance,
+                           Math.Max(s.makespan,  // This forces must constraints to be upheld when dealing with A*+OD nodes,
+                                                   // at the cost of forcing every agent to move when a goal could be found earlier with all must constraints upheld.
+                                    s.minDepth), // No point in finding shallower goal nodes
+                           this.runner);
 
             if (this.cbs.openList.Count > 0)
+            {
+                if (sicEstimate == -1)
+                    sicEstimate = (int) SumIndividualCosts.h(s, this.instance);
                 Debug.Assert(((CbsNode)this.cbs.openList.Peek()).totalCost - s.g == (int)sicEstimate,
-                    "Total cost of CBS root not same as SIC + g");
+                                "Total cost of CBS root not same as SIC + g");
+                // Notice we're substracting s.g, not sAsProblemInstance.g.
+                // Must constraints we put may have forced some moves,
+                // and we shouldn't count them as part of the estimate.
+            }
 
+            // Calc the h:
             this.cbs.targetCost = targetCost;
+            this.cbs.milliCap = milliCap;
+            this.cbs.lowLevelGeneratedCap = lowLevelGeneratedCap;
 
             bool solved = this.cbs.Solve();
 
             if (solved && this.reportSolution)
             {
+                // We're always going to find a proper goal since we respected the node's minDepth
                 s.SetSolution(this.cbs.GetPlan());
-                s.SetGoalCost(this.cbs.totalCost);
+                s.SetGoalCost(this.cbs.totalCost); // We have to do it explicitly.
+                // We can't just change the node's g to g + cbs.totalCost and its h to zero
+                // because approaches like BPMX or maximazing PDBs might "fix" the h back.
+                // So instead h is bumped to its maximum value when this method returns.
+                this.nodesSolved++;
             }
 
-            double end = Process.GetCurrentProcess().TotalProcessorTime.TotalMilliseconds;
+            double end = this.runner.ElapsedMilliseconds();
             this.totalRuntime += end - start;
             this.nCalls++;
 
-            this.highLevelExpanded += this.cbs.GetHighLevelExpanded();
-            this.highLevelGenerated += this.cbs.GetHighLevelGenerated();
-            this.lowLevelExpanded += this.cbs.GetLowLevelExpanded();
-            this.lowLevelGenerated += this.cbs.GetLowLevelGenerated();
+            this.cbs.AccumulateStatistics();
+            this.cbs.ClearStatistics();
+            this.cbs.Clear();
 
             if (this.cbs.totalCost < 0) // A timeout is legitimately possible if very little time was left to begin with,
                                         // and a no solution failure may theoretically be possible too.
@@ -128,6 +148,9 @@ namespace CPF_experiment
             // (This is easier than making a copy of each AgentState just to zero its lastMove.time)
 
             this.totalImprovement += (int)(cbsEstimate - s.h); // Not computing difference from SIC to not over-count, since a node can be improved twice.
+                                                               // Can be negative if the base heuristic was improved by:
+                                                               // - Partial expansion
+                                                               // - BPMX
             
             if (validate)
             {
@@ -151,14 +174,10 @@ namespace CPF_experiment
         /// <param name="vAgents">Only passed to the underlying heuristic. TODO: Consider using in h() too.</param>
         public void init(ProblemInstance pi, List<uint> vAgents)
         {
-            this.cbs.GetHeuristic().init(pi, vAgents); // Doesn't do anything special in SIC, but notice anyway that we're not init'ing with the PI that we're going to solve
             this.instance = pi;
             this.vAgents = vAgents;
 
-            this.highLevelExpanded = 0;
-            this.highLevelGenerated = 0;
-            this.lowLevelExpanded = 0;
-            this.lowLevelGenerated = 0;
+            this.cbs.ClearAccumulatedStatistics();
 
             this.totalRuntime = 0;
             this.totalImprovement = 0;
@@ -172,14 +191,8 @@ namespace CPF_experiment
 
         public virtual void OutputStatisticsHeader(TextWriter output)
         {
-            output.Write(this.ToString() + " Total Expanded (HL)");
-            output.Write(Run.RESULTS_DELIMITER);
-            output.Write(this.ToString() + " Total Generated (HL)");
-            output.Write(Run.RESULTS_DELIMITER);
-            output.Write(this.ToString() + " Total Expanded (LL)");
-            output.Write(Run.RESULTS_DELIMITER);
-            output.Write(this.ToString() + " Total Generated (LL)");
-            output.Write(Run.RESULTS_DELIMITER);
+            this.cbs.OutputStatisticsHeader(output);
+
             output.Write(this.ToString() + " Average Expanded (HL)");
             output.Write(Run.RESULTS_DELIMITER);
             output.Write(this.ToString() + " Average Generated (HL)");
@@ -192,15 +205,19 @@ namespace CPF_experiment
             output.Write(Run.RESULTS_DELIMITER);
             output.Write(this + " Average Improvement Achieved");
             output.Write(Run.RESULTS_DELIMITER);
+            output.Write(this + " Nodes Solved");
+            output.Write(Run.RESULTS_DELIMITER);
             output.Write(this + " Num Calls");
             output.Write(Run.RESULTS_DELIMITER);
         }
 
         public void OutputStatistics(TextWriter output)
         {
+            this.cbs.OutputAccumulatedStatistics(output);
+
             if (this.nCalls == 0) // No stats
             {
-                for (int i=0; i<this.NumStatsColumns ; ++i)
+                for (int i = 0; i < this.NumStatsColumns - this.cbs.NumStatsColumns; ++i)
                     output.Write(Run.RESULTS_DELIMITER);
                 return;
             }
@@ -208,33 +225,27 @@ namespace CPF_experiment
             // TODO: Make IAccumulatingStatisticsCsvWriter emit its statistics into an object, and AccumulateStatistics()
             //       receive it and increment it. This way we'll be able to preserve the entire statistics from the CBS
             //       calls, and not just the node counts.
-            Console.WriteLine("{0} Total Expanded Nodes (High-Level): {1}", this, this.highLevelExpanded);
-            Console.WriteLine("{0} Total Generated Nodes (High-Level): {1}", this, this.highLevelGenerated);
-            Console.WriteLine("{0} Total Expanded Nodes (Low-Level): {1}", this, this.lowLevelExpanded);
-            Console.WriteLine("{0} Total Generated Nodes (Low-Level): {1}", this, this.lowLevelGenerated);
-            Console.WriteLine("{0} Average Expanded Nodes (High-Level): {1}", this, this.highLevelExpanded / this.nCalls);
-            Console.WriteLine("{0} Average Generated Nodes (High-Level): {1}", this, this.highLevelGenerated / this.nCalls);
-            Console.WriteLine("{0} Average Expanded Nodes (Low-Level): {1}", this, this.lowLevelExpanded / this.nCalls);
-            Console.WriteLine("{0} Average Generated Nodes (Low-Level): {1}", this, this.lowLevelGenerated / this.nCalls);
+            Console.WriteLine("{0} Average Expanded Nodes (High-Level): {1}", this, this.cbs.GetAccumulatedExpanded() / this.nCalls);
+            Console.WriteLine("{0} Average Generated Nodes (High-Level): {1}", this, this.cbs.GetAccumulatedGenerated() / this.nCalls);
+            Console.WriteLine("{0} Average Expanded Nodes (Low-Level): {1}", this, this.cbs.GetLowLevelExpanded() / this.nCalls);
+            Console.WriteLine("{0} Average Generated Nodes (Low-Level): {1}", this, this.cbs.GetLowLevelGenerated() / this.nCalls);
 
-            output.Write(this.highLevelExpanded + Run.RESULTS_DELIMITER);
-            output.Write(this.highLevelGenerated + Run.RESULTS_DELIMITER);
-            output.Write(this.lowLevelExpanded + Run.RESULTS_DELIMITER);
-            output.Write(this.lowLevelGenerated + Run.RESULTS_DELIMITER);
-            output.Write(this.highLevelExpanded / this.nCalls + Run.RESULTS_DELIMITER);
-            output.Write(this.highLevelGenerated / this.nCalls + Run.RESULTS_DELIMITER);
-            output.Write(this.lowLevelExpanded / this.nCalls + Run.RESULTS_DELIMITER);
-            output.Write(this.lowLevelGenerated / this.nCalls + Run.RESULTS_DELIMITER);
+            output.Write(this.cbs.GetAccumulatedExpanded() / this.nCalls + Run.RESULTS_DELIMITER);
+            output.Write(this.cbs.GetAccumulatedGenerated() / this.nCalls + Run.RESULTS_DELIMITER);
+            output.Write(this.cbs.GetLowLevelExpanded() / this.nCalls + Run.RESULTS_DELIMITER);
+            output.Write(this.cbs.GetLowLevelGenerated() / this.nCalls + Run.RESULTS_DELIMITER);
 
             double averageRunTime = this.totalRuntime / this.nCalls;
             double averageImprovement = ((double)this.totalImprovement) / this.nCalls;
 
             Console.WriteLine("{0} Average Runtime: {1}", this, averageRunTime);
             Console.WriteLine("{0} Average Improvement achieved: {1}", this, averageImprovement);
+            Console.WriteLine("{0} Nodes Solved: {1}", this, this.nodesSolved);
             Console.WriteLine("{0} Num Calls: {1}", this, this.nCalls);
 
             output.Write(averageRunTime + Run.RESULTS_DELIMITER);
             output.Write(averageImprovement + Run.RESULTS_DELIMITER);
+            output.Write(this.nodesSolved + Run.RESULTS_DELIMITER);
             output.Write(this.nCalls + Run.RESULTS_DELIMITER);
         }
 
@@ -242,7 +253,7 @@ namespace CPF_experiment
         {
             get
             {
-                return 11;
+                return 8 + this.cbs.NumStatsColumns;
             }
         }
 
@@ -251,66 +262,56 @@ namespace CPF_experiment
         /// </summary>
         public void ClearStatistics()
         {
-            this.highLevelExpanded = 0;
-            this.highLevelGenerated = 0;
-            this.lowLevelExpanded = 0;
-            this.lowLevelGenerated = 0;
+            //this.cbs.ClearStatistics(); // Already done after each CBS run
             this.totalImprovement = 0;
             this.totalRuntime = 0;
+            this.nodesSolved = 0;
             this.nCalls = 0;
         }
 
         public virtual void ClearAccumulatedStatistics()
         {
+            this.cbs.ClearAccumulatedStatistics();
             this.accTotalRuntime = 0;
             this.accTotalImprovement = 0;
+            this.accNodesSolved = 0;
             this.accNCalls = 0;
-            this.accHighLevelExpanded = 0;
-            this.accHighLevelGenerated = 0;
-            this.accLowLevelExpanded = 0;
-            this.accLowLevelGenerated = 0;
         }
 
         public virtual void AccumulateStatistics()
         {
+            //this.cbs.AccumulateStatistics(); // Already done after each CBS run
             this.accTotalRuntime += this.totalRuntime;
             this.accTotalImprovement += this.totalImprovement;
+            this.accNodesSolved += this.nodesSolved;
             this.accNCalls += this.nCalls;
-            this.accHighLevelExpanded += this.highLevelExpanded;
-            this.accHighLevelGenerated += this.accHighLevelGenerated;
-            this.accLowLevelExpanded += this.lowLevelExpanded;
-            this.accLowLevelGenerated += this.lowLevelGenerated;
         }
 
         public virtual void OutputAccumulatedStatistics(TextWriter output)
         {
-            Console.WriteLine("{0} Total Expanded Nodes (High-Level): {1}", this, this.accHighLevelExpanded);
-            Console.WriteLine("{0} Total Generated Nodes (High-Level): {1}", this, this.accHighLevelGenerated);
-            Console.WriteLine("{0} Total Expanded Nodes (Low-Level): {1}", this, this.accLowLevelExpanded);
-            Console.WriteLine("{0} Total Generated Nodes (Low-Level): {1}", this, this.accLowLevelGenerated);
-            Console.WriteLine("{0} Average Expanded Nodes (High-Level): {1}", this, this.accHighLevelExpanded / this.accNCalls);
-            Console.WriteLine("{0} Average Generated Nodes (High-Level): {1}", this, this.accHighLevelGenerated / this.accNCalls);
-            Console.WriteLine("{0} Average Expanded Nodes (Low-Level): {1}", this, this.accLowLevelExpanded / this.accNCalls);
-            Console.WriteLine("{0} Average Generated Nodes (Low-Level): {1}", this, this.accLowLevelGenerated / this.accNCalls);
+            this.cbs.OutputAccumulatedStatistics(output);
 
-            output.Write(this.accHighLevelExpanded + Run.RESULTS_DELIMITER);
-            output.Write(this.accHighLevelGenerated + Run.RESULTS_DELIMITER);
-            output.Write(this.accLowLevelExpanded + Run.RESULTS_DELIMITER);
-            output.Write(this.accLowLevelGenerated + Run.RESULTS_DELIMITER);
-            output.Write(this.accHighLevelExpanded / this.accNCalls + Run.RESULTS_DELIMITER);
-            output.Write(this.accHighLevelGenerated / this.accNCalls + Run.RESULTS_DELIMITER);
-            output.Write(this.accLowLevelExpanded / this.accNCalls + Run.RESULTS_DELIMITER);
-            output.Write(this.accLowLevelGenerated / this.accNCalls + Run.RESULTS_DELIMITER);
+            Console.WriteLine("{0} Accumulated Average Expanded Nodes (High-Level): {1}", this, this.cbs.GetAccumulatedExpanded() / this.nCalls);
+            Console.WriteLine("{0} Accumulated Average Generated Nodes (High-Level): {1}", this, this.cbs.GetAccumulatedGenerated() / this.nCalls);
+            Console.WriteLine("{0} Accumulated Average Expanded Nodes (Low-Level): {1}", this, this.cbs.GetLowLevelExpanded() / this.nCalls);
+            Console.WriteLine("{0} Accumulated Average Generated Nodes (Low-Level): {1}", this, this.cbs.GetLowLevelGenerated() / this.nCalls);
+
+            output.Write(this.cbs.GetAccumulatedExpanded() / this.nCalls + Run.RESULTS_DELIMITER);
+            output.Write(this.cbs.GetAccumulatedGenerated() / this.nCalls + Run.RESULTS_DELIMITER);
+            output.Write(this.cbs.GetLowLevelExpanded() / this.nCalls + Run.RESULTS_DELIMITER);
+            output.Write(this.cbs.GetLowLevelGenerated() / this.nCalls + Run.RESULTS_DELIMITER);
 
             double averageRunTime = this.accTotalRuntime / this.accNCalls;
             double averageImprovement = this.accTotalImprovement / this.accNCalls;
 
             Console.WriteLine("{0} Average Runtime: {1}", this, averageRunTime);
             Console.WriteLine("{0} Average Improvement Achieved: {1}", this, averageImprovement);
+            Console.WriteLine("{0} Nodes Solved: {1}", this, this.accNodesSolved);
             Console.WriteLine("{0} Num Calls: {1}", this, this.accNCalls);
 
             output.Write(averageRunTime + Run.RESULTS_DELIMITER);
             output.Write(averageImprovement + Run.RESULTS_DELIMITER);
+            output.Write(this.accNodesSolved + Run.RESULTS_DELIMITER);
             output.Write(this.accNCalls + Run.RESULTS_DELIMITER);            
         }
     }
@@ -324,14 +325,28 @@ namespace CPF_experiment
         /// Assumes g of node was already calculated.
         /// </summary>
         /// <param name="s"></param>
-        /// <param name="target"></param>
+        /// <param name="targetH"></param>
+        /// <param name="effectiveBranchingFactor"></param>
         /// <returns></returns>
-        public uint h(WorldState s, int targetH)
+        public uint h(WorldState s, int targetH, float effectiveBranchingFactor)
         {
-            uint sicEstimate = SumIndividualCosts.h(s, this.instance);
-            if (sicEstimate == 0)
-                return 0;
-            return this.h(s, s.g + targetH, sicEstimate);
+            // No need to check if SIC is zero because this heuristic is run after SIC was already computed, not instead of it.
+            int lowLevelGeneratedCap = (int) Math.Round(effectiveBranchingFactor * this.instance.m_vAgents.Length); // Cap of B_of_AStar * K,
+                                                                                                                    // because CBS low level nodes are of one agent only so they're about k times cheaper to work with
+            return this.h(s, s.g + targetH, -1, lowLevelGeneratedCap);
+        }
+
+        /// <summary>
+        /// Assumes g of node was already calculated.
+        /// </summary>
+        /// <param name="s"></param>
+        /// <param name="targetH"></param>
+        /// <param name="effectiveBranchingFactor"></param>
+        /// <returns></returns>
+        public uint h(WorldState s, int targetH, float effectiveBranchingFactor, int millisCap)
+        {
+            // No need to check if SIC is zero because this heuristic is run after SIC was already computed, not instead of it.
+            return this.h(s, s.g + targetH, -1, int.MaxValue, millisCap);
         }
 
         public override string ToString()

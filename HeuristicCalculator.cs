@@ -21,9 +21,17 @@ namespace CPF_experiment
 
     public interface LazyHeuristic : HeuristicCalculator
     {
-        /// <summary>Returns the heuristic estimate.</summary>
+        /// <summary>Returns the heuristic estimate. Used when a low level generated nodes cap is needed.</summary>
         /// <param name="s">The current state.</param>
         /// <param name="target">The lowest target estimate to return, if possible.</param>
-        uint h(WorldState s, int target);
+        /// <param name="effectiveBranchingFactor">The branching factor so far of the A* search we're serving.</param>
+        uint h(WorldState s, int target, float effectiveBranchingFactor);
+
+        /// <summary>Returns the heuristic estimate. Used when a time cap is needed.</summary>
+        /// <param name="s">The current state.</param>
+        /// <param name="target">The lowest target estimate to return, if possible.</param>
+        /// <param name="effectiveBranchingFactor">Ignored. Kept only to make the number of parameters different from the previous method.</param>
+        /// <param name="millisCap">Stop the search when the process' total millisecond count reaches the cap.</param>
+        uint h(WorldState s, int target, float effectiveBranchingFactor, int millisCap);
     }
 }

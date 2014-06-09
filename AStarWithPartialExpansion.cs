@@ -153,7 +153,7 @@ namespace CPF_experiment
         {
             base.OutputAccumulatedStatistics(output);
 
-            Console.WriteLine("Total Expanded Full States (Low-Level): {0}", this.accExpandedFullStates);
+            Console.WriteLine(this.ToString() + " Accumulated Total Expanded Full States (Low-Level): {0}", this.accExpandedFullStates);
 
             output.Write(this.accExpandedFullStates + Run.RESULTS_DELIMITER);
         }

@@ -189,14 +189,14 @@ namespace CPF_experiment
 
         public void OutputAccumulatedStatistics(TextWriter output)
         {
-            Console.WriteLine("Total Expanded Nodes (Low-Level): {0}", this.accExpanded);
-            Console.WriteLine("Total Generated Nodes (Low-Level): {0}", this.accGenerated);
+            Console.WriteLine("{0} Accumulated Expanded Nodes (Low-Level): {1}", this, this.accExpanded);
+            Console.WriteLine("{0} Accumulated Generated Nodes (Low-Level): {1}", this, this.accGenerated);
 
             output.Write(this.accExpanded + Run.RESULTS_DELIMITER);
             output.Write(this.accGenerated + Run.RESULTS_DELIMITER);
 
-            Console.WriteLine("Max Group (Low-Level): {0}", this.accMaxGroup);
-            Console.WriteLine("Min Group (Low-Level): {0}", this.accMinGroup);
+            Console.WriteLine("{0} Accumualted Max Group (Low-Level): {1}", this, this.accMaxGroup);
+            Console.WriteLine("{0} Accumulated Min Group (Low-Level): {1}", this, this.accMinGroup);
 
             output.Write(this.accMaxGroup + Run.RESULTS_DELIMITER);
             output.Write(this.accMinGroup + Run.RESULTS_DELIMITER);

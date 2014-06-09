@@ -143,8 +143,8 @@ namespace CPF_experiment
         {
             base.OutputAccumulatedStatistics(output);
 
-            Console.WriteLine("Total Expanded Full States (Low-Level): {0}", this.accExpandedFullStates);
-            Console.WriteLine("Total Generated Full States (Low-Level): {0}", this.accGeneratedFullStates);
+            Console.WriteLine("{0} Average Expanded Full States (Low-Level): {1}", this, this.accExpandedFullStates);
+            Console.WriteLine("{0} Average Generated Full States (Low-Level): {1}", this, this.accGeneratedFullStates);
 
             output.Write(this.accExpandedFullStates + Run.RESULTS_DELIMITER);
             output.Write(this.accGeneratedFullStates + Run.RESULTS_DELIMITER);

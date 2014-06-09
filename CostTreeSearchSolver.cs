@@ -205,11 +205,11 @@ namespace CPF_experiment
 
         public void OutputAccumulatedStatistics(TextWriter output)
         {
-            Console.WriteLine("Total Expanded Nodes (High-Level): {0}", this.accExpandedHL);
-            Console.WriteLine("Total Generated Nodes (High-Level): {0}", this.accGeneratedHL);
-            Console.WriteLine("Total Expanded Nodes (Low-Level): {0}", this.accExpandedLL);
-            Console.WriteLine("Total Generated Nodes (Low-Level): {0}", this.accGeneratedLL);
-            Console.WriteLine("\"passed\": ?");
+            Console.WriteLine("{0} Accumulated Expanded Nodes (High-Level): {0}", this, this.accExpandedHL);
+            Console.WriteLine("{0} Accumulated Generated Nodes (High-Level): {0}", this, this.accGeneratedHL);
+            Console.WriteLine("{0} Accumulated Expanded Nodes (Low-Level): {0}", this, this.accExpandedLL);
+            Console.WriteLine("{0} Accumulated Generated Nodes (Low-Level): {0}", this, this.accGeneratedLL);
+            Console.WriteLine("{0} Accumulated \"passed\": ?", this);
 
             output.Write(this.accExpandedHL + Run.RESULTS_DELIMITER);
             output.Write(this.accGeneratedHL + Run.RESULTS_DELIMITER);

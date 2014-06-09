@@ -139,8 +139,8 @@ namespace CPF_experiment
         {
             base.OutputAccumulatedStatistics(output);
 
-            Console.WriteLine("Generated And Discarded (Low-Level): {0}", this.accGeneratedAndDiscarded);
-            Console.WriteLine("Expanded Full States (Low-Level): {0}", this.accExpandedFullStates);
+            Console.WriteLine("{0} Accumulated Generated And Discarded (Low-Level): {0}", this, this.accGeneratedAndDiscarded);
+            Console.WriteLine("{0} Accumulated Expanded Full States (Low-Level): {0}", this, this.accExpandedFullStates);
 
             output.Write(this.accGeneratedAndDiscarded + Run.RESULTS_DELIMITER);
             output.Write(this.accExpandedFullStates + Run.RESULTS_DELIMITER);
