@@ -124,6 +124,10 @@ namespace CPF_experiment
             }
         }
 
+        /// <summary>
+        /// Change coordinates in specified direction.
+        /// </summary>
+        /// <param name="direction"></param>
         public virtual void Update(Direction direction)
         {
             this.x += Move.directionToDeltas[(int)direction, 0];

@@ -35,6 +35,10 @@ namespace CPF_experiment
             }
         }
 
+        /// <summary>
+        /// Change coordinates in specified direction and increment timestep.
+        /// </summary>
+        /// <param name="direction"></param>
         public override void Update(Direction direction)
         {
             base.Update(direction);

@@ -8,7 +8,6 @@ namespace CPF_experiment
     {
         protected List<byte> agents;
         protected TimedMove move;
-      //public byte group;
         public static bool fullyEqual;
 
         public CbsConstraint(int agent, int posX, int posY, Move.Direction direction, int timeStep)
@@ -72,6 +71,7 @@ namespace CPF_experiment
         /// <summary>
         /// If fullyEqual, checks that the agent sets are equal, otherwise checks that this.agents is a subset of obj.agents.
         /// If not fullyEqual, this doesn't implement commutativity!
+        /// TODO: Is this behavior needed?
         /// Always compares the move.
         /// </summary>
         /// <param name="obj"></param>
@@ -91,9 +91,6 @@ namespace CPF_experiment
                 if (other.agents.Contains(agent) == false)
                     return false;
             }
-            //if (obj.GetType().Equals(this.GetType()))
-            //    if (this.group != ((CbsConstraint)obj).group)
-            //         return false;
             return this.move.Equals(other.move);
         }
 
