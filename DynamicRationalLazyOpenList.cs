@@ -50,7 +50,7 @@ namespace CPF_experiment
                 if (node.GoalTest() == true || // Can't improve the h of the goal
                     ((DyanamicLazyCbsh)this.expensive).runner.ElapsedMilliseconds() > Constants.MAX_TIME) // No time to continue improving H. // FIXME: Hack!
                     return node;
-                int expensiveEstimate = (int)this.expensive.h(node, int.MaxValue, -1, 0); // I'm willing to pay the overhead to instantly solve problems of depth zero.
+                int expensiveEstimate = (int)this.expensive.h(node, int.MaxValue, -1, 0, false); // I'm willing to pay the overhead to instantly solve problems of depth zero.
                 node.h = Math.Max(node.h, expensiveEstimate);
             }
             else
@@ -95,7 +95,7 @@ namespace CPF_experiment
                     if (millisCap > overhead || // Worth running the expensive heuristic
                         node.g + node.h < lastF) // Must improve the heuristic estimate to be consistent
                     {
-                        int expensiveEstimate = (int)this.expensive.h(node, targetH, -1, (int)(((DyanamicLazyCbsh)this.expensive).runner.ElapsedMilliseconds() + millisCap));
+                        int expensiveEstimate = (int)this.expensive.h(node, targetH, -1, (int)(((DyanamicLazyCbsh)this.expensive).runner.ElapsedMilliseconds() + millisCap), false);
                         if (expensiveEstimate > node.h) // Node may have inherited a better estimate from its parent
                             node.h = expensiveEstimate; // Not necessarily a success, we later check if the increment was large enough.
                         
@@ -105,7 +105,7 @@ namespace CPF_experiment
                         else
                         {
                             // Give the heuristic another chance, with a double cap.
-                            expensiveEstimate = (int)this.expensive.h(node, targetH, -1, (int)(((DyanamicLazyCbsh)this.expensive).runner.ElapsedMilliseconds() + 2 * millisCap));
+                            expensiveEstimate = (int)this.expensive.h(node, targetH, -1, (int)(((DyanamicLazyCbsh)this.expensive).runner.ElapsedMilliseconds() + 2 * millisCap), true);
                             if (expensiveEstimate > node.h) // Node may have inherited a better estimate from its parent or from partial expansion
                                 node.h = expensiveEstimate; // Not necessarily a success, we later check if the increment was large enough.
 
@@ -115,7 +115,7 @@ namespace CPF_experiment
                             else
                                 this.failures++;
                         }
-                        this.Ph = (1 - DynamicRationalLazyOpenList.movingAverageFactor) * this.Ph + DynamicRationalLazyOpenList.movingAverageFactor * this.successes / (this.successes + this.failures);
+                        this.Ph = (1 - DynamicRationalLazyOpenList.movingAverageFactor) * this.Ph + DynamicRationalLazyOpenList.movingAverageFactor * this.successes / (this.successes + this.failures); // This is only necessary for the first runs so the Ph won't jitter too much
                     }
                     else
                         this.skips++;

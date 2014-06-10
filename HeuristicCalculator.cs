@@ -32,6 +32,7 @@ namespace CPF_experiment
         /// <param name="target">The lowest target estimate to return, if possible.</param>
         /// <param name="effectiveBranchingFactor">Ignored. Kept only to make the number of parameters different from the previous method.</param>
         /// <param name="millisCap">Stop the search when the process' total millisecond count reaches the cap.</param>
-        uint h(WorldState s, int target, float effectiveBranchingFactor, int millisCap);
+        /// <param name="resume">Whether to resume the last search. Assumes last search was from the same node</param>
+        uint h(WorldState s, int target, float effectiveBranchingFactor, int millisCap, bool resume);
     }
 }

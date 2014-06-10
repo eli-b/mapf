@@ -80,35 +80,41 @@ namespace CPF_experiment
         /// <param name="sicEstimate">For a debug assertion.</param>
         /// <param name="lowLevelGeneratedCap">The number of low level nodes to generated</param>
         /// <param name="milliCap">The process total millisecond count to stop at</param>
+        /// <param name="resume">Whether to resume the last search instead of solving the given node. Assumes the last search was from the same node as the given node.</param>
         /// <returns></returns>
-        protected uint h(WorldState s, int targetCost, int sicEstimate=-1, int lowLevelGeneratedCap=-1, int milliCap=int.MaxValue)
+        protected uint h(WorldState s, int targetCost, int sicEstimate=-1, int lowLevelGeneratedCap=-1, int milliCap=int.MaxValue, bool resume=false)
         {
             double start = this.runner.ElapsedMilliseconds();
+
+            ProblemInstance sAsProblemInstance;
+            if (resume == false)
+            {
+                this.cbs.Clear();
+                sAsProblemInstance = s.ToProblemInstance(this.instance);
+                this.cbs.Setup(sAsProblemInstance,
+                               Math.Max(s.makespan,  // This forces must constraints to be upheld when dealing with A*+OD nodes,
+                                                     // at the cost of forcing every agent to move when a goal could be found earlier with all must constraints upheld.
+                                        s.minDepth), // No point in finding shallower goal nodes
+                               this.runner);
+                
+                if (this.cbs.openList.Count > 0)
+                {
+                    if (sicEstimate == -1)
+                        sicEstimate = (int) SumIndividualCosts.h(s, this.instance);
+                    Debug.Assert(((CbsNode)this.cbs.openList.Peek()).totalCost - s.g == (int)sicEstimate,
+                                    "Total cost of CBS root not same as SIC + g");
+                    // Notice we're substracting s.g, not sAsProblemInstance.g.
+                    // Must constraints we put may have forced some moves,
+                    // and we shouldn't count them as part of the estimate.
+                }
+            }
+            else
+                sAsProblemInstance = this.cbs.GetProblemInstance();
 
             if (lowLevelGeneratedCap == -1)
             {
                 // Rough estimate of the branching factor:
                 lowLevelGeneratedCap = (int) Math.Pow(Constants.NUM_ALLOWED_DIRECTIONS, this.instance.m_vAgents.Length);
-            }
-
-            ProblemInstance sAsProblemInstance;
-            // TODO: Don't duplicate the instance for every call.
-            sAsProblemInstance = s.ToProblemInstance(this.instance);
-            this.cbs.Setup(sAsProblemInstance,
-                           Math.Max(s.makespan,  // This forces must constraints to be upheld when dealing with A*+OD nodes,
-                                                   // at the cost of forcing every agent to move when a goal could be found earlier with all must constraints upheld.
-                                    s.minDepth), // No point in finding shallower goal nodes
-                           this.runner);
-
-            if (this.cbs.openList.Count > 0)
-            {
-                if (sicEstimate == -1)
-                    sicEstimate = (int) SumIndividualCosts.h(s, this.instance);
-                Debug.Assert(((CbsNode)this.cbs.openList.Peek()).totalCost - s.g == (int)sicEstimate,
-                                "Total cost of CBS root not same as SIC + g");
-                // Notice we're substracting s.g, not sAsProblemInstance.g.
-                // Must constraints we put may have forced some moves,
-                // and we shouldn't count them as part of the estimate.
             }
 
             // Calc the h:
@@ -135,7 +141,6 @@ namespace CPF_experiment
 
             this.cbs.AccumulateStatistics();
             this.cbs.ClearStatistics();
-            this.cbs.Clear();
 
             if (this.cbs.totalCost < 0) // A timeout is legitimately possible if very little time was left to begin with,
                                         // and a no solution failure may theoretically be possible too.
@@ -343,10 +348,10 @@ namespace CPF_experiment
         /// <param name="targetH"></param>
         /// <param name="effectiveBranchingFactor"></param>
         /// <returns></returns>
-        public uint h(WorldState s, int targetH, float effectiveBranchingFactor, int millisCap)
+        public uint h(WorldState s, int targetH, float effectiveBranchingFactor, int millisCap, bool resume)
         {
             // No need to check if SIC is zero because this heuristic is run after SIC was already computed, not instead of it.
-            return this.h(s, s.g + targetH, -1, int.MaxValue, millisCap);
+            return this.h(s, s.g + targetH, -1, int.MaxValue, millisCap, resume);
         }
 
         public override string ToString()
