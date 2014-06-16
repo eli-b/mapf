@@ -97,13 +97,99 @@ namespace CPF_experiment
 
             // Preparing the heuristics:
             var sic = new SumIndividualCosts();
+            var cbs = new CBS_LocalConflicts(new ClassicAStar(sic), -1, -1);
+            //var cbsHeuristicNoSolve1 = new CbsHeuristic(cbs, this, false, 1);
+            //var cbsHeuristicNoSolve2 = new CbsHeuristic(cbs, this, false, 2);
+            //var cbsHeuristicNoSolve3 = new CbsHeuristic(cbs, this, false, 3);
+            //var cbsHeuristicNoSolve4 = new CbsHeuristic(cbs, this, false, 4);
+            //var cbsHeuristicNoSolve5 = new CbsHeuristic(cbs, this, false, 5);
+            //var cbsHeuristicNoSolve6 = new CbsHeuristic(cbs, this, false, 6);
+            //var cbsHeuristicSolve1 = new CbsHeuristic(cbs, this, true, 1);
+            //var cbsHeuristicSolve2 = new CbsHeuristic(cbs, this, true, 2);
+            //var cbsHeuristicSolve3 = new CbsHeuristic(cbs, this, true, 3);
+            //var cbsHeuristicSolve4 = new CbsHeuristic(cbs, this, true, 4);
+            //var cbsHeuristicSolve5 = new CbsHeuristic(cbs, this, true, 5);
+            //var cbsHeuristicSolve6 = new CbsHeuristic(cbs, this, true, 6);
+            //var sicOrCbsh6 = new RandomChoiceOfHeuristic(cbsHeuristicSolve6, sic, 1.0 / 5);
             
+            var dynamicLazyCbsh = new DyanamicLazyCbsh(cbs, this, true);
+
             // Preparing the solvers:
             solvers = new List<ISolver>();
-            solvers.Add(new ClassicAStar(sic)); // Assumed to be the first solver. Works
-            solvers.Add(new CBS_LocalConflicts(new ClassicAStar(sic), -1, -1, sic)); // Works
+            
+            //solvers.Add(new CBS_LocalConflicts(new ClassicAStar(sic), -1, -1)); // Works and is very fast so is a good choice for cost validation
+            
+            //solvers.Add(new ClassicAStar(sic)); // Works
+            //solvers.Add(new ClassicAStar(cbsHeuristic)); // Works
+            //solvers.Add(new AStarWithOD(sic));  // Works
+            //solvers.Add(new AStarWithPartialExpansionBasic(sic)); // Works
+            //solvers.Add(new AStarWithPartialExpansionBasic(cbsHeuristic));
+            //solvers.Add(new AStarWithPartialExpansion(sic)); // Works.
 
-         //   solvers.Add(new CostTreeSearchSolverNoPruning());
+            //solvers.Add(new ClassicAStar(cbsHeuristicSolve1));
+            //solvers.Add(new ClassicAStar(cbsHeuristicSolve2));
+            //solvers.Add(new ClassicAStar(cbsHeuristicSolve3));
+            //solvers.Add(new ClassicAStar(cbsHeuristicSolve4));
+            //solvers.Add(new ClassicAStar(cbsHeuristicSolve5));
+            //solvers.Add(new ClassicAStar(cbsHeuristicSolve6));
+            //solvers.Add(new ClassicAStar(cbsHeuristicNoSolve1));
+            //solvers.Add(new ClassicAStar(cbsHeuristicNoSolve2));
+            //solvers.Add(new ClassicAStar(cbsHeuristicNoSolve3));
+            //solvers.Add(new ClassicAStar(cbsHeuristicNoSolve4));
+            //solvers.Add(new ClassicAStar(cbsHeuristicNoSolve5));
+            //solvers.Add(new ClassicAStar(cbsHeuristicNoSolve6));
+            //solvers.Add(new ClassicAStar(sicOrCbsh6));
+            
+            //solvers.Add(new AStarWithOD(cbsHeuristicSolve1));
+            //solvers.Add(new AStarWithOD(cbsHeuristicSolve2));
+            //solvers.Add(new AStarWithOD(cbsHeuristicSolve3));
+            //solvers.Add(new AStarWithOD(cbsHeuristicSolve4));
+            //solvers.Add(new AStarWithOD(cbsHeuristicSolve5));
+            //solvers.Add(new AStarWithOD(cbsHeuristicSolve6));
+            //solvers.Add(new AStarWithOD(cbsHeuristicNoSolve1));
+            //solvers.Add(new AStarWithOD(cbsHeuristicNoSolve2));
+            //solvers.Add(new AStarWithOD(cbsHeuristicNoSolve3));
+            //solvers.Add(new AStarWithOD(cbsHeuristicNoSolve4));
+            //solvers.Add(new AStarWithOD(cbsHeuristicNoSolve5));
+            //solvers.Add(new AStarWithOD(cbsHeuristicNoSolve6));
+            //solvers.Add(new AStarWithOD(sicOrCbsh6));
+
+            ClassicAStar solver;
+            //solver = new AStarWithOD(sic);
+            //var dynamicLazyOpenList1 = new DynamicLazyOpenList(solver, dynamicLazyCbsh);
+            //solver.openList = dynamicLazyOpenList1;
+            //solvers.Add(solver);
+
+            solver = new AStarWithOD(sic);
+            var dynamicRationalLazyOpenList1 = new DynamicRationalLazyOpenList(solver, dynamicLazyCbsh);
+            solver.openList = dynamicRationalLazyOpenList1;
+            solvers.Add(solver);
+
+            //solvers.Add(new AStarWithPartialExpansion(cbsHeuristicSolve1));
+            //solvers.Add(new AStarWithPartialExpansion(cbsHeuristicSolve2));
+            //solvers.Add(new AStarWithPartialExpansion(cbsHeuristicSolve3));
+            //solvers.Add(new AStarWithPartialExpansion(cbsHeuristicSolve4));
+            //solvers.Add(new AStarWithPartialExpansion(cbsHeuristicSolve5));
+            //solvers.Add(new AStarWithPartialExpansion(cbsHeuristicSolve6));
+            //solvers.Add(new AStarWithPartialExpansion(cbsHeuristicNoSolve1));
+            //solvers.Add(new AStarWithPartialExpansion(cbsHeuristicNoSolve2));
+            //solvers.Add(new AStarWithPartialExpansion(cbsHeuristicNoSolve3));
+            //solvers.Add(new AStarWithPartialExpansion(cbsHeuristicNoSolve4));
+            //solvers.Add(new AStarWithPartialExpansion(cbsHeuristicNoSolve5));
+            //solvers.Add(new AStarWithPartialExpansion(cbsHeuristicNoSolve6));
+            //solvers.Add(new AStarWithPartialExpansion(sicOrCbsh6));
+
+            //solver = new AStarWithPartialExpansion(sic);
+            //var dynamicLazyOpenList2 = new DynamicLazyOpenList(solver, dynamicLazyCbsh);
+            //solver.openList = dynamicLazyOpenList2;
+            //solvers.Add(solver);
+
+            solver = new AStarWithPartialExpansion(sic);
+            var dynamicRationalLazyOpenList2 = new DynamicRationalLazyOpenList(solver, dynamicLazyCbsh);
+            solver.openList = dynamicRationalLazyOpenList2;
+            solvers.Add(solver);
+                                    
+            //solvers.Add(new CostTreeSearchSolverNoPruning());
             //solvers.Add(new CostTreeSearchSolverKMatch(2));
             //solvers.Add(new CostTreeSearchSolverOldMatching(2));
             //solvers.Add(new CostTreeSearchSolverRepatedMatch(2));
@@ -119,47 +205,43 @@ namespace CPF_experiment
             //solvers.Add(new CostTreeSearchOldMatching(3));
             //solvers.Add(new CostTreeSearchRepatedMatch(3));
 
-
-           //solvers.Add(new AStarWithPartialExpansionBasic());
-           // solvers.Add(new AStarWithOD());
-           // solvers.Add(new AStarWithPartialExpansion());
-
-   //         solvers.Add(new Trevor(new AStarWithPartialExpansion()));
+            //solvers.Add(new Trevor(new AStarWithPartialExpansion()));
             //solvers.Add(new Trevor(new CBS_GlobalConflicts(new AStarWithPartialExpansion(), 1, 1)));
             //solvers.Add(new Trevor(new CBS_GlobalConflicts(new AStarWithPartialExpansion(), 5, 5)));
             //solvers.Add(new Trevor(new CBS_GlobalConflicts(new AStarWithPartialExpansion(), 10, 10)));
             //solvers.Add(new Trevor(new CBS_GlobalConflicts(new AStarWithPartialExpansion(), 100, 100)));
             //solvers.Add(new Trevor(new CBS_GlobalConflicts(new AStarWithPartialExpansion(), 500, 500)));
-   //         solvers.Add(new Trevor(new CBS_GlobalConflicts(new ClassicAStar())));
-            //solvers.Add(new CostTreeSearchOldMatching(3));
+            //solvers.Add(new Trevor(new CBS_GlobalConflicts(new ClassicAStar())));
 
-            //solvers.Add(new CBS_IDA(new ClassicAStar()));
-           // solvers.Add(new AStarWithPartialExpansion());
-          //  solvers.Add(new CBS_GlobalConflicts(new ClassicAStar()));
-
-           // solvers.Add(new CBS_NoDD(new ClassicAStar()));
-            //solvers.Add(new CBS_NoDDb3(new ClassicAStar()));
-
-           // solvers.Add(new Trevor(new CBS_GlobalConflicts(new ClassicAStar(), 1, 1)));
+            //solvers.Add(new Trevor(new CBS_GlobalConflicts(new ClassicAStar(), 1, 1)));
             //solvers.Add(new Trevor(new CBS_GlobalConflicts(new ClassicAStar(), 5, 5)));
             //solvers.Add(new Trevor(new CBS_GlobalConflicts(new ClassicAStar(), 10, 10)));
             //solvers.Add(new Trevor(new CBS_GlobalConflicts(new ClassicAStar(), 100, 100)));
             //solvers.Add(new Trevor(new CBS_GlobalConflicts(new ClassicAStar(), 500, 500)));
 
+            //solvers.Add(new Trevor(new AStarWithPartialExpansionBasic()));
+            //solvers.Add(new Trevor(new AStarWithPartialExpansion()));
+            //solvers.Add(new Trevor(new ClassicAStar()));
+            //solvers.Add(new Trevor());
+
+            //solvers.Add(new CBS_IDA(new ClassicAStar())); // Don't run! Uses must conds
+
+            //solvers.Add(new CBS_GlobalConflicts(new ClassicAStar())); // Works
+
+            //solvers.Add(new CBS_NoDD(new ClassicAStar()));
+            //solvers.Add(new CBS_NoDDb3(new ClassicAStar()));
+            //solvers.Add(new CBS_GlobalConflicts(new ClassicAStar(), 1, 1)); // Run this!
+
+
             //solvers.Add(new CBS_GlobalConflicts(new AStarWithPartialExpansion(), 1, 1));
             //solvers.Add(new CBS_GlobalConflicts(new AStarWithPartialExpansion(), 5, 5));
             //solvers.Add(new CBS_GlobalConflicts(new AStarWithPartialExpansion(), 10, 10));
             //solvers.Add(new CBS_GlobalConflicts(new AStarWithPartialExpansion(), 100, 100));
-           // solvers.Add(new CBS_GlobalConflicts(new AStarWithPartialExpansion(), 500, 500));
-           // solvers.Add(new CBS_GlobalConflicts(new ClassicAStar()));
+            //solvers.Add(new CBS_GlobalConflicts(new AStarWithPartialExpansion(), 500, 500));
             //solvers.Add(new CBS_LocalConflicts(new ClassicAStar(), 0, 0));
             //solvers.Add(new CBS_LocalConflicts(new ClassicAStar(), 1, 0));
             //solvers.Add(new CBS_LocalConflicts(new ClassicAStar(), 2, 0));
 
-           // solvers.Add(new Trevor(new AStarWithPartialExpansionBasic()));
-           // solvers.Add(new Trevor(new AStarWithPartialExpansion()));
-           // solvers.Add(new Trevor(new ClassicAStar()));
-           // solvers.Add(new Trevor());
 
             outOfTimeCounters = new int[solvers.Count];
             for (int i = 0; i < outOfTimeCounters.Length; i++)
@@ -418,7 +500,7 @@ namespace CPF_experiment
                     {
                         Plan plan = solvers[i].GetPlan();
                         int planSize = plan.GetSize();
-                        if (planSize < 15)
+                        if (planSize < 20)
                             plan.PrintPlan();
                         else
                             Console.WriteLine("Plan is too long to print (" + planSize + " steps).");
