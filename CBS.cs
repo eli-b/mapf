@@ -29,6 +29,7 @@ namespace CPF_experiment
         protected int accHLExpanded;
         protected int accHLGenerated;
         protected int accClosedListHits;
+
         public int totalCost;
         protected int solutionDepth;
         protected Run runner;
@@ -167,8 +168,8 @@ namespace CPF_experiment
             output.Write(Run.RESULTS_DELIMITER);
             output.Write(this.ToString() + " Closed List Hits (HL)");
             output.Write(Run.RESULTS_DELIMITER);
-            output.Write(this.ToString() + " Max Group Size (HL)");
-            output.Write(Run.RESULTS_DELIMITER);
+            //output.Write(this.ToString() + " Max Group Size (HL)");
+            //output.Write(Run.RESULTS_DELIMITER);
 
             this.solver.OutputStatisticsHeader(output);
 
@@ -180,12 +181,12 @@ namespace CPF_experiment
             Console.WriteLine("Total Expanded Nodes (High-Level): {0}", this.GetHighLevelExpanded());
             Console.WriteLine("Total Generated Nodes (High-Level): {0}", this.GetHighLevelGenerated());
             Console.WriteLine("Closed List Hits (High-Level): {0}", this.closedListHits);
-            Console.WriteLine("Max Group Size (High-Level): {0}", this.maxSizeGroup);
+            //Console.WriteLine("Max Group Size (High-Level): {0}", this.maxSizeGroup);
 
             output.Write(this.highLevelExpanded + Run.RESULTS_DELIMITER);
             output.Write(this.highLevelGenerated + Run.RESULTS_DELIMITER);
             output.Write(this.closedListHits + Run.RESULTS_DELIMITER);
-            output.Write(this.maxSizeGroup + Run.RESULTS_DELIMITER);
+            //output.Write(this.maxSizeGroup + Run.RESULTS_DELIMITER);
 
             this.solver.OutputAccumulatedStatistics(output);
 
@@ -224,6 +225,7 @@ namespace CPF_experiment
             this.accHLExpanded += this.highLevelExpanded;
             this.accHLGenerated += this.highLevelGenerated;
             this.accClosedListHits += this.closedListHits;
+            //this.accMaxGroupSize = Math.Max(this.accMaxGroupSize, this.maxSizeGroup)
 
             // this.solver statistics are accumulated every time it's used.
 
@@ -239,6 +241,7 @@ namespace CPF_experiment
             output.Write(this.accHLExpanded + Run.RESULTS_DELIMITER);
             output.Write(this.accHLGenerated + Run.RESULTS_DELIMITER);
             output.Write(this.accClosedListHits + Run.RESULTS_DELIMITER);
+            //output.Write(this.accMaxSizeGroup + Run.RESULTS_DELIMITER);
 
             this.solver.OutputAccumulatedStatistics(output);
 
