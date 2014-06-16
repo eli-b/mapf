@@ -424,6 +424,9 @@ namespace CPF_experiment
 
             foreach (var currentNode in intermediateNodes)
             {
+                if (runner.ElapsedMilliseconds() > Constants.MAX_TIME)
+                    break;
+
                 // Try all legal moves of the agents
                 foreach (TimedMove agentLocation in currentNode.allAgentsState[agentIndex].lastMove.GetNextMoves(Constants.ALLOW_DIAGONAL_MOVE))
                 {
