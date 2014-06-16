@@ -685,7 +685,7 @@ namespace CPF_experiment
         private Stopwatch watch;
         private double ElapsedMillisecondsTotal()
         {
-            return this.watch.ElapsedMilliseconds;
+            return this.watch.Elapsed.TotalMilliseconds;
         }
 
         public double ElapsedMilliseconds()
