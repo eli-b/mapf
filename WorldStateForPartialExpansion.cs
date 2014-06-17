@@ -102,7 +102,7 @@ namespace CPF_experiment
 
                 foreach (TimedMove check in allAgentsState[i].lastMove.GetNextMoves(Constants.ALLOW_DIAGONAL_MOVE))
                 {
-                    if (isValid(check, noMoves, this.makespan + 1, i) == false)
+                    if (isValid(check, noMoves, this.makespan + 1, allAgentsState[i].agent.agentNum) == false)
                     {
                          singleAgentDeltaFs[i][(int)check.direction] = byte.MaxValue;
                     }
