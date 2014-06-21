@@ -291,7 +291,7 @@ namespace CPF_experiment
 
         protected bool MergeConflicting(CbsNode node)
         {
-            return node.MergeIf(mergeThreshold, globalConflictsCounter);
+            return node.ShouldMerge(mergeThreshold, globalConflictsCounter);
         }
 
         protected void addToGlobalConflictCount(CbsConflict conflict)

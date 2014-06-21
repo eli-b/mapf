@@ -57,6 +57,8 @@ namespace CPF_experiment
             {
                 agentsGroupAssignment[i] = i;
             }
+            this.prev = null;
+            this.constraint = null;
             this.problem = problem;
             this.highLevelSolver = highLevelSolver;
             this.lowLevelSolver = lowLevelSolver;
@@ -64,7 +66,7 @@ namespace CPF_experiment
         }
 
         /// <summary>
-        /// Child constructor
+        /// Child from branch action constructor
         /// </summary>
         /// <param name="father"></param>
         /// <param name="newConstraint"></param>
@@ -84,6 +86,32 @@ namespace CPF_experiment
                     group.Add(i);
             }
             this.constraint.AddAgents(group);
+            this.depth = (ushort)(this.prev.depth + 1);
+            externalConflictsCount = 0;
+            internalConflictsCount = 0;
+            agentAExpansion = ExpansionState.NOT_EXPANDED;
+            agentBExpansion = ExpansionState.NOT_EXPANDED;
+            replanSize = 1;
+            this.problem = father.problem;
+            this.highLevelSolver = father.highLevelSolver;
+            this.lowLevelSolver = father.lowLevelSolver;
+            this.runner = father.runner;
+        }
+
+        /// <summary>
+        /// Child from merge action constructor
+        /// </summary>
+        /// <param name="father"></param>
+        /// <param name="mergeGroupA"></param>
+        /// <param name="mergeGroupB"></param>
+        public CbsNode(CbsNode father, int mergeGroupA, int mergeGroupB)
+        {
+            this.allSingleAgentPlans = father.allSingleAgentPlans.ToArray<SinglePlan>();
+            this.allSingleAgentCosts = father.allSingleAgentCosts.ToArray<int>();
+            this.agentsGroupAssignment = father.agentsGroupAssignment.ToArray<ushort>();
+            this.MergeGroups(mergeGroupA, mergeGroupB);
+            this.prev = father;
+            this.constraint = null;
             this.depth = (ushort)(this.prev.depth + 1);
             externalConflictsCount = 0;
             internalConflictsCount = 0;
@@ -420,6 +448,10 @@ namespace CPF_experiment
             return 0;
         }
 
+        /// <summary>
+        /// Not used.
+        /// </summary>
+        /// <returns></returns>
         public CbsConstraint GetLastConstraint()
         {
             return this.constraint;
@@ -476,19 +508,14 @@ namespace CPF_experiment
 
         /// <summary>
         /// Merge agent groups that are conflicting in this node if they pass the merge threshold.
-        /// Warning: May change the hash code!
         /// </summary>
         /// <param name="mergeThreshold"></param>
         /// <returns>Whether a merge was performed.</returns>
-        public bool MergeIf(int mergeThreshold)
+        public bool ShouldMerge(int mergeThreshold)
         {
             int countConflicts = 1; // The agentA and agentB conflict in this node.
-            int firstGroupNumber;
-            int secondGroupNumber;
-            ISet<int> firstGroup;
-            ISet<int> secondGroup;
-
-            this.GetConflictsGroups(out firstGroupNumber, out secondGroupNumber, out firstGroup, out secondGroup);
+            ISet<int> firstGroup = this.GetGroup(this.agentsGroupAssignment[this.conflict.agentA]);
+            ISet<int> secondGroup = this.GetGroup(this.agentsGroupAssignment[this.conflict.agentB]);
 
             CbsNode current = this.prev;
             int a, b;
@@ -501,31 +528,20 @@ namespace CPF_experiment
                 current = current.prev;
             }
 
-            if (countConflicts > mergeThreshold)
-            {
-                MergeGroups(firstGroupNumber, secondGroupNumber);
-                return true;
-            }
-
-            return false;
+            return countConflicts > mergeThreshold;
         }
 
         /// <summary>
         /// Merge agent groups that are conflicting in this node if they pass the merge threshold, using the given conflict counts.
-        /// Warning: May change the hash code!
         /// </summary>
         /// <param name="mergeThreshold"></param>
         /// <param name="globalConflictCounter"></param>
         /// <returns>Whether a merge was performed.</returns>
-        public bool MergeIf(int mergeThreshold, int[][] globalConflictCounter)
+        public bool ShouldMerge(int mergeThreshold, int[][] globalConflictCounter)
         {
             int conflictCounter = 0;
-            int firstGroupNumber;
-            int secondGroupNumber;
-            ISet<int> firstGroup;
-            ISet<int> secondGroup;
-
-            this.GetConflictsGroups(out firstGroupNumber, out secondGroupNumber, out firstGroup, out secondGroup);
+            ISet<int> firstGroup = this.GetGroup(this.agentsGroupAssignment[this.conflict.agentA]);
+            ISet<int> secondGroup = this.GetGroup(this.agentsGroupAssignment[this.conflict.agentB]);
 
             foreach (int a in firstGroup)
             {
@@ -535,31 +551,26 @@ namespace CPF_experiment
                 }
             }
 
-            if (conflictCounter > mergeThreshold)
-            {
-                MergeGroups(firstGroupNumber, secondGroupNumber);
-                return true;
-            }
-
-            return false;
+            return conflictCounter > mergeThreshold;
         }
 
-        private void GetConflictsGroups(out int firstGroupNumber, out int secondGroupNumber, out ISet<int> firstGroup, out ISet<int> secondGroup)
+        private ISet<int> GetGroup(int groupNumber)
         {
-            firstGroupNumber = this.agentsGroupAssignment[conflict.agentA];
-            secondGroupNumber = this.agentsGroupAssignment[conflict.agentB];
-            firstGroup = new HashSet<int>();
-            secondGroup = new HashSet<int>();
+            ISet<int> group = new HashSet<int>();
 
             for (int i = 0; i < agentsGroupAssignment.Length; i++)
             {
-                if (agentsGroupAssignment[i] == firstGroupNumber)
-                    firstGroup.Add(i);
-                if (agentsGroupAssignment[i] == secondGroupNumber)
-                    secondGroup.Add(i);
+                if (agentsGroupAssignment[i] == groupNumber)
+                    group.Add(i);
             }
+            return group;
         }
 
+        /// <summary>
+        /// Warning: changes the hash!
+        /// </summary>
+        /// <param name="a"></param>
+        /// <param name="b"></param>
         private void MergeGroups(int a, int b)
         {
             if (b < a)

@@ -263,7 +263,7 @@ namespace CPF_experiment
 
         protected virtual bool MergeConflicting(CbsNode node)
         {
-            return node.MergeIf(mergeThreshold);
+            return node.ShouldMerge(mergeThreshold);
         }
 
         public virtual bool Expand(CbsNode node, CbsConflict conflict)
@@ -403,7 +403,7 @@ namespace CPF_experiment
 
         protected override bool MergeConflicting(CbsNode node)
         {
-            return node.MergeIf(mergeThreshold, globalConflictsCounter);
+            return node.ShouldMerge(mergeThreshold, globalConflictsCounter);
         }
 
         protected override void addToGlobalConflictCount(CbsConflict conflict)

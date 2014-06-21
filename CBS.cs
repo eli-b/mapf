@@ -399,76 +399,66 @@ namespace CPF_experiment
             return false;
         }
 
-        protected virtual bool MergeConflicting(CbsNode node)
+        protected virtual bool ShouldMerge(CbsNode node)
         {
-            return node.MergeIf(mergeThreshold);
+            return node.ShouldMerge(mergeThreshold);
         }
 
         public virtual void Expand(CbsNode node)
         {
             CbsConflict conflict = node.GetConflict();
+            CbsNode child;
 
-            if (this.maxMergeThreshold != -1)
+            if (this.maxMergeThreshold != -1 && ShouldMerge(node))
             {
-                closedList.Remove(node); // This may be the last chance to do it, if a merge occurs in the next line
-                if (MergeConflicting(node))
+                child = new CbsNode(node, node.agentsGroupAssignment[conflict.agentA], node.agentsGroupAssignment[conflict.agentB]);
+                if (closedList.ContainsKey(child) == false) // We may have already merged these agents in the parent
                 {
-                    if (closedList.ContainsKey(node) == false) // We may have already merged these agents in the parent
+                    if (debug)
+                        Debug.WriteLine("Merging agents {0} and {1}", conflict.agentA, conflict.agentB);
+                    closedList.Add(child, child);
+                    bool success = child.Replan(conflict.agentA, this.minDepth); // or agentB. Doesn't matter - they're in the same group.
+                    if (debug)
                     {
-                        if (debug)
-                            Debug.WriteLine("Merging agents {0} and {1}", conflict.agentA, conflict.agentB);
-                        closedList.Add(node, node); // With new hash code
-                        bool success = node.Replan(conflict.agentA, this.minDepth);
-                        if (debug)
+                        Debug.WriteLine("New cost: " + child.totalCost);
+                        var constraints = child.GetConstraints();
+                        Debug.WriteLine(constraints.Count + " Remaining constraints:");
+                        foreach (CbsConstraint constraint in constraints)
                         {
-                            Debug.WriteLine("New cost: " + node.totalCost);
-                            var constraints = node.GetConstraints();
-                            Debug.WriteLine(constraints.Count + " Remaining constraints:");
-                            foreach (CbsConstraint constraint in constraints)
-                            {
-                                Debug.WriteLine(constraint);
-                            }
-                            Debug.WriteLine("New conflict: " + node.GetConflict());
-                            Debug.Write("Agent group assignments: ");
-                            for (int i = 0; i < node.agentsGroupAssignment.Length; i++)
-                            {
-                                Debug.Write(" " + node.agentsGroupAssignment[i]);
-                            }
-                            Debug.WriteLine("");
-                            node.CalculateJointPlan().PrintPlan();
-                            Debug.WriteLine("");
-                            Debug.WriteLine("");
+                            Debug.WriteLine(constraint);
+                        }
+                        Debug.WriteLine("New conflict: " + child.GetConflict());
+                        Debug.Write("New agent group assignments: ");
+                        for (int i = 0; i < child.agentsGroupAssignment.Length; i++)
+                        {
+                            Debug.Write(" " + child.agentsGroupAssignment[i]);
+                        }
+                        Debug.WriteLine("");
+                        child.CalculateJointPlan().PrintPlan();
+                        Debug.WriteLine("");
+                        Debug.WriteLine("");
 
-                        }
-                        this.maxSizeGroup = Math.Max(this.maxSizeGroup, node.replanSize);
-                        // Clear partial expansion state - this is actually a new node with new paths and a new conflict.
-                        // Any child node already created is trying to solve the old conflict that was just solved here by
-                        // merging the agents. When it is expanded it will inevitably also choose to merge the agents instead
-                        // of expanding, since the conflict count never decrements, and will be stopped by the closed list check.
-                        // Any deffered child should have another chance to be deferred - this is a new conflict.
-                        node.agentAExpansion = CbsNode.ExpansionState.NOT_EXPANDED;
-                        node.agentBExpansion = CbsNode.ExpansionState.NOT_EXPANDED;
-                        if (success == false)
-                        {
-                            this.Clear();
-                            return;
-                        }
-                        if (node.totalCost <= maxCost) // FIXME: Code dup with other new node creations
-                        {
-                            openList.Add(node);
-                            this.addToGlobalConflictCount(node.GetConflict());
-                        }
                     }
-                    return; // Don't expand this node yet. Wait for it to pop from the open list again.
+                    this.maxSizeGroup = Math.Max(this.maxSizeGroup, child.replanSize);
+                    if (success == false)
+                    {
+                        this.Clear();
+                        return;
+                    }
+                    if (node.totalCost <= maxCost) // FIXME: Code dup with other new node creations
+                    {
+                        openList.Add(child);
+                        this.highLevelGenerated++;
+                        this.addToGlobalConflictCount(child.GetConflict());
+                    }
                 }
                 else
-                    closedList.Add(node, node); // With the old hash code
+                    closedListHits++;
+                return;
             }
 
             // Expand node, possibly partially:
             // Generate left child:
-            CbsConstraint con;
-            CbsNode toAdd;
             if (node.agentAExpansion == CbsNode.ExpansionState.NOT_EXPANDED && conflict.vertex == true &&
                 Math.Max(minDepth, conflict.timeStep) >= node.allSingleAgentCosts[conflict.agentA])
             // Conflict happens when or after agent A reaches its goal.
@@ -492,19 +482,19 @@ namespace CPF_experiment
             else if (node.agentAExpansion != CbsNode.ExpansionState.EXPANDED)
             // Agent A expansion already skipped in the past or not forcing A from its goal - finally generate the child:
             {
-                con = new CbsConstraint(conflict, instance, true);
-                toAdd = new CbsNode(node, con, conflict.agentA);
+                var newConstraint = new CbsConstraint(conflict, instance, true);
+                child = new CbsNode(node, newConstraint, conflict.agentA);
 
-                if (closedList.ContainsKey(toAdd) == false)
+                if (closedList.ContainsKey(child) == false)
                 {
-                    if (toAdd.Replan(conflict.agentA, minDepth)) // The node takes the max between minDepth and the max time over all constraints.
+                    closedList.Add(child, child);
+                    if (child.Replan(conflict.agentA, minDepth)) // The node takes the max between minDepth and the max time over all constraints.
                     {
-                        if (toAdd.totalCost <= this.maxCost)
+                        if (child.totalCost <= this.maxCost)
                         {
-                            openList.Add(toAdd);
-                            closedList.Add(toAdd, toAdd);
+                            openList.Add(child);
                             this.highLevelGenerated++;
-                            addToGlobalConflictCount(toAdd.GetConflict());
+                            addToGlobalConflictCount(child.GetConflict());
                         }
                     }
                     // else a timeout probably occured
@@ -529,19 +519,19 @@ namespace CPF_experiment
             }
             else if (node.agentBExpansion != CbsNode.ExpansionState.EXPANDED)
             {
-                con = new CbsConstraint(conflict, instance, false);
-                toAdd = new CbsNode(node, con, conflict.agentB);
+                var newConstraint = new CbsConstraint(conflict, instance, false);
+                child = new CbsNode(node, newConstraint, conflict.agentB);
 
-                if (closedList.ContainsKey(toAdd) == false)
+                if (closedList.ContainsKey(child) == false)
                 {
-                    if (toAdd.Replan(conflict.agentB, minDepth)) // The node takes the max between minDepth and the max time over all constraints.
+                    closedList.Add(child, child);
+                    if (child.Replan(conflict.agentB, minDepth)) // The node takes the max between minDepth and the max time over all constraints.
                     {
-                        if (toAdd.totalCost <= this.maxCost)
+                        if (child.totalCost <= this.maxCost)
                         {
-                            openList.Add(toAdd);
-                            closedList.Add(toAdd, toAdd);
+                            openList.Add(child);
                             this.highLevelGenerated++;
-                            addToGlobalConflictCount(toAdd.GetConflict());
+                            addToGlobalConflictCount(child.GetConflict());
                         }
                     }
                     // else a timeout probably occured
@@ -621,9 +611,9 @@ namespace CPF_experiment
             base.Setup(problemInstance, runner);
         }
 
-        protected override bool MergeConflicting(CbsNode node)
+        protected override bool ShouldMerge(CbsNode node)
         {
-            return node.MergeIf(mergeThreshold, globalConflictsCounter);
+            return node.ShouldMerge(mergeThreshold, globalConflictsCounter);
         }
 
         protected override void addToGlobalConflictCount(CbsConflict conflict)
