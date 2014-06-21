@@ -44,20 +44,26 @@ namespace CPF_experiment
                 node.targetDeltaF = 0; // Assuming a consistent heuristic (as done in the paper), the min delta F is zero.
                 node.remainingDeltaF = node.targetDeltaF; // Just for the hasChildrenForCurrentDeltaF call.
                 while (node.hasMoreChildren() && node.hasChildrenForCurrentDeltaF() == false) // DeltaF=0 may not be possible if all agents have obstacles between their location and the goal
+                {
                     node.targetDeltaF++;
+                    node.remainingDeltaF = node.targetDeltaF;
+                }
             }
             //Debug.Print("Expanding node " + node);
 
             // If this node was already expanded, notice its h was updated, so the deltaF refers to its original H
 
-            node.remainingDeltaF = node.targetDeltaF;
 
             base.Expand(node);
 
-            node.targetDeltaF++;
+            node.targetDeltaF++; // This delta F was exhausted
+            node.remainingDeltaF = node.targetDeltaF;
 
             while (node.hasMoreChildren() && node.hasChildrenForCurrentDeltaF() == false)
+            {
                 node.targetDeltaF++;
+                node.remainingDeltaF = node.targetDeltaF;
+            }
 
             if (node.hasMoreChildren() && node.hasChildrenForCurrentDeltaF() && node.h + node.g + node.targetDeltaF <= this.maxCost)
             {

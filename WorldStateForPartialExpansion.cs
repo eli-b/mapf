@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Diagnostics;
 
@@ -95,10 +96,14 @@ namespace CPF_experiment
 
             int hBefore, hAfter;
 
+            this.maxDeltaF = 0;
+
             // Set values
             for (int i = 0; i < allAgentsState.Length; i++)
             {
                 hBefore = problem.GetSingleAgentOptimalCost(allAgentsState[i]); // According to SIC
+
+                int singleAgentMaxLegalDeltaF = -1;
 
                 foreach (TimedMove check in allAgentsState[i].lastMove.GetNextMoves(Constants.ALLOW_DIAGONAL_MOVE))
                 {
@@ -116,14 +121,19 @@ namespace CPF_experiment
                             singleAgentDeltaFs[i][(int)check.direction] = (byte)(hAfter - hBefore + makespan - allAgentsState[i].arrivalTime + 1);
                         else
                             singleAgentDeltaFs[i][(int)check.direction] = 0; // This is a WAIT move at the goal.
+
+                        singleAgentMaxLegalDeltaF = Math.Max(singleAgentMaxLegalDeltaF, singleAgentDeltaFs[i][(int)check.direction]);
                     }
                 }
-            }
 
-            // Sum across all agents of max F difference by a legal move
-            this.maxDeltaF = (byte) singleAgentDeltaFs.Select<byte[], byte>(
-                        deltaFs => deltaFs.Where<byte>(x => (x < byte.MaxValue)).Max<byte>()
-                   ).Sum<byte>(max => max);
+                if (singleAgentMaxLegalDeltaF == -1) // No legal action for this agent, so no legal children exist for this node
+                {
+                    this.maxDeltaF = 0; // Can't make it negative without widening the field.
+                    break;
+                }
+
+                this.maxDeltaF += (byte) singleAgentMaxLegalDeltaF;
+            }
 
             fLookup = new sbyte[allAgentsState.Length][];
             for (int i = 0; i < fLookup.Length; i++)
