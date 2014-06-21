@@ -375,7 +375,7 @@ namespace CPF_experiment
                 {
                     if (debug)
                         Debug.WriteLine("-------------------------");
-                    this.totalCost = currentNode.totalCost; // This is the min possible cost so far.
+                    this.totalCost = maxExpandedCost; // This is the min possible cost so far.
                     this.openList.Add(currentNode); // To be able to continue the search later
                     this.CleanGlobals();
                     return false;
@@ -422,7 +422,12 @@ namespace CPF_experiment
                         if (debug)
                         {
                             Debug.WriteLine("New cost: " + node.totalCost);
-                            Debug.WriteLine("Same constraints");
+                            var constraints = node.GetConstraints();
+                            Debug.WriteLine(constraints.Count + " Remaining constraints:");
+                            foreach (CbsConstraint constraint in constraints)
+                            {
+                                Debug.WriteLine(constraint);
+                            }
                             Debug.WriteLine("New conflict: " + node.GetConflict());
                             Debug.Write("Agent group assignments: ");
                             for (int i = 0; i < node.agentsGroupAssignment.Length; i++)
