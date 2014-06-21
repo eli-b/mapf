@@ -335,28 +335,12 @@ namespace CPF_experiment
                     ans += Constants.PRIMES_FOR_HASHING[i % Constants.PRIMES_FOR_HASHING.Length] * agentsGroupAssignment[i];
                 }
 
-                CbsNode current = this;
-                while (current.depth > 0) // No constraint in depth=0, and the root is shared between all nodes so its data adds no entropy.
+                HashSet<CbsConstraint> constraints = this.GetConstraints();
+
+                foreach (CbsConstraint constraint in constraints)
                 {
-                    //if (current.prev.conflict != null && // Safe because current isn't the root, not sure why it's necessary though.
-                    //    this.agentsGroupAssignment[current.prev.conflict.agentA] != 
-                    //    this.agentsGroupAssignment[current.prev.conflict.agentB]) // A (first) conflict in prev creates the constraint in current.
-                                                                                    // We can skip constraints that came from conflicts between
-                                                                                    // agents that were later merged because nodes that only differ in these
-                                                                                    // conflicts will have the same single agent paths.
-                                                                                    // The actual conflict could have been between 3 agents and the third
-                                                                                    // may not have been merged with the other two, but that collision will
-                                                                                    // still happen and will create another node with a constraint the covers it.
-                                                                                    // The above consideration, however, isn't good to use here since it isn't also done in Equals,
-                                                                                    // so two unequal (because of a constraint that deals with a conflict between two low level nodes that were only merged in one of the high level nodes)
-                                                                                    // nodes could have the same hash and cause a collision.
-                                                                                    // TODO: Enable the above here and in Equals.
-                    {
-                        ans += current.constraint.GetHashCode();
-                    }
-                    current = current.prev;
+                    ans += constraint.GetHashCode();
                 }
-                // TODO: Consider moving the above loop to GetConstraints and just using it here.
 
                 return ans;
             }
@@ -377,12 +361,11 @@ namespace CPF_experiment
             CbsNode current = this;
             CbsConstraint.fullyEqual = true;
             HashSet<CbsConstraint> other_constraints = other.GetConstraints();
+            HashSet<CbsConstraint> constraints = this.GetConstraints();
 
-            int constraint_count = 0;
-            while (current.depth > 0) // The root is shared, and has no constraints
+            foreach (CbsConstraint constraint in constraints)
             {
-                ++constraint_count;
-                if (other_constraints.Contains(current.constraint) == false)
+                if (other_constraints.Contains(constraint) == false)
                 {
                     CbsConstraint.fullyEqual = false;
                     return false;
@@ -390,7 +373,7 @@ namespace CPF_experiment
                 current = current.prev;
             }
             CbsConstraint.fullyEqual = false;
-            return constraint_count == other_constraints.Count;
+            return constraints.Count == other_constraints.Count;
         }
 
         /// <summary>
@@ -446,9 +429,15 @@ namespace CPF_experiment
         {
             var constraints = new HashSet<CbsConstraint>();
             CbsNode current = this;
-            while (current.depth > 0)
+            while (current.depth > 0) // The root has no constraints
             {
-                constraints.Add(current.constraint);
+                if (this.agentsGroupAssignment[current.prev.conflict.agentA] !=
+                    this.agentsGroupAssignment[current.prev.conflict.agentB]) // Ignore constraints that deal with conflicts between
+                                                                              // agents that were later merged. They're irrelevant
+                                                                              // since merging fixes all conflicts between merged agents.
+                                                                              // Nodes that only differ in such irrelevant conflicts will have the same single agent paths.
+                                                                              // Dereferencing current.prev is safe because current isn't the root.
+                    constraints.Add(current.constraint);
                 current = current.prev;
             }
             return constraints;
@@ -493,19 +482,13 @@ namespace CPF_experiment
         /// <returns>Whether a merge was performed.</returns>
         public bool MergeIf(int mergeThreshold)
         {
-            int countConflicts = 1;
-            int firstGroupNumber = this.agentsGroupAssignment[conflict.agentA];
-            int secondGroupNumber = this.agentsGroupAssignment[conflict.agentB];
-            List<int> firstGroup = new List<int>();
-            List<int> secondGroup = new List<int>();
+            int countConflicts = 1; // The agentA and agentB conflict in this node.
+            int firstGroupNumber;
+            int secondGroupNumber;
+            ISet<int> firstGroup;
+            ISet<int> secondGroup;
 
-            for (int i = 0; i < agentsGroupAssignment.Length; i++)
-            {
-                if (agentsGroupAssignment[i] == firstGroupNumber)
-                    firstGroup.Add(i);
-                if (agentsGroupAssignment[i] == secondGroupNumber)
-                    secondGroup.Add(i);
-            }
+            this.GetConflictsGroups(out firstGroupNumber, out secondGroupNumber, out firstGroup, out secondGroup);
 
             CbsNode current = this.prev;
             int a, b;
@@ -517,6 +500,7 @@ namespace CPF_experiment
                     countConflicts++;
                 current = current.prev;
             }
+
             if (countConflicts > mergeThreshold)
             {
                 MergeGroups(firstGroupNumber, secondGroupNumber);
@@ -527,8 +511,7 @@ namespace CPF_experiment
         }
 
         /// <summary>
-        /// Merge agent groups that are conflicting in this node if they pass the merge threshold.
-        /// FIXME: Code dup with previous method
+        /// Merge agent groups that are conflicting in this node if they pass the merge threshold, using the given conflict counts.
         /// Warning: May change the hash code!
         /// </summary>
         /// <param name="mergeThreshold"></param>
@@ -537,18 +520,12 @@ namespace CPF_experiment
         public bool MergeIf(int mergeThreshold, int[][] globalConflictCounter)
         {
             int conflictCounter = 0;
-            int firstGroupNumber = this.agentsGroupAssignment[conflict.agentA];
-            int secondGroupNumber = this.agentsGroupAssignment[conflict.agentB];
-            List<int> firstGroup = new List<int>();
-            List<int> secondGroup = new List<int>();
+            int firstGroupNumber;
+            int secondGroupNumber;
+            ISet<int> firstGroup;
+            ISet<int> secondGroup;
 
-            for (int i = 0; i < agentsGroupAssignment.Length; i++)
-            {
-                if (agentsGroupAssignment[i] == firstGroupNumber)
-                    firstGroup.Add(i);
-                if (agentsGroupAssignment[i] == secondGroupNumber)
-                    secondGroup.Add(i);
-            }
+            this.GetConflictsGroups(out firstGroupNumber, out secondGroupNumber, out firstGroup, out secondGroup);
 
             foreach (int a in firstGroup)
             {
@@ -557,6 +534,7 @@ namespace CPF_experiment
                     conflictCounter += globalConflictCounter[Math.Max(a, b)][Math.Min(a, b)];
                 }
             }
+
             if (conflictCounter > mergeThreshold)
             {
                 MergeGroups(firstGroupNumber, secondGroupNumber);
@@ -564,6 +542,22 @@ namespace CPF_experiment
             }
 
             return false;
+        }
+
+        private void GetConflictsGroups(out int firstGroupNumber, out int secondGroupNumber, out ISet<int> firstGroup, out ISet<int> secondGroup)
+        {
+            firstGroupNumber = this.agentsGroupAssignment[conflict.agentA];
+            secondGroupNumber = this.agentsGroupAssignment[conflict.agentB];
+            firstGroup = new HashSet<int>();
+            secondGroup = new HashSet<int>();
+
+            for (int i = 0; i < agentsGroupAssignment.Length; i++)
+            {
+                if (agentsGroupAssignment[i] == firstGroupNumber)
+                    firstGroup.Add(i);
+                if (agentsGroupAssignment[i] == secondGroupNumber)
+                    secondGroup.Add(i);
+            }
         }
 
         private void MergeGroups(int a, int b)

@@ -5,6 +5,9 @@ using System.Diagnostics;
 
 namespace CPF_experiment
 {
+    /// <summary>
+    /// Merges agents if they conflict more times than the given threshold in the CT nodes from the root to the current CT nodes only.
+    /// </summary>
     public class CBS_LocalConflicts : ICbsSolver
     {
         /// <summary>
@@ -55,7 +58,7 @@ namespace CPF_experiment
         protected ICbsSolver lowLevelSolver;
         protected int mergeThreshold;
         protected int minDepth;
-        protected int maxThreshold;
+        protected int maxMergeThreshold;
         protected int maxSizeGroup;
         /// <summary>
         /// Used to know when to clear problem parameters.
@@ -69,13 +72,13 @@ namespace CPF_experiment
             this.mergeThreshold = currentThreshold;
             this.solver = solver;
             this.lowLevelSolver = solver;
-            this.maxThreshold = maxThreshold;
+            this.maxMergeThreshold = maxThreshold;
             if (currentThreshold < maxThreshold)
             {
                 this.solver = new CBS_LocalConflicts(solver, maxThreshold, currentThreshold + 1);
             }
         }
-
+        
         public virtual void Setup(ProblemInstance problemInstance, int minDepth, Run runner)
         {
             this.instance = problemInstance;
@@ -141,8 +144,8 @@ namespace CPF_experiment
         public virtual String GetName() 
         {
             if (mergeThreshold == -1)
-                return "Basic CBS";
-            return "CBS Local(" + mergeThreshold + ")(" + maxThreshold + ")+" + lowLevelSolver;
+                return "Basic CBS/" + lowLevelSolver;
+            return "MA-CBS Local(" + mergeThreshold + ")(" + maxMergeThreshold + ")/" + lowLevelSolver;
         }
 
         public override string ToString()
@@ -291,7 +294,7 @@ namespace CPF_experiment
             if (openList.Count > 0)
                 initialEstimate = ((CbsNode)openList.Peek()).totalCost;
 
-            int lastCost = -1;
+            int maxExpandedCost = -1;
 
             while (openList.Count > 0)
             {
@@ -309,23 +312,46 @@ namespace CPF_experiment
                 if (debug)
                 {
                     Debug.WriteLine("Total cost so far: " + currentNode.totalCost);
-                    Debug.WriteLine("Constraints so far: ");
-                    foreach (CbsConstraint constraint in currentNode.GetConstraints())
+                    Debug.WriteLine("Expansion state: " + currentNode.agentAExpansion + ", " + currentNode.agentBExpansion);
+                    var constraints = currentNode.GetConstraints();
+                    Debug.WriteLine(constraints.Count.ToString() + " constraints so far: ");
+                    foreach (CbsConstraint constraint in constraints)
                     {
                         Debug.WriteLine(constraint);
                     }
                     Debug.WriteLine("Conflict: " + currentNode.GetConflict());
+                    Debug.Write("Agent group assignments: ");
+                    for (int i = 0; i < currentNode.agentsGroupAssignment.Length; i++)
+                    {
+                        Debug.Write(" " + currentNode.agentsGroupAssignment[i]);
+                    }
+                    Debug.WriteLine("");
                     currentNode.CalculateJointPlan().PrintPlan();
                     Debug.WriteLine("");
                     Debug.WriteLine("");
                 }
 
-                Debug.Assert(currentNode.totalCost >= lastCost, "CBS node with decreasing cost: " + currentNode.totalCost + " < " + lastCost);
-                lastCost = currentNode.totalCost;
+                maxExpandedCost = Math.Max(maxExpandedCost, currentNode.totalCost);
 
                 // Check if node is the goal
                 if (currentNode.GoalTest())
                 {
+                    Debug.Assert(currentNode.totalCost >= maxExpandedCost, "CBS goal node found with lower cost than the max cost node ever expanded: " + currentNode.totalCost + " < " + maxExpandedCost);
+                    // This is subtle, but MA-CBS may expand nodes in a non non-decreasing order:
+                    // If a node with a non-optimal constraint is expanded and we decide to merge the agents,
+                    // the resulting node can have a lower cost than before, since we ignore the non-optimal constraint
+                    // because the conflict it addresses is between merged nodes.
+                    // The resulting lower-cost node will have other constraints, that will raise the cost of its children back to at least its original cost,
+                    // since the node with the non-optimal constraint was only expanded because its competitors that had an optimal
+                    // constraint to deal with the same conflict apparently found the other conflict that I promise will be found,
+                    // and so their cost was not smaller than this sub-optimal node.
+                    // To make MA-CBS costs non-decreasing, we can choose not to ignore constraints that deal with conflicts between merged nodes.
+                    // That way, the sub-optimal node will find a sub-optimal merged solution and get a high cost that will push it deep into the open list.
+                    // But the cost would be to create a possibly sub-optimal merged solution where an optimal solution could be found instead, and faster,
+                    // since constraints make the low-level heuristic perform worse.
+                    // For an example for this subtle case happening, see problem instance 63 of the random grid with 4 agents,
+                    // 55 grid cells and 9 obstacles.
+
                     if (debug)
                         Debug.WriteLine("-------------------------");
                     this.totalCost = currentNode.totalCost;
@@ -356,8 +382,11 @@ namespace CPF_experiment
                 }
                 
                 // Expand
+                bool wasUnexpandedNode = (currentNode.agentAExpansion == CbsNode.ExpansionState.NOT_EXPANDED &&
+                                         currentNode.agentBExpansion == CbsNode.ExpansionState.NOT_EXPANDED);
                 Expand(currentNode);
-                highLevelExpanded++;
+                if (wasUnexpandedNode)
+                    highLevelExpanded++;
                 // Consider moving the following into Expand()
                 if (currentNode.agentAExpansion == CbsNode.ExpansionState.EXPANDED &&
                     currentNode.agentBExpansion == CbsNode.ExpansionState.EXPANDED) // Fully expanded
@@ -379,23 +408,53 @@ namespace CPF_experiment
         {
             CbsConflict conflict = node.GetConflict();
 
-            if (this.maxThreshold != -1)
+            if (this.maxMergeThreshold != -1)
             {
                 closedList.Remove(node); // This may be the last chance to do it, if a merge occurs in the next line
                 if (MergeConflicting(node))
                 {
-                    closedList.Add(node, node); // With new hash code
-                    bool success = node.Replan(conflict.agentA, this.minDepth);
-                    this.maxSizeGroup = Math.Max(this.maxSizeGroup, node.replanSize);
-                    if (success == false)
+                    if (closedList.ContainsKey(node) == false) // We may have already merged these agents in the parent
                     {
-                        this.Clear();
-                        return;
+                        if (debug)
+                            Debug.WriteLine("Merging agents {0} and {1}", conflict.agentA, conflict.agentB);
+                        closedList.Add(node, node); // With new hash code
+                        bool success = node.Replan(conflict.agentA, this.minDepth);
+                        if (debug)
+                        {
+                            Debug.WriteLine("New cost: " + node.totalCost);
+                            Debug.WriteLine("Same constraints");
+                            Debug.WriteLine("New conflict: " + node.GetConflict());
+                            Debug.Write("Agent group assignments: ");
+                            for (int i = 0; i < node.agentsGroupAssignment.Length; i++)
+                            {
+                                Debug.Write(" " + node.agentsGroupAssignment[i]);
+                            }
+                            Debug.WriteLine("");
+                            node.CalculateJointPlan().PrintPlan();
+                            Debug.WriteLine("");
+                            Debug.WriteLine("");
+
+                        }
+                        this.maxSizeGroup = Math.Max(this.maxSizeGroup, node.replanSize);
+                        // Clear partial expansion state - this is actually a new node with new paths and a new conflict.
+                        // Any child node already created is trying to solve the old conflict that was just solved here by
+                        // merging the agents. When it is expanded it will inevitably also choose to merge the agents instead
+                        // of expanding, since the conflict count never decrements, and will be stopped by the closed list check.
+                        // Any deffered child should have another chance to be deferred - this is a new conflict.
+                        node.agentAExpansion = CbsNode.ExpansionState.NOT_EXPANDED;
+                        node.agentBExpansion = CbsNode.ExpansionState.NOT_EXPANDED;
+                        if (success == false)
+                        {
+                            this.Clear();
+                            return;
+                        }
+                        if (node.totalCost <= maxCost) // FIXME: Code dup with other new node creations
+                        {
+                            openList.Add(node);
+                            this.addToGlobalConflictCount(node.GetConflict());
+                        }
                     }
-                    if (node.totalCost <= maxCost)
-                        openList.Add(node);
-                    this.addToGlobalConflictCount(node.GetConflict());
-                    return;
+                    return; // Don't expand this node yet. Wait for it to pop from the open list again.
                 }
                 else
                     closedList.Add(node, node); // With the old hash code
@@ -423,7 +482,7 @@ namespace CPF_experiment
                 // Add the minimal delta in the child's cost:
                 // since we're banning the goal at conflict.timeStep, it must at least do conflict.timeStep+1 steps
                 node.totalCost += (ushort)(conflict.timeStep + 1 - agentAOldCost);
-                openList.Add(node); // Re-insert node into open list with higher cost
+                openList.Add(node); // Re-insert node into open list with higher cost, don't re-increment global conflict counts
             }
             else if (node.agentAExpansion != CbsNode.ExpansionState.EXPANDED)
             // Agent A expansion already skipped in the past or not forcing A from its goal - finally generate the child:
@@ -460,7 +519,7 @@ namespace CPF_experiment
                 node.agentBExpansion = CbsNode.ExpansionState.DEFERRED;
                 int agentBOldCost = node.allSingleAgentCosts[conflict.agentB];
                 node.totalCost += (ushort)(conflict.timeStep + 1 - agentBOldCost);
-                openList.Add(node); // Re-insert node into open list with higher cost
+                openList.Add(node); // Re-insert node into open list with higher cost, don't re-increment global conflict counts
                 // TODO: Code duplication with agentA. Make this into a function.
             }
             else if (node.agentBExpansion != CbsNode.ExpansionState.EXPANDED)
@@ -520,11 +579,14 @@ namespace CPF_experiment
         public int GetMaxGroupSize() { return this.maxSizeGroup; }
     }
 
+    /// <summary>
+    /// Merges agents if they conflict more times than the given threshold in all the CT.
+    /// </summary>
     public class CBS_GlobalConflicts : CBS_LocalConflicts
     {
         int[][] globalConflictsCounter;
 
-        public CBS_GlobalConflicts(ICbsSolver solver, int maxThreshold, int currentThreshold/*, HeuristicCalculator heuristic = null*/)
+        public CBS_GlobalConflicts(ICbsSolver solver, int maxThreshold=-1, int currentThreshold=-1)
             : base(solver, maxThreshold, currentThreshold)
         {
             if (currentThreshold < maxThreshold) // FIXME: base's this.solver allocated for no reason
@@ -535,15 +597,20 @@ namespace CPF_experiment
 
         public CBS_GlobalConflicts(ICbsSolver solver) : base(solver) { }
 
+        /// <summary>
+        /// Assumes agent nums start from 0 and are consecutive.
+        /// </summary>
+        /// <param name="problemInstance"></param>
+        /// <param name="runner"></param>
         public override void Setup(ProblemInstance problemInstance, Run runner)
         {
-            globalConflictsCounter = new int[problemInstance.m_vAgents.Length][];
+            this.globalConflictsCounter = new int[problemInstance.m_vAgents.Length][];
             for (int i = 0; i < globalConflictsCounter.Length; i++)
             {
-                globalConflictsCounter[i] = new int[i];
+                this.globalConflictsCounter[i] = new int[i];
                 for (int j = 0; j < i; j++)
                 {
-                    globalConflictsCounter[i][j] = 0;
+                    this.globalConflictsCounter[i][j] = 0;
                 }
             }
             base.Setup(problemInstance, runner);
@@ -563,8 +630,8 @@ namespace CPF_experiment
         public override string GetName()
         {
             if (mergeThreshold == -1)
-                return "Basic CBS";
-            return "CBS Global(" + mergeThreshold + ")(" + maxThreshold + ")+" + lowLevelSolver;
+                return "Basic CBS/" + lowLevelSolver;
+            return "MA-CBS Global(" + mergeThreshold + ")(" + maxMergeThreshold + ")/" + lowLevelSolver;
         }
     }
 
