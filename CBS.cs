@@ -29,9 +29,11 @@ namespace CPF_experiment
         protected int highLevelExpanded;
         protected int highLevelGenerated;
         protected int closedListHits;
+        protected int partialExpansions;
         protected int accHLExpanded;
         protected int accHLGenerated;
         protected int accClosedListHits;
+        protected int accPartialExpansions;
 
         public int totalCost;
         protected int solutionDepth;
@@ -60,6 +62,7 @@ namespace CPF_experiment
         protected int minDepth;
         protected int maxMergeThreshold;
         protected int maxSizeGroup;
+        protected int accMaxSizeGroup;
         /// <summary>
         /// Used to know when to clear problem parameters.
         /// </summary>
@@ -160,6 +163,7 @@ namespace CPF_experiment
             this.highLevelExpanded = 0;
             this.highLevelGenerated = 0;
             this.closedListHits = 0;
+            this.partialExpansions = 0;
             this.maxSizeGroup = 1;
         }
 
@@ -171,8 +175,10 @@ namespace CPF_experiment
             output.Write(Run.RESULTS_DELIMITER);
             output.Write(this.ToString() + " Closed List Hits (HL)");
             output.Write(Run.RESULTS_DELIMITER);
-            //output.Write(this.ToString() + " Max Group Size (HL)");
-            //output.Write(Run.RESULTS_DELIMITER);
+            output.Write(this.ToString() + " Partial Expansions (HL)");
+            output.Write(Run.RESULTS_DELIMITER);
+            output.Write(this.ToString() + " Max Group Size (HL)");
+            output.Write(Run.RESULTS_DELIMITER);
 
             this.solver.OutputStatisticsHeader(output);
 
@@ -184,12 +190,14 @@ namespace CPF_experiment
             Console.WriteLine("Total Expanded Nodes (High-Level): {0}", this.GetHighLevelExpanded());
             Console.WriteLine("Total Generated Nodes (High-Level): {0}", this.GetHighLevelGenerated());
             Console.WriteLine("Closed List Hits (High-Level): {0}", this.closedListHits);
-            //Console.WriteLine("Max Group Size (High-Level): {0}", this.maxSizeGroup);
+            Console.WriteLine("Partial Expansions (High-Level): {0}", this.partialExpansions);
+            Console.WriteLine("Max Group Size (High-Level): {0}", this.maxSizeGroup);
 
             output.Write(this.highLevelExpanded + Run.RESULTS_DELIMITER);
             output.Write(this.highLevelGenerated + Run.RESULTS_DELIMITER);
             output.Write(this.closedListHits + Run.RESULTS_DELIMITER);
-            //output.Write(this.maxSizeGroup + Run.RESULTS_DELIMITER);
+            output.Write(this.partialExpansions + Run.RESULTS_DELIMITER);
+            output.Write(this.maxSizeGroup + Run.RESULTS_DELIMITER);
 
             this.solver.OutputAccumulatedStatistics(output);
 
@@ -200,7 +208,7 @@ namespace CPF_experiment
         {
             get
             {
-                return 4 + this.solver.NumStatsColumns + this.openList.NumStatsColumns;
+                return 5 + this.solver.NumStatsColumns + this.openList.NumStatsColumns;
             }
         }
 
@@ -217,6 +225,8 @@ namespace CPF_experiment
             this.accHLExpanded = 0;
             this.accHLGenerated = 0;
             this.accClosedListHits = 0;
+            this.accPartialExpansions = 0;
+            this.accMaxSizeGroup = 1;
 
             this.solver.ClearAccumulatedStatistics();
 
@@ -228,7 +238,8 @@ namespace CPF_experiment
             this.accHLExpanded += this.highLevelExpanded;
             this.accHLGenerated += this.highLevelGenerated;
             this.accClosedListHits += this.closedListHits;
-            //this.accMaxGroupSize = Math.Max(this.accMaxGroupSize, this.maxSizeGroup)
+            this.accPartialExpansions += this.partialExpansions;
+            this.accMaxSizeGroup = Math.Max(this.accMaxSizeGroup, this.maxSizeGroup);
 
             // this.solver statistics are accumulated every time it's used.
 
@@ -240,11 +251,14 @@ namespace CPF_experiment
             Console.WriteLine("{0} Accumulated Expanded Nodes (High-Level): {1}", this, this.accHLExpanded);
             Console.WriteLine("{0} Accumulated Generated Nodes (High-Level): {1}", this, this.accHLGenerated);
             Console.WriteLine("{0} Accumulated Closed List Hits (High-Level): {1}", this, this.accClosedListHits);
+            Console.WriteLine("{0} Accumulated Partial Expansions (High-Level): {1}", this, this.accPartialExpansions);
+            Console.WriteLine("{0} Max Group Size (High-Level): {1}", this, this.accMaxSizeGroup);
 
             output.Write(this.accHLExpanded + Run.RESULTS_DELIMITER);
             output.Write(this.accHLGenerated + Run.RESULTS_DELIMITER);
             output.Write(this.accClosedListHits + Run.RESULTS_DELIMITER);
-            //output.Write(this.accMaxSizeGroup + Run.RESULTS_DELIMITER);
+            output.Write(this.accPartialExpansions + Run.RESULTS_DELIMITER);
+            output.Write(this.accMaxSizeGroup + Run.RESULTS_DELIMITER);
 
             this.solver.OutputAccumulatedStatistics(output);
 
@@ -460,8 +474,12 @@ namespace CPF_experiment
             // Expand node, possibly partially:
             // Generate left child:
             if (node.agentAExpansion == CbsNode.ExpansionState.NOT_EXPANDED && conflict.vertex == true &&
-                Math.Max(minDepth, conflict.timeStep) >= node.allSingleAgentCosts[conflict.agentA])
-            // Conflict happens when or after agent A reaches its goal.
+                conflict.timeStep >= node.allSingleAgentCosts[conflict.agentA] && // TODO: Consider checking directly whether at the time of the conflict the agent would be at its goal according to the node.singleAgentPlans. It may be more readable.
+                node.GetGroupSize(node.agentsGroupAssignment[conflict.agentA]) == 1)
+            // Conflict happens when or after agent A reaches its goal, and agent A is in a single agent group.
+            // With multi-agent groups, banning the goal doesn't guarantee a higher cost solution,
+            // since if an agent is forced to take a longer route it may enable another agent in the group
+            // to take a shorter route, getting an alternative solution of the same cost
             // The left child would cost a lot because:
             // A) All WAIT moves in the goal before leaving it now add to the g.
             // B) We force the low level to compute a path longer than the optimal,
@@ -478,6 +496,7 @@ namespace CPF_experiment
                 // since we're banning the goal at conflict.timeStep, it must at least do conflict.timeStep+1 steps
                 node.totalCost += (ushort)(conflict.timeStep + 1 - agentAOldCost);
                 openList.Add(node); // Re-insert node into open list with higher cost, don't re-increment global conflict counts
+                this.partialExpansions++;
             }
             else if (node.agentAExpansion != CbsNode.ExpansionState.EXPANDED)
             // Agent A expansion already skipped in the past or not forcing A from its goal - finally generate the child:
@@ -488,7 +507,7 @@ namespace CPF_experiment
                 if (closedList.ContainsKey(child) == false)
                 {
                     closedList.Add(child, child);
-                    if (child.Replan(conflict.agentA, minDepth)) // The node takes the max between minDepth and the max time over all constraints.
+                    if (child.Replan(conflict.agentA, this.minDepth)) // The node takes the max between minDepth and the max time over all constraints.
                     {
                         if (child.totalCost <= this.maxCost)
                         {
@@ -506,7 +525,8 @@ namespace CPF_experiment
 
             // Generate right child:
             if (node.agentBExpansion == CbsNode.ExpansionState.NOT_EXPANDED && conflict.vertex == true &&
-                Math.Max(minDepth, conflict.timeStep) >= node.allSingleAgentCosts[conflict.agentB]) // Again, skip expansion
+                conflict.timeStep >= node.allSingleAgentCosts[conflict.agentB] &&
+                node.GetGroupSize(node.agentsGroupAssignment[conflict.agentB]) == 1) // Again, skip expansion
             {
                 if (node.agentAExpansion == CbsNode.ExpansionState.DEFERRED)
                     throw new Exception("Unexpected: Expansion of both children differed, but this is a vertex conflict so that means the targets for the two agents are equal, which is illegal");
@@ -515,6 +535,7 @@ namespace CPF_experiment
                 int agentBOldCost = node.allSingleAgentCosts[conflict.agentB];
                 node.totalCost += (ushort)(conflict.timeStep + 1 - agentBOldCost);
                 openList.Add(node); // Re-insert node into open list with higher cost, don't re-increment global conflict counts
+                this.partialExpansions++;
                 // TODO: Code duplication with agentA. Make this into a function.
             }
             else if (node.agentBExpansion != CbsNode.ExpansionState.EXPANDED)
@@ -525,7 +546,7 @@ namespace CPF_experiment
                 if (closedList.ContainsKey(child) == false)
                 {
                     closedList.Add(child, child);
-                    if (child.Replan(conflict.agentB, minDepth)) // The node takes the max between minDepth and the max time over all constraints.
+                    if (child.Replan(conflict.agentB, this.minDepth)) // The node takes the max between minDepth and the max time over all constraints.
                     {
                         if (child.totalCost <= this.maxCost)
                         {

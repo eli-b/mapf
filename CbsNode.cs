@@ -541,7 +541,7 @@ namespace CPF_experiment
             return conflictCounter > mergeThreshold;
         }
 
-        private ISet<int> GetGroup(int groupNumber)
+        public ISet<int> GetGroup(int groupNumber)
         {
             ISet<int> group = new HashSet<int>();
 
@@ -551,6 +551,35 @@ namespace CPF_experiment
                     group.Add(i);
             }
             return group;
+        }
+
+        public int GetGroupCost(int groupNumber)
+        {
+            int cost = 0;
+
+            for (int i = 0; i < agentsGroupAssignment.Length; i++)
+            {
+                if (agentsGroupAssignment[i] == groupNumber)
+                    cost += this.allSingleAgentCosts[i];
+            }
+            return cost;
+        }
+
+        /// <summary>
+        /// A bit cheaper than GetGroup(n).Count
+        /// </summary>
+        /// <param name="groupNumber"></param>
+        /// <returns></returns>
+        public int GetGroupSize(int groupNumber)
+        {
+            int count = 0;
+
+            for (int i = 0; i < agentsGroupAssignment.Length; i++)
+            {
+                if (agentsGroupAssignment[i] == groupNumber)
+                    count += 1;
+            }
+            return count;
         }
 
         /// <summary>

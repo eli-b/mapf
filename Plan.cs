@@ -292,6 +292,12 @@ namespace CPF_experiment
                 return this.locationAtTimes[this.locationAtTimes.Count - 1];
         }
 
+        public override bool Equals(object obj)
+        {
+            SinglePlan other = (SinglePlan)obj;
+            return this.agentIndex == other.agentIndex && this.locationAtTimes.SequenceEqual<Move>(other.locationAtTimes);
+        }
+
         /// <summary>
         /// Add actions of other plan after actions of plan.
         /// If this plan ends where the other starts,
