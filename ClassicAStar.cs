@@ -57,7 +57,8 @@ namespace CPF_experiment
             this.openList = new OpenList(this);
             this.heuristic = heuristic;
             
-            this.tempConstraint = new CbsConstraint();
+            this.queryConstraint = new CbsConstraint();
+            this.queryConstraint.queryInstance = true;
         }
 
         /// <summary>
@@ -465,7 +466,7 @@ namespace CPF_experiment
         /// <summary>
         /// Just an optimization
         /// </summary>
-        private CbsConstraint tempConstraint;
+        private CbsConstraint queryConstraint;
 
         /// <summary>
         /// Check if the move is valid, i.e. not colliding into walls or other agents.
@@ -485,9 +486,9 @@ namespace CPF_experiment
 
             if (this.constraintList != null)
             {
-                tempConstraint.Init(agentNum, possibleMove);
+                queryConstraint.Init(agentNum, possibleMove);
 
-                if (this.constraintList.Contains(tempConstraint))
+                if (this.constraintList.Contains(queryConstraint))
                     return false;
             }
 

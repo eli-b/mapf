@@ -1,27 +1,24 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 
 namespace CPF_experiment
 {
     public class CbsConstraint : IComparable
     {
-        protected List<byte> agents;
+        public byte agent {get; protected set;}
         protected TimedMove move;
-        public static bool fullyEqual;
+        public bool queryInstance = false;
 
         public CbsConstraint(int agent, int posX, int posY, Move.Direction direction, int timeStep)
         {
-            this.agents = new List<byte>();
-            this.agents.Add((byte)agent);
-            this.move = new TimedMove(posX, posY, direction, timeStep);
+            this.Init(agent, posX, posY, direction, timeStep);
         }
 
         public CbsConstraint(int agent, TimedMove move)
         {
-            this.agents = new List<byte>();
-            this.agents.Add((byte)agent);
-            this.move = new TimedMove(move);
+            this.Init(agent, move);
         }
 
         public CbsConstraint() : this(-1, -1, -1, Move.Direction.NO_DIRECTION, -1) {} // Nonsense values until Init, just allocate move
@@ -30,6 +27,7 @@ namespace CPF_experiment
         {
             Move move;
             int agentNum;
+
             if (agentA)
             {
                 move = conflict.agentAmove;
@@ -40,24 +38,23 @@ namespace CPF_experiment
                 move = conflict.agentBmove;
                 agentNum = instance.m_vAgents[conflict.agentB].agent.agentNum;
             }
-            this.agents = new List<byte>();
-            this.agents.Add((byte)agentNum);
 
+            this.agent = (byte)agentNum;
             this.move = new TimedMove(move, conflict.timeStep);
+
             if (conflict.vertex)
                 this.move.direction = Move.Direction.NO_DIRECTION;
         }
 
         public void Init(int agent, int posX, int posY, Move.Direction direction, int timeStep)
         {
-            this.agents = new List<byte>();
-            this.agents.Add((byte)agent);
-            this.move.setup(posX, posY, direction, timeStep);
+            this.Init(agent, new TimedMove(posX, posY, direction, timeStep));
         }
 
         public void Init(int agent, TimedMove move)
         {
-            this.Init(agent, move.x, move.y, move.direction, move.time);
+            this.agent = (byte)agent;
+            this.move = move;
         }
 
         public int time
@@ -69,54 +66,46 @@ namespace CPF_experiment
         }
 
         /// <summary>
-        /// If fullyEqual, checks that the agent sets are equal, otherwise checks that this.agents is a subset of obj.agents.
-        /// If not fullyEqual, this doesn't implement commutativity!
-        /// TODO: Is this behavior needed?
-        /// Always compares the move.
+        /// Checks that the agent is equal, and compares the move.
+        /// If one of the constraints is a query, an instance only created and used to quickly search for a move in a set of constraints,
+        /// the direction is ignored if the other constraint is a vertex constraint.
         /// </summary>
         /// <param name="obj"></param>
         /// <returns></returns>
         public override bool Equals(object obj)
         {
             CbsConstraint other = (CbsConstraint)obj;
-            if (fullyEqual)
-            {
-                if (this.agents.Count != other.agents.Count)
-                    return false;
-            }
+            if (this.agent != other.agent)
+                return false;
 
-            // This only checks that this.agents is a subset of other.agents!
-            foreach (byte agent in this.agents)
-            {
-                if (other.agents.Contains(agent) == false)
-                    return false;
-            }
-            return this.move.Equals(other.move);
+            Debug.Assert(this.queryInstance == false || other.queryInstance == false); // At most one of the instances is a query
+            Debug.Assert(this.queryInstance == false || this.move.direction != Move.Direction.NO_DIRECTION); // Must query regarding a specific direction
+            Debug.Assert(other.queryInstance == false || other.move.direction != Move.Direction.NO_DIRECTION); // Must query regarding a specific direction
+            if (this.queryInstance || other.queryInstance) // This way if the constraint is a vertex constraint than it will be equal to a query containing a move from any direction to that position,
+                                                           // and if it is an edge constraint than it will only be equal to queries containing a move from that specific direction to that position.
+                return this.move.Equals(other.move);
+            else // A vertex constraint is different to an edge constraint for the same agent and position.
+                 // Must check the direction explicitly because vertex constraints have no direction and moves with no direction
+                 // compare equal to moves with any direction
+                return this.move.Equals(other.move) && this.move.direction == other.move.direction; 
         }
 
-        public void AddAgents(List<byte> addAgents)
-        {
-            this.agents.AddRange(addAgents);
-        }
-
+        /// <summary>
+        /// Uses the move and the agents.
+        /// </summary>
+        /// <returns></returns>
         public override int GetHashCode()
         {
             unchecked
             {
                 int ans = 0;
-                ans += move.GetHashCode() * 3;
-                for (int i = 0; i < this.agents.Count; i++)
-                {
-                    ans += this.agents[i] * Constants.PRIMES_FOR_HASHING[(i + 2) % Constants.PRIMES_FOR_HASHING.Length];
-                }
+                ans += this.move.GetHashCode() * 3;
+                ans += this.agent * 5;
                 return ans;
             }
         }
 
-        public int GetX() { return this.move.x; } // Not used anywhere
-        public int GetY() { return this.move.y; } // Not used anywhere
-        public int GetTimeStep() { return this.move.time; } // FIXME: Make this and the above into properties
-        public List<byte> GetAgents() { return this.agents; }
+        public int GetTimeStep() { return this.move.time; } // FIXME: Make this into a property
 
         public Move.Direction GetDirection()
         {
@@ -125,7 +114,7 @@ namespace CPF_experiment
         
         public override string ToString()
         {
-            return move.ToString() + " direction-{" + move.direction + "} time-{" + move.time + "} first agent {" + agents[0] + "}";
+            return move.ToString() + "-" + move.direction + " time=" + move.time + " agent " + agent + "";
         }
 
         /// <summary>
@@ -137,11 +126,8 @@ namespace CPF_experiment
         {
             if (this.move.Equals(other.move) == false) // Minor behavior change: if exactly one move has a set direction, and they're otherwise equal the method used to return true.
                 return true;
-            foreach (byte agent in other.agents)
-            {
-                if (this.agents.Contains(agent))
-                    return false;
-            }
+            if (this.agent == other.agent)
+                return false;
             return true;
         }
 
@@ -152,24 +138,9 @@ namespace CPF_experiment
             return this.move.time.CompareTo(other.move.time);
         }
 
-        /// <summary>
-        /// Not used anywhere.
-        /// </summary>
-        /// <param name="agent"></param>
-        /// <param name="posX"></param>
-        /// <param name="posY"></param>
-        /// <param name="timeStep"></param>
-        /// <param name="direction"></param>
-        /// <returns></returns>
-        public bool ViolatesMustConstraint(byte agent, int posX, int posY, Move.Direction direction, int timeStep)
-        {
-            return this.ViolatesMustConstraint(agent, new TimedMove(posX, posY, direction, timeStep));
-        }
-
         public bool ViolatesMustConstraint(byte agent, TimedMove move)
         {
-            if (agents.Contains<byte>(agent) == false) // Must-constraints can only logically have one agent -
-                                                       // you can't force two agents to be at the same place and at the same time
+            if (this.agent != agent)
                 return false;
             return this.move.Equals(move) == false;
         }

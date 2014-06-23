@@ -78,14 +78,6 @@ namespace CPF_experiment
             this.agentsGroupAssignment = father.agentsGroupAssignment.ToArray<ushort>();
             this.prev = father;
             this.constraint = newConstraint;
-            // Add all other agents of the same group to the constraint:
-            List<byte> group = new List<byte>();
-            for (byte i = 0; i < agentsGroupAssignment.Length; i++) // FIXME: This assumes agent nums always simply start from zero and increment
-            {
-                if (i != agentToReplan && agentsGroupAssignment[i] == agentsGroupAssignment[agentToReplan])
-                    group.Add(i);
-            }
-            this.constraint.AddAgents(group);
             this.depth = (ushort)(this.prev.depth + 1);
             externalConflictsCount = 0;
             internalConflictsCount = 0;
@@ -143,7 +135,7 @@ namespace CPF_experiment
                                        ((List<CbsConstraint>)problem.parameters[CBS_LocalConflicts.MUST_CONSTRAINTS]).Count > 0;
             Dictionary<int,int> agentsWithMustConstraints = null; // To quiet the compiler
             if (haveMustConstraints)
-                agentsWithMustConstraints = ((List<CbsConstraint>)problem.parameters[CBS_LocalConflicts.MUST_CONSTRAINTS]).Select<CbsConstraint, int>(constraint => constraint.GetAgents()[0]).Distinct().ToDictionary<int,int>(x=>x); // ToDictionary because there's no ToSet...
+                agentsWithMustConstraints = ((List<CbsConstraint>)problem.parameters[CBS_LocalConflicts.MUST_CONSTRAINTS]).Select<CbsConstraint, int>(constraint => constraint.agent).Distinct().ToDictionary<int,int>(x=>x); // ToDictionary because there's no ToSet...
 
             if (newConstraints.Count != 0)
             {
@@ -387,20 +379,15 @@ namespace CPF_experiment
                 return false;
 
             CbsNode current = this;
-            CbsConstraint.fullyEqual = true;
             HashSet<CbsConstraint> other_constraints = other.GetConstraints();
             HashSet<CbsConstraint> constraints = this.GetConstraints();
 
             foreach (CbsConstraint constraint in constraints)
             {
                 if (other_constraints.Contains(constraint) == false)
-                {
-                    CbsConstraint.fullyEqual = false;
                     return false;
-                }
                 current = current.prev;
             }
-            CbsConstraint.fullyEqual = false;
             return constraints.Count == other_constraints.Count;
         }
 
