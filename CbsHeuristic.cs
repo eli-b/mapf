@@ -97,7 +97,7 @@ namespace CPF_experiment
                                         s.minDepth), // No point in finding shallower goal nodes
                                this.runner);
                 
-                if (this.cbs.openList.Count > 0)
+                if (this.cbs.openList.Count > 0 && this.cbs.topMost)
                 {
                     if (sicEstimate == -1)
                         sicEstimate = (int) SumIndividualCosts.h(s, this.instance);
@@ -295,6 +295,13 @@ namespace CPF_experiment
         public virtual void OutputAccumulatedStatistics(TextWriter output)
         {
             this.cbs.OutputAccumulatedStatistics(output);
+
+            if (this.nCalls == 0) // No stats
+            {
+                for (int i = 0; i < this.NumStatsColumns - this.cbs.NumStatsColumns; ++i)
+                    output.Write(Run.RESULTS_DELIMITER);
+                return;
+            }
 
             Console.WriteLine("{0} Accumulated Average Expanded Nodes (High-Level): {1}", this, this.cbs.GetAccumulatedExpanded() / this.nCalls);
             Console.WriteLine("{0} Accumulated Average Generated Nodes (High-Level): {1}", this, this.cbs.GetAccumulatedGenerated() / this.nCalls);
