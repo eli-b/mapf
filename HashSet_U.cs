@@ -34,12 +34,24 @@ namespace CPF_experiment
 
         public IEnumerator<T> GetEnumerator()
         {
-            throw new Exception("Illegal Operation");
+            foreach (HashSet<T> set in Data)
+            {
+                foreach (T item in set)
+                {
+                    yield return item;
+                }
+            }
         }
 
         IEnumerator IEnumerable.GetEnumerator()
         {
-            throw new Exception("Illegal Operation");
+            foreach (HashSet<T> set in Data)
+            {
+                foreach (T item in set)
+                {
+                    yield return item;
+                }
+            }
         }
 
         public bool Contains(T key)
