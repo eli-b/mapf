@@ -144,7 +144,10 @@ namespace CPF_experiment
 
         public override string ToString()
         {
-            return this.GetName() + "/" + this.heuristic + " with " + this.openList;
+            string ret = this.GetName() + "/" + this.heuristic;
+            if (this.openList.GetType() != typeof(OpenList))
+                ret += " with " + this.openList;
+            return ret;
         }
 
         public int GetSolutionCost() { return this.totalCost; }
