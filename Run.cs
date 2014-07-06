@@ -84,6 +84,11 @@ namespace CPF_experiment
         List<ISolver> solvers;
 
         /// <summary>
+        /// all types of heuristics used
+        /// </summary>
+        List<HeuristicCalculator> heuristics;
+
+        /// <summary>
         /// Counts the number of times each algorithm went out of time consecutively
         /// </summary>
         public int[] outOfTimeCounters;
@@ -96,7 +101,9 @@ namespace CPF_experiment
             this.watch = Stopwatch.StartNew();
 
             // Preparing the heuristics:
+            heuristics = new List<HeuristicCalculator>();
             var sic = new SumIndividualCosts();
+            heuristics.Add(sic);
             var cbs = new CBS_LocalConflicts(new ClassicAStar(sic), -1, -1);
             //var cbsHeuristicNoSolve1 = new CbsHeuristic(cbs, this, false, 1);
             //var cbsHeuristicNoSolve2 = new CbsHeuristic(cbs, this, false, 2);
@@ -472,6 +479,10 @@ namespace CPF_experiment
             //this.resultsWriter.Write(cr0 + RESULTS_DELIMITER);
             //this.resultsWriter.Write(cr1 + RESULTS_DELIMITER);
 
+            // Initializing all heuristics, whereever they're used
+            for (int i = 0; i < heuristics.Count; i++)
+                heuristics[i].init(instance, agentList);
+
             for (int i = 0; i < solvers.Count; i++)
             {
                 if (outOfTimeCounters[i] < Constants.MAX_FAIL_COUNT) // After "MAX_FAIL_COUNT" consecutive failures of a given algorithm we stop running it.
@@ -479,21 +490,8 @@ namespace CPF_experiment
                 {
                     GC.Collect();
                     GC.WaitForPendingFinalizers();
-                    solvers[i].GetHeuristic().init(instance, agentList);
-
-                    // FIXME: Hack!!
-                    if (solvers[i] is ClassicAStar)
-                    {
-                        var astar = (ClassicAStar)solvers[i];
-                        if (astar.openList is DynamicLazyOpenList)
-                            ((DynamicLazyOpenList)astar.openList).expensive.init(instance, agentList);
-                        if (astar.openList is DynamicRationalLazyOpenList)
-                            ((DynamicRationalLazyOpenList)astar.openList).expensive.init(instance, agentList);
-                    }
-                    // FIXME: /Hack!!
 
                     this.run(solvers[i], instance);
-
 
                     Console.WriteLine();
                     if (solvers[i].GetSolutionCost() >= 0) // Solved successfully
