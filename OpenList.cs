@@ -19,15 +19,17 @@ namespace CPF_experiment
         protected int quickInsertionCount;
         protected int accQuickInsertionCount;
 
+        protected int quickInsertionsCancelled;
+        protected int accQuickInsertionsCancelled;
+
         public OpenList(ISolver user)
         {
             this.heap = new BinaryHeap();
             this.queue = new Queue<IBinaryHeapItem>();
-            //this.queue = new LinkedList<IBinaryHeapItem>();
 
             this.user = user;
-            //this.lastRemovedItem = null;
-            this.quickInsertionCount = 0;
+            this.ClearPrivateStatistics();
+            this.ClearPrivateAccumulatedStatistics();
         }
 
         public int Count
@@ -39,7 +41,6 @@ namespace CPF_experiment
         {
             if (this.queue.Count != 0)
                 return this.queue.Peek();
-                //return this.queue.Last.Value;
             return this.heap.Peek();
         }
 
@@ -47,7 +48,6 @@ namespace CPF_experiment
         {
             this.queue.Clear();
             this.heap.Clear();
-            //this.lastRemovedItem = null;
         }
 
         public void Add(IBinaryHeapItem item)
@@ -55,7 +55,7 @@ namespace CPF_experiment
             if (this.queue.Count == 0)
             {
                 if (this.heap.Count == 0)
-                    this.heap.Add(item); // And it's very cheap.
+                    this.heap.Add(item); // It's very cheap.
                 else
                 {
                     int compareRes = item.CompareTo(this.heap.Peek());
@@ -82,12 +82,14 @@ namespace CPF_experiment
                             IBinaryHeapItem fromQueue = this.queue.Dequeue();
                             this.heap.Add(fromQueue);
                             this.quickInsertionCount--;
+                            this.quickInsertionsCancelled++;
                         }
                     }
                     this.queue.Enqueue(item);
                     this.quickInsertionCount++;
                 }
             }
+
             //// The last removed item is the parent of all items added until another item is removed,
             //// or the same node that was last removed, partially expanded or deferred with increased cost.
             //// Otherwise the inserted item is one that was already in the open list, and its cost was
@@ -98,71 +100,6 @@ namespace CPF_experiment
             //// that must be done after all its children generated so far are inserted. Otherwise the
             //// cost comparison with the last removed item, which would still be the same node, would have
             //// incorrect results.
-            //if (this.lastRemovedItem != null)
-            //{
-            //    if (item != this.lastRemovedItem) // This is a child node (or a node equal to a child node, with updated cost)
-            //    {
-            //        IBinaryHeapItem parent = this.lastRemovedItem;
-            //        int compareRes = item.CompareTo(parent);
-            //        if (compareRes == 1)
-            //            this.heap.Add(item);
-            //        else
-            //        {
-            //            if (compareRes == 0) // This item would have gone straight to the top (min) of the heap:
-            //            // Removed items are assumed to be in non-decreasing order, and this one
-            //            // costs the same as the last item removed, so it has to be the next item
-            //            // to be removed.
-            //                this.queue.Enqueue(item);
-            //                //this.queue.AddFirst(item);
-            //            else // compareRes == -1. Only a goal is allowed to be smaller than its parent.
-            //                 // Others will be intercepted as an error in the best-first-search.
-            //                ...
-            //                //this.queue.AddLast(item); // Add to front of queue
-            //            //throw new Exception("Inserting child node " + item + " to the open list, which costs less than its parent " + this.lastRemovedItem + ".");
-            //            ++this.quickInsertionCount;
-            //        }
-            //    }
-            //    else // This is the same node, now partially expanded, or otherwise deferred.
-            //         // This happens a lot when using DyanmicLazyOpenList
-            //    {
-            //        // Can't compare this node to the last removed item (itself), since its cost may have changed since.
-            //        // But the elements in the queue, if they exist, remember its previous cost:
-            //        if (this.queue.Count != 0) // So this item also came from the queue. The queue's head was equal to this item before.
-            //        {
-            //            IBinaryHeapItem queueRepresentative = this.queue.Peek();
-            //            //IBinaryHeapItem queueRepresentative = this.queue.Last.Value; //this.queue.Peek();
-            //            int compareRes = item.CompareTo(queueRepresentative);
-            //            if (compareRes == 1) // The item's cost was increased
-            //                this.heap.Add(item);
-            //            else
-            //            {
-            //                if (compareRes == -1) // The item's cost was decreased! In DynamicLazyOpenList, this happens only when the expensive heuristic finds the goal.
-            //                    //this.queue.AddLast(item); // Add to front of queue
-            //                    ...
-            //                else // The item's cost didn't change. Give another the other equal items a chance by adding the item to the end of the queue.
-            //                     //I don't see when this would happen.
-            //                    //this.queue.AddFirst(item);
-            //                    this.queue.Enqueue(item);
-            //                ++this.quickInsertionCount;
-            //            }
-            //            // FIXME: Code dup with child insertion
-            //        }
-            //        else
-            //        {
-            //            if (this.heap.Count != 0 && item.CompareTo(this.heap.Peek()) == -1) // Item is still strictly better than the next
-            //            {
-            //                this.queue.Enqueue(item);
-            //                //this.queue.AddFirst(item);
-            //                ++this.quickInsertionCount;
-            //            }
-            //            else // Item could be equal to the next, but we want to give the next a chance too (the heap is stable - doesn't swap equal items).
-            //                this.heap.Add(item);
-            //        }
-            //    }
-            //}
-            //else
-            //    this.heap.Add(item); // It's tempting to add it to the queue instead, but this way supports multiple insertions of
-            //                         // different costs before the first removal. That's not supposed to happen, but who knows.
         }
 
         public virtual IBinaryHeapItem Remove()
@@ -171,15 +108,12 @@ namespace CPF_experiment
             if (this.queue.Count != 0)
             {
                 item = this.queue.Dequeue();
-                //item = this.queue.Last.Value;
-                //this.queue.RemoveLast();
                 item.SetIndexInHeap(BinaryHeap.REMOVED_FROM_HEAP); // The heap assumes all items not in it have this index,
                                                                    // so we need to set it for when we search for this node
                                                                    // in the open list later.
             }
             else
                 item = this.heap.Remove();
-            //this.lastRemovedItem = item;
             return item;
         }
 
@@ -199,8 +133,6 @@ namespace CPF_experiment
             for (int i = 0; i < this.queue.Count; ++i )
             {
                 IBinaryHeapItem temp = this.queue.Dequeue();
-                //IBinaryHeapItem temp = this.queue.Last.Value;
-                //this.queue.RemoveLast();
                 if (temp.Equals(item))
                 {
                     removedFromQueue = true;
@@ -208,7 +140,6 @@ namespace CPF_experiment
                 }
                 else
                     this.queue.Enqueue(temp);
-                    //this.queue.AddFirst(temp);
             }
             if (removedFromQueue == true)
                 return true;
@@ -220,43 +151,62 @@ namespace CPF_experiment
         {
             output.Write(this.user.ToString() + " Quick Insertions");
             output.Write(Run.RESULTS_DELIMITER);
+            output.Write(this.user.ToString() + " Quick Insertions Cancelled");
+            output.Write(Run.RESULTS_DELIMITER);
         }
 
         public virtual void OutputStatistics(TextWriter output)
         {
             Console.WriteLine(this.user.ToString() + " Quick insertions: {0}", this.quickInsertionCount);
+            Console.WriteLine(this.user.ToString() + " Quick insertions cancelled: {0}", this.quickInsertionsCancelled);
 
             output.Write(this.quickInsertionCount + Run.RESULTS_DELIMITER);
+            output.Write(this.quickInsertionsCancelled + Run.RESULTS_DELIMITER);
         }
 
         public virtual int NumStatsColumns
         {
             get
             {
-                return 1;
+                return 2;
             }
+        }
+
+        protected void ClearPrivateStatistics()
+        {
+            this.quickInsertionCount = 0;
+            this.quickInsertionsCancelled = 0;
+        }
+
+        protected void ClearPrivateAccumulatedStatistics()
+        {
+            this.accQuickInsertionCount = 0;
+            this.accQuickInsertionsCancelled = 0;
         }
 
         public virtual void ClearStatistics()
         {
-            this.quickInsertionCount = 0;
+            this.ClearPrivateStatistics();
         }
 
         public virtual void ClearAccumulatedStatistics()
         {
-            this.accQuickInsertionCount = 0;
+            this.ClearPrivateAccumulatedStatistics();
         }
 
         public virtual void AccumulateStatistics()
         {
             this.accQuickInsertionCount += this.quickInsertionCount;
+            this.accQuickInsertionsCancelled += this.quickInsertionsCancelled;
         }
 
         public virtual void OutputAccumulatedStatistics(TextWriter output)
         {
-            Console.WriteLine(this.user.ToString() + " Accumulated Quick insertions: {0}", this.quickInsertionCount);
+            Console.WriteLine(this.user.ToString() + " Accumulated Quick insertions: {0}", this.accQuickInsertionCount);
+            Console.WriteLine(this.user.ToString() + " Accumulated Quick insertions cancelled: {0}", this.accQuickInsertionsCancelled);
 
             output.Write(this.accQuickInsertionCount + Run.RESULTS_DELIMITER);
+            output.Write(this.accQuickInsertionsCancelled + Run.RESULTS_DELIMITER);
         }
 
         public override string ToString()
