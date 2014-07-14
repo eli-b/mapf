@@ -265,7 +265,8 @@ namespace CPF_experiment
             this.openList.OutputAccumulatedStatistics(output);
         }
 
-        private bool debug = false;
+        public bool debug = false;
+        private bool equivalenceWasOn;
 
         /// <summary>
         /// 
@@ -273,6 +274,7 @@ namespace CPF_experiment
         /// <returns>Whether this is the top-most CBS</returns>
         protected bool SetGlobals()
         {
+            this.equivalenceWasOn = (AgentState.EquivalenceOverDifferentTimes == true);
             AgentState.EquivalenceOverDifferentTimes = false;
             if (this.instance.parameters.ContainsKey(CBS_LocalConflicts.INTERNAL_CAT) == false) // Top-most CBS solver
             {
@@ -286,7 +288,8 @@ namespace CPF_experiment
 
         protected void CleanGlobals()
         {
-            AgentState.EquivalenceOverDifferentTimes = true;
+            if (this.equivalenceWasOn)
+                AgentState.EquivalenceOverDifferentTimes = true;
             if (this.topMost) // Clear problem parameters
             {
                 this.instance.parameters.Remove(CBS_LocalConflicts.INTERNAL_CAT);
