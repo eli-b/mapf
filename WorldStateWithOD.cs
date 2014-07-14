@@ -95,7 +95,10 @@ namespace CPF_experiment
 
         public override bool Equals(object obj)
         {
-            if (((WorldStateWithOD)obj).agentTurn != this.agentTurn)
+            if (obj == null)
+                return false;
+            var that = (WorldStateWithOD)obj;
+            if (that.agentTurn != this.agentTurn)
             // It's tempting to think that this check is enough to allow equivalence over different times,
             // because it differentiates between a state where all agents have moved and its
             // child where the first agent WAITed, allowing the child
@@ -106,21 +109,19 @@ namespace CPF_experiment
             // but from a different set of locations, so the allowed moves of the remaining agents
             // that haven't already moved would be different.
                 return false;
-            if (obj == null)
-                return false;
-            WorldState that = (WorldState)obj;
 
             if (this.agentTurn == 0) // All agents have moved, safe to ignore direction information.
                 return base.Equals(obj);
 
+            if (this.allAgentsState.Length != that.allAgentsState.Length)
+                return false;
+
+            // Comparing the agent states:
             for (int i = 0; i < this.allAgentsState.Length; ++i)
             {
-                if (i >= this.agentTurn) // Agent moved in the previous timestep, but not yet in this one
-                {
-                    if (this.allAgentsState[i].Equals(that.allAgentsState[i]) == false)
-                        return false;
-                }
-                else
+                if (this.allAgentsState[i].Equals(that.allAgentsState[i]) == false)
+                    return false;
+                if (i < this.agentTurn) // Agent has already moved in this step
                 {
                     bool mightCollideLater = false;
                     for (int j = this.agentTurn; j < this.allAgentsState.Length; j++)
@@ -132,20 +133,12 @@ namespace CPF_experiment
                             break;
                         }
                     }
-                    if (mightCollideLater == false) // Safe to ignore the direction and the time
+
+                    if (mightCollideLater == true) // Then check the direction too
                     {
-                        if (this.allAgentsState[i].Equals(that.allAgentsState[i]) == false)
-                            return false;
-                    }
-                    else // Don't ignore the direction but ignore the time
-                    {
-                        if (this.allAgentsState[i].agent.Equals(that.allAgentsState[i].agent) == false)
-                            return false;
-                        if (this.allAgentsState[i].lastMove.x != that.allAgentsState[i].lastMove.x ||
-                            this.allAgentsState[i].lastMove.y != that.allAgentsState[i].lastMove.y ||
-                            (this.allAgentsState[i].lastMove.direction != Move.Direction.NO_DIRECTION &&
+                        if (this.allAgentsState[i].lastMove.direction != Move.Direction.NO_DIRECTION &&
                              that.allAgentsState[i].lastMove.direction != Move.Direction.NO_DIRECTION &&
-                             this.allAgentsState[i].lastMove.direction != that.allAgentsState[i].lastMove.direction)) // Can't just use this.allAgentsState[i].lastMove.Equals(that.allAgentsState[i].lastMove) because TimedMoves don't ignore the time.
+                             this.allAgentsState[i].lastMove.direction != that.allAgentsState[i].lastMove.direction) // Can't just use this.allAgentsState[i].lastMove.Equals(that.allAgentsState[i].lastMove) because TimedMoves don't ignore the time.
                             return false;
                     }
                 }

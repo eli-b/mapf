@@ -118,9 +118,11 @@ namespace CPF_experiment
                        this.lastMove.y == that.lastMove.y; // Ignoring the time and the direction
             }
             else
-            {            
-                return this.agent.Equals(that.agent) && this.lastMove.Equals(that.lastMove); // Might still ignore the direction
-                                                                                             // if it isn't set in both of the moves.
+            {
+                return this.agent.Equals(that.agent) &&
+                       this.lastMove.x == that.lastMove.x &&
+                       this.lastMove.y == that.lastMove.y &&
+                       this.lastMove.time == that.lastMove.time; // Ignoring the direction
             }
         }
 
