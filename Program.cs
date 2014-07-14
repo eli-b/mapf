@@ -136,13 +136,17 @@ namespace CPF_experiment
             }
             runner.CloseResultsFile();                    
         }
-       
+
+        protected static readonly string[] daoMapFilenames = { "dao_maps\\den502d.map", "dao_maps\\ost003d.map", "dao_maps\\brc202d.map" };
+
+        protected static readonly string[] mazeMapFilenames = { "mazes-width1-maps\\maze512-1-6.map", "mazes-width1-maps\\maze512-1-2.map",
+                                                "mazes-width1-maps\\maze512-1-9.map" };
         
         /// <summary>
         /// Dragon Age experiment
         /// </summary>
-        /// <param name="instances"></param>
-        public void RunDragonAgeExperimentSet(int instances)
+        /// <param name="numInstances"></param>
+        public void RunDragonAgeExperimentSet(int numInstances, string[] mapFileNames)
         {
             ProblemInstance instance;
             string instanceName;
@@ -169,11 +173,9 @@ namespace CPF_experiment
                 continueFromLastRun = true;
             }
 
-            string[] mapFileNames = {"den502d.map", "ost003d.map", "brc202d.map"};
-
             for (int ag = 0; ag < agentListSizes.Length; ag++)
             {
-                for (int i = 0; i < instances; i++)
+                for (int i = 0; i < numInstances; i++)
                 {
                     for (int map = 0; map < mapFileNames.Length; map++)
                     {
@@ -206,7 +208,7 @@ namespace CPF_experiment
                             }
 
                             instance = runner.GenerateDragonAgeProblemInstance(mapFileName, agentListSizes[ag]);
-                            instance.ComputeSingleAgentShortestPaths();
+                            instance.ComputeSingleAgentShortestPaths(); // Consider just importing the generated problem after exporting it to remove the duplication of this line from Import()
                             instance.instanceId = i;
                             instance.Export(instanceName);
                         }
@@ -255,8 +257,9 @@ namespace CPF_experiment
 
             int instances = 100;
 
-            bool runGrids = true;
-            bool runDragonAge = false;
+            bool runGrids = false;
+            bool runDragonAge = true;
+            bool runMazesWidth1 = false;
             bool runSpecific = false;
 
             if (runGrids == true)
@@ -273,10 +276,11 @@ namespace CPF_experiment
                 me.RunExperimentSet(gridSizes, agentListSizes, obstaclesPercents, instances);
             }
             else if (runDragonAge == true)
-                me.RunDragonAgeExperimentSet(instances); // Obstacles Percents and grid sizes built-in to the maps.
+                me.RunDragonAgeExperimentSet(instances, Program.daoMapFilenames); // Obstacle percents and grid sizes built-in to the maps.
+            else if (runMazesWidth1 == true)
+                me.RunDragonAgeExperimentSet(instances, Program.mazeMapFilenames); // Obstacle percents and grid sizes built-in to the maps.
             else if (runSpecific == true)
             {
-                // A function for running a single instance that is loaded from this file.
                 me.RunInstance("corridor1");
                 me.RunInstance("corridor2");
                 me.RunInstance("corridor3");
