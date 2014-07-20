@@ -432,7 +432,7 @@ namespace CPF_experiment
                     break;
 
                 // Try all legal moves of the agents
-                foreach (TimedMove agentLocation in currentNode.allAgentsState[agentIndex].lastMove.GetNextMoves(Constants.ALLOW_DIAGONAL_MOVE))
+                foreach (TimedMove agentLocation in currentNode.allAgentsState[agentIndex].lastMove.GetNextMoves())
                 {
                     if (IsValid(agentLocation, currentNode.currentMoves, currentNode.makespan + 1,
                         instance.m_vAgents[agentIndex].agent.agentNum) == false)
