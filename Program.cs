@@ -146,6 +146,7 @@ namespace CPF_experiment
         /// Dragon Age experiment
         /// </summary>
         /// <param name="numInstances"></param>
+        /// <param name="mapFileNames"></param>
         public void RunDragonAgeExperimentSet(int numInstances, string[] mapFileNames)
         {
             ProblemInstance instance;

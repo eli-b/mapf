@@ -434,7 +434,7 @@ namespace CPF_experiment
              */
             //Random rand = new Random();
 
-            TextReader input = new StreamReader("dao_maps\\" + mapFileName);
+            TextReader input = new StreamReader(mapFileName);
             string[] lineParts;
             string line;
 
@@ -567,7 +567,7 @@ namespace CPF_experiment
                     {
                         Plan plan = solvers[i].GetPlan();
                         int planSize = plan.GetSize();
-                        if (planSize < 20)
+                        if (planSize < 200)
                             plan.PrintPlan();
                         else
                             Console.WriteLine("Plan is too long to print (" + planSize + " steps).");
