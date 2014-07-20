@@ -127,11 +127,12 @@ namespace CPF_experiment
             if (solved && this.reportSolution)
             {
                 // We're always going to find a proper goal since we respected the node's minDepth
-                s.SetSolution(this.cbs.GetPlan());
+                s.SetSolution(this.cbs.GetSinglePlans());
                 s.SetGoalCost(this.cbs.totalCost); // We have to do it explicitly.
                 // We can't just change the node's g to g + cbs.totalCost and its h to zero
                 // because approaches like BPMX or maximazing PDBs might "fix" the h back.
                 // So instead h is bumped to its maximum value when this method returns.
+                s.SetSingleCosts(this.cbs.GetSingleCosts());
                 this.nodesSolved++;
             }
 

@@ -330,6 +330,7 @@ namespace CPF_experiment
                     this.totalCost = currentNode.GetGoalCost();
                     this.singleCosts = currentNode.GetSingleCosts();
                     this.solution = currentNode.GetPlan();
+                    this.singlePlans = currentNode.GetSinglePlans();
                     this.solutionDepth = this.totalCost - initialEstimate;
                     this.Clear();
                     return true;
@@ -520,12 +521,15 @@ namespace CPF_experiment
             return this.solution;
         }
 
+        protected SinglePlan[] singlePlans;
+
         public virtual SinglePlan[] GetSinglePlans()
         {
-            return this.GetPlan().GetSinglePlans();
+            return this.singlePlans;
         }
 
         protected int[] singleCosts;
+
         public virtual int[] GetSingleCosts()
         {
             return this.singleCosts;

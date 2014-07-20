@@ -24,7 +24,6 @@ namespace CPF_experiment
         /// Used for making sure the next agent move doesn't collide with moves already made.
         /// </summary>
         public HashSet<TimedMove> currentMoves;
-        protected Plan plan;
         protected static readonly int NOT_SET = -1;
         /// <summary>
         /// For computing expansion delay
@@ -49,6 +48,8 @@ namespace CPF_experiment
             this.minDepth = minDepth;
             this.currentMoves = new HashSet<TimedMove>();
             this.goalCost = NOT_SET;
+            this.goalSingleCosts = null;
+            this.singlePlans = null;
         }
 
         /// <summary>
@@ -69,6 +70,8 @@ namespace CPF_experiment
             }
             this.currentMoves = new HashSet<TimedMove>(cpy.currentMoves);
             this.goalCost = NOT_SET;
+            this.goalSingleCosts = null;
+            this.singlePlans = null;
         }
 
         /// <summary>
@@ -90,26 +93,45 @@ namespace CPF_experiment
         
         public bool GoalTest()
         {
+            // Check if this is a generalised goal node and its plan is long enough.
+            // If we know the optimal solution, it doesn't matter if this is a real goal node or not, we can finish.
+            if (this.singlePlans != null)
+            {
+                // Check if plans are long enough
+                if (this.singlePlans.All<SinglePlan>(plan => plan.GetSize() - 1 >= this.minDepth))
+                    return true;
+            }
+
             if (makespan >= this.minDepth)
             {
-                if (this.plan != null) // If we know the optimal solution, it doesn't matter if this is a goal node or not, we can finish.
-                    return true;
-                
                 return h == 0; // That's crazy! A node that is close to the goal might also get h==0.
                                // Our specific heuristic doesn't behave that way, though.
+                               // Not crazy, just assumes the heuristic is consistent, which has the property that only the goal has h==0.
+                               // SIC really is a consistent heuristic.
                                // FIXME: Implement a proper goal test and use it when h==0.
             }
             return false;
         }
 
+        protected SinglePlan[] singlePlans;
+
         /// <summary>
         /// Set the optimal solution of this node as a problem instance.
         /// </summary>
         /// <param name="solution"></param>
-        public virtual void SetSolution(Plan solution)
+        public virtual void SetSolution(SinglePlan[] solution)
         {
-            this.plan = new Plan(this); // This node may be a partial solution itself, need to start from the real root.
-            this.plan.ContinueWith(solution);
+            this.singlePlans = SinglePlan.GetSinglePlans(this); // This node may be a partial solution itself, need to start from the real root.
+            for (int i = 0; i < solution.Length; ++i)
+                this.singlePlans[i].ContinueWith(solution[i]);
+        }
+
+        public SinglePlan[] GetSinglePlans()
+        {
+            if (this.singlePlans != null)
+                return this.singlePlans;
+            else
+                return SinglePlan.GetSinglePlans(this);
         }
 
         /// <summary>
@@ -119,12 +141,13 @@ namespace CPF_experiment
         /// <returns></returns>
         public Plan GetPlan()
         {
-            if (this.plan == null)
-                this.plan = new Plan(this);
-            return this.plan;
+            if (this.singlePlans != null)
+                return new Plan(this.singlePlans);
+            else
+                return new Plan(this);
         }
 
-        protected int goalCost;
+        protected int goalCost; // TODO: Get rid of this and just return the sum of the single costs where needed.
 
         /// <summary>
         /// Returns the optimal cost to the goal from the start through this node.
@@ -135,10 +158,8 @@ namespace CPF_experiment
             Debug.Assert(this.GoalTest(), "Only call for goal nodes!");
 
             if (goalCost == NOT_SET) // This is just a proper goal
-            {
                 return this.g;
-            }
-            else
+            else                     // This is a generalised goal node - it stores the optimal path to the goal through it
                 return this.goalCost;
         }
 
@@ -151,9 +172,26 @@ namespace CPF_experiment
             this.goalCost = cost;
         }
 
+        protected int[] goalSingleCosts;
+
         public int[] GetSingleCosts()
         {
-            return allAgentsState.Select<AgentState, int>(agent => agent.g).ToArray<int>(); // FIXME! Doesn't account for generalised goal states!
+            Debug.Assert(this.GoalTest(), "Only call for goal nodes!");
+
+            if (goalSingleCosts == null) // This is just a proper goal
+                return allAgentsState.Select<AgentState, int>(agent => agent.g).ToArray<int>();
+            else
+                return this.goalSingleCosts;
+        }
+
+        /// <summary>
+        /// Set the optimal cost from the start to the goal through this node for every agent
+        /// 
+        /// </summary>
+        /// <param name="cost"></param>
+        public void SetSingleCosts(int[] costs)
+        {
+            this.goalSingleCosts = costs;
         }
 
         /// <summary>
