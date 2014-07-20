@@ -162,15 +162,23 @@ namespace CPF_experiment
             //solvers.Add(new AStarWithOD(sicOrCbsh6));
 
             ClassicAStar solver;
+            // dynamic not rational lazy A*+OD/CBS/A*/SIC:
             //solver = new AStarWithOD(sic);
-            //var dynamicLazyOpenList1 = new DynamicLazyOpenList(solver, dynamicLazyCbsh);
+            //var dynamicLazyOpenList1 = new DynamicLazyOpenList(solver, dynamicLazyCbsh, this);
             //solver.openList = dynamicLazyOpenList1;
             //solvers.Add(solver);
 
-            solver = new AStarWithOD(sic);
-            var dynamicRationalLazyOpenList1 = new DynamicRationalLazyOpenList(solver, dynamicLazyCbsh);
-            solver.openList = dynamicRationalLazyOpenList1;
-            solvers.Add(solver);
+            // dynamic rational lazy A*+OD/CBS/A*/SIC:
+            //solver = new AStarWithOD(sic);
+            //var dynamicRationalLazyOpenList1 = new DynamicRationalLazyOpenList(solver, dynamicLazyCbsh, this);
+            //solver.openList = dynamicRationalLazyOpenList1;
+            //solvers.Add(solver);
+
+            // dynamic rational lazy MA-CBS-local-5/A*+OD/MA-CBS-local-5/EPEA*/SIC:
+            //solver = new AStarWithOD(sic);
+            //var dynamicRationalLazyOpenList3 = new DynamicRationalLazyOpenList(solver, dynamicLazyMacbsLocal5EpeaH, this);
+            //solver.openList = dynamicRationalLazyOpenList3;
+            //solvers.Add(new CBS_LocalConflicts(astar, solver, 5));
 
             //solvers.Add(new AStarWithPartialExpansion(cbsHeuristicSolve1));
             //solvers.Add(new AStarWithPartialExpansion(cbsHeuristicSolve2));
@@ -186,14 +194,34 @@ namespace CPF_experiment
             //solvers.Add(new AStarWithPartialExpansion(cbsHeuristicNoSolve6));
             //solvers.Add(new AStarWithPartialExpansion(sicOrCbsh6));
 
+            // dynamic not rational lazy EPEA*/CBS/A*/SIC:
             //solver = new AStarWithPartialExpansion(sic);
-            //var dynamicLazyOpenList2 = new DynamicLazyOpenList(solver, dynamicLazyCbsh);
+            //var dynamicLazyOpenList2 = new DynamicLazyOpenList(solver, dynamicLazyCbsh, this);
             //solver.openList = dynamicLazyOpenList2;
             //solvers.Add(solver);
 
+            // dynamic rational lazy EPEA*/CBS/A*/SIC:
+            //solver = new AStarWithPartialExpansion(sic);
+            //var dynamicRationalLazyOpenList2 = new DynamicRationalLazyOpenList(solver, dynamicLazyCbsh, this);
+            //solver.openList = dynamicRationalLazyOpenList2;
+            //solvers.Add(solver);
+
+            // MA-CBS-local-5/dynamic rational lazy EPEA*/MA-CBS-local-5/EPEA*/SIC:
             solver = new AStarWithPartialExpansion(sic);
-            var dynamicRationalLazyOpenList2 = new DynamicRationalLazyOpenList(solver, dynamicLazyCbsh);
-            solver.openList = dynamicRationalLazyOpenList2;
+            var dynamicRationalLazyOpenList4 = new DynamicRationalLazyOpenList(solver, dynamicLazyMacbsLocal5EpeaH, this);
+            solver.openList = dynamicRationalLazyOpenList4;
+            solvers.Add(new CBS_LocalConflicts(astar, solver, 5));
+
+            // dynamic rational lazy EPEA*/MA-CBS-local-5/EPEA*/SIC + (S)ID:
+            solver = new AStarWithPartialExpansion(sic);
+            var dynamicRationalLazyOpenList6 = new DynamicRationalLazyOpenList(solver, dynamicLazyMacbsLocal5EpeaH, this);
+            solver.openList = dynamicRationalLazyOpenList6;
+            solvers.Add(new CBS_LocalConflicts(astar, solver, 0));
+
+            // dynamic rational lazy EPEA*/MA-CBS-local-5/EPEA*/SIC:
+            solver = new AStarWithPartialExpansion(sic);
+            var dynamicRationalLazyOpenList8 = new DynamicRationalLazyOpenList(solver, dynamicLazyMacbsLocal5EpeaH, this);
+            solver.openList = dynamicRationalLazyOpenList8;
             solvers.Add(solver);
                                     
             //solvers.Add(new CostTreeSearchSolverNoPruning());
@@ -238,17 +266,6 @@ namespace CPF_experiment
             //solvers.Add(new CBS_NoDD(new ClassicAStar()));
             //solvers.Add(new CBS_NoDDb3(new ClassicAStar()));
             //solvers.Add(new CBS_GlobalConflicts(new ClassicAStar(), 1, 1)); // Run this!
-
-
-            //solvers.Add(new CBS_GlobalConflicts(new AStarWithPartialExpansion(), 1, 1));
-            //solvers.Add(new CBS_GlobalConflicts(new AStarWithPartialExpansion(), 5, 5));
-            //solvers.Add(new CBS_GlobalConflicts(new AStarWithPartialExpansion(), 10, 10));
-            //solvers.Add(new CBS_GlobalConflicts(new AStarWithPartialExpansion(), 100, 100));
-            //solvers.Add(new CBS_GlobalConflicts(new AStarWithPartialExpansion(), 500, 500));
-            //solvers.Add(new CBS_LocalConflicts(new ClassicAStar(), 0, 0));
-            //solvers.Add(new CBS_LocalConflicts(new ClassicAStar(), 1, 0));
-            //solvers.Add(new CBS_LocalConflicts(new ClassicAStar(), 2, 0));
-
 
             outOfTimeCounters = new int[solvers.Count];
             for (int i = 0; i < outOfTimeCounters.Length; i++)

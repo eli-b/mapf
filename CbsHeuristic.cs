@@ -15,7 +15,7 @@ namespace CPF_experiment
         protected CBS_LocalConflicts cbs;
         protected ProblemInstance instance;
         protected List<uint> vAgents;
-        public Run runner; // FIXME: Hack!
+        protected Run runner;
         protected bool validate;
 
         protected bool reportSolution;

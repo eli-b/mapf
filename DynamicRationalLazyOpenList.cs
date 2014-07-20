@@ -7,6 +7,7 @@ namespace CPF_experiment
 {
     public class DynamicRationalLazyOpenList : OpenList
     {
+        protected Run runner;
         public LazyHeuristic expensive;
         protected int lastF;
         protected int skips;
@@ -23,15 +24,13 @@ namespace CPF_experiment
         protected int numExpands;
         protected double accSumExpandTimes;
         protected int accNumExpands;
-        /// <summary>
-        /// Probability that the expensive heuristic is helpful
-        /// </summary>
 
-        public DynamicRationalLazyOpenList(ISolver user, LazyHeuristic expensive)
+        public DynamicRationalLazyOpenList(ISolver user, LazyHeuristic expensive, Run runner)
             : base(user)
         {
             this.expensive = expensive;
             this.ClearPrivateStatistics();
+            this.runner = runner;
         }
 
         protected void ClearPrivateStatistics()
@@ -63,18 +62,13 @@ namespace CPF_experiment
             if (this.lastF != -1)
             {
                 this.numExpands++;
-                double expandFinishTime = ((DyanamicLazyCbsh)this.expensive).runner.ElapsedMilliseconds();
+                double expandFinishTime = this.runner.ElapsedMilliseconds();
                 this.sumExpandTimes += expandFinishTime - this.expandStartTime;
             }
 
             if (base.Count == 1) // Can happen more than once with the same node if partial expansion pushes it back into the open list, leading to multiple zero-timeout runs.
             {
                 node = (WorldState)base.Remove();
-                if (node.GoalTest() == true || // Can't improve the h of the goal
-                    ((DyanamicLazyCbsh)this.expensive).runner.ElapsedMilliseconds() > Constants.MAX_TIME) // No time to continue improving H. // FIXME: Hack!
-                    goto finish;
-                int expensiveEstimate = (int)this.expensive.h(node, int.MaxValue, -1, 0, false); // I'm willing to pay the overhead to instantly solve problems of depth zero.
-                node.h = Math.Max(node.h, expensiveEstimate);
                 goto finish;
             }
 
@@ -91,7 +85,7 @@ namespace CPF_experiment
                 node = (WorldState)base.Remove();
 
                 if (node.GoalTest() == true || // Can't improve the h of the goal
-                    ((DyanamicLazyCbsh)this.expensive).runner.ElapsedMilliseconds() > Constants.MAX_TIME) // No time to continue improving H. // FIXME: Hack!
+                    this.runner.ElapsedMilliseconds() > Constants.MAX_TIME) // No time to continue improving H.
                 {
                     if (node.g + node.h < this.lastF) // This can happen if the last removed node had many runs of the expensive heuristic, which this node didn't yet have.
                         node.h = this.lastF - node.g; // Just so we don't throw an inconsistency exception
@@ -167,9 +161,9 @@ namespace CPF_experiment
                 if (millisCap > overhead || // Worth running the expensive heuristic
                     node.g + node.h < lastF) // Must improve the heuristic estimate to be consistent
                 {
-                    double expensiveCallStartTime = ((DyanamicLazyCbsh)this.expensive).runner.ElapsedMilliseconds();
+                    double expensiveCallStartTime = this.runner.ElapsedMilliseconds();
                     int expensiveEstimate = (int)this.expensive.h(node, targetH, -1, (int)(expensiveCallStartTime + millisCap), false);
-                    double expensiveCallTotalTime = ((DyanamicLazyCbsh)this.expensive).runner.ElapsedMilliseconds() - expensiveCallStartTime;
+                    double expensiveCallTotalTime = this.runner.ElapsedMilliseconds() - expensiveCallStartTime;
 
                     if (expensiveEstimate > node.h) // Node may have inherited a better estimate from its parent so this check is necessary for failues
                         node.h = expensiveEstimate; // If this wasn't a success, the assignment here serves to force the next heuristic call
@@ -224,7 +218,7 @@ namespace CPF_experiment
 
             finish:
             this.lastF = node.g + node.h;
-            this.expandStartTime = ((DyanamicLazyCbsh)this.expensive).runner.ElapsedMilliseconds();
+            this.expandStartTime = this.runner.ElapsedMilliseconds();
             return node;
         }
 

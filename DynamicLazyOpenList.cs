@@ -9,12 +9,14 @@ namespace CPF_experiment
     public class DynamicLazyOpenList : OpenList
     {
         public LazyHeuristic expensive;
+        protected Run runner;
         protected int lastF;
 
-        public DynamicLazyOpenList(ISolver user, LazyHeuristic expensive)
+        public DynamicLazyOpenList(ISolver user, LazyHeuristic expensive, Run runner)
             : base(user)
         {
             this.expensive = expensive;
+            this.runner = runner;
         }
 
         public override string ToString()
@@ -43,7 +45,7 @@ namespace CPF_experiment
                 node = (WorldState)base.Remove();
 
                 if (node.GoalTest() == true || // Can't improve the h of the goal
-                    ((DyanamicLazyCbsh)this.expensive).runner.ElapsedMilliseconds() > Constants.MAX_TIME) // No time to continue improving H. // FIXME: Hack!
+                    this.runner.ElapsedMilliseconds() > Constants.MAX_TIME) // No time to continue improving H.
                 {
                     if (node.g + node.h < this.lastF) // This can happen if the last removed node had many runs of the expensive heuristic, which this node didn't yet have.
                         node.h = this.lastF - node.g; // Just so we don't throw an inconsistency exception
