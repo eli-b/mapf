@@ -66,7 +66,7 @@ namespace CPF_experiment
         /// <summary>
         /// Used to know when to clear problem parameters.
         /// </summary>
-        protected bool topMost;
+        public bool topMost;
 
         public CBS_LocalConflicts(ICbsSolver singleAgentSolver, ICbsSolver generalSolver, int mergeThreshold = -1)
         {
@@ -500,10 +500,10 @@ namespace CPF_experiment
 
                     }
                     this.maxSizeGroup = Math.Max(this.maxSizeGroup, child.replanSize);
-                    if (success == false)
-                    {
+                    
+                    if (success == false) // A timeout probably occured
                         return;
-                    }
+
                     if (node.totalCost <= maxCost) // FIXME: Code dup with other new node creations
                     {
                         openList.Add(child);
