@@ -600,7 +600,7 @@ namespace CPF_experiment
             }
 
             // Generate right child:
-            int agentBGroupSize = node.GetGroupSize(node.agentsGroupAssignment[conflict.agentB])
+            int agentBGroupSize = node.GetGroupSize(node.agentsGroupAssignment[conflict.agentB]);
             if (node.agentBExpansion == CbsNode.ExpansionState.NOT_EXPANDED && conflict.vertex == true &&
                 conflict.timeStep >= node.allSingleAgentCosts[conflict.agentB] &&
                 agentBGroupSize == 1) // Again, skip expansion

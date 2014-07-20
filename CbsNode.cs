@@ -109,8 +109,9 @@ namespace CPF_experiment
         }
 
         /// <summary>
-        /// Solve a given problem according to given constraints, sets the plans array (plan per agent).
-        /// This method ignores the agentsGroupAssignment and solves for each agent separately using the low level solver, which is OK because it's only called for the root node.
+        /// Solves a given problem according to given constraints, sets the plans array (plan per agent).
+        /// This method ignores the agentsGroupAssignment and solves for each agent separately using the low level solver,
+        /// which is OK because it's only called for the root node.
         /// But on the other hand, it makes merging the method with Replan more difficult.
         /// Can this just call Replan consecutively please?
         /// </summary>
@@ -282,15 +283,15 @@ namespace CPF_experiment
         }
 
         /// <summary>
-        /// Find the first conflict (timewise) for all the given plans.
+        /// Finds the first conflict (timewise) for all the given plans, or declares this node as a goal.
         /// Assumes all agents are initially on the same timestep (no OD).
         /// </summary>
         private void FindConflict()
         {
+            this.conflict = null;
             if (this.allSingleAgentPlans.Length == 1) 
                 return;
             int maxPlanSize = this.allSingleAgentPlans.Max<SinglePlan>(plan => plan.GetSize());
-            this.conflict = null;
 
             // Check in every time step that the plans do not collide
             for (int time = 1; time < maxPlanSize; time++)
