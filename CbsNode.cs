@@ -120,7 +120,7 @@ namespace CPF_experiment
         {
             this.totalCost = 0;
             var newInternalCAT = new HashSet<TimedMove>();
-            HashSet<CbsConstraint> newConstraints = this.GetConstraints();
+            HashSet<CbsConstraint> newConstraints = this.GetConstraints(); // Probably empty as this is probably the root of the CT.
             var internalCAT = (HashSet_U<TimedMove>)problem.parameters[CBS_LocalConflicts.INTERNAL_CAT];
             var constraints = (HashSet_U<CbsConstraint>)problem.parameters[CBS_LocalConflicts.CONSTRAINTS];
             bool haveMustConstraints = problem.parameters.ContainsKey(CBS_LocalConflicts.MUST_CONSTRAINTS) == true &&
@@ -128,28 +128,30 @@ namespace CPF_experiment
             Dictionary<int,int> agentsWithMustConstraints = null; // To quiet the compiler
             if (haveMustConstraints)
                 agentsWithMustConstraints = ((List<CbsConstraint>)problem.parameters[CBS_LocalConflicts.MUST_CONSTRAINTS]).Select<CbsConstraint, int>(constraint => constraint.agent).Distinct().ToDictionary<int,int>(x=>x); // ToDictionary because there's no ToSet...
-
-            if (newConstraints.Count != 0)
-            {
-                int maxConstraintTimeStep = newConstraints.Max<CbsConstraint>(constraint => constraint.time);
-                depthToReplan = Math.Max(depthToReplan, maxConstraintTimeStep); // Give all constraints a chance to affect the plan
-            }
-
-            bool success = true;
+            Dictionary<int, int> agentsWithConstraints = null; // To quiet the compiler
 
             constraints.Join(newConstraints);
+
+            bool haveConstraints = (constraints.Count != 0);
+            if (haveConstraints)
+            {
+                int maxConstraintTimeStep = constraints.Max<CbsConstraint>(constraint => constraint.time);
+                depthToReplan = Math.Max(depthToReplan, maxConstraintTimeStep); // Give all constraints a chance to affect the plan
+                agentsWithConstraints = constraints.Select<CbsConstraint, int>(constraint => constraint.agent).Distinct().ToDictionary<int, int>(x => x); // ToDictionary because there's no ToSet...
+            }
+            bool success = true;
 
             for (int i = 0; i < problem.m_vAgents.Length; i++)
             {
                 
                 // This mechanism of adding the constraints to the possibly pre-existing constraints allows having
-                // layers of CBS solver, each one adding its own constraints and respecting those of the solvers above it
-                // in CbsLocalConflicts
+                // layers of CBS solvers, each one adding its own constraints and respecting those of the solvers above it.
                 internalCAT.Join(newInternalCAT);
 
-                if (constraints.Count == 0 && // TODO: Do a similar check to see if the constraints actually affect this agent
+                if ((haveConstraints == false ||
+                     agentsWithConstraints.ContainsKey(i) == false) &&
                     (haveMustConstraints == false ||
-                     agentsWithMustConstraints.ContainsKey(i) == false)) // Top-most CBS with no must constraints on this agent. Shortcut available (ignoring the CAT thought)
+                     agentsWithMustConstraints.ContainsKey(i) == false)) // Top-most CBS with no must constraints on this agent. Shortcut available (ignoring the CAT though)
                 {
                     allSingleAgentPlans[i] = new SinglePlan(problem.m_vAgents[i]); // All moves up to starting pos
                     allSingleAgentPlans[i].ContinueWith(this.problem.GetSingleAgentOptimalPlan(problem.m_vAgents[i]));
@@ -211,12 +213,6 @@ namespace CPF_experiment
             var internalCAT = (HashSet_U<TimedMove>)problem.parameters[CBS_LocalConflicts.INTERNAL_CAT];
             var constraints = (HashSet_U<CbsConstraint>)problem.parameters[CBS_LocalConflicts.CONSTRAINTS];
 
-            if (newConstraints.Count != 0)
-            {
-                int maxConstraintTimeStep = newConstraints.Max<CbsConstraint>(constraint => constraint.time);
-                depthToReplan = Math.Max(depthToReplan, maxConstraintTimeStep); // Give all constraints a chance to affect the plan
-            }
-
             int maxPlanSize = this.allSingleAgentPlans.Max<SinglePlan>(plan => plan.GetSize());
 
             // Construct the subgroup of agents that are of the same group as agentForReplan,
@@ -243,6 +239,12 @@ namespace CPF_experiment
 
             internalCAT.Join(newInternalCAT);
             constraints.Join(newConstraints);
+
+            if (constraints.Count != 0)
+            {
+                int maxConstraintTimeStep = newConstraints.Max<CbsConstraint>(constraint => constraint.time);
+                depthToReplan = Math.Max(depthToReplan, maxConstraintTimeStep); // Give all constraints a chance to affect the plan
+            }
            
             solver.Setup(subProblem, depthToReplan, runner);
             bool solved = solver.Solve();
