@@ -590,7 +590,10 @@ namespace CPF_experiment
                             }
                         }
                     }
-                    // else a timeout probably occured
+                    else // A timeout probably occured
+                    {
+                        return;
+                    }
                 }
                 else
                     this.closedListHits++;
@@ -658,7 +661,10 @@ namespace CPF_experiment
                             }
                         }
                     }
-                    // else a timeout probably occured
+                    else // A timeout probably occured
+                    {
+                        return;
+                    }
                 }
                 else
                     this.closedListHits++;
