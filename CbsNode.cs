@@ -8,8 +8,6 @@ namespace CPF_experiment
     public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem
     {
         public ushort totalCost;
-        public ushort externalConflictsCount;
-        public ushort internalConflictsCount;
         public SinglePlan[] allSingleAgentPlans;
         public int[] allSingleAgentCosts;
         private int binaryHeapIndex;
@@ -48,8 +46,6 @@ namespace CPF_experiment
             allSingleAgentCosts = new int[numberOfAgents];
             depth = 0;
             replanSize = 1;
-            externalConflictsCount = 0;
-            internalConflictsCount = 0;
             agentAExpansion = ExpansionState.NOT_EXPANDED;
             agentBExpansion = ExpansionState.NOT_EXPANDED;
             agentsGroupAssignment = new ushort[numberOfAgents];
@@ -79,8 +75,6 @@ namespace CPF_experiment
             this.prev = father;
             this.constraint = newConstraint;
             this.depth = (ushort)(this.prev.depth + 1);
-            externalConflictsCount = 0;
-            internalConflictsCount = 0;
             agentAExpansion = ExpansionState.NOT_EXPANDED;
             agentBExpansion = ExpansionState.NOT_EXPANDED;
             replanSize = 1;
@@ -105,8 +99,6 @@ namespace CPF_experiment
             this.prev = father;
             this.constraint = null;
             this.depth = (ushort)(this.prev.depth + 1);
-            externalConflictsCount = 0;
-            internalConflictsCount = 0;
             agentAExpansion = ExpansionState.NOT_EXPANDED;
             agentBExpansion = ExpansionState.NOT_EXPANDED;
             replanSize = 1;
@@ -292,7 +284,6 @@ namespace CPF_experiment
         /// <summary>
         /// Find the first conflict (timewise) for all the given plans.
         /// Assumes all agents are initially on the same timestep (no OD).
-        /// Also updates the internalConflictsCount and externalConflictsCount counters.
         /// </summary>
         private void FindConflict()
         {
@@ -300,11 +291,6 @@ namespace CPF_experiment
                 return;
             int maxPlanSize = this.allSingleAgentPlans.Max<SinglePlan>(plan => plan.GetSize());
             this.conflict = null;
-            HashSet<TimedMove> externalCAT = null;
-            HashSet_U<TimedMove> CbsExternalCAT = (HashSet_U<TimedMove>)problem.parameters[CBS_LocalConflicts.INTERNAL_CAT];
-            if (problem.parameters.ContainsKey(Trevor.CONFLICT_AVOIDANCE))
-                 externalCAT = (HashSet<TimedMove>)problem.parameters[Trevor.CONFLICT_AVOIDANCE];
-            TimedMove checkMove = new TimedMove();
 
             // Check in every time step that the plans do not collide
             for (int time = 1; time < maxPlanSize; time++)
@@ -312,24 +298,16 @@ namespace CPF_experiment
                 // Check all pairs of groups if they are conflicting at the given time step
                 for (int i = 0; i < allSingleAgentPlans.Length; i++)
                 {
-                    checkMove.setup(allSingleAgentPlans[i].GetLocationAt(time), time);
-                    if (checkMove.IsColliding(externalCAT))
-                        externalConflictsCount++;
-                    if (checkMove.IsColliding(CbsExternalCAT))
-                        externalConflictsCount++;
                     for (int j = i + 1; j < allSingleAgentPlans.Length; j++)
                     {
                         if (allSingleAgentPlans[i].IsColliding(time, allSingleAgentPlans[j]))
                         {
-                            if (this.conflict == null)
-                            {
-                                int initialTimeStep = this.problem.m_vAgents[0].lastMove.time; // To account for solving partially solved problems.
-                                                                                               // This assumes the makespan of all the agents is the same.
-                                Move first = allSingleAgentPlans[i].GetLocationAt(time);
-                                Move second = allSingleAgentPlans[j].GetLocationAt(time);
-                                this.conflict = new CbsConflict(i, j, first, second, time + initialTimeStep);
-                            }
-                            internalConflictsCount++;
+                            int initialTimeStep = this.problem.m_vAgents[0].lastMove.time; // To account for solving partially solved problems.
+                                                                                            // This assumes the makespan of all the agents is the same.
+                            Move first = allSingleAgentPlans[i].GetLocationAt(time);
+                            Move second = allSingleAgentPlans[j].GetLocationAt(time);
+                            this.conflict = new CbsConflict(i, j, first, second, time + initialTimeStep);
+                            return;
                         }
                     }
                 }
@@ -410,11 +388,14 @@ namespace CPF_experiment
                 return 1;
 
             // Tie breaking:
-            // Prefer less external conflicts, even over goal nodes, as goal nodes with less external conflicts are better.
-            if (this.externalConflictsCount < other.externalConflictsCount)
-                return -1;
-            if (this.externalConflictsCount > other.externalConflictsCount)
-                return 1;
+            // We could prefer less external conflicts, even over goal nodes, as goal nodes with less external conflicts are better.
+            // External conflicts are already taken into account by the low level solver to prefer less conflicts between fewer agents.
+            // This would only help when this CBS is used as a low level solver, but is very costly to compute, and is computed also
+            // for high level CBS solvers, so I removed it.
+
+            // Internal conflict counts are ignored. 100 conflicts between the same two agents can possibly be solved by a single replan,
+            // while two conflicts between two sets of agents take two replans to solve.
+
             // Prefer goal nodes. The elaborate form is to keep the comparison consistent. Without it goalA<goalB and also goalB<goalA.
             if (this.GoalTest() == true && other.GoalTest() == false)
                 return -1;
