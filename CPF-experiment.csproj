@@ -88,8 +88,6 @@
     <Compile Include="CBS.cs" />
     <Compile Include="CbsHeuristic.cs" />
     <Compile Include="CBS_IDA.cs" />
-    <Compile Include="CBS_NoDD.cs" />
-    <Compile Include="CBS_old.cs" />
     <Compile Include="CbsConflict.cs" />
     <Compile Include="DynamicRationalLazyOpenList.cs" />
     <Compile Include="IStatisticsCsvWriter.cs" />

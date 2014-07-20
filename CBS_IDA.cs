@@ -35,7 +35,7 @@ namespace CPF_experiment
             this.maxThreshold = maxThreshold;
             if (currentThreshold < maxThreshold)
             {
-                this.solver = new CBS_GlobalConflicts(solver, maxThreshold, currentThreshold + 1);
+                //this.solver = new CBS_GlobalConflicts(solver, maxThreshold, currentThreshold + 1);
             }
         }
 
