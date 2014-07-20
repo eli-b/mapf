@@ -67,15 +67,18 @@ namespace CPF_experiment
         /// Set the optimal solution of this node as a problem instance.
         /// </summary>
         /// <param name="solution"></param>
-        public override void SetSolution(Plan solution)
+        public override void SetSolution(SinglePlan[] solution)
         {
             if (this.agentTurn == 0)
-                this.plan = new Plan(this);
+                this.singlePlans = SinglePlan.GetSinglePlans(this);
             else
-                this.plan = new Plan(this.prevStep); // ToProblemInstance gives the last proper state as the problem to solve,
-                                                     // with must constraints to make the solution go through the steps already
-                                                     // taken from there.
-            this.plan.ContinueWith(solution);
+                this.singlePlans = SinglePlan.GetSinglePlans(this.prevStep);
+                // ToProblemInstance gives the last proper state as the problem to solve,
+                // with must constraints to make the solution go through the steps already
+                // taken from there.
+
+            for (int i = 0; i < solution.Length; ++i)
+                this.singlePlans[i].ContinueWith(solution[i]);
         }
 
         /// <summary>
