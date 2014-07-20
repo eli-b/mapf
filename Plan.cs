@@ -157,7 +157,7 @@ namespace CPF_experiment
         /// the agents are assumed to stay at their final location.
         /// </summary>
         /// <param name="time">The requested time</param>
-        /// <returns>A list of points that are the locations of the different agents at the requested time</returns>
+        /// <returns>A list of Moves that are the locations of the different agents at the requested time</returns>
         public List<Move> GetLocationsAt(int time)
         {
             time = Math.Min(time, this.locationsAtTimes.Count - 1);

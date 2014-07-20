@@ -18,7 +18,11 @@ namespace CPF_experiment
         /// <summary>
         /// Delimiter character used when writing the results of the runs to the output file.
         /// </summary>
-        public static string RESULTS_DELIMITER = ",";
+        public static readonly string RESULTS_DELIMITER = ",";
+
+        public static readonly int SUCCESS_CODE = 1;
+
+        public static readonly int FAILURE_CODE = 0;
 
         /// <summary>
         /// Number of random steps performed when generating a new problem instance for choosing a start-goal pair.
@@ -271,7 +275,7 @@ namespace CPF_experiment
             var dynamicRationalLazyOpenList8 = new DynamicRationalLazyOpenList(solver, dynamicLazyMacbsLocal5EpeaH, this);
             solver.openList = dynamicRationalLazyOpenList8;
             solvers.Add(solver);
-                                    
+
             //solvers.Add(new CostTreeSearchSolverNoPruning());
             //solvers.Add(new CostTreeSearchSolverKMatch(2));
             //solvers.Add(new CostTreeSearchSolverOldMatching(2));
@@ -680,9 +684,9 @@ namespace CPF_experiment
         {
             // Success col:
             if (solver.GetSolutionCost() < 0)
-                this.resultsWriter.Write(0 + RESULTS_DELIMITER); // FIXME: Magic:
+                this.resultsWriter.Write(Run.FAILURE_CODE + RESULTS_DELIMITER);
             else
-                this.resultsWriter.Write(1 + RESULTS_DELIMITER); // FIXME: Magic:
+                this.resultsWriter.Write(Run.SUCCESS_CODE + RESULTS_DELIMITER);
             // Runtime col:
             this.resultsWriter.Write(runtimeInMillis + RESULTS_DELIMITER);
             // Solution Cost col:
