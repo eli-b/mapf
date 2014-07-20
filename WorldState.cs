@@ -256,23 +256,22 @@ namespace CPF_experiment
         }
 
         /// <summary>
-        /// Returns a copy of the last move of all the agents in this state.
-        /// Why a copy?
+        /// Returns the last move of all the agents in this state.
         /// </summary>
-        /// <returns>A list of points</returns>
+        /// <returns>A list of Moves</returns>
         public List<Move> GetAgentsMoves()
         {
-            var ans = new List<Move>();
-            for (int i = 0; i < allAgentsState.Length; i++)
-            {
-                ans.Add(new Move(allAgentsState[i].lastMove));
-            }
-            return ans;
+            return this.allAgentsState.Select<AgentState, Move>(state => state.lastMove).ToList<Move>();
         }
 
+        /// <summary>
+        /// Returns the last move of the requested agent.
+        /// </summary>
+        /// <param name="index"></param>
+        /// <returns></returns>
         public Move GetSingleAgentMove(int index)
         {
-            return new Move(allAgentsState[index].lastMove);
+            return allAgentsState[index].lastMove;
         }
 
         /// <summary>
