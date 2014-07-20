@@ -317,6 +317,7 @@ namespace CPF_experiment
                              "A* node with decreasing F: " + (currentNode.g + currentNode.h) + " < " + lastF + ".");
                 // FIXME: Better to use the whole rich comparison. Save the last node and use compareTo.
                 //        The only time a node is allowed to be smaller than the last one is if it's the goal.
+                //        Is that even true? A child is smaller than its parent if it's on the heuristic path to the goal because its g i larger.
                 lastF = currentNode.g + currentNode.h;
                 lastNode = currentNode;
 
@@ -378,32 +379,37 @@ namespace CPF_experiment
             }
 
             // BPMX (Felner et al. 2005) stage:
-            // Reverse Path-Max
-            WorldState parent = node;
-            int maxChildH = -1;
-            int deltaGOfChildWithMaxH = 0;
-            foreach (var child in finalGeneratedNodes)
+            if ((this.heuristic.GetType() != typeof(SumIndividualCosts)) || (this.openList.GetType() != typeof(OpenList)))
+            // otherwise if we just use SIC and no lazy heuristic in addition to it,
+            // then our heuristic is consistent and BPMX isn't necessary
             {
-                if (child.h > maxChildH)
+                // Reverse Path-Max
+                WorldState parent = node;
+                int maxChildH = -1;
+                int deltaGOfChildWithMaxH = 0;
+                foreach (var child in finalGeneratedNodes)
                 {
-                    maxChildH = child.h;
-                    deltaGOfChildWithMaxH = child.g - parent.g;
+                    if (child.h > maxChildH)
+                    {
+                        maxChildH = child.h;
+                        deltaGOfChildWithMaxH = child.g - parent.g;
+                    }
                 }
-            }
-            if (parent.h < maxChildH - deltaGOfChildWithMaxH)
-            {
-                parent.h = maxChildH - deltaGOfChildWithMaxH; // Good for partial expansion algs that reinsert the expanded node into the open list.
-                ++bpmxBoosts;
-            }
-            // Forward Path-Max
-            foreach (var child in finalGeneratedNodes)
-            {
-                int deltaG = child.g - parent.g; // == (parent.g + c(parent, current)) - parent.g == c(parent, current)
-
-                if (child.h < parent.h - deltaG)
+                if (parent.h < maxChildH - deltaGOfChildWithMaxH)
                 {
-                    child.h = parent.h - deltaG;
+                    parent.h = maxChildH - deltaGOfChildWithMaxH; // Good for partial expansion algs that reinsert the expanded node into the open list.
                     ++bpmxBoosts;
+                }
+                // Forward Path-Max
+                foreach (var child in finalGeneratedNodes)
+                {
+                    int deltaG = child.g - parent.g; // == (parent.g + c(parent, current)) - parent.g == c(parent, current)
+
+                    if (child.h < parent.h - deltaG)
+                    {
+                        child.h = parent.h - deltaG;
+                        ++bpmxBoosts;
+                    }
                 }
             }
             
@@ -558,7 +564,7 @@ namespace CPF_experiment
             {
                 if (instance.parameters.ContainsKey(Trevor.CONFLICT_AVOIDANCE))
                 {
-                    currentNode.potentialConflictsCount = currentNode.prevStep.potentialConflictsCount;
+                    currentNode.potentialConflictsCount = currentNode.prevStep.potentialConflictsCount; // Accumulating the conflicts count from parent to child
                     currentNode.potentialConflictsCount += currentNode.ConflictsCount(
                         ((HashSet<TimedMove>)instance.parameters[Trevor.CONFLICT_AVOIDANCE]));
                     // We're counting conflicts along the entire path, so the parent's conflicts count
@@ -567,7 +573,8 @@ namespace CPF_experiment
 
                 if (instance.parameters.ContainsKey(CBS_LocalConflicts.INTERNAL_CAT))
                 {
-                    currentNode.cbsInternalConflictsCount = currentNode.prevStep.cbsInternalConflictsCount;
+                    currentNode.cbsInternalConflictsCount = currentNode.prevStep.cbsInternalConflictsCount; // Accumulating the conflicts count from parent to child
+                                                                                                            // I'm not sure this is correct. A path with 100 conflicts with the same other agent may be more easily fixed than a path with two conflicts with two different agents.
                     currentNode.cbsInternalConflictsCount += currentNode.ConflictsCount(
                         ((HashSet_U<TimedMove>)instance.parameters[CBS_LocalConflicts.INTERNAL_CAT]));
                     // We're counting conflicts along the entire path, so the parent's conflicts count
