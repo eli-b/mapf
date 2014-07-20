@@ -502,7 +502,6 @@ namespace CPF_experiment
                     this.maxSizeGroup = Math.Max(this.maxSizeGroup, child.replanSize);
                     if (success == false)
                     {
-                        this.Clear();
                         return;
                     }
                     if (node.totalCost <= maxCost) // FIXME: Code dup with other new node creations
