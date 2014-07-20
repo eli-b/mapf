@@ -99,7 +99,7 @@ namespace CPF_experiment
         private LinkedList<MDDNode> GetAllChildren(MDDNode father, int heuristicBound, int numOfAgents, int i)
         {
             LinkedList<MDDNode> children = new LinkedList<MDDNode>(); 
-            foreach (TimedMove move in father.move.GetNextMoves(Constants.ALLOW_DIAGONAL_MOVE))
+            foreach (TimedMove move in father.move.GetNextMoves())
             {
                 if ((this.problem.IsValid(move)) &&
                     (this.problem.GetSingleAgentOptimalCost(this.agentNum, move.x, move.y) <= heuristicBound))

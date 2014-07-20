@@ -143,7 +143,7 @@ namespace CPF_experiment
         }
         private void expendNode(AgentState node, BinaryHeap openList, HashSet<AgentState> closedList)
         {
-            foreach (TimedMove move in node.lastMove.GetNextMoves(Constants.ALLOW_DIAGONAL_MOVE))
+            foreach (TimedMove move in node.lastMove.GetNextMoves())
             {
                 if (isValidMove(move))
                 {

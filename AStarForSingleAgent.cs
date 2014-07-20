@@ -89,7 +89,7 @@ namespace CPF_experiment
             AgentState nextStep;
             CbsConstraint nextStepLocation = new CbsConstraint();
 
-            foreach (TimedMove nextMove in currentNode.lastMove.GetNextMoves(Constants.ALLOW_DIAGONAL_MOVE))
+            foreach (TimedMove nextMove in currentNode.lastMove.GetNextMoves())
             {
                 if (instance.IsValid(nextMove))
                 {

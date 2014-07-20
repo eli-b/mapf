@@ -156,7 +156,7 @@ namespace CPF_experiment
                     AgentState state = openlist.Dequeue();
 
                     // Generate child states
-                    foreach (TimedMove aMove in state.lastMove.GetNextMoves(Constants.ALLOW_DIAGONAL_MOVE))
+                    foreach (TimedMove aMove in state.lastMove.GetNextMoves())
                     {
                         if (IsValid(aMove))
                         {

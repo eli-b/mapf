@@ -19,16 +19,15 @@ namespace CPF_experiment
         /// <summary>
         /// A generator yielding new adjacent TimedMoves. Reimplemented to avoid creating temporary Moves.
         /// </summary>
-        /// <param name="allowDiag"></param>
         /// <returns></returns>
-        public new IEnumerable<TimedMove> GetNextMoves(bool allowDiag = false)
+        public new IEnumerable<TimedMove> GetNextMoves()
         {
-            int count;
-            if (allowDiag)
-                count = Move.NUM_DIRECTIONS;
+            Direction[] directions;
+            if (Constants.ALLOW_DIAGONAL_MOVE)
+                directions = Move.validDirections;
             else
-                count = Move.NUM_NON_DIAG_MOVES;
-            foreach (Direction op in System.Enum.GetValues(typeof(Move.Direction)).OfType<Direction>().Take<Direction>(count))
+                directions = Move.validDirectionsNoDiag;
+            foreach (Direction op in directions)
             {
                 yield return new TimedMove(this.x + Move.directionToDeltas[(int)op, 0],
                                            this.y + Move.directionToDeltas[(int)op, 1], op, this.time + 1);
@@ -103,25 +102,47 @@ namespace CPF_experiment
             return base.IsColliding(other_x, other_y, other_direction);
         }
 
+        /// <summary>
+        /// Reimplemented to avoid creating temporary Move objects
+        /// </summary>
+        /// <returns></returns>
         public new TimedMove GetOppositeMove()
         {
-            Move oppositeMove = base.GetOppositeMove();
-
-            return new TimedMove(oppositeMove.x, oppositeMove.y, oppositeMove.direction, this.time);
+            if (direction == Direction.Wait || direction == Direction.NO_DIRECTION)
+                return this;
+            return new TimedMove(this.x + Move.directionToOppositeDeltas[(int)direction, 0],
+                            this.y + directionToOppositeDeltas[(int)direction, 1],
+                            directionToOppositeDirection[(int)direction], this.time);
         }
 
+        /// <summary>
+        /// Isn't used anywhere
+        /// </summary>
+        /// <param name="cpy"></param>
+        /// <param name="time"></param>
         public void setup(Move cpy, int time)
         {
             base.setup(cpy);
             this.time = time;
         }
 
+        /// <summary>
+        /// Not used anywhere
+        /// </summary>
+        /// <param name="cpy"></param>
         public void setup(TimedMove cpy)
         {
             base.setup(cpy);
             this.time = cpy.time;
         }
 
+        /// <summary>
+        /// Almost isn't used anywhere
+        /// </summary>
+        /// <param name="x"></param>
+        /// <param name="y"></param>
+        /// <param name="direction"></param>
+        /// <param name="time"></param>
         public void setup(int x, int y, Move.Direction direction, int time)
         {
             base.setup(x, y, direction);

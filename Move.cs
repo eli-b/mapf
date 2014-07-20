@@ -71,7 +71,7 @@ namespace CPF_experiment
         };
 
         // This exists for the marginal gain of not having to lookup the opposite direction and then its deltas
-        private static readonly int[,] directionToOppositeDeltas = {
+        protected static readonly int[,] directionToOppositeDeltas = {
             {0,   0, }, // Wait to Wait
             {1,   0, }, // N to S
             {0,  -1, }, // E to W
@@ -84,7 +84,27 @@ namespace CPF_experiment
             {0,   0, } // no direction to no direction
         };
 
-        private static readonly Direction[] directionToOppositeDirection = {
+        protected static readonly Direction[] validDirectionsNoDiag = {
+            Direction.Wait,
+            Direction.North,
+            Direction.East,
+            Direction.South,
+            Direction.West,
+        };
+
+        protected static readonly Direction[] validDirections = {
+            Direction.Wait,
+            Direction.North,
+            Direction.East,
+            Direction.South,
+            Direction.West,
+            Direction.NorthEast,
+            Direction.SouthEast,
+            Direction.SouthWest,
+            Direction.NorthWest,
+        };
+
+        protected static readonly Direction[] directionToOppositeDirection = {
             Direction.Wait, // Wait to Wait
             Direction.South, // N to S
             Direction.West, // E to W
@@ -97,10 +117,10 @@ namespace CPF_experiment
             Direction.NO_DIRECTION // no direction to no direction
         };
 
-        // <remarks>
-        // Deltas have to be used +1
-        // </remarks>
-        private static readonly Direction[,] deltasToDirection = {
+        /// <remarks>
+        /// Deltas have to be used +1
+        /// </remarks>
+        protected static readonly Direction[,] deltasToDirection = {
             {Direction.NorthWest, Direction.North, Direction.NorthEast},
             {Direction.West, Direction.Wait, Direction.East},
             {Direction.SouthWest, Direction.South, Direction.SouthEast}
@@ -109,16 +129,15 @@ namespace CPF_experiment
         /// <summary>
         /// A generator yielding new adjacent Moves
         /// </summary>
-        /// <param name="allowDiag"></param>
         /// <returns></returns>
-        public IEnumerable<Move> GetNextMoves(bool allowDiag = false)
+        public IEnumerable<Move> GetNextMoves()
         {
-            int count;
-            if (allowDiag)
-                count = Move.NUM_DIRECTIONS;
+            Direction[] directions;
+            if (Constants.ALLOW_DIAGONAL_MOVE)
+                directions = Move.validDirections;
             else
-                count = Move.NUM_NON_DIAG_MOVES;
-            foreach (Direction op in System.Enum.GetValues(typeof(Move.Direction)).OfType<Direction>().Take<Direction>(count))
+                directions = Move.validDirectionsNoDiag;
+            foreach (Direction op in directions)
             {
                 yield return new Move(this.x + Move.directionToDeltas[(int)op, 0], this.y + Move.directionToDeltas[(int)op, 1], op);
             }
