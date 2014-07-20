@@ -521,9 +521,8 @@ namespace CPF_experiment
         }
 
         /// <summary>
-        /// Returns the plan for the group of agents. This is a collection of points for every time step until all the agents reach their goal.
+        /// Returns the plan for the group of agents. This is a collection of Moves for every time step until all the agents reach their goal.
         /// </summary>
-        /// <returns>A collection of points for every time step until all the agents reach their goal.</returns>
         public Plan GetPlan()
         {
             return this.plan;

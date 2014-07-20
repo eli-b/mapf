@@ -100,7 +100,7 @@ namespace CPF_experiment
             }
 
             // Try all legal moves of the agent
-            foreach (TimedMove agentLocation in currentNode.allAgentsState[agentIndex].lastMove.GetNextMoves(Constants.ALLOW_DIAGONAL_MOVE))
+            foreach (TimedMove agentLocation in currentNode.allAgentsState[agentIndex].lastMove.GetNextMoves())
             {
                 if (IsValid(agentLocation, agentIndex, previousMoves))
                 {
@@ -112,7 +112,6 @@ namespace CPF_experiment
                     previousMoves.Remove(agentLocation);
                 }
             }
-
         }
 
         /// <summary>
