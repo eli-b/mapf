@@ -145,7 +145,7 @@ namespace CPF_experiment
 
         public Move GetMove()
         {
-            return new Move(this.lastMove);
+            return this.lastMove;
         }
 
         /// <summary>
