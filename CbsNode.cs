@@ -36,11 +36,11 @@ namespace CPF_experiment
         /// </summary>
         public ExpansionState agentBExpansion;
         protected ProblemInstance problem;
-        protected ICbsSolver highLevelSolver;
-        protected ICbsSolver lowLevelSolver;
+        protected ICbsSolver solver;
+        protected ICbsSolver singleAgentSolver;
         protected Run runner;
 
-        public CbsNode(int numberOfAgents, ProblemInstance problem, ICbsSolver highLevelSolver, ICbsSolver lowLevelSolver, Run runner)
+        public CbsNode(int numberOfAgents, ProblemInstance problem, ICbsSolver solver, ICbsSolver singleAgentSolver, Run runner)
         {
             allSingleAgentPlans = new SinglePlan[numberOfAgents];
             allSingleAgentCosts = new int[numberOfAgents];
@@ -56,8 +56,8 @@ namespace CPF_experiment
             this.prev = null;
             this.constraint = null;
             this.problem = problem;
-            this.highLevelSolver = highLevelSolver;
-            this.lowLevelSolver = lowLevelSolver;
+            this.solver = solver;
+            this.singleAgentSolver = singleAgentSolver;
             this.runner = runner;
         }
 
@@ -79,8 +79,8 @@ namespace CPF_experiment
             agentBExpansion = ExpansionState.NOT_EXPANDED;
             replanSize = 1;
             this.problem = father.problem;
-            this.highLevelSolver = father.highLevelSolver;
-            this.lowLevelSolver = father.lowLevelSolver;
+            this.solver = father.solver;
+            this.singleAgentSolver = father.singleAgentSolver;
             this.runner = father.runner;
         }
 
@@ -103,8 +103,8 @@ namespace CPF_experiment
             agentBExpansion = ExpansionState.NOT_EXPANDED;
             replanSize = 1;
             this.problem = father.problem;
-            this.highLevelSolver = father.highLevelSolver;
-            this.lowLevelSolver = father.lowLevelSolver;
+            this.solver = father.solver;
+            this.singleAgentSolver = father.singleAgentSolver;
             this.runner = father.runner;
         }
 
@@ -163,17 +163,17 @@ namespace CPF_experiment
                     AgentState[] subGroup = new AgentState[] { problem.m_vAgents[i] };
                     ProblemInstance subProblem = problem.Subproblem(subGroup);
                 
-                    this.lowLevelSolver.Setup(subProblem, depthToReplan, runner);
-                    success = this.lowLevelSolver.Solve();
+                    this.singleAgentSolver.Setup(subProblem, depthToReplan, runner);
+                    success = this.singleAgentSolver.Solve();
 
-                    this.lowLevelSolver.AccumulateStatistics();
-                    this.lowLevelSolver.ClearStatistics();
+                    this.singleAgentSolver.AccumulateStatistics();
+                    this.singleAgentSolver.ClearStatistics();
 
                     if (!success) // Usually means a timeout occured.
                         break;
 
-                    allSingleAgentPlans[i] = this.lowLevelSolver.GetSinglePlans()[0];
-                    allSingleAgentCosts[i] = this.lowLevelSolver.GetSolutionCost();
+                    allSingleAgentPlans[i] = this.singleAgentSolver.GetSinglePlans()[0];
+                    allSingleAgentCosts[i] = this.singleAgentSolver.GetSolutionCost();
                     totalCost += (ushort)allSingleAgentCosts[i];
                 }
 
@@ -186,13 +186,11 @@ namespace CPF_experiment
 
             constraints.Seperate(newConstraints);
 
-            if (success)
-            {
-                this.FindConflict();
-                return true;
-            }
-            else
+            if (!success)
                 return false;
+
+            this.FindConflict();
+            return true;
         }
 
         /// <summary>
@@ -231,9 +229,9 @@ namespace CPF_experiment
 
             this.replanSize = (ushort)subGroup.Count;
 
-            ICbsSolver solver = highLevelSolver;
+            ICbsSolver relevantSolver = this.solver;
             if (subGroup.Count == 1)
-                solver = lowLevelSolver;
+                relevantSolver = this.singleAgentSolver;
 
             ProblemInstance subProblem = problem.Subproblem(subGroup.ToArray());
 
@@ -246,11 +244,11 @@ namespace CPF_experiment
                 depthToReplan = Math.Max(depthToReplan, maxConstraintTimeStep); // Give all constraints a chance to affect the plan
             }
            
-            solver.Setup(subProblem, depthToReplan, runner);
-            bool solved = solver.Solve();
+            relevantSolver.Setup(subProblem, depthToReplan, runner);
+            bool solved = relevantSolver.Solve();
 
-            solver.AccumulateStatistics();
-            solver.ClearStatistics();
+            relevantSolver.AccumulateStatistics();
+            relevantSolver.ClearStatistics();
 
             internalCAT.Seperate(newInternalCAT);
             constraints.Seperate(newConstraints);
@@ -260,8 +258,8 @@ namespace CPF_experiment
 
             // Copy the SinglePlans for the solved agent group from the solver to the appropriate places in this.allSingleAgentPlans
             int j = 0;
-            SinglePlan[] singlePlans = solver.GetSinglePlans();
-            int[] singleCosts = solver.GetSingleCosts();
+            SinglePlan[] singlePlans = relevantSolver.GetSinglePlans();
+            int[] singleCosts = relevantSolver.GetSingleCosts();
             for (int i = 0; i < agentsGroupAssignment.Length; i++)
             {
                 if (this.agentsGroupAssignment[i] == groupNum)
@@ -677,9 +675,9 @@ namespace CPF_experiment
 
             this.replanSize = (ushort)subGroup.Count;
 
-            ICbsSolver solver = highLevelSolver;
+            ICbsSolver relevantSolver = this.solver;
             if (subGroup.Count == 1)
-                solver = lowLevelSolver;
+                relevantSolver = this.singleAgentSolver;
 
             ProblemInstance subProblem = problem.Subproblem(subGroup.ToArray());
             subProblem.parameters = problem.parameters;
@@ -689,11 +687,11 @@ namespace CPF_experiment
 
             //constraints.Print();
 
-            solver.Setup(subProblem, depthToReplan, runner);
-            bool solved = solver.Solve();
+            relevantSolver.Setup(subProblem, depthToReplan, runner);
+            bool solved = relevantSolver.Solve();
 
-            solver.AccumulateStatistics();
-            solver.ClearStatistics();
+            relevantSolver.AccumulateStatistics();
+            relevantSolver.ClearStatistics();
 
             if (solved == false)
             {
@@ -703,8 +701,8 @@ namespace CPF_experiment
             }
 
             int j = 0;
-            SinglePlan[] singlePlans = solver.GetSinglePlans();
-            int[] singleCosts = solver.GetSingleCosts();
+            SinglePlan[] singlePlans = relevantSolver.GetSinglePlans();
+            int[] singleCosts = relevantSolver.GetSingleCosts();
             for (int i = 0; i < agentsGroupAssignment.Length; i++)
             {
                 if (this.agentsGroupAssignment[i] == groupNum)

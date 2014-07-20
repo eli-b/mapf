@@ -57,7 +57,7 @@ namespace CPF_experiment
         /// </summary>
         public int milliCap { set; get; }
         protected ICbsSolver solver;
-        protected ICbsSolver lowLevelSolver;
+        protected ICbsSolver singleAgentSolver;
         protected int mergeThreshold;
         protected int minDepth;
         protected int maxMergeThreshold;
@@ -68,18 +68,13 @@ namespace CPF_experiment
         /// </summary>
         protected bool topMost;
 
-        public CBS_LocalConflicts(ICbsSolver solver, int maxThreshold = -1, int currentThreshold = -1)
+        public CBS_LocalConflicts(ICbsSolver singleAgentSolver, ICbsSolver generalSolver, int mergeThreshold = -1)
         {
             this.closedList = new Dictionary<CbsNode, CbsNode>();
             this.openList = new OpenList(this);
-            this.mergeThreshold = currentThreshold;
-            this.solver = solver;
-            this.lowLevelSolver = solver;
-            this.maxMergeThreshold = maxThreshold;
-            if (currentThreshold < maxThreshold)
-            {
-                this.solver = new CBS_LocalConflicts(solver, maxThreshold, currentThreshold + 1);
-            }
+            this.mergeThreshold = mergeThreshold;
+            this.solver = generalSolver;
+            this.singleAgentSolver = singleAgentSolver;
         }
         
         public virtual void Setup(ProblemInstance problemInstance, int minDepth, Run runner)
@@ -93,6 +88,8 @@ namespace CPF_experiment
             this.targetCost = int.MaxValue;
             this.lowLevelGeneratedCap = int.MaxValue;
             this.milliCap = int.MaxValue;
+            this.goalNode = null;
+            this.solution = null;
 
             if (problemInstance.parameters.ContainsKey(Trevor.MAXIMUM_COST_KEY))
                 this.maxCost = (int)(problemInstance.parameters[Trevor.MAXIMUM_COST_KEY]);
@@ -103,7 +100,7 @@ namespace CPF_experiment
 
             this.minDepth = minDepth;
 
-            CbsNode root = new CbsNode(instance.m_vAgents.Length, problemInstance, this.solver, this.lowLevelSolver, runner);
+            CbsNode root = new CbsNode(instance.m_vAgents.Length, problemInstance, this.solver, this.singleAgentSolver, runner);
             // Solve the root node
             bool solved = root.Solve(minDepth);
             
@@ -144,11 +141,17 @@ namespace CPF_experiment
             // Statistics are reset on Setup.
         }
 
-        public virtual String GetName() 
+        public virtual string GetName() 
         {
+            string lowLevelSolvers;
+            if (Object.ReferenceEquals(this.singleAgentSolver, this.solver))
+                lowLevelSolvers = "(" + solver + ")";
+            else
+                lowLevelSolvers = "(single:" + singleAgentSolver + " multi:" + solver + ")";
+
             if (mergeThreshold == -1)
-                return "Basic CBS/" + lowLevelSolver;
-            return "MA-CBS Local(" + mergeThreshold + ")(" + maxMergeThreshold + ")/" + lowLevelSolver;
+                return "Basic-CBS/" + lowLevelSolvers;
+            return "MA-CBS-Local-" + mergeThreshold + "/" + lowLevelSolvers;
         }
 
         public override string ToString()
@@ -181,6 +184,8 @@ namespace CPF_experiment
             output.Write(Run.RESULTS_DELIMITER);
 
             this.solver.OutputStatisticsHeader(output);
+            if (Object.ReferenceEquals(this.singleAgentSolver, this.solver) == false)
+                this.singleAgentSolver.OutputStatisticsHeader(output);
 
             this.openList.OutputStatisticsHeader(output);
         }
@@ -200,6 +205,8 @@ namespace CPF_experiment
             output.Write(this.maxSizeGroup + Run.RESULTS_DELIMITER);
 
             this.solver.OutputAccumulatedStatistics(output);
+            if (Object.ReferenceEquals(this.singleAgentSolver, this.solver) == false)
+                this.singleAgentSolver.OutputAccumulatedStatistics(output);
 
             this.openList.OutputStatistics(output);
         }
@@ -208,6 +215,8 @@ namespace CPF_experiment
         {
             get
             {
+                if (Object.ReferenceEquals(this.singleAgentSolver, this.solver) == false)
+                    return 5 + this.solver.NumStatsColumns + this.singleAgentSolver.NumStatsColumns + this.openList.NumStatsColumns;
                 return 5 + this.solver.NumStatsColumns + this.openList.NumStatsColumns;
             }
         }
@@ -215,7 +224,11 @@ namespace CPF_experiment
         public virtual void ClearStatistics()
         {
             if (this.topMost)
+            {
                 this.solver.ClearAccumulatedStatistics(); // Is this correct? Or is it better not to do it?
+                if (Object.ReferenceEquals(this.singleAgentSolver, this.solver) == false)
+                    this.singleAgentSolver.ClearAccumulatedStatistics();
+            }
             this.ClearPrivateStatistics();
             this.openList.ClearStatistics();
         }
@@ -229,6 +242,8 @@ namespace CPF_experiment
             this.accMaxSizeGroup = 1;
 
             this.solver.ClearAccumulatedStatistics();
+            if (Object.ReferenceEquals(this.singleAgentSolver, this.solver) == false)
+                this.singleAgentSolver.ClearAccumulatedStatistics();
 
             this.openList.ClearAccumulatedStatistics();
         }
@@ -261,6 +276,8 @@ namespace CPF_experiment
             output.Write(this.accMaxSizeGroup + Run.RESULTS_DELIMITER);
 
             this.solver.OutputAccumulatedStatistics(output);
+            if (Object.ReferenceEquals(this.singleAgentSolver, this.solver) == false)
+                this.singleAgentSolver.OutputAccumulatedStatistics(output);
 
             this.openList.OutputAccumulatedStatistics(output);
         }
@@ -426,7 +443,7 @@ namespace CPF_experiment
             CbsConflict conflict = node.GetConflict();
             CbsNode child;
 
-            if (this.maxMergeThreshold != -1 && ShouldMerge(node))
+            if (this.mergeThreshold != -1 && ShouldMerge(node))
             {
                 child = new CbsNode(node, node.agentsGroupAssignment[conflict.agentA], node.agentsGroupAssignment[conflict.agentB]);
                 if (closedList.ContainsKey(child) == false) // We may have already merged these agents in the parent
@@ -605,16 +622,8 @@ namespace CPF_experiment
     {
         int[][] globalConflictsCounter;
 
-        public CBS_GlobalConflicts(ICbsSolver solver, int maxThreshold=-1, int currentThreshold=-1)
-            : base(solver, maxThreshold, currentThreshold)
-        {
-            if (currentThreshold < maxThreshold) // FIXME: base's this.solver allocated for no reason
-            {
-                this.solver = new CBS_GlobalConflicts(solver, maxThreshold, currentThreshold + 1);
-            }
-        }
-
-        public CBS_GlobalConflicts(ICbsSolver solver) : base(solver) { }
+        public CBS_GlobalConflicts(ICbsSolver singleAgentSolver, ICbsSolver generalSolver, int mergeThreshold = -1)
+            : base(singleAgentSolver, generalSolver, mergeThreshold) {}
 
         /// <summary>
         /// Assumes agent nums start from 0 and are consecutive.
@@ -648,11 +657,16 @@ namespace CPF_experiment
 
         public override string GetName()
         {
+            // FIXME: Code dup with Cbs_LocalConflicts
+            string lowLevelSolvers;
+            if (Object.ReferenceEquals(this.singleAgentSolver, this.solver))
+                lowLevelSolvers = "(" + solver + ")";
+            else
+                lowLevelSolvers = "(single:" + singleAgentSolver + " multi:" + solver + ")";
+
             if (mergeThreshold == -1)
-                return "Basic CBS/" + lowLevelSolver;
-            return "MA-CBS Global(" + mergeThreshold + ")(" + maxMergeThreshold + ")/" + lowLevelSolver;
+                return "Basic-CBS/" + lowLevelSolvers;
+            return "MA-CBS-Global-" + mergeThreshold + "/" + lowLevelSolvers;
         }
     }
-
-   
 }

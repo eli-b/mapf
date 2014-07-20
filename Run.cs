@@ -104,7 +104,11 @@ namespace CPF_experiment
             heuristics = new List<HeuristicCalculator>();
             var sic = new SumIndividualCosts();
             heuristics.Add(sic);
-            var cbs = new CBS_LocalConflicts(new ClassicAStar(sic), -1, -1);
+            var astar = new ClassicAStar(sic);
+            var cbs = new CBS_LocalConflicts(astar, astar, -1);
+            var astar_with_od = new AStarWithOD(sic);
+            var epea = new AStarWithPartialExpansion(sic);
+            var macbsLocal5Epea = new CBS_LocalConflicts(astar, epea, 5);
             //var cbsHeuristicNoSolve1 = new CbsHeuristic(cbs, this, false, 1);
             //var cbsHeuristicNoSolve2 = new CbsHeuristic(cbs, this, false, 2);
             //var cbsHeuristicNoSolve3 = new CbsHeuristic(cbs, this, false, 3);
@@ -119,19 +123,63 @@ namespace CPF_experiment
             //var cbsHeuristicSolve6 = new CbsHeuristic(cbs, this, true, 6);
             //var sicOrCbsh6 = new RandomChoiceOfHeuristic(cbsHeuristicSolve6, sic, 1.0 / 5);
             
-            var dynamicLazyCbsh = new DyanamicLazyCbsh(cbs, this, true);
+            //var dynamicLazyCbsh = new DyanamicLazyCbsh(cbs, this, true);
+            //heuristics.Add(dynamicLazyCbsh);
+
+            var dynamicLazyMacbsLocal5EpeaH = new DyanamicLazyCbsh(macbsLocal5Epea, this, true);
+            heuristics.Add(dynamicLazyMacbsLocal5EpeaH);
 
             // Preparing the solvers:
             solvers = new List<ISolver>();
+
+            solvers.Add(new CBS_LocalConflicts(astar, epea, 5)); // Works and is very fast so is a good choice for cost validation
+            //solvers.Add(new CBS_GlobalConflicts(astar, astar, -1)); // Should be identical since no merging is done
+            /*
+            //solvers.Add(new CBS_LocalConflicts(epea, epea, -1));
+            //solvers.Add(new CBS_GlobalConflicts(epea, epea, -1)); // Should be identical since no merging is done.
+            //solvers.Add(new CBS_LocalConflicts(epea, epea, 0));
+            solvers.Add(new CBS_LocalConflicts(astar, epea, 0));
+            //solvers.Add(new CBS_GlobalConflicts(epea, epea, 0));
+            //solvers.Add(new CBS_LocalConflicts(epea, epea, 1));
+            //solvers.Add(new CBS_GlobalConflicts(epea, epea, 1));
+            //solvers.Add(new CBS_LocalConflicts(epea, epea, 5));
+            solvers.Add(new CBS_LocalConflicts(astar, epea, 5));
+            //solvers.Add(new CBS_GlobalConflicts(epea, epea, 5));
+            //solvers.Add(new CBS_LocalConflicts(epea, epea, 10));
+            solvers.Add(new CBS_LocalConflicts(astar, epea, 10));
+            //solvers.Add(new CBS_GlobalConflicts(epea, epea, 10));
+            //solvers.Add(new CBS_LocalConflicts(epea, epea, 100));
+            solvers.Add(new CBS_LocalConflicts(astar, epea, 100));
+            //solvers.Add(new CBS_GlobalConflicts(epea, epea, 100));
+            //solvers.Add(new CBS_LocalConflicts(epea, epea, 500));
+            //solvers.Add(new CBS_GlobalConflicts(epea, epea, 500));
             
-            //solvers.Add(new CBS_LocalConflicts(new ClassicAStar(sic), -1, -1)); // Works and is very fast so is a good choice for cost validation
-            
+            //solvers.Add(new CBS_LocalConflicts(astar_with_od, astar_with_od, -1));
+            //solvers.Add(new CBS_GlobalConflicts(astar_with_od, astar_with_od, -1)); // Should be identical since no merging is done.
+            //solvers.Add(new CBS_LocalConflicts(astar_with_od, astar_with_od, 0));
+            solvers.Add(new CBS_LocalConflicts(astar, astar_with_od, 0));
+            //solvers.Add(new CBS_GlobalConflicts(astar_with_od, astar_with_od, 0));
+            //solvers.Add(new CBS_LocalConflicts(astar_with_od, astar_with_od, 1));
+            //solvers.Add(new CBS_GlobalConflicts(astar_with_od, astar_with_od, 1));
+            //solvers.Add(new CBS_LocalConflicts(astar_with_od, astar_with_od, 5));
+            solvers.Add(new CBS_LocalConflicts(astar, astar_with_od, 5));
+            //solvers.Add(new CBS_GlobalConflicts(astar_with_od, astar_with_od, 5));
+            //solvers.Add(new CBS_LocalConflicts(astar_with_od, astar_with_od, 10));
+            solvers.Add(new CBS_LocalConflicts(astar, astar_with_od, 10));
+            //solvers.Add(new CBS_GlobalConflicts(astar_with_od, astar_with_od, 10));
+            //solvers.Add(new CBS_LocalConflicts(astar_with_od, astar_with_od, 100));
+            solvers.Add(new CBS_LocalConflicts(astar, astar_with_od, 100));
+            //solvers.Add(new CBS_GlobalConflicts(astar_with_od, astar_with_od, 100));
+            //solvers.Add(new CBS_LocalConflicts(astar_with_od, astar_with_od, 500));
+            //solvers.Add(new CBS_GlobalConflicts(astar_with_od, astar_with_od, 500));
+            */
             //solvers.Add(new ClassicAStar(sic)); // Works
             //solvers.Add(new ClassicAStar(cbsHeuristic)); // Works
             //solvers.Add(new AStarWithOD(sic));  // Works
             //solvers.Add(new AStarWithPartialExpansionBasic(sic)); // Works
             //solvers.Add(new AStarWithPartialExpansionBasic(cbsHeuristic));
-            //solvers.Add(new AStarWithPartialExpansion(sic)); // Works.
+            solvers.Add(new AStarWithPartialExpansion(sic)); // Works.
+            solvers.Add(new CBS_LocalConflicts(astar, epea, 0)); // EPEA*+(S)ID
 
             //solvers.Add(new ClassicAStar(cbsHeuristicSolve1));
             //solvers.Add(new ClassicAStar(cbsHeuristicSolve2));
