@@ -217,11 +217,15 @@ namespace CPF_experiment
             if (thatIsGoal == true && thisIsGoal == false)
                 return 1;
 
+            // Independence Detection framework conflicts:
             if (this.potentialConflictsCount < that.potentialConflictsCount)
                 return -1;
             if (this.potentialConflictsCount > that.potentialConflictsCount)
                 return 1;
 
+            // CBS framework conflicts:
+            // It makes sense to prefer nodes that conflict less, and not just nodes that don't conflict at all,
+            // because a 3-way conflict takes more work to resolve than
             if (this.cbsInternalConflictsCount < that.cbsInternalConflictsCount)
                 return -1;
             if (this.cbsInternalConflictsCount > that.cbsInternalConflictsCount)
@@ -343,6 +347,7 @@ namespace CPF_experiment
             {
                 if (allAgentsState[i].lastMove.IsColliding(conflictAvoidance))
                     ans++; // Assuming there are no collision within the table, it's correct to only add 1.
+                           // Unfortunately, some entries in the table represent nodes that are already conflicting.
             }
             return ans;
         }
