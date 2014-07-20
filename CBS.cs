@@ -345,11 +345,19 @@ namespace CPF_experiment
 
                 if (debug)
                 {
+                    Debug.WriteLine("Node hash: " + currentNode.GetHashCode());
                     Debug.WriteLine("Total cost so far: " + currentNode.totalCost);
                     Debug.WriteLine("Expansion state: " + currentNode.agentAExpansion + ", " + currentNode.agentBExpansion);
+                    Debug.WriteLine("Node depth: " + currentNode.depth);
                     var constraints = currentNode.GetConstraints();
-                    Debug.WriteLine(constraints.Count.ToString() + " constraints so far: ");
+                    Debug.WriteLine(constraints.Count.ToString() + " internal constraints so far: ");
                     foreach (CbsConstraint constraint in constraints)
+                    {
+                        Debug.WriteLine(constraint);
+                    }
+                    var externalConstraints = (HashSet_U<CbsConstraint>)this.instance.parameters[CBS_LocalConflicts.CONSTRAINTS];
+                    Debug.WriteLine(externalConstraints.Count.ToString() + " external constraints: ");
+                    foreach (CbsConstraint constraint in externalConstraints)
                     {
                         Debug.WriteLine(constraint);
                     }
@@ -358,6 +366,12 @@ namespace CPF_experiment
                     for (int i = 0; i < currentNode.agentsGroupAssignment.Length; i++)
                     {
                         Debug.Write(" " + currentNode.agentsGroupAssignment[i]);
+                    }
+                    Debug.WriteLine("");
+                    Debug.Write("Single agent costs: ");
+                    for (int i = 0; i < currentNode.allSingleAgentCosts.Length; i++)
+                    {
+                        Debug.Write(" " + currentNode.allSingleAgentCosts[i]);
                     }
                     Debug.WriteLine("");
                     currentNode.CalculateJointPlan().PrintPlan();
@@ -390,8 +404,8 @@ namespace CPF_experiment
                         Debug.WriteLine("-------------------------");
                     this.totalCost = currentNode.totalCost;
                     this.solutionDepth = this.totalCost - initialEstimate;
-                    this.goalNode = currentNode;
-                    this.solution = currentNode.CalculateJointPlan();
+                    this.goalNode = currentNode; // Saves the single agent plans and costs
+                    // The joint plan is calculated on demand.
                     this.Clear(); // Goal found - we're not going to resume this search
                     this.CleanGlobals();
                     return true;
@@ -456,8 +470,14 @@ namespace CPF_experiment
                     {
                         Debug.WriteLine("New cost: " + child.totalCost);
                         var constraints = child.GetConstraints();
-                        Debug.WriteLine(constraints.Count + " Remaining constraints:");
+                        Debug.WriteLine(constraints.Count + " Remaining internal constraints:");
                         foreach (CbsConstraint constraint in constraints)
+                        {
+                            Debug.WriteLine(constraint);
+                        }
+                        var externalConstraints = (HashSet_U<CbsConstraint>)this.instance.parameters[CBS_LocalConflicts.CONSTRAINTS];
+                        Debug.WriteLine(externalConstraints.Count.ToString() + " external constraints: ");
+                        foreach (CbsConstraint constraint in externalConstraints)
                         {
                             Debug.WriteLine(constraint);
                         }
@@ -466,6 +486,12 @@ namespace CPF_experiment
                         for (int i = 0; i < child.agentsGroupAssignment.Length; i++)
                         {
                             Debug.Write(" " + child.agentsGroupAssignment[i]);
+                        }
+                        Debug.WriteLine("");
+                        Debug.Write("Single agent costs: ");
+                        for (int i = 0; i < child.allSingleAgentCosts.Length; i++)
+                        {
+                            Debug.Write(" " + child.allSingleAgentCosts[i]);
                         }
                         Debug.WriteLine("");
                         child.CalculateJointPlan().PrintPlan();
@@ -493,9 +519,10 @@ namespace CPF_experiment
 
             // Expand node, possibly partially:
             // Generate left child:
+            int agentAGroupSize = node.GetGroupSize(node.agentsGroupAssignment[conflict.agentA]);
             if (node.agentAExpansion == CbsNode.ExpansionState.NOT_EXPANDED && conflict.vertex == true &&
                 conflict.timeStep >= node.allSingleAgentCosts[conflict.agentA] && // TODO: Consider checking directly whether at the time of the conflict the agent would be at its goal according to the node.singleAgentPlans. It may be more readable.
-                node.GetGroupSize(node.agentsGroupAssignment[conflict.agentA]) == 1)
+                agentAGroupSize == 1)
             // Conflict happens when or after agent A reaches its goal, and agent A is in a single agent group.
             // With multi-agent groups, banning the goal doesn't guarantee a higher cost solution,
             // since if an agent is forced to take a longer route it may enable another agent in the group
@@ -510,6 +537,8 @@ namespace CPF_experiment
             //    We're ignoring edge conflicts because they can only happen at the goal when reaching it,
             //    and aren't guaranteed to increase the cost because the goal can still be possibly reached from another edge.
             {
+                if (debug)
+                    Debug.WriteLine("Skipping left child");
                 node.agentAExpansion = CbsNode.ExpansionState.DEFERRED;
                 int agentAOldCost = node.allSingleAgentCosts[conflict.agentA];
                 // Add the minimal delta in the child's cost:
@@ -521,6 +550,8 @@ namespace CPF_experiment
             else if (node.agentAExpansion != CbsNode.ExpansionState.EXPANDED)
             // Agent A expansion already skipped in the past or not forcing A from its goal - finally generate the child:
             {
+                if (debug)
+                    Debug.WriteLine("Generating left child");
                 var newConstraint = new CbsConstraint(conflict, instance, true);
                 child = new CbsNode(node, newConstraint, conflict.agentA);
 
@@ -529,11 +560,34 @@ namespace CPF_experiment
                     closedList.Add(child, child);
                     if (child.Replan(conflict.agentA, this.minDepth)) // The node takes the max between minDepth and the max time over all constraints.
                     {
+                        if (child.totalCost < node.totalCost && agentAGroupSize == 1)
+                        {
+                            Debug.WriteLine("");
+                            Debug.Write("Single agent costs: ");
+                            for (int i = 0; i < child.allSingleAgentCosts.Length; i++)
+                            {
+                                Debug.Write(" " + child.allSingleAgentCosts[i]);
+                            }
+                            Debug.WriteLine("");
+                            //Debug.WriteLine("Offending plan:");
+                            //child.CalculateJointPlan().PrintPlan();
+                            Debug.WriteLine("Chlid plan: (cost {0})", child.allSingleAgentCosts[conflict.agentA]);
+                            child.allSingleAgentPlans[conflict.agentA].PrintPlan();
+                            Debug.WriteLine("Parent plan: (cost {0})", node.allSingleAgentCosts[conflict.agentA]);
+                            node.allSingleAgentPlans[conflict.agentA].PrintPlan();
+                            Debug.Assert(false, "Single agent node with lower cost than parent! " + child.totalCost + " < " + node.totalCost);
+                        }
                         if (child.totalCost <= this.maxCost)
                         {
                             openList.Add(child);
                             this.highLevelGenerated++;
                             addToGlobalConflictCount(child.GetConflict());
+                            if (debug)
+                            {
+                                Debug.WriteLine("Child cost: " + child.totalCost);
+                                Debug.WriteLine("Child hash: " + child.GetHashCode());
+                                Debug.WriteLine("");
+                            }
                         }
                     }
                     // else a timeout probably occured
@@ -544,10 +598,13 @@ namespace CPF_experiment
             }
 
             // Generate right child:
+            int agentBGroupSize = node.GetGroupSize(node.agentsGroupAssignment[conflict.agentB])
             if (node.agentBExpansion == CbsNode.ExpansionState.NOT_EXPANDED && conflict.vertex == true &&
                 conflict.timeStep >= node.allSingleAgentCosts[conflict.agentB] &&
-                node.GetGroupSize(node.agentsGroupAssignment[conflict.agentB]) == 1) // Again, skip expansion
+                agentBGroupSize == 1) // Again, skip expansion
             {
+                if (debug)
+                    Debug.WriteLine("Skipping right child");
                 if (node.agentAExpansion == CbsNode.ExpansionState.DEFERRED)
                     throw new Exception("Unexpected: Expansion of both children differed, but this is a vertex conflict so that means the targets for the two agents are equal, which is illegal");
                 
@@ -560,6 +617,8 @@ namespace CPF_experiment
             }
             else if (node.agentBExpansion != CbsNode.ExpansionState.EXPANDED)
             {
+                if (debug)
+                    Debug.WriteLine("Generating right child");
                 var newConstraint = new CbsConstraint(conflict, instance, false);
                 child = new CbsNode(node, newConstraint, conflict.agentB);
 
@@ -568,11 +627,35 @@ namespace CPF_experiment
                     closedList.Add(child, child);
                     if (child.Replan(conflict.agentB, this.minDepth)) // The node takes the max between minDepth and the max time over all constraints.
                     {
+                        if (child.totalCost < node.totalCost && node.agentAExpansion == CbsNode.ExpansionState.EXPANDED &&
+                            agentBGroupSize == 1)
+                        {
+                            Debug.WriteLine("");
+                            Debug.Write("Single agent costs: ");
+                            for (int i = 0; i < child.allSingleAgentCosts.Length; i++)
+                            {
+                                Debug.Write(" " + child.allSingleAgentCosts[i]);
+                            }
+                            Debug.WriteLine("");
+                            //Debug.WriteLine("Offending plan:");
+                            //child.CalculateJointPlan().PrintPlan();
+                            Debug.WriteLine("Chlid plan: (cost {0})", child.allSingleAgentCosts[conflict.agentB]);
+                            child.allSingleAgentPlans[conflict.agentB].PrintPlan();
+                            Debug.WriteLine("Parent plan: (cost {0})", node.allSingleAgentCosts[conflict.agentB]);
+                            node.allSingleAgentPlans[conflict.agentB].PrintPlan();
+                            Debug.Assert(false, "Single agent node with lower cost than parent! " + child.totalCost + " < " + node.totalCost);
+                        }
                         if (child.totalCost <= this.maxCost)
                         {
                             openList.Add(child);
                             this.highLevelGenerated++;
                             addToGlobalConflictCount(child.GetConflict());
+                            if (debug)
+                            {
+                                Debug.WriteLine("Child cost: " + child.totalCost);
+                                Debug.WriteLine("Child hash: " + child.GetHashCode());
+                                Debug.WriteLine("");
+                            }
                         }
                     }
                     // else a timeout probably occured
@@ -587,6 +670,8 @@ namespace CPF_experiment
 
         public virtual Plan GetPlan()
         {
+            if (this.solution == null)
+                this.solution = this.goalNode.CalculateJointPlan();
             return this.solution;
         }
 
