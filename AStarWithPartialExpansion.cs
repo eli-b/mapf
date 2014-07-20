@@ -48,11 +48,15 @@ namespace CPF_experiment
                     node.targetDeltaF++;
                     node.remainingDeltaF = node.targetDeltaF;
                 }
+                if (node.hasMoreChildren() == false) // Node has no possible children at all
+                {
+                    node.Clear();
+                    return;
+                }
             }
             //Debug.Print("Expanding node " + node);
 
             // If this node was already expanded, notice its h was updated, so the deltaF refers to its original H
-
 
             base.Expand(node);
 
