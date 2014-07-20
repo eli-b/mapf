@@ -77,6 +77,8 @@ namespace CPF_experiment
 
         public delegate bool ValidityChecker(TimedMove move, HashSet<TimedMove> currentMoves, int makespan, int agentNum);
 
+        private static readonly HashSet<TimedMove> noMoves = new HashSet<TimedMove>();
+
         /// <summary>
         /// Calculates for each agent and each direction it can go, the effect of that move on F. Illegal moves get byte.MaxValue.
         /// Also calcs maxDeltaF.
@@ -86,7 +88,6 @@ namespace CPF_experiment
         /// <returns></returns>
         public void calcSingleAgentDeltaFs(ProblemInstance problem, ValidityChecker isValid)
         {
-            var noMoves = new HashSet<TimedMove>();
             // Init
             this.singleAgentDeltaFs = new byte[allAgentsState.Length][];
             for (int i = 0; i < singleAgentDeltaFs.Length; i++)
@@ -105,7 +106,7 @@ namespace CPF_experiment
 
                 int singleAgentMaxLegalDeltaF = -1;
 
-                foreach (TimedMove check in allAgentsState[i].lastMove.GetNextMoves(Constants.ALLOW_DIAGONAL_MOVE))
+                foreach (TimedMove check in allAgentsState[i].lastMove.GetNextMoves())
                 {
                     if (isValid(check, noMoves, this.makespan + 1, allAgentsState[i].agent.agentNum) == false)
                     {
