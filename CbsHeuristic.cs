@@ -299,25 +299,32 @@ namespace CPF_experiment
         {
             this.cbs.OutputAccumulatedStatistics(output);
 
-            if (this.nCalls == 0) // No stats
+            double averageExpandedHigh = 0;
+            double averageGeneratedHigh = 0;
+            double averageExpandedLow = 0;
+            double averageGeneratedLow = 0;
+            double averageRunTime = 0;
+            double averageImprovement = 0;
+
+            if (this.nCalls != 0) // Stats are available
             {
-                for (int i = 0; i < this.NumStatsColumns - this.cbs.NumStatsColumns; ++i)
-                    output.Write(Run.RESULTS_DELIMITER);
-                return;
+                averageExpandedHigh = this.cbs.GetAccumulatedExpanded() / this.nCalls;
+                averageGeneratedHigh = this.cbs.GetAccumulatedGenerated() / this.nCalls;
+                averageExpandedLow = this.cbs.GetLowLevelExpanded() / this.nCalls;
+                averageGeneratedLow = this.cbs.GetLowLevelGenerated() / this.nCalls;
+                averageRunTime = this.accTotalRuntime / this.accNCalls;
+                averageImprovement = this.accTotalImprovement / this.accNCalls;
             }
 
-            Console.WriteLine("{0} Accumulated Average Expanded Nodes (High-Level): {1}", this, this.cbs.GetAccumulatedExpanded() / this.nCalls);
-            Console.WriteLine("{0} Accumulated Average Generated Nodes (High-Level): {1}", this, this.cbs.GetAccumulatedGenerated() / this.nCalls);
-            Console.WriteLine("{0} Accumulated Average Expanded Nodes (Low-Level): {1}", this, this.cbs.GetLowLevelExpanded() / this.nCalls);
-            Console.WriteLine("{0} Accumulated Average Generated Nodes (Low-Level): {1}", this, this.cbs.GetLowLevelGenerated() / this.nCalls);
+            Console.WriteLine("{0} Accumulated Average Expanded Nodes (High-Level): {1}", this, averageExpandedHigh);
+            Console.WriteLine("{0} Accumulated Average Generated Nodes (High-Level): {1}", this, averageGeneratedHigh);
+            Console.WriteLine("{0} Accumulated Average Expanded Nodes (Low-Level): {1}", this, averageExpandedLow);
+            Console.WriteLine("{0} Accumulated Average Generated Nodes (Low-Level): {1}", this, averageGeneratedLow);
 
-            output.Write(this.cbs.GetAccumulatedExpanded() / this.nCalls + Run.RESULTS_DELIMITER);
-            output.Write(this.cbs.GetAccumulatedGenerated() / this.nCalls + Run.RESULTS_DELIMITER);
-            output.Write(this.cbs.GetLowLevelExpanded() / this.nCalls + Run.RESULTS_DELIMITER);
-            output.Write(this.cbs.GetLowLevelGenerated() / this.nCalls + Run.RESULTS_DELIMITER);
-
-            double averageRunTime = this.accTotalRuntime / this.accNCalls;
-            double averageImprovement = this.accTotalImprovement / this.accNCalls;
+            output.Write(averageExpandedHigh + Run.RESULTS_DELIMITER);
+            output.Write(averageGeneratedHigh + Run.RESULTS_DELIMITER);
+            output.Write(averageExpandedLow + Run.RESULTS_DELIMITER);
+            output.Write(averageGeneratedLow + Run.RESULTS_DELIMITER);
 
             Console.WriteLine("{0} Average Runtime: {1}", this, averageRunTime);
             Console.WriteLine("{0} Average Improvement Achieved: {1}", this, averageImprovement);
@@ -366,7 +373,7 @@ namespace CPF_experiment
 
         public override string ToString()
         {
-            return "DynamicLazyCBSH(" + this.reportSolution + ")";
+            return "DynamicLazyCBSH(" + this.cbs + ")";
         }
     }
 }
