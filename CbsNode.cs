@@ -241,7 +241,7 @@ namespace CPF_experiment
 
             if (constraints.Count != 0)
             {
-                int maxConstraintTimeStep = newConstraints.Max<CbsConstraint>(constraint => constraint.time);
+                int maxConstraintTimeStep = constraints.Max<CbsConstraint>(constraint => constraint.time);
                 depthToReplan = Math.Max(depthToReplan, maxConstraintTimeStep); // Give all constraints a chance to affect the plan
             }
            
