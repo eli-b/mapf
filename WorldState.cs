@@ -16,8 +16,15 @@ namespace CPF_experiment
         public AgentState[] allAgentsState;
         public WorldState prevStep;
         private int binaryHeapIndex;
+        /// <summary>
+        /// For Independence Detection only
+        /// </summary>
         public int potentialConflictsCount;
         public int cbsInternalConflictsCount;
+        /// <summary>
+        /// Maps from agent num to the number of times the path up to this node collides with that agent
+        /// </summary>
+        public Dictionary<int, int> cbsInternalConflicts;
         public int minDepth;
         /// <summary>
         /// The last move of all agents that have already moved in this turn.
@@ -45,6 +52,7 @@ namespace CPF_experiment
             this.CalculateG(); // G not necessarily zero when solving a partially solved problem.
             this.potentialConflictsCount = 0;
             this.cbsInternalConflictsCount = 0;
+            this.cbsInternalConflicts = new Dictionary<int, int>();
             this.minDepth = minDepth;
             this.currentMoves = new HashSet<TimedMove>();
             this.goalCost = NOT_SET;
@@ -76,7 +84,7 @@ namespace CPF_experiment
 
         /// <summary>
         /// Creates a new state by extracting a subset of the agents from
-        /// the original Travor_WorldState. We overload the constructor because
+        /// the original Trevor_WorldState. We overload the constructor because
         /// while building our pattern database, we rewrite the problem and
         /// therefore need to make a deep copy of the state data structures so
         /// as to not overwrite the original problem. The ultimate solution
@@ -340,16 +348,23 @@ namespace CPF_experiment
             return this.allAgentsState.SequenceEqual<AgentState>(that.allAgentsState);
         }
 
-        public virtual int ConflictsCount(ICollection<TimedMove> conflictAvoidance)
+        /// <summary>
+        /// Counts the number of times this node collides with each agent move in the conflict avoidance table.
+        /// </summary>
+        /// <param name="conflictAvoidance"></param>
+        /// <returns></returns>
+        public virtual void UpdateConflictCounts(IReadOnlyDictionary<TimedMove, List<int>> conflictAvoidance)
         {
-            int ans = 0;
             for (int i = 0; i < allAgentsState.Length; i++)
             {
-                if (allAgentsState[i].lastMove.IsColliding(conflictAvoidance))
-                    ans++; // Assuming there are no collision within the table, it's correct to only add 1.
-                           // Unfortunately, some entries in the table represent nodes that are already conflicting.
+                List<int> colliding = allAgentsState[i].lastMove.GetColliding(conflictAvoidance);
+                foreach (int agentNum in colliding)
+                {
+                    if (this.cbsInternalConflicts.ContainsKey(agentNum) == false)
+                        this.cbsInternalConflicts[agentNum] = 0;
+                    this.cbsInternalConflicts[agentNum] += 1;
+                }
             }
-            return ans;
         }
 
         public virtual ProblemInstance ToProblemInstance(ProblemInstance initial)

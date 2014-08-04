@@ -166,7 +166,7 @@ namespace CPF_experiment
             this.direction = saveDirection;
 
             this.setOppositeMove();
-            if (CAT.Contains(this))
+            if (CAT.Contains(this)) // Check direction too now
             {
                 this.setOppositeMove();
                 return true;
@@ -174,6 +174,23 @@ namespace CPF_experiment
             this.setOppositeMove();
 
             return false;
+        }
+
+        public List<int> GetColliding(IReadOnlyDictionary<TimedMove, List<int>> CAT)
+        {
+            var ans = new List<int>(); // TODO: This method usually just returns an empty list. Have a static empty list ready and return it when necessary.
+            Move.Direction saveDirection = this.direction;
+            this.direction = Move.Direction.NO_DIRECTION;
+            if (CAT.ContainsKey(this))
+                ans.AddRange(CAT[this]);
+            this.direction = saveDirection;
+
+            this.setOppositeMove();
+            if (CAT.ContainsKey(this)) // Check direction too now
+                ans.AddRange(CAT[this]);
+            this.setOppositeMove();
+
+            return ans;
         }
     }
 }

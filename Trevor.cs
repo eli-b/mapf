@@ -38,7 +38,7 @@ namespace CPF_experiment
         protected HeuristicCalculator heuristic;
         private IList<Conflict> allConflicts;
         private int maxSolutionDepth;
-        private HashSet<TimedMove> conflictAvoidance;
+        private Dictionary<TimedMove, List<int>> conflictAvoidance;
         private int maxDepth;
         private string name;
 
@@ -72,7 +72,7 @@ namespace CPF_experiment
             this.minGroup = instance.m_vAgents.Length;
             this.accMaxGroup = 1;
             this.minGroup = instance.m_vAgents.Length;
-            this.conflictAvoidance = new HashSet<TimedMove>();
+            this.conflictAvoidance = new Dictionary<TimedMove, List<int>>();
             // Initialize the agent group collection with a group for every agent
             foreach (AgentState agentStartState in instance.m_vAgents)
                 this.allGroups.AddFirst(new AgentsGroup(this.instance, new AgentState[1] { agentStartState }, this.groupSolver));
@@ -594,7 +594,7 @@ namespace CPF_experiment
             return success;
         }
 
-        public void addGroupToCA(HashSet<TimedMove> CA, int maxTimeStep)
+        public void addGroupToCA(Dictionary<TimedMove, List<int>> CA, int maxTimeStep)
         {
             if (this.plan == null)
                 return;
@@ -604,12 +604,12 @@ namespace CPF_experiment
                 List<Move> step = plan.GetLocationsAt(i);
                 foreach (Move move in step)
                 {
-                    CA.Add(new TimedMove(move, i));
+                    CA.Add(new TimedMove(move, i), null);
                 }
             }
         }
 
-        public void removeGroupFromCA(HashSet<TimedMove> CA)
+        public void removeGroupFromCA(Dictionary<TimedMove, List<int>> CA)
         {
             int i = 1;
             bool stop = false;
@@ -619,7 +619,7 @@ namespace CPF_experiment
                 foreach (Move move in step)
                 {
                     var S = new TimedMove(move, i);
-                    if (CA.Contains(S))
+                    if (CA.ContainsKey(S))
                         CA.Remove(new TimedMove(move, i));
                     else
                     {
@@ -630,6 +630,5 @@ namespace CPF_experiment
                 i++;
             }
         }
-
     }
 }

@@ -120,9 +120,9 @@ namespace CPF_experiment
         public bool Solve(int depthToReplan)
         {
             this.totalCost = 0;
-            var newInternalCAT = new HashSet<TimedMove>();
+            var newInternalCAT = new Dictionary<TimedMove, List<int>>();
             HashSet<CbsConstraint> newConstraints = this.GetConstraints(); // Probably empty as this is probably the root of the CT.
-            var internalCAT = (HashSet_U<TimedMove>)problem.parameters[CBS_LocalConflicts.INTERNAL_CAT];
+            var internalCAT = (Dictionary_U<TimedMove, int>)problem.parameters[CBS_LocalConflicts.INTERNAL_CAT];
             var constraints = (HashSet_U<CbsConstraint>)problem.parameters[CBS_LocalConflicts.CONSTRAINTS];
             bool haveMustConstraints = problem.parameters.ContainsKey(CBS_LocalConflicts.MUST_CONSTRAINTS) == true &&
                                        ((List<CbsConstraint>)problem.parameters[CBS_LocalConflicts.MUST_CONSTRAINTS]).Count > 0;
@@ -132,6 +132,9 @@ namespace CPF_experiment
             Dictionary<int, int> agentsWithConstraints = null; // To quiet the compiler
 
             constraints.Join(newConstraints);
+            internalCAT.Join(newInternalCAT);
+            // This mechanism of adding the constraints to the possibly pre-existing constraints allows having
+            // layers of CBS solvers, each one adding its own constraints and respecting those of the solvers above it.
 
             bool haveConstraints = (constraints.Count != 0);
             if (haveConstraints)
@@ -144,11 +147,18 @@ namespace CPF_experiment
 
             for (int i = 0; i < problem.m_vAgents.Length; i++)
             {
-                
-                // This mechanism of adding the constraints to the possibly pre-existing constraints allows having
-                // layers of CBS solvers, each one adding its own constraints and respecting those of the solvers above it.
-                internalCAT.Join(newInternalCAT);
+                if (i > 0)
+                {
+                    // Add existing plans to CAT
+                    newInternalCAT.Clear();
+                    int maxPlanSize = allSingleAgentPlans.Take<SinglePlan>(i).Max<SinglePlan>(singlePlan => singlePlan.GetSize());
+                    for (int j = 0; j < i; j++)
+                    {
+                        allSingleAgentPlans[j].AddPlanToCAT(newInternalCAT, maxPlanSize);
+                    }
+                }
 
+                // Solve for a single agent:
                 if ((haveConstraints == false ||
                      agentsWithConstraints.ContainsKey(i) == false) &&
                     (haveMustConstraints == false ||
@@ -161,30 +171,17 @@ namespace CPF_experiment
                 }
                 else
                 {
-                    AgentState[] subGroup = new AgentState[] { problem.m_vAgents[i] };
-                    ProblemInstance subProblem = problem.Subproblem(subGroup);
-                
-                    this.singleAgentSolver.Setup(subProblem, depthToReplan, runner);
-                    success = this.singleAgentSolver.Solve();
+                    var subGroup = new List<AgentState>();
+                    subGroup.Add(problem.m_vAgents[i]);
 
-                    this.singleAgentSolver.AccumulateStatistics();
-                    this.singleAgentSolver.ClearStatistics();
+                    success = this.Replan(i, depthToReplan, newInternalCAT, subGroup);
 
                     if (!success) // Usually means a timeout occured.
                         break;
-
-                    allSingleAgentPlans[i] = this.singleAgentSolver.GetSinglePlans()[0];
-                    allSingleAgentCosts[i] = this.singleAgentSolver.GetSolutionCost();
-                    totalCost += (ushort)allSingleAgentCosts[i];
                 }
-
-                allSingleAgentPlans[i].AddPlanToHashSet(newInternalCAT, totalCost * 2); // This is kind of an arbitrary value.
-                // The next plan could be 100 times longer than the total cost so far,
-                // and we won't detect the internal conflicts it causes by entering the other agents' goal long after they reached it.
-                // TODO: Think of a way to mark the last step in the plan as a "forever after" step that applies to all the next steps.
-                internalCAT.Seperate(newInternalCAT);
             }
 
+            internalCAT.Seperate(newInternalCAT);
             constraints.Seperate(newConstraints);
 
             if (!success)
@@ -199,34 +196,35 @@ namespace CPF_experiment
         /// FIXME: Code duplication with Solve().
         /// </summary>
         /// <param name="agentForReplan"></param>
-        /// <param name="depthToReplan"></param>
-        /// <param name="highLevelExpanded"></param>
-        /// <param name="highLevelGenerated"></param>
-        /// <param name="lowLevelExpanded"></param>
-        /// <param name="lowLevelGenerated"></param>
+        /// <param name="depthToReplan">CBS's minDepth param</param>
+        /// <param name="newInternalCAT"></param>
         /// <returns></returns>
-        public bool Replan(int agentForReplan, int depthToReplan)
+        public bool Replan(int agentForReplan, int depthToReplan, Dictionary<TimedMove, List<int>> newInternalCAT = null, List<AgentState> subGroup = null)
         {
-            var newInternalCAT = new HashSet<TimedMove>();
+            int groupNum = this.agentsGroupAssignment[agentForReplan];
+            if (newInternalCAT == null && subGroup == null)
+            {
+                newInternalCAT = new Dictionary<TimedMove, List<int>>();
+                subGroup = new List<AgentState>();
+                int maxPlanSize = this.allSingleAgentPlans.Max<SinglePlan>(plan => plan.GetSize());
+                for (int i = 0; i < agentsGroupAssignment.Length; i++)
+                {
+                    if (this.agentsGroupAssignment[i] == groupNum)
+                    {
+                        subGroup.Add(problem.m_vAgents[i]);
+                    }
+                    else
+                        allSingleAgentPlans[i].AddPlanToCAT(newInternalCAT, maxPlanSize);
+                }
+            }
             HashSet<CbsConstraint> newConstraints = this.GetConstraints();
-            var internalCAT = (HashSet_U<TimedMove>)problem.parameters[CBS_LocalConflicts.INTERNAL_CAT];
+            var internalCAT = (Dictionary_U<TimedMove, int>)problem.parameters[CBS_LocalConflicts.INTERNAL_CAT];
             var constraints = (HashSet_U<CbsConstraint>)problem.parameters[CBS_LocalConflicts.CONSTRAINTS];
 
-            int maxPlanSize = this.allSingleAgentPlans.Max<SinglePlan>(plan => plan.GetSize());
+
 
             // Construct the subgroup of agents that are of the same group as agentForReplan,
             // and add the plans of all other agents to newInternalCAT
-            List<AgentState> subGroup = new List<AgentState>();
-            int groupNum = this.agentsGroupAssignment[agentForReplan];
-            for (int i = 0; i < agentsGroupAssignment.Length; i++)
-            {
-                if (this.agentsGroupAssignment[i] == groupNum)
-                {
-                    subGroup.Add(problem.m_vAgents[i]);
-                }
-                else
-                    allSingleAgentPlans[i].AddPlanToHashSet(newInternalCAT, maxPlanSize);
-            }
 
             this.replanSize = (ushort)subGroup.Count;
 
@@ -646,10 +644,10 @@ namespace CPF_experiment
         /// <returns></returns>
         public bool Replan3b(int agentForReplan, int depthToReplan)
         {
-            var newInternalCAT = new HashSet<TimedMove>();
+            var newInternalCAT = new Dictionary<TimedMove, List<int>>();
             HashSet<CbsConstraint> newConstraints = this.GetConstraints();
-            HashSet_U<TimedMove> InternalCAT = (HashSet_U<TimedMove>)problem.parameters[CBS_LocalConflicts.INTERNAL_CAT];
-            HashSet_U<CbsConstraint> Constraints = (HashSet_U<CbsConstraint>)problem.parameters[CBS_LocalConflicts.CONSTRAINTS];
+            var InternalCAT = (Dictionary_U<TimedMove, int>)problem.parameters[CBS_LocalConflicts.INTERNAL_CAT];
+            var Constraints = (HashSet_U<CbsConstraint>)problem.parameters[CBS_LocalConflicts.CONSTRAINTS];
             List<CbsConstraint> mustConstraints = this.GetMustConstraints();
             problem.parameters[CBS_LocalConflicts.MUST_CONSTRAINTS] = mustConstraints;
 
@@ -671,7 +669,7 @@ namespace CPF_experiment
                     // Debug.WriteLine(i);
                 }
                 else
-                    allSingleAgentPlans[i].AddPlanToHashSet(newInternalCAT, totalCost);
+                    allSingleAgentPlans[i].AddPlanToCAT(newInternalCAT, totalCost);
             }
 
             this.replanSize = (ushort)subGroup.Count;

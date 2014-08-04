@@ -488,11 +488,11 @@ namespace CPF_experiment
         {
             // Check if the proposed move is reserved in the plan of another agent.
             // This is used in Trevor's IndependenceDetection.
-            if (this.illegalMoves != null) 
+            if (this.illegalMoves != null)
             {
                 if (possibleMove.IsColliding(illegalMoves))
                     return false;
-            } // FIXME: Also checked in IsValid later.
+            } // FIXME: Also checked in instance.IsValid later.
 
             if (this.constraintList != null)
             {
@@ -564,21 +564,26 @@ namespace CPF_experiment
             {
                 if (instance.parameters.ContainsKey(Trevor.CONFLICT_AVOIDANCE))
                 {
-                    currentNode.potentialConflictsCount = currentNode.prevStep.potentialConflictsCount; // Accumulating the conflicts count from parent to child
-                    currentNode.potentialConflictsCount += currentNode.ConflictsCount(
-                        ((HashSet<TimedMove>)instance.parameters[Trevor.CONFLICT_AVOIDANCE]));
+                    // Accumulating the conflicts count from parent to child
+                    currentNode.UpdateConflictCounts(
+                        ((IReadOnlyDictionary<TimedMove, List<int>>)instance.parameters[Trevor.CONFLICT_AVOIDANCE]));
                     // We're counting conflicts along the entire path, so the parent's conflicts count
-                    // is added to the child's
+                    // is added to the child's.
+
+                    currentNode.potentialConflictsCount = currentNode.cbsInternalConflicts.Count;
                 }
 
                 if (instance.parameters.ContainsKey(CBS_LocalConflicts.INTERNAL_CAT))
                 {
-                    currentNode.cbsInternalConflictsCount = currentNode.prevStep.cbsInternalConflictsCount; // Accumulating the conflicts count from parent to child
-                                                                                                            // I'm not sure this is correct. A path with 100 conflicts with the same other agent may be more easily fixed than a path with two conflicts with two different agents.
-                    currentNode.cbsInternalConflictsCount += currentNode.ConflictsCount(
-                        ((HashSet_U<TimedMove>)instance.parameters[CBS_LocalConflicts.INTERNAL_CAT]));
-                    // We're counting conflicts along the entire path, so the parent's conflicts count
-                    // is added to the child's
+                    // Accumulating the conflicts count from parent to child.
+                    // We're counting conflicts along the entire path, so the parent's conflicts count is added to the child's:
+                    currentNode.cbsInternalConflicts = new Dictionary<int,int>(currentNode.prevStep.cbsInternalConflicts);
+
+                    currentNode.UpdateConflictCounts(
+                        ((IReadOnlyDictionary<TimedMove, List<int>>)instance.parameters[CBS_LocalConflicts.INTERNAL_CAT]));
+
+                    // Count one for every agent the path conflicts with any number of times:
+                    currentNode.cbsInternalConflictsCount = currentNode.cbsInternalConflicts.Count;
                 }
 
                 // If in closed list - only reopen if F is lower

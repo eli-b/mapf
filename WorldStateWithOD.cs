@@ -180,19 +180,19 @@ namespace CPF_experiment
         }
 
         /// <summary>
-        /// Returns count for last agent to move only, the counts from the previous agents to move are accumulated from the parent node.
+        /// Counts for last agent to move only, the counts from the previous agents to move are accumulated from the parent node.
         /// </summary>
         /// <param name="conflictAvoidance"></param>
         /// <returns></returns>
-        override public int ConflictsCount(ICollection<TimedMove> conflictAvoidance)
+        public override void UpdateConflictCounts(IReadOnlyDictionary<TimedMove, List<int>> conflictAvoidance)
         {
-            int ans = 0;
             int lastMove = agentTurn - 1;
             if (agentTurn == 0)
                 lastMove = allAgentsState.Length - 1;
-            if (allAgentsState[lastMove].lastMove.IsColliding(conflictAvoidance))
-                ans++;
-            return ans;
+
+            List<int> colliding = allAgentsState[lastMove].lastMove.GetColliding(conflictAvoidance);
+            foreach (int agentNum in colliding)
+                this.cbsInternalConflicts[agentNum] += 1;
         }
     }
 }

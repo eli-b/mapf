@@ -295,7 +295,7 @@ namespace CPF_experiment
             AgentState.EquivalenceOverDifferentTimes = false;
             if (this.instance.parameters.ContainsKey(CBS_LocalConflicts.INTERNAL_CAT) == false) // Top-most CBS solver
             {
-                this.instance.parameters[CBS_LocalConflicts.INTERNAL_CAT] = new HashSet_U<TimedMove>();
+                this.instance.parameters[CBS_LocalConflicts.INTERNAL_CAT] = new Dictionary_U<TimedMove, int>(); // Dictionary_U values are actually lists of ints.
                 this.instance.parameters[CBS_LocalConflicts.CONSTRAINTS] = new HashSet_U<CbsConstraint>();
                 return true;
             }
@@ -345,6 +345,8 @@ namespace CPF_experiment
 
                 if (debug)
                 {
+                    Debug.WriteLine("");
+                    Debug.WriteLine("");
                     Debug.WriteLine("Node hash: " + currentNode.GetHashCode());
                     Debug.WriteLine("Total cost so far: " + currentNode.totalCost);
                     Debug.WriteLine("Expansion state: " + currentNode.agentAExpansion + ", " + currentNode.agentBExpansion);

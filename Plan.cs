@@ -373,14 +373,20 @@ namespace CPF_experiment
             }
         }
 
-        public HashSet<TimedMove> AddPlanToHashSet(HashSet<TimedMove> addTo, int until)
+        public void AddPlanToCAT(IDictionary<TimedMove, List<int>> addTo, int until)
         {
             for (int i = 0; i <= until; i++)
             {
-                Move step = this.GetLocationAt(i);
-                addTo.Add(new TimedMove(step, i));
+                TimedMove step = new TimedMove(this.GetLocationAt(i), i); // TODO: Avoid creating new objects. Make the method return correctly timed moves.
+                if (addTo.ContainsKey(step))
+                    addTo[step].Add(this.agentIndex);
+                else
+                {
+                    var agentList = new List<int>();
+                    agentList.Add(this.agentIndex);
+                    addTo.Add(step, agentList);
+                }
             }
-            return addTo;
         }
 
         public static SinglePlan[] GetSinglePlans(WorldState goalState) // FIXME: Duplication with other methods.
