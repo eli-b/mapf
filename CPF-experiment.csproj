@@ -76,7 +76,6 @@
   <ItemGroup>
     <Compile Include="Agent.cs" />
     <Compile Include="AgentState.cs" />
-    <Compile Include="AStarForSingleAgent.cs" />
     <Compile Include="AStarMDD.cs">
       <SubType>Code</SubType>
     </Compile>
@@ -89,6 +88,7 @@
     <Compile Include="CbsHeuristic.cs" />
     <Compile Include="CBS_IDA.cs" />
     <Compile Include="CbsConflict.cs" />
+    <Compile Include="Dictionary_U.cs" />
     <Compile Include="DynamicRationalLazyOpenList.cs" />
     <Compile Include="IStatisticsCsvWriter.cs" />
     <Compile Include="OpenList.cs" />
