@@ -7,35 +7,32 @@ from pprint import pprint
 import numpy as np
 import pylab
 
-input_path = sys.argv[1]
-input_filename = os.path.splitext(input_path)[0]
-output_path = input_filename + ' with analysis' + '.csv'
+input_paths = sys.argv[1:]
 
-reader = csv.DictReader(open(input_path, 'rb'))
-
-target_fieldnames = [fieldname for fieldname in reader.fieldnames if fieldname.endswith('Success')]
+readers = (csv.DictReader(open(input_path, 'rb')) for input_path in input_paths)
 
 successes = Counter()
 successes_per_num_of_agents = defaultdict(Counter)
 rows_per_num_of_agents = Counter()
 
-for row in reader:
-    #print row['Grid Name'], row['Num Of Agents'], row['Instance Id']
-    try:
-        solvers_that_succeeded = [col_name[:-len(" Success")] for col_name, col_val in row.iteritems() \
-                            if col_name in target_fieldnames if int(col_val) != 0]
-    except:
-        for fieldname in target_fieldnames:
-            print fieldname, ": ", row[fieldname]
-        raise
-    successes.update(solvers_that_succeeded)
-    num_of_agents = int(row['Num Of Agents'])
-    successes_per_num_of_agents[num_of_agents].update(solvers_that_succeeded)
-    rows_per_num_of_agents[num_of_agents] += 1
+for i, reader in enumerate(readers):
+    print "Reading input file ", i
+    target_fieldnames = [fieldname for fieldname in reader.fieldnames if fieldname.endswith('Success')]
+    for row in reader:
+        #print row['Grid Name'], row['Num Of Agents'], row['Instance Id']
+        try:
+            solvers_that_succeeded = [col_name[:-len(" Success")] for col_name, col_val in row.iteritems() \
+                                if col_name in target_fieldnames if int(col_val) != 0]
+        except (TypeError, ValueError) as e:
+            print "Problem in row: num agents=", row["Num Of Agents"], " instance id=", row["Instance Id"]
+            raise
+        successes.update(solvers_that_succeeded)
+        num_of_agents = int(row['Num Of Agents'])
+        successes_per_num_of_agents[num_of_agents].update(solvers_that_succeeded)
+        rows_per_num_of_agents[num_of_agents] += 1
 
-print 'Overall success counts:'
-pprint(sorted(successes.iteritems(), key=lambda x:x[1], reverse=True))
-
+# Not printing overall success rates as the comparison might not be fair - the slower algs aren't run on the tougher problems
+        
 for num_of_agents in sorted(successes_per_num_of_agents):
     suc = successes_per_num_of_agents[num_of_agents]
     print 'Success count for %d agents' % (num_of_agents, )
