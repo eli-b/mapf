@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.IO;
 
@@ -8,6 +9,7 @@ namespace CPF_experiment
     /// <summary>
     /// Supporting O(1) insertion and removal of items that compare equal to the top of the heap.
     /// </summary>
+    [DebuggerDisplay("Count = {Count}")]
     public class OpenList : IAccumulatingStatisticsCsvWriter
     {
         //protected IBinaryHeapItem lastRemovedItem;
