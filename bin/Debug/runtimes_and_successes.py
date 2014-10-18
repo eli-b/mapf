@@ -58,14 +58,14 @@ for i, reader in enumerate(readers):
     for row in reader:
         try:
             num_of_agents = int(row['Num Of Agents'])
-            solvers_run = [col_name[:-len(" Solution Cost")] for col_name, col_val in row.iteritems() \
-                           if col_name in solution_cost_fieldnames if col_val != "irrelevant"]
-            relevant_solvers_in_category = [solver_name for solver_name in solvers_run \
-                                            if solver_success_rate_per_num_of_agents[num_of_agents][solver_name] > 0.1] # Algs that were actually run and succeeded in solving at least 0.1 of the problems in this category
-            solvers_that_succeeded = [col_name[:-len(" Success")] for col_name, col_val in row.iteritems() \
-                                      if col_name in success_fieldnames if int(col_val) == 1]
-            relevant_solvers_that_succeeded = [solver_name for solver_name in solvers_that_succeeded \
-                                              if solver_name in relevant_solvers_in_category]
+            solvers_run = {col_name[:-len(" Solution Cost")] for col_name, col_val in row.iteritems() \
+                           if col_name in solution_cost_fieldnames if col_val != "irrelevant"}
+            relevant_solvers_in_category = {solver_name for solver_name in solvers_run \
+                                            if solver_success_rate_per_num_of_agents[num_of_agents][solver_name] > 0.1} # Algs that were actually run and succeeded in solving at least 0.1 of the problems in this category
+            solvers_that_succeeded = {col_name[:-len(" Success")] for col_name, col_val in row.iteritems() \
+                                      if col_name in success_fieldnames if int(col_val) == 1}
+            relevant_solvers_that_succeeded = {solver_name for solver_name in solvers_that_succeeded \
+                                              if solver_name in relevant_solvers_in_category}
             solvers_and_runtimes = {col_name[:-len(" Runtime")]:float(col_val) for col_name, col_val in row.iteritems() \
                                     if col_name in runtime_fieldnames}
             relevant_solvers_and_runtimes = {solver_name:runtime for solver_name, runtime in solvers_and_runtimes.iteritems() \
@@ -76,7 +76,7 @@ for i, reader in enumerate(readers):
             raise
         
         if relevant_solvers_that_succeeded != relevant_solvers_in_category:
-            #print "Not using runtimes of row: num agents={num_agents}, id={id} - not all relevant solvers solved it".format(num_agents=row["Num Of Agents"], id=row["Instance Id"])
+            print "Not using runtimes of row: num agents={num_agents}, id={id} - {failures} didn't solve it".format(num_agents=row["Num Of Agents"], id=row["Instance Id"], failures=relevant_solvers_in_category - relevant_solvers_that_succeeded)
             continue # If any relevant algorithm failed, skip the problem to avoid making an unfair comparison.
         solver_relevant_runtimes_per_num_of_agents[num_of_agents].update(relevant_solvers_and_runtimes)
         solver_relevant_run_count_per_num_of_agents[num_of_agents].update(relevant_solvers_and_runtimes.iterkeys())
