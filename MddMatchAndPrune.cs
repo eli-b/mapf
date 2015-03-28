@@ -43,7 +43,7 @@ namespace CPF_experiment
                 this.conflicted[i] = false;
             }
             MddMatchAndPruneState root = new MddMatchAndPruneState(rootPositions);
-            this.solutionDepth = root.allPositions[0].father.levels.Length;
+            this.solutionDepth = root.allPositions[0].mdd.levels.Length;
             openList.Enqueue(root);
             legal = true;
         }
@@ -109,7 +109,7 @@ namespace CPF_experiment
             {
                 for (int i = 0; i < toExpand.allPositions.Length; i++)
                 {
-                    CostTreeSearchSolver.edgesMatrix[i, parent.allPositions[i].getVertexIndex(), parent.allPositions[i].getDirection(toExpand.allPositions[i])] = CostTreeSearchSolver.edgesMatrixCounter + 1;
+                    CostTreeSearchSolver.edgesMatrix[i, parent.allPositions[i].getVertexIndex(), (int) Move.Direction.Wait] = CostTreeSearchSolver.edgesMatrixCounter + 1;
                 }
                 if (closedList.ContainsKey(parent) == false)
                 {
@@ -143,7 +143,7 @@ namespace CPF_experiment
                     foreach (MDDNode parent in node.parents)
                     {
                         //if not legal
-                        if ((int)CostTreeSearchSolver.edgesMatrix[i, parent.getVertexIndex(), parent.getDirection(node)] != CostTreeSearchSolver.edgesMatrixCounter + 1)
+                        if ((int)CostTreeSearchSolver.edgesMatrix[i, parent.getVertexIndex(), (int) node.move.direction /*or parent.move.direction, I'm not sure*/] != CostTreeSearchSolver.edgesMatrixCounter + 1)
                         {
                             parentsToDelte[parentI] = parent;
                             this.conflicted[i] = true;
@@ -243,8 +243,7 @@ namespace CPF_experiment
                 int ans = 0;
                 for (int i = 0; i < allPositions.Length; i = i + 2)
                 {
-                    ans += allPositions[i].getX() * Constants.PRIMES_FOR_HASHING[i % Constants.PRIMES_FOR_HASHING.Length];
-                    ans += allPositions[i].getY() * Constants.PRIMES_FOR_HASHING[(i + 1) % Constants.PRIMES_FOR_HASHING.Length];
+                    ans += allPositions[i].move.GetHashCode();
                 }
                 return ans;
             }

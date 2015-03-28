@@ -10,13 +10,12 @@ namespace CPF_experiment
         protected int expandedFullStates;
         protected int accExpandedFullStates;
 
-        public AStarWithPartialExpansion(HeuristicCalculator heuristic = null)
-            : base(heuristic) { }
+        public AStarWithPartialExpansion(HeuristicCalculator heuristic = null, bool mstar = false, bool mstarShuffle = false)
+            : base(heuristic, mstar, mstarShuffle) { }
 
-        override protected WorldState CreateSearchRoot(int minDepth = -1)
+        override protected WorldState CreateSearchRoot(int minDepth = -1, int minCost = -1)
         {
-            WorldStateForPartialExpansion root = new WorldStateForPartialExpansion(this.instance.m_vAgents, minDepth);
-            return root;
+            return new WorldStateForPartialExpansion(this.instance.m_vAgents, minDepth, minCost);
         }
 
         protected override WorldState CreateSearchNode(WorldState from)
@@ -24,11 +23,11 @@ namespace CPF_experiment
             return new WorldStateForPartialExpansion((WorldStateForPartialExpansion)from);
         }
 
-        override public string GetName() { return "EPEA*"; }
+        override public string GetName() { return "EPE" + base.GetName(); }
 
-        public override void Setup(ProblemInstance problemInstance, int minDepth, Run runner)
+        public override void Setup(ProblemInstance problemInstance, int minDepth, Run runner, int minCost = -1)
         {
-            base.Setup(problemInstance, minDepth, runner);
+            base.Setup(problemInstance, minDepth, runner, minCost);
             this.expandedFullStates = 0;
         }
 
@@ -36,13 +35,17 @@ namespace CPF_experiment
         {
             var node = (WorldStateForPartialExpansion)nodeP;
 
-            if (node.isAlreadyExpanded() == false)
+            bool wasAlreadyExpanded = true;
+
+            if (node.IsAlreadyExpanded() == false)
             {
                 node.calcSingleAgentDeltaFs(instance, this.IsValid);
                 expandedFullStates++;
                 node.alreadyExpanded = true;
+                wasAlreadyExpanded = false;
+                //node.hBonus = 0; // Locking any hbonus that doesn't come from partial expansion
                 node.targetDeltaF = 0; // Assuming a consistent heuristic (as done in the paper), the min delta F is zero.
-                node.remainingDeltaF = node.targetDeltaF; // Just for the hasChildrenForCurrentDeltaF call.
+                node.remainingDeltaF = node.targetDeltaF; // Just for the following hasChildrenForCurrentDeltaF call.
                 while (node.hasMoreChildren() && node.hasChildrenForCurrentDeltaF() == false) // DeltaF=0 may not be possible if all agents have obstacles between their location and the goal
                 {
                     node.targetDeltaF++;
@@ -54,11 +57,27 @@ namespace CPF_experiment
                     return;
                 }
             }
+                
             //Debug.Print("Expanding node " + node);
 
             // If this node was already expanded, notice its h was updated, so the deltaF refers to its original H
 
             base.Expand(node);
+
+            if (node.IsAlreadyExpanded() == false)
+            {
+                // Node was cleared during expansion.
+                // It's unnecessary and unsafe to continue to prepare it for the next partial expansion.
+                return;
+                // TODO: Is there a prettier way to do this?
+            }
+
+            //if (wasAlreadyExpanded)
+            //{
+            //    // Only doing it after expansion so that the children get the higher h
+            //    node.h -= node.targetDeltaF; // This way we retain any BPMX or other h boosts, allowing the new targetDeltaF to fully add to the base h
+            //    node.hBonus -= node.targetDeltaF;
+            //}
 
             node.targetDeltaF++; // This delta F was exhausted
             node.remainingDeltaF = node.targetDeltaF;
@@ -66,27 +85,34 @@ namespace CPF_experiment
             while (node.hasMoreChildren() && node.hasChildrenForCurrentDeltaF() == false)
             {
                 node.targetDeltaF++;
-                node.remainingDeltaF = node.targetDeltaF;
+                node.remainingDeltaF = node.targetDeltaF; // Just for the following hasChildrenForCurrentDeltaF call.
             }
 
             if (node.hasMoreChildren() && node.hasChildrenForCurrentDeltaF() && node.h + node.g + node.targetDeltaF <= this.maxCost)
             {
                 // Increment H before re-insertion into open list
-                int sicEstimate = (int)SumIndividualCosts.h(node, this.instance); // Re-compute even if the heuristic used is SIC since this may be a second expansion
-                if (node.h < sicEstimate + node.targetDeltaF)
-                {
-                    // Assuming the heuristic used doesn't give a lower estimate than SIC for each and every one of the node's children,
-                    // (an ok assumption since SIC is quite basic, no heuristic we use is ever worse than it)
-                    // then the current target deltaF is really exhausted, since the deltaG is always correct,
-                    // and the deltaH predicted by SIC is less than or equal to the finalDeltaH.
-                    // So if the heuristic gives the same estimate as SIC for this node
-                    // (and that mainly happens when SIC happens to give a perfect estimate),
-                    // we can increment the node's h to SIC+targetDeltaH
-                    node.h = sicEstimate + node.targetDeltaF;
-                }
+                //int sicEstimate = (int)SumIndividualCosts.h(node, this.instance); // Re-compute even if the heuristic used is SIC since this may be a second expansion
+                //if (node.h < sicEstimate + node.targetDeltaF)
+                //if (node.h < node.h + node.targetDeltaF)
+                //{
+                //    // Assuming the heuristic used doesn't give a lower estimate than SIC for each and every one of the node's children,
+                //    // (an ok assumption since SIC is quite basic, no heuristic we use is ever worse than it)
+                //    // then the current target deltaF is really exhausted, since the deltaG is always correct,
+                //    // and the deltaH predicted by SIC is less than or equal to the finalDeltaH.
+                //    // So if the heuristic gives the same estimate as SIC for this node
+                //    // (and that mainly happens when SIC happens to give a perfect estimate),
+                //    // we can increment the node's h to SIC+targetDeltaH
+
+                //    //int newH = sicEstimate + node.targetDeltaF;
+                //    int newH = node.h + node.targetDeltaF;
+                //    node.hBonus += newH - node.h;
+                //    node.h = newH;
+                //}
                 
                 // Re-insert node into open list
                 openList.Add(node);
+                if (this.debug)
+                    Console.WriteLine("Re-inserting the node into the open list with higher h");
             }
             else
                 node.Clear();

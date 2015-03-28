@@ -82,6 +82,13 @@ namespace CPF_experiment
                             continue;
                         for (int i = 0; i < instances; i++)
                         {
+                            string allocation = Process.GetCurrentProcess().ProcessName.Substring(1);
+                            if (i % 33 != Convert.ToInt32(allocation)) // grids!
+                                continue;
+
+                            //if (i % 5 != 0) // grids!
+                            //    continue;
+
                             if (continueFromLastRun)  //set the latest problem
                             {
                                 gs = int.Parse(LastProblemDetails[0]);
@@ -113,12 +120,14 @@ namespace CPF_experiment
                                 }
 
                                 instance = runner.GenerateProblemInstance(gridSizes[gs], agentListSizes[ag], obstaclesProbs[obs] * gridSizes[gs] * gridSizes[gs] / 100);
-                                instance.ComputeSingleAgentShortestPaths();
+                                instance.ComputeSingleAgentShortestPaths(); // REMOVE FOR GENERATOR
                                 instance.instanceId = i;
                                 instance.Export(instanceName);
                             }
 
                             runner.SolveGivenProblem(instance);
+
+                            //return; // DELETE ME!!!!!!!!!!!!!!!!!!!!!!!!!@# JUST FOR DEBUGGING!!!
 
                             // Save the latest problem
                             if (File.Exists(currentProblemFileName))
@@ -137,7 +146,7 @@ namespace CPF_experiment
             runner.CloseResultsFile();                    
         }
 
-        protected static readonly string[] daoMapFilenames = { "dao_maps\\den502d.map", "dao_maps\\ost003d.map", "dao_maps\\brc202d.map" };
+        protected static readonly string[] daoMapFilenames = { "dao_maps\\den520d.map", "dao_maps\\ost003d.map", "dao_maps\\brc202d.map"};
 
         protected static readonly string[] mazeMapFilenames = { "mazes-width1-maps\\maze512-1-6.map", "mazes-width1-maps\\maze512-1-2.map",
                                                 "mazes-width1-maps\\maze512-1-9.map" };
@@ -160,7 +169,9 @@ namespace CPF_experiment
             // FIXME: Code dup with RunExperimentSet
 
             TextWriter output;
-            int[] agentListSizes = {5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200, 250, 300};
+            int[] agentListSizes = {5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100};
+            //int[] agentListSizes = { 60, 65, 70, 75, 80, 85, 90, 95, 100 };
+            //int[] agentListSizes = { 100 };
 
             bool continueFromLastRun = false;
             string[] lineParts = null;
@@ -178,14 +189,18 @@ namespace CPF_experiment
             {
                 for (int i = 0; i < numInstances; i++)
                 {
+                    string name = Process.GetCurrentProcess().ProcessName.Substring(1);
+                    if (i % 33 != Convert.ToInt32(name)) // DAO!
+                        continue;
+
                     for (int map = 0; map < mapFileNames.Length; map++)
                     {
-                        if (continueFromLastRun) //set the latest problem
+                        if (continueFromLastRun) // Set the latest problem
                         {
                             ag = int.Parse(lineParts[0]);
                             i = int.Parse(lineParts[1]);
                             map = int.Parse(lineParts[2]);
-                            for (int j = 3; j < lineParts.Length; j++)
+                            for (int j = 3; j < lineParts.Length && j-3 < runner.outOfTimeCounters.Length; j++)
                             {
                                 runner.outOfTimeCounters[j - 3] = int.Parse(lineParts[j]);
                             }
@@ -240,14 +255,8 @@ namespace CPF_experiment
             Program.RESULTS_FILE_NAME = Process.GetCurrentProcess().ProcessName + ".csv";
             TextWriterTraceListener tr1 = new TextWriterTraceListener(System.Console.Out);
             Debug.Listeners.Add(tr1);
-            //if (System.Diagnostics.Debugger.IsAttached)
-            //{
-            //    int maxTime = Constants.MAX_TIME;
-            //    Constants.MAX_TIME = int.MaxValue;
-            //    Console.WriteLine("Use Time Limit? <(ENTER)-no,(1)-yes>");
-            //    if (Console.ReadLine() == "1")
-            //        Constants.MAX_TIME = maxTime;
-            //}
+            if (System.Diagnostics.Debugger.IsAttached)
+                Constants.MAX_TIME = int.MaxValue;
 
             if (Directory.Exists(Directory.GetCurrentDirectory() + "\\Instances") == false)
             {
@@ -256,7 +265,7 @@ namespace CPF_experiment
 
             Program.onlyReadInstances = false;
 
-            int instances = 100;
+            int instances = 99;
 
             bool runGrids = false;
             bool runDragonAge = true;
@@ -265,15 +274,20 @@ namespace CPF_experiment
 
             if (runGrids == true)
             {
-                int[] gridSizes = new int[] { 8, 32 };
-                int[] agentListSizes = new int[] { 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18 };
-                //int[] agentListSizes = new int[] { 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34, 36, 38, 40, 42, 44, 46, 48, 50 };
+                int[] gridSizes = new int[] { 8, };
+                //int[] agentListSizes = new int[] { 2, 3, 4 };
+                
+                //int[] gridSizes = new int[] { 6, };
+                int[] agentListSizes = new int[] { /*2,*/ 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32 };
+                // Note that success rate drops almost to zero for EPEA* and A*+OD/SIC on 40 agents.
+            
+                //int[] gridSizes = new int[] { 32, };
+                //int[] agentListSizes = new int[] { /*5, 10, 15, 20, 25, 30, 35,*/ 40, /*45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100, 105, 110, 115, 120, 125, 130, 135, 140, 145, 150*/ };
+                //int[] agentListSizes = new int[] { 10, 20, 30, 40, 50, 60 };
 
-                //int[] gridSizes = new int[] { 32 };
-                //int[] agentListSizes = new int[] { 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100, 105, 110, 115, 120, 125, 130, 135, 140, 145, 150 };
-                //int[] agentListSizes = new int[] { 20 };
-
-                int[] obstaclesPercents = new int[] { /*0, 5, 10,*/ 15, 20, 25, 30 };
+                //int[] obstaclesPercents = new int[] { 20, };
+                //int[] obstaclesPercents = new int[] { /*0, 5, 10, 15, 20, 25, 30, 35, */20, 30, 40};
+                int[] obstaclesPercents = new int[] { 0, /*5, 10,*/ /*15,*/ /*20, 25, 30, 35, 20, 30, 40*/ };
                 me.RunExperimentSet(gridSizes, agentListSizes, obstaclesPercents, instances);
             }
             else if (runDragonAge == true)
@@ -282,10 +296,15 @@ namespace CPF_experiment
                 me.RunDragonAgeExperimentSet(instances, Program.mazeMapFilenames); // Obstacle percents and grid sizes built-in to the maps.
             else if (runSpecific == true)
             {
-                me.RunInstance("corridor1");
-                me.RunInstance("corridor2");
-                me.RunInstance("corridor3");
-                me.RunInstance("corridor4");
+                me.RunInstance("Instance-5-15-6-13");
+                //me.RunInstance("Instance-5-15-3-792");
+                //me.RunInstance("Instance-5-15-3-792-4rows");
+                //me.RunInstance("Instance-5-15-3-792-3rows");
+                //me.RunInstance("Instance-5-15-3-792-2rows");
+                //me.RunInstance("corridor1");
+                //me.RunInstance("corridor2");
+                //me.RunInstance("corridor3");
+                //me.RunInstance("corridor4");
             }
 
             // A function to be used by Eric's PDB code

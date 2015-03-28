@@ -29,7 +29,7 @@ namespace CPF_experiment
 
         /// <summary>
         /// We keep a reference to the array of agents in the original problem.
-        /// This will only change when Trevor's algorithm determines in another
+        /// This will only change when IndependenceDetection's algorithm determines in another
         /// iteration that a new set of agents must be jointly planned due
         /// to their mutual conflicts.
         /// </summary>
@@ -128,6 +128,7 @@ namespace CPF_experiment
         public void ComputeSingleAgentShortestPaths()
         {
             Debug.WriteLine("Computing the single agent shortest path for all agents...");
+            //return; // Add for generator
 
             this.singleAgentOptimalCosts = new int[this.GetNumOfAgents()][];
             this.singleAgentOptimalMoves = new Move[this.GetNumOfAgents()][];
@@ -135,10 +136,10 @@ namespace CPF_experiment
             for (int agentId = 0; agentId < this.GetNumOfAgents(); agentId++)
             {
                 // Run a single source shortest path algorithm from the _goal_ of the agent
-                var shortestPaths = new int[this.m_nLocations];
+                var shortestPathLengths = new int[this.m_nLocations];
                 var optimalMoves = new Move[this.m_nLocations];
                 for (int i = 0; i < m_nLocations; i++)
-                    shortestPaths[i] = -1;
+                    shortestPathLengths[i] = -1;
                 for (int i = 0; i < m_nLocations; i++)
                     optimalMoves[i] = null;
                 var openlist = new Queue<AgentState>();
@@ -147,8 +148,8 @@ namespace CPF_experiment
                 var goalState = new AgentState(this.m_vAgents[agentId].agent.Goal.x,
                         this.m_vAgents[agentId].agent.Goal.y, -1, -1, agentId);
                 int goalIndex = this.GetCardinality(goalState.lastMove);
-                shortestPaths[goalIndex] = 0;
-                optimalMoves[goalIndex] = null;
+                shortestPathLengths[goalIndex] = 0;
+                optimalMoves[goalIndex] = new Move(goalState.lastMove);
                 openlist.Enqueue(goalState);
 
                 while (openlist.Count > 0)
@@ -162,12 +163,12 @@ namespace CPF_experiment
                         {
                             int entry = m_vCardinality[aMove.x, aMove.y];
                             // If move will generate a new or better state - add it to the queue
-                            if ((shortestPaths[entry] == -1) || (shortestPaths[entry] > state.g + 1))
+                            if ((shortestPathLengths[entry] == -1) || (shortestPathLengths[entry] > state.g + 1))
                             {
                                 var childState = new AgentState(state);
                                 childState.MoveTo(aMove);
-                                shortestPaths[entry] = childState.g;
-                                optimalMoves[entry] = aMove.GetOppositeMove();
+                                shortestPathLengths[entry] = childState.g;
+                                optimalMoves[entry] = new Move(aMove.GetOppositeMove());
                                 openlist.Enqueue(childState);
                             }
                         }
@@ -175,7 +176,7 @@ namespace CPF_experiment
 
                 }
 
-                this.singleAgentOptimalCosts[agentId] = shortestPaths;
+                this.singleAgentOptimalCosts[agentId] = shortestPathLengths;
                 this.singleAgentOptimalMoves[agentId] = optimalMoves;
             }
         }
@@ -209,30 +210,60 @@ namespace CPF_experiment
         /// </summary>
         /// <param name="agent"></param>
         /// <returns>The length of the shortest path between a given agent's location and the goal of that agent</returns>
-        public int GetSingleAgentOptimalCost(AgentState agent)
+        public int GetSingleAgentOptimalCost(AgentState agentState)
         {
-            return this.singleAgentOptimalCosts[agent.agent.agentNum][this.m_vCardinality[agent.lastMove.x, agent.lastMove.y]];
+            return this.singleAgentOptimalCosts[agentState.agent.agentNum][this.m_vCardinality[agentState.lastMove.x, agentState.lastMove.y]];
+        }
+
+        /// <summary>
+        /// Returns the optimal move towards the goal of the given agent. Move isn't necessarily unique.
+        /// </summary>
+        /// <param name="agent"></param>
+        /// <returns></returns>
+        public Move GetSingleAgentOptimalMove(AgentState agentState)
+        {
+            return this.singleAgentOptimalMoves[agentState.agent.agentNum][this.m_vCardinality[agentState.lastMove.x, agentState.lastMove.y]];
         }
 
         /// <summary>
         /// The returned plan wasn't constructed considering a CAT, so it's possible there's an alternative plan with the same cost and less collisions.
         /// </summary>
-        /// <param name="agent"></param>
+        /// <param name="agentState"></param>
         /// <returns></returns>
-        public SinglePlan GetSingleAgentOptimalPlan(AgentState agent)
+        public SinglePlan GetSingleAgentOptimalPlan(AgentState agentState,
+                                                    out Dictionary<int, int> conflictCountPerAgent, out Dictionary<int, List<int>> conflictTimesPerAgent)
         {
             LinkedList<Move> moves = new LinkedList<Move>();
-            moves.AddLast(agent.lastMove); // The starting position
+            int agentNum = agentState.agent.agentNum;
+            var conflictCounts = new Dictionary<int, int>();
+            var conflictTimes = new Dictionary<int, List<int>>();
+            IReadOnlyDictionary<TimedMove, List<int>> CAT;
+            if (this.parameters.ContainsKey(CBS_LocalConflicts.CAT)) // TODO: Add support for IndependenceDetection's CAT
+                CAT = ((IReadOnlyDictionary<TimedMove, List<int>>)this.parameters[CBS_LocalConflicts.CAT]);
+            else
+                CAT = new Dictionary<TimedMove, List<int>>();
 
-            int agentNum = agent.agent.agentNum;
-            Move current = this.singleAgentOptimalMoves[agentNum][this.GetCardinality(agent.lastMove)];
+            TimedMove current = agentState.lastMove; // The starting position
+            int time = current.time;
 
-            while (current != null)
+            while (true)
             {
                 moves.AddLast(current);
-                current = this.singleAgentOptimalMoves[agentNum][this.GetCardinality(current)];
+
+                // Count conflicts:
+                current.UpdateConflictCounts(CAT, conflictCounts, conflictTimes);
+
+                if (agentState.agent.Goal.Equals(current))
+                    break;
+
+                // Get next optimal move
+                time++;
+                Move optimal = this.singleAgentOptimalMoves[agentNum][this.GetCardinality(current)];
+                current = new TimedMove(optimal, time);
             }
 
+            conflictCountPerAgent = conflictCounts;
+            conflictTimesPerAgent = conflictTimes;
             return new SinglePlan(moves, agentNum);
         }
 
@@ -282,6 +313,7 @@ namespace CPF_experiment
         public static ProblemInstance Import(string fileName)
         {
             TextReader input = new StreamReader(fileName);
+            //return new ProblemInstance(); // DELETE ME!!!
             string[] lineParts;
             string line;
             int instanceId = 0;
@@ -478,9 +510,9 @@ namespace CPF_experiment
             if (IsValidTile(toCheck.x, toCheck.y) == false)
                 return false;
 
-            if (parameters.ContainsKey(Trevor.ILLEGAL_MOVES_KEY))
+            if (parameters.ContainsKey(IndependenceDetection.ILLEGAL_MOVES_KEY))
             {
-                var reserved = (HashSet<TimedMove>)parameters[Trevor.ILLEGAL_MOVES_KEY];
+                var reserved = (HashSet<TimedMove>)parameters[IndependenceDetection.ILLEGAL_MOVES_KEY];
 
                 return (toCheck.IsColliding(reserved) == false);
             } // FIXME: Should this be here?

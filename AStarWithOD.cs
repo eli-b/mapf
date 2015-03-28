@@ -5,7 +5,7 @@ using System.IO;
 namespace CPF_experiment
 {
     /// <summary>
-    /// A* implementation with Standley's operator decomposition (OD). See AAAI 2010 paper by Trevor Scott Standley on Cooperative Pathfinding.
+    /// A* implementation with Standley's operator decomposition (OD). See AAAI 2010 paper by IndependenceDetection Scott Standley on Cooperative Pathfinding.
     /// </summary>
     public class AStarWithOD : ClassicAStar
     {
@@ -14,12 +14,12 @@ namespace CPF_experiment
         protected int generatedFullStates;
         protected int accGeneratedFullStates;
 
-        public AStarWithOD(HeuristicCalculator heuristic = null)
-            : base(heuristic) { }
+        public AStarWithOD(HeuristicCalculator heuristic = null, bool mstar = false, bool mstarShuffle = false)
+            : base(heuristic, mstar, mstarShuffle) { }
 
-        override protected WorldState CreateSearchRoot(int minDepth = -1)
+        override protected WorldState CreateSearchRoot(int minDepth = -1, int minCost = -1)
         {
-            return new WorldStateWithOD(this.instance.m_vAgents, minDepth);
+            return new WorldStateWithOD(this.instance.m_vAgents, minDepth, minCost);
         }
 
         protected override WorldState CreateSearchNode(WorldState from)
@@ -27,11 +27,11 @@ namespace CPF_experiment
             return new WorldStateWithOD((WorldStateWithOD)from);
         }
 
-        override public string GetName() { return "A*+OD"; }
+        override public string GetName() { return base.GetName() + "+OD"; }
 
-        public override void Setup(ProblemInstance problemInstance, int minDepth, Run runner)
+        public override void Setup(ProblemInstance problemInstance, int minDepth, Run runner, int minCost = -1)
         {
-            base.Setup(problemInstance, minDepth, runner);
+            base.Setup(problemInstance, minDepth, runner, minCost);
             this.expandedFullStates = 0;
             this.generatedFullStates = 0;
         }

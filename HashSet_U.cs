@@ -81,7 +81,7 @@ namespace CPF_experiment
             Data.Add(other);
         }
 
-        public void Seperate(HashSet<T> other)
+        public void Separate(HashSet<T> other)
         {
             Data.Remove(other);
         }

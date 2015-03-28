@@ -1,8 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Diagnostics;//////////////////////
+using System.Diagnostics;
 using System.IO;
+
 namespace CPF_experiment
 {
     /// <summary>
@@ -10,7 +11,7 @@ namespace CPF_experiment
     /// </summary>
     class CostTreeSearchSolver : ICbsSolver
     {
-        protected LinkedList<CostTreeNode> openList;
+        protected Queue<CostTreeNode> openList;
         protected HashSet<CostTreeNode> closedList;
         public int totalCost;
         public int generatedHL;
@@ -28,41 +29,50 @@ namespace CPF_experiment
         protected int costB;
         protected int sizeOfA;
         protected int maxCost;
-        protected LinkedList<Move>[] solution;
-        protected int initialHeuristics;
+        protected SinglePlan[] solution;
+        protected int initialEstimate;
+        protected int solutionDepth;
         public static int passed; // FIXME: Why static?
-        protected HashSet<TimedMove> ID_CAT;
-        protected HashSet_U<TimedMove> CBS_CAT;
+        protected Dictionary<TimedMove, List<int>> ID_CAT;
+        protected Dictionary<TimedMove, List<int>> CBS_CAT;
         protected int minCAViolations;
 
         // These variables are for matching and pruning MDDs
         public static int[,,] edgesMatrix; // K(agent), V(from), V(to)
         public static int edgesMatrixCounter;
         public static int maxY; 
-        /// /////////////////////////////
-
 
         public CostTreeSearchSolver()
         {
-            closedList = new HashSet<CostTreeNode>();
-            openList = new LinkedList<CostTreeNode>();
         }
 
         /// <summary>
-        /// Return the name of the solver, usefull for outputing results.
+        /// Return the name of the solver, useful for outputting results.
         /// </summary>
         /// <returns>The name of the solver</returns>
-        public virtual String GetName() { return "CostTreeSearch+pairsMatch"; }
+        public virtual String GetName()
+        {
+            return "CostTreeSearch+pairsMatch";
+        }
+
+        public override string ToString()
+        {
+            return GetName();
+        }
 
         public virtual void Setup(ProblemInstance problemInstance, Run runner) { Setup(problemInstance, 0, runner); }
 
         /// <summary>
         /// Setup the relevant data structures for a run.
         /// </summary>
-        public virtual void Setup(ProblemInstance problemInstance, int minDepth, Run runner)
+        /// <param name="problemInstance"></param>
+        /// <param name="minDepth"></param>
+        /// <param name="runner"></param>
+        /// <param name="minCost">Not taken into account, just added to comply with ICbsSolver</param>
+        public virtual void Setup(ProblemInstance problemInstance, int minDepth, Run runner, int minCost = -1)
         {
-            minCAViolations = int.MaxValue;
-            passed = 0;
+            this.minCAViolations = int.MaxValue;
+            CostTreeSearchSolver.passed = 0;
             this.generatedHL = 1;
             this.expandedHL = 1;
             this.generatedLL = 0;
@@ -70,47 +80,47 @@ namespace CPF_experiment
             this.totalCost = Constants.TIMEOUT_COST;
             
             // If there exists relevant previously solved subproblems - use their solution as a lower bound
-            if (problemInstance.parameters.ContainsKey(CostTreeSearch.PARENT_GROUP1_KEY))
+            //if (problemInstance.parameters.ContainsKey(CostTreeSearch.PARENT_GROUP1_KEY))
+            //{
+            //    costA = ((AgentsGroup)(problemInstance.parameters[CostTreeSearch.PARENT_GROUP1_KEY])).solutionCost;
+            //    costB = ((AgentsGroup)(problemInstance.parameters[CostTreeSearch.PARENT_GROUP2_KEY])).solutionCost;
+            //    sizeOfA = ((AgentsGroup)(problemInstance.parameters[CostTreeSearch.PARENT_GROUP1_KEY])).Size();
+            //}
+            //else
             {
-                costA = ((AgentsGroup)(problemInstance.parameters[CostTreeSearch.PARENT_GROUP1_KEY])).solutionCost;
-                costB = ((AgentsGroup)(problemInstance.parameters[CostTreeSearch.PARENT_GROUP2_KEY])).solutionCost;
-                sizeOfA = ((AgentsGroup)(problemInstance.parameters[CostTreeSearch.PARENT_GROUP1_KEY])).Size();
-            }
-            else
-            {
-                costA = problemInstance.m_vAgents[0].h;
+                costA = problemInstance.GetSingleAgentOptimalCost(problemInstance.m_vAgents[0]);
                 costB = 0;
                 sizeOfA = 1;
             }
+
             this.problem = problemInstance;
             this.runner = runner;
 
             closedList = new HashSet<CostTreeNode>();
-            openList = new LinkedList<CostTreeNode>();
+            openList = new Queue<CostTreeNode>();
             int[] costs = new int[problem.GetNumOfAgents()];
-            AgentState temp;
             for (int i = 0; i < problem.GetNumOfAgents(); i++)
             {
-                temp=problem.m_vAgents[i];
-                costs[i] = Math.Max(problem.GetSingleAgentOptimalCost(temp), minDepth);
+                costs[i] = Math.Max(problem.GetSingleAgentOptimalCost(problem.m_vAgents[i]), minDepth);
             }
 
-            openList.AddFirst(new CostTreeNode(costs));
-            this.initialHeuristics = openList.First.Value.costs.Sum();
+            openList.Enqueue(new CostTreeNode(costs)); // The root
+            this.initialEstimate = openList.Peek().costs.Sum();
 
-            // Store parameters used by Trevor's Independence Detection algorithm
-            if (problemInstance.parameters.ContainsKey(Trevor.MAXIMUM_COST_KEY))
-                this.maxCost = (int)(problemInstance.parameters[Trevor.MAXIMUM_COST_KEY]);
+            // Store parameters used by IndependenceDetection's Independence Detection algorithm
+            if (problemInstance.parameters.ContainsKey(IndependenceDetection.MAXIMUM_COST_KEY))
+                this.maxCost = (int)(problemInstance.parameters[IndependenceDetection.MAXIMUM_COST_KEY]);
             else
                 this.maxCost = -1;
 
-            if (problemInstance.parameters.ContainsKey(Trevor.CONFLICT_AVOIDANCE))
+            if (problemInstance.parameters.ContainsKey(IndependenceDetection.CONFLICT_AVOIDANCE))
             {
-                ID_CAT = ((HashSet<TimedMove>)problemInstance.parameters[Trevor.CONFLICT_AVOIDANCE]);
+                ID_CAT = ((Dictionary<TimedMove, List<int>>)problemInstance.parameters[IndependenceDetection.CONFLICT_AVOIDANCE]);
             }
-            if (problemInstance.parameters.ContainsKey(CBS_LocalConflicts.INTERNAL_CAT))
+
+            if (problemInstance.parameters.ContainsKey(CBS_LocalConflicts.CAT))
             {
-                CBS_CAT = ((HashSet_U<TimedMove>)problemInstance.parameters[CBS_LocalConflicts.INTERNAL_CAT]);
+                CBS_CAT = ((Dictionary<TimedMove, List<int>>)problemInstance.parameters[CBS_LocalConflicts.CAT]);
             }
         }
 
@@ -140,6 +150,16 @@ namespace CPF_experiment
         public int GetSolutionCost()
         {
             return this.totalCost;
+        }
+
+        public Dictionary<int, int> GetExternalConflictCounts()
+        {
+            throw new NotImplementedException();
+        }
+
+        public Dictionary<int, List<int>> GetConflictTimes()
+        {
+            throw new NotImplementedException();
         }
 
         public virtual void OutputStatisticsHeader(TextWriter output)
@@ -226,13 +246,14 @@ namespace CPF_experiment
         /// <returns></returns>
         public virtual bool Solve()
         {
+            // TODO: Remove dead code.
             //int currentLevelCost = -1;
-            //CostTreeNodeSolver next;            
+            //CostTreeNodeSolver next;
             //LinkedList<Move>[] ans = null;
             //int sumSubGroupA;
             //int sumSubGroupB;
             ////TODO if no solution found the algorithm will never stop
-            //while (runner.ElapsedMilliseconds < Constants.MAX_TIME)
+            //while (runner.ElapsedMilliseconds() <= Constants.MAX_TIME)
             //{
             //    costTreeNode = openList.First.Value;
             //    if (costTreeNode.costs.Sum() > currentLevelCost)
@@ -240,8 +261,8 @@ namespace CPF_experiment
             //        costTreeDepth++;
             //        currentLevelCost = costTreeNode.costs.Sum();
             //    }
-            //    sumSubGroupA = costTreeNode.sum(0, sizeOfA);
-            //    sumSubGroupB = costTreeNode.sum(sizeOfA, costTreeNode.costs.Length);
+            //    sumSubGroupA = costTreeNode.Sum(0, sizeOfA);
+            //    sumSubGroupB = costTreeNode.Sum(sizeOfA, costTreeNode.costs.Length);
 
             //    //if maxValue is set i.e. were loking for a given cost solution
             //    if (maxCost != -1)
@@ -252,7 +273,7 @@ namespace CPF_experiment
             //        //if we are below the given solution no need to do goal test just expand node
             //        if (sumSubGroupA + sumSubGroupB < maxCost)
             //        {
-            //            costTreeNode.expandNode(openList, closedList);
+            //            costTreeNode.Expand(openList, closedList);
             //            openList.RemoveFirst();
             //            continue;
             //        }
@@ -260,7 +281,7 @@ namespace CPF_experiment
             //    // Reuse optimal solutions to previously solved subproblems
             //    if (sumSubGroupA >= costA && sumSubGroupB >= costB)
             //    {
-            //        next = new CostTreeNodeSolverDDBF(problem, costTreeNode,runner);
+            //        next = new CostTreeNodeSolverDDBF(problem, costTreeNode, runner);
             //        generated++;
             //        ans = next.Solve(conflictTable);
             //        expanded += next.GetExpanded();
@@ -278,7 +299,7 @@ namespace CPF_experiment
             //            }
             //        }
             //    }
-            //    costTreeNode.expandNode(openList, closedList);
+            //    costTreeNode.Expand(openList, closedList);
             //    openList.RemoveFirst();
             //}
             return false;
@@ -292,10 +313,10 @@ namespace CPF_experiment
         public int GetGenerated() { return this.generatedHL; }
         public int GetAccumulatedExpanded() { return this.accExpandedHL; }
         public int GetAccumulatedGenerated() { return this.accGeneratedHL; }
-        public int GetSolutionDepth() { return this.totalCost - initialHeuristics; }
+        public int GetSolutionDepth() { return this.solutionDepth; }
         public long GetMemoryUsed() { return Process.GetCurrentProcess().VirtualMemorySize64; }
         public int GetMaxGroupSize() { return problem.m_vAgents.Length; }
-        public SinglePlan[] GetSinglePlans() { return SinglePlan.GetSinglePlans(solution); }
+        public SinglePlan[] GetSinglePlans() { return solution; }
 
         public virtual int[] GetSingleCosts()
         {
@@ -306,20 +327,22 @@ namespace CPF_experiment
     class CostTreeSearchSolverOldMatching : CostTreeSearchSolver
     {
         int syncSize;
+
         public CostTreeSearchSolverOldMatching(int syncSize) : base() { this.syncSize = syncSize; }
+
         public override bool Solve()
         {
-            //long time=0;
-            CostTreeNodeSolverOldMatching next = new CostTreeNodeSolverOldMatching(problem,runner);
-            LinkedList<Move>[] ans = null;
+            CostTreeNodeSolverOldMatching nodeSolver = new CostTreeNodeSolverOldMatching(problem, runner); // TODO: This begs a factory.
+            SinglePlan[] ans = null;
             int sumSubGroupA;
             int sumSubGroupB;
+
             //TODO if no solution found the algorithm will never stop
             while (runner.ElapsedMilliseconds() < Constants.MAX_TIME)
             {
-                costTreeNode = openList.First.Value;
-                sumSubGroupA = costTreeNode.sum(0, sizeOfA);
-                sumSubGroupB = costTreeNode.sum(sizeOfA, costTreeNode.costs.Length);
+                costTreeNode = openList.Peek();
+                sumSubGroupA = costTreeNode.Sum(0, this.sizeOfA);
+                sumSubGroupB = costTreeNode.Sum(this.sizeOfA, costTreeNode.costs.Length);
 
                 if (maxCost != -1)
                 {
@@ -329,55 +352,64 @@ namespace CPF_experiment
                     //if we are below the given solution no need to do goal test just expand node
                     if (sumSubGroupA + sumSubGroupB < maxCost)
                     {
-                        costTreeNode.expandNode(openList, closedList);
-                        openList.RemoveFirst();
+                        costTreeNode.Expand(openList, closedList);
+                        openList.Dequeue();
                         continue;
                     }
                 }
 
                 // Reuse optimal solutions to previously solved subproblems
+                // Eli: Does this actually happen?
                 if (sumSubGroupA >= costA && sumSubGroupB >= costB)
                 {
-                    next.setup(costTreeNode,syncSize);
+                    nodeSolver.Setup(costTreeNode, syncSize);
                     expandedHL++;
-                    ans = next.Solve(ID_CAT,CBS_CAT);
-                    generatedLL += next.generated;
-                    expandedLL += next.expanded;
+                    ans = nodeSolver.Solve(ID_CAT, CBS_CAT);
+                    generatedLL += nodeSolver.generated;
+                    expandedLL += nodeSolver.expanded;
                     if (ans != null)
                     {
                         if (ans[0] != null)
                         {
-                            if (Constants.exhaustiveIcts == false)
+                            if (Constants.EXHAUSTIVE_ICTS == false)
                             {
-                                totalCost = next.costs.Sum();
-                                solution = ans;
-                                passed--;
+                                this.totalCost = nodeSolver.totalCost;
+                                this.solutionDepth = nodeSolver.totalCost - this.initialEstimate;
+                                this.solution = ans;
+                                CostTreeSearchSolver.passed--;
                                 return true;
                             }
 
-                            if (next.caViolations < this.minCAViolations)
+                            if (nodeSolver.caViolations < this.minCAViolations)
                             {
-                                totalCost = next.costs.Sum();
-                                solution = ans;
-                                passed--;
-                                this.minCAViolations = next.caViolations;
-                                maxCost = totalCost;
-                                if (next.caViolations == 0)
+                                this.totalCost = nodeSolver.totalCost;
+                                this.solutionDepth = nodeSolver.totalCost - this.initialEstimate;
+                                this.solution = ans;
+                                CostTreeSearchSolver.passed--;
+                                this.minCAViolations = nodeSolver.caViolations;
+                                this.maxCost = totalCost;
+                                if (nodeSolver.caViolations == 0)
                                     return true;
                             }
                         }
                     }
                 }
-                costTreeNode.expandNode(openList, closedList);
+
+                costTreeNode.Expand(openList, closedList);
                 generatedHL += costTreeNode.costs.Length;
-                openList.RemoveFirst();
+                openList.Dequeue();
             }
-            totalCost = Constants.TIMEOUT_COST;
+
+            this.totalCost = Constants.TIMEOUT_COST;
+            this.solutionDepth = nodeSolver.totalCost - this.initialEstimate; // A lower bound
             Console.WriteLine("Out of time");
             return false; 
         }
+
         public override String GetName() 
-        { return "ICTS " + syncSize + "E "; }
+        {
+            return "ICTS " + syncSize + "E ";
+        }
     }
 
     class CostTreeSearchSolverNoPruning : CostTreeSearchSolver
@@ -385,15 +417,15 @@ namespace CPF_experiment
         public override bool Solve()
         {
             CostTreeNodeSolverDDBF next = new CostTreeNodeSolverDDBF(problem, this.runner);
-            LinkedList<Move>[] ans = null;
+            SinglePlan[] ans = null;
             int sumSubGroupA;
             int sumSubGroupB;
             //TODO if no solution found the algorithm will never stop
             while (runner.ElapsedMilliseconds() < Constants.MAX_TIME)
             {
-                costTreeNode = openList.First.Value;
-                sumSubGroupA = costTreeNode.sum(0, sizeOfA);
-                sumSubGroupB = costTreeNode.sum(sizeOfA, costTreeNode.costs.Length);
+                costTreeNode = openList.Peek();
+                sumSubGroupA = costTreeNode.Sum(0, sizeOfA);
+                sumSubGroupB = costTreeNode.Sum(sizeOfA, costTreeNode.costs.Length);
 
                 if (maxCost != -1)
                 {
@@ -403,8 +435,8 @@ namespace CPF_experiment
                     //if we are below the given solution no need to do goal test just expand node
                     if (sumSubGroupA + sumSubGroupB < maxCost)
                     {
-                        costTreeNode.expandNode(openList, closedList);
-                        openList.RemoveFirst();
+                        costTreeNode.Expand(openList, closedList);
+                        openList.Dequeue();
                         continue;
                     }
                 }
@@ -412,7 +444,7 @@ namespace CPF_experiment
                 // Reuse optimal solutions to previously solved subproblems
                 if (sumSubGroupA >= costA && sumSubGroupB >= costB)
                 {
-                    next.setup(costTreeNode);
+                    next.Setup(costTreeNode);
                     expandedHL++;
                     ans = next.Solve(ID_CAT,CBS_CAT);
                     generatedLL += next.generated;
@@ -421,16 +453,16 @@ namespace CPF_experiment
                     {
                         if (ans[0] != null)
                         {
-                            if (Constants.exhaustiveIcts == false)
+                            if (Constants.EXHAUSTIVE_ICTS == false)
                             {
-                                totalCost = next.costs.Sum();
+                                totalCost = next.totalCost;
                                 solution = ans;
                                 return true;
                             }
 
                             if (next.caViolations < this.minCAViolations)
                             {
-                                totalCost = next.costs.Sum();
+                                totalCost = next.totalCost;
                                 solution = ans;
                                 this.minCAViolations = next.caViolations;
                                 maxCost = totalCost;
@@ -442,9 +474,9 @@ namespace CPF_experiment
                     }
                 }
                 passed++;
-                costTreeNode.expandNode(openList, closedList);
+                costTreeNode.Expand(openList, closedList);
                 generatedHL += costTreeNode.costs.Length;
-                openList.RemoveFirst();
+                openList.Dequeue();
             }
             totalCost = Constants.TIMEOUT_COST;
             Console.WriteLine("Out of time");
@@ -458,25 +490,25 @@ namespace CPF_experiment
         int maxGroupChecked;
         public CostTreeSearchSolverKMatch(int maxGroupChecked) : base() { this.maxGroupChecked = maxGroupChecked; }
         public override void Setup(ProblemInstance problemInstance, Run runner) { Setup(problemInstance, 0, runner); }
-        public override void Setup(ProblemInstance problemInstance, int minDepth, Run runner)
+        public override void Setup(ProblemInstance problemInstance, int minDepth, Run runner, int minCost = -1)
         {
             edgesMatrix = new int[problemInstance.m_vAgents.Length, problemInstance.GetMaxX() * problemInstance.GetMaxY() + problemInstance.GetMaxY(), Move.NUM_NON_DIAG_MOVES];
             edgesMatrixCounter = 0;
             maxY = problemInstance.GetMaxY();
-            base.Setup(problemInstance, minDepth, runner);
+            base.Setup(problemInstance, minDepth, runner, minCost);
         }
         public override bool Solve()
         {
-            CostTreeNodeSolverKSimpaleMatching next = new CostTreeNodeSolverKSimpaleMatching(problem, runner);
-            LinkedList<Move>[] ans = null;
+            CostTreeNodeSolverKSimpleMatching next = new CostTreeNodeSolverKSimpleMatching(problem, runner);
+            SinglePlan[] ans = null;
             int sumSubGroupA;
             int sumSubGroupB;
             //TODO if no solution found the algorithm will never stop
             while (runner.ElapsedMilliseconds() < Constants.MAX_TIME)
             {
-                costTreeNode = openList.First.Value;
-                sumSubGroupA = costTreeNode.sum(0, sizeOfA);
-                sumSubGroupB = costTreeNode.sum(sizeOfA, costTreeNode.costs.Length);
+                costTreeNode = openList.Peek();
+                sumSubGroupA = costTreeNode.Sum(0, sizeOfA);
+                sumSubGroupB = costTreeNode.Sum(sizeOfA, costTreeNode.costs.Length);
 
                 if (maxCost != -1)
                 {
@@ -486,8 +518,8 @@ namespace CPF_experiment
                     //if we are below the given solution no need to do goal test just expand node
                     if (sumSubGroupA + sumSubGroupB < maxCost)
                     {
-                        costTreeNode.expandNode(openList, closedList);
-                        openList.RemoveFirst();
+                        costTreeNode.Expand(openList, closedList);
+                        openList.Dequeue();
                         continue;
                     }
                 }
@@ -504,9 +536,9 @@ namespace CPF_experiment
                     {
                         if (ans[0] != null)
                         {
-                            if (Constants.exhaustiveIcts == false)
+                            if (Constants.EXHAUSTIVE_ICTS == false)
                             {
-                                totalCost = next.costs.Sum();
+                                totalCost = next.totalCost;
                                 solution = ans;
                                 passed--;
                                 return true;
@@ -514,7 +546,7 @@ namespace CPF_experiment
 
                             if (next.caViolations < this.minCAViolations)
                             {
-                                totalCost = next.costs.Sum();
+                                totalCost = next.totalCost;
                                 solution = ans;
                                 passed--;
                                 this.minCAViolations = next.caViolations;
@@ -525,9 +557,9 @@ namespace CPF_experiment
                         }
                     }
                 }
-                costTreeNode.expandNode(openList, closedList);
+                costTreeNode.Expand(openList, closedList);
                 generatedHL += costTreeNode.costs.Length;
-                openList.RemoveFirst();
+                openList.Dequeue();
             }
             totalCost = Constants.TIMEOUT_COST;
             Console.WriteLine("Out of time");
@@ -536,23 +568,23 @@ namespace CPF_experiment
         public override String GetName() { return "ICTS+" + maxGroupChecked + "S "; }
     }
 
-    class CostTreeSearchSolverRepatedMatch : CostTreeSearchSolver
+    class CostTreeSearchSolverRepeatedMatch : CostTreeSearchSolver
     {
         int syncSize;
-        public CostTreeSearchSolverRepatedMatch(int syncSize) : base() { this.syncSize = syncSize; }
+        public CostTreeSearchSolverRepeatedMatch(int syncSize) : base() { this.syncSize = syncSize; }
         public override void Setup(ProblemInstance problemInstance, Run runner) { Setup(problemInstance, 0, runner); }
-        public override void Setup(ProblemInstance problemInstance, int minDepth, Run runner)
+        public override void Setup(ProblemInstance problemInstance, int minDepth, Run runner, int minCost = -1)
         {
             edgesMatrix = new int[problemInstance.m_vAgents.Length, problemInstance.GetMaxX() * problemInstance.GetMaxY() + problemInstance.GetMaxY(), Move.NUM_NON_DIAG_MOVES];
             edgesMatrixCounter = 0;
             maxY = problemInstance.GetMaxY();
-            base.Setup(problemInstance, minDepth, runner);
+            base.Setup(problemInstance, minDepth, runner, minCost);
         }
         public override bool Solve()
         {
             //int time = 0;
-            CostTreeNodeSolverRepatedMatching next = new CostTreeNodeSolverRepatedMatching(problem, runner);
-            LinkedList<Move>[] ans = null;
+            CostTreeNodeSolverRepeatedMatching next = new CostTreeNodeSolverRepeatedMatching(problem, runner);
+            SinglePlan[] ans = null;
             Stopwatch sw = new Stopwatch();
             int sumSubGroupA;
             int sumSubGroupB;
@@ -560,9 +592,9 @@ namespace CPF_experiment
             while (runner.ElapsedMilliseconds() < Constants.MAX_TIME)
             {
                 sw.Reset();
-                costTreeNode = openList.First.Value;
-                sumSubGroupA = costTreeNode.sum(0, sizeOfA);
-                sumSubGroupB = costTreeNode.sum(sizeOfA, costTreeNode.costs.Length);
+                costTreeNode = openList.Peek();
+                sumSubGroupA = costTreeNode.Sum(0, sizeOfA);
+                sumSubGroupB = costTreeNode.Sum(sizeOfA, costTreeNode.costs.Length);
 
                 if (maxCost != -1)
                 {
@@ -572,8 +604,8 @@ namespace CPF_experiment
                     //if we are below the given solution no need to do goal test just expand node
                     if (sumSubGroupA + sumSubGroupB < maxCost)
                     {
-                        costTreeNode.expandNode(openList, closedList);
-                        openList.RemoveFirst();
+                        costTreeNode.Expand(openList, closedList);
+                        openList.Dequeue();
                         continue;
                     }
                 }
@@ -595,9 +627,9 @@ namespace CPF_experiment
                     {
                         if (ans[0] != null)
                         {
-                            if (Constants.exhaustiveIcts == false)
+                            if (Constants.EXHAUSTIVE_ICTS == false)
                             {
-                                totalCost = next.costs.Sum();
+                                totalCost = next.totalCost;
                                 solution = ans;
                                 passed--;
                                 return true;
@@ -605,7 +637,7 @@ namespace CPF_experiment
 
                             if (next.caViolations < this.minCAViolations)
                             {
-                                totalCost = next.costs.Sum();
+                                totalCost = next.totalCost;
                                 solution = ans;
                                 passed--;
                                 this.minCAViolations = next.caViolations;
@@ -616,9 +648,9 @@ namespace CPF_experiment
                         }
                     }
                 }
-                costTreeNode.expandNode(openList, closedList);
+                costTreeNode.Expand(openList, closedList);
                 generatedHL += costTreeNode.costs.Length;
-                openList.RemoveFirst();
+                openList.Dequeue();
             }
             totalCost = Constants.TIMEOUT_COST;
             Console.WriteLine("Out of time");

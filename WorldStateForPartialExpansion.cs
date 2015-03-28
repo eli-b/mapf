@@ -36,7 +36,7 @@ namespace CPF_experiment
         /// Create a state with the given state for every agent.
         /// </summary>
         /// <param name="allAgentsState"></param>
-        public WorldStateForPartialExpansion(AgentState[] allAgentsState, int minDepth = -1): base(allAgentsState, minDepth)
+        public WorldStateForPartialExpansion(AgentState[] allAgentsState, int minDepth = -1, int minCost = -1): base(allAgentsState, minDepth, minCost)
         {
             this.alreadyExpanded = false;
             this.maxDeltaF = 0;
@@ -72,12 +72,29 @@ namespace CPF_experiment
             this.fLookup = null;
         }
 
-        // Notice is isn't necessary to implement a CompareTo method that further tie-breaks in favor of lower targetDeltaF's
-        // because the targetDeltaF is already taken into account in the node's H.
+        public override int CompareTo(IBinaryHeapItem other)
+        {
+            this.h += this.targetDeltaF;
+            WorldStateForPartialExpansion otherNode = (WorldStateForPartialExpansion)other;
+            otherNode.h += otherNode.targetDeltaF;
 
-        public delegate bool ValidityChecker(TimedMove move, HashSet<TimedMove> currentMoves, int makespan, int agentNum);
+            int res = base.CompareTo(other);
 
-        private static readonly HashSet<TimedMove> noMoves = new HashSet<TimedMove>();
+            this.h -= this.targetDeltaF;
+            otherNode.h -= otherNode.targetDeltaF;
+
+            return res;
+        }
+
+        public override string ToString()
+        {
+            //return base.ToString() + "\nTarget delta F = " + this.targetDeltaF;
+            return base.ToString() + " with target delta F = " + this.targetDeltaF;
+        }
+
+        public delegate bool ValidityChecker(TimedMove move, IReadOnlyDictionary<TimedMove, int> currentMoves, int makespan, int agentIndex, WorldState node, WorldState intermediateNode);
+
+        private static readonly IReadOnlyDictionary<TimedMove, int> noMoves = new Dictionary<TimedMove, int>();
 
         /// <summary>
         /// Calculates for each agent and each direction it can go, the effect of that move on F. Illegal moves get byte.MaxValue.
@@ -108,7 +125,7 @@ namespace CPF_experiment
 
                 foreach (TimedMove check in allAgentsState[i].lastMove.GetNextMoves())
                 {
-                    if (isValid(check, noMoves, this.makespan + 1, allAgentsState[i].agent.agentNum) == false)
+                    if (isValid(check, noMoves, this.makespan + 1, i, this, this) == false)
                     {
                          singleAgentDeltaFs[i][(int)check.direction] = byte.MaxValue;
                     }
@@ -116,14 +133,26 @@ namespace CPF_experiment
                     {
                         hAfter = problem.GetSingleAgentOptimalCost(allAgentsState[i].agent.agentNum, check); // According to SIC
 
-                        if (hBefore != 0)
-                            singleAgentDeltaFs[i][(int)check.direction] = (byte)(hAfter - hBefore + 1); // h difference + g difference in this specific domain
-                        else if (hAfter != 0) // If agent moved from its goal we must count and add all the steps it was stationed at the goal, since they're now part of its g difference
-                            singleAgentDeltaFs[i][(int)check.direction] = (byte)(hAfter - hBefore + makespan - allAgentsState[i].arrivalTime + 1);
-                        else
-                            singleAgentDeltaFs[i][(int)check.direction] = 0; // This is a WAIT move at the goal.
+                        if (Constants.Variant == Constants.ProblemVariant.ORIG)
+                        {
+                            if (hBefore != 0)
+                                singleAgentDeltaFs[i][(int)check.direction] = (byte)(hAfter - hBefore + 1); // h difference + g difference in this specific domain
+                            else if (hAfter != 0) // If agent moved from its goal we must count and add all the steps it was stationed at the goal, since they're now part of its g difference
+                                singleAgentDeltaFs[i][(int)check.direction] = (byte)(hAfter - hBefore + makespan - allAgentsState[i].arrivalTime + 1);
+                            else
+                                singleAgentDeltaFs[i][(int)check.direction] = 0; // This is a WAIT move at the goal.
 
-                        singleAgentMaxLegalDeltaF = Math.Max(singleAgentMaxLegalDeltaF, singleAgentDeltaFs[i][(int)check.direction]);
+                            singleAgentMaxLegalDeltaF = Math.Max(singleAgentMaxLegalDeltaF, singleAgentDeltaFs[i][(int)check.direction]);
+                        }
+                        else if (Constants.Variant == Constants.ProblemVariant.NEW)
+                        {
+                            if (hBefore == 0 && hAfter == 0)
+                                singleAgentDeltaFs[i][(int)check.direction] = 0; // This is a WAIT move at the goal.
+                            else
+                                singleAgentDeltaFs[i][(int)check.direction] = (byte)(hAfter - hBefore + 1); // h difference + g difference in this specific domain
+
+                            singleAgentMaxLegalDeltaF = Math.Max(singleAgentMaxLegalDeltaF, singleAgentDeltaFs[i][(int)check.direction]);
+                        }
                     }
                 }
 
@@ -153,7 +182,7 @@ namespace CPF_experiment
             return this.targetDeltaF <= this.maxDeltaF;
         }
         
-        public bool isAlreadyExpanded()
+        public bool IsAlreadyExpanded()
         {
             return alreadyExpanded;
         }
@@ -217,13 +246,25 @@ namespace CPF_experiment
         /// For fully expanded nodes.
         /// Notice ClearExpansionData does a similar thing, but for different reasons.
         /// </summary>
-        public void Clear()
+        public override void Clear()
         {
             this.alreadyExpanded = false; // Enables reopening
             // The following info could be reused when reopening the node, saving the time it takes to generate it,
             // but reopening a node is rare in our domain, and the memory saved can be significant
             this.fLookup = null; // Save a lot of memory
             this.singleAgentDeltaFs = null; // Save some more memory
+            this.targetDeltaF = 0;
+            this.remainingDeltaF = 0;
+            //this.h -= this.hBonus; // Reset the h
+            //this.hBonus = 0;
+        }
+
+        public override int f
+        {
+            get
+            {
+                return this.g + this.h + this.targetDeltaF;
+            }
         }
     }
 }

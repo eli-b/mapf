@@ -1,77 +1,85 @@
 ﻿
 namespace CPF_experiment
 {
-    class CostTreeSearch : Trevor
-    {
-        public static string PARENT_GROUP1_KEY = "parentGroup1";
-        public static string PARENT_GROUP2_KEY = "parentGroup2";
+    ///// <summary>
+    ///// Ignore. Implementation of ID for ICTS.
+    ///// </summary>
+    //class CostTreeSearch : IndependenceDetection
+    //{
+    //    public static string PARENT_GROUP1_KEY = "parentGroup1";
+    //    public static string PARENT_GROUP2_KEY = "parentGroup2";
 
 
-        public CostTreeSearch()
-            : base(new CostTreeSearchSolver()){}
+    //    public CostTreeSearch(HeuristicCalculator heuristic)
+    //        : base(, new CostTreeSearchSolver(), heuristic) { }
 
-        public CostTreeSearch(ISolver groupSolver)
-            : base(groupSolver){}
+    //    public CostTreeSearch(ISolver singleSolver, ISolver groupSolver, HeuristicCalculator heuristic)
+    //        : base(singleSolver, groupSolver, heuristic) { }
 
-        public override string GetName() { return "CostTreeSearch+ID "; }
+    //    public override string GetName() { return "CostTreeSearch+ID "; }
 
-        /// <summary>
-        /// Join the conflicting groups into a single group
-        /// </summary>
-        /// <param name="conflict">An object that describes the conflict</param>
-        /// <returns>The composite group of agents</returns>
-        protected override AgentsGroup JoinGroups(Conflict conflict)
-        {
-            AgentsGroup answer = conflict.group1.Join(conflict.group2);
-            // TODO: Currently storing the previous groups - this might lead to a memory problem when there are many agents
-            // (if this happens then store only the costs)
-            answer.instance.parameters[PARENT_GROUP1_KEY] = conflict.group1;
-            answer.instance.parameters[PARENT_GROUP2_KEY] = conflict.group2;
+    //    public override string ToString()
+    //    {
+    //        return GetName();
+    //    }
 
-            // Free memory of grandparents
-            conflict.group1.instance.parameters.Remove(PARENT_GROUP1_KEY);
-            conflict.group1.instance.parameters.Remove(PARENT_GROUP2_KEY);
-            conflict.group2.instance.parameters.Remove(PARENT_GROUP1_KEY);
-            conflict.group2.instance.parameters.Remove(PARENT_GROUP2_KEY);
+    //    /// <summary>
+    //    /// Join the conflicting groups into a single group
+    //    /// </summary>
+    //    /// <param name="conflict">An object that describes the conflict</param>
+    //    /// <returns>The composite group of agents</returns>
+    //    protected override AgentsGroup JoinGroups(Conflict conflict)
+    //    {
+    //        AgentsGroup answer = conflict.group1.Join(conflict.group2);
+    //        // TODO: Currently storing the previous groups - this might lead to a memory problem when there are many agents
+    //        // (if this happens then store only the costs)
+    //        answer.instance.parameters[PARENT_GROUP1_KEY] = conflict.group1;
+    //        answer.instance.parameters[PARENT_GROUP2_KEY] = conflict.group2;
 
-            return answer;
-        }
+    //        // Free memory of grandparents
+    //        conflict.group1.instance.parameters.Remove(PARENT_GROUP1_KEY);
+    //        conflict.group1.instance.parameters.Remove(PARENT_GROUP2_KEY);
+    //        conflict.group2.instance.parameters.Remove(PARENT_GROUP1_KEY);
+    //        conflict.group2.instance.parameters.Remove(PARENT_GROUP2_KEY);
 
-    }
-    class CostTreeSearchOldMatching : CostTreeSearch
-    {
-        int sycSize;
-        public CostTreeSearchOldMatching(int sycSize)
-            : base(new CostTreeSearchSolverOldMatching(sycSize)) { this.sycSize = sycSize; }
+    //        return answer;
+    //    }
 
-        public override string GetName() { return "ICTS " + sycSize + "E+ID "; }
-    }
-    class CostTreeSearchNoPruning : CostTreeSearch
-    {
-        public CostTreeSearchNoPruning()
-            : base(new CostTreeSearchSolverNoPruning()){}
+    //}
+    //class CostTreeSearchOldMatching : CostTreeSearch
+    //{
+    //    int sycSize;
+    //    public CostTreeSearchOldMatching(int sycSize, HeuristicCalculator heuristic)
+    //        : base(new CostTreeSearchSolverOldMatching(sycSize), heuristic) { this.sycSize = sycSize; }
 
-        public override string GetName() { return "ICTS " + "+ID "; }
+    //    public override string GetName() { return "ICTS " + sycSize + "E+ID "; }
+    //}
+    //class CostTreeSearchNoPruning : CostTreeSearch
+    //{
+    //    public CostTreeSearchNoPruning(HeuristicCalculator heuristic)
+    //        : base(new CostTreeSearchSolverNoPruning(), heuristic) { }
 
-    }
+    //    public override string GetName() { return "ICTS " + "+ID "; }
 
-    class CostTreeSearchKMatch : CostTreeSearch
-    {
-        int maxGroupChecked;
-        public CostTreeSearchKMatch(int maxGroupChecked)
-            : base(new CostTreeSearchSolverKMatch(maxGroupChecked)) { this.maxGroupChecked = maxGroupChecked; }
+    //}
+
+    //class CostTreeSearchKMatch : CostTreeSearch
+    //{
+    //    int maxGroupChecked;
+    //    public CostTreeSearchKMatch(int maxGroupChecked, HeuristicCalculator heuristic)
+    //        : base(new CostTreeSearchSolverKMatch(maxGroupChecked), heuristic) { this.maxGroupChecked = maxGroupChecked; }
 
 
-        public override string GetName() { return "ICTS " + maxGroupChecked + "S+ID "; }
+    //    public override string GetName() { return "ICTS " + maxGroupChecked + "S+ID "; }
 
-    }
+    //}
 
-    class CostTreeSearchRepatedMatch : CostTreeSearch
-    {
-        int sycSize;
-        public CostTreeSearchRepatedMatch(int sycSize)
-            : base(new CostTreeSearchSolverRepatedMatch(sycSize)) { this.sycSize = sycSize; }
+    //class CostTreeSearchRepatedMatch : CostTreeSearch
+    //{
+    //    int sycSize;
+    //    public CostTreeSearchRepatedMatch(int sycSize, HeuristicCalculator heuristic)
+    //        : base(new CostTreeSearchSolverRepeatedMatch(sycSize), heuristic) { this.sycSize = sycSize; }
 
-        public override string GetName() { return "ICTS " + sycSize + "RE+ID "; }
-    }
+    //    public override string GetName() { return "ICTS " + sycSize + "RE+ID "; }
+    //}
 }

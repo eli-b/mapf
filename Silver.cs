@@ -13,7 +13,7 @@ namespace CPF_experiment
     class Silver 
     {
         Run runner;
-        HashSet<Move> RT;
+        HashSet<TimedMove> RT;
         AgentState[] allAgentsState;
         Hashtable parked;
         int[] allPathCost;
@@ -25,7 +25,7 @@ namespace CPF_experiment
 
         public Silver()
         {
-            RT = new HashSet<Move>();
+            RT = new HashSet<TimedMove>();
             parked = new Hashtable();
         }
 
@@ -171,7 +171,7 @@ namespace CPF_experiment
         {
             if (this.problem.IsValid(move))
             {
-                if (move.IsColliding(RT) == false)
+                if (move.IsColliding(this.RT) == false)
                 {
                     Move key = new Move(move.x, move.y, Move.Direction.NO_DIRECTION);
                     if (!parked.Contains(key) || (int)(parked[key]) > move.time)
@@ -213,7 +213,7 @@ namespace CPF_experiment
         private void printPath(AgentState final)
         {
             Console.WriteLine(final.agent.ToString());
-            Console.WriteLine("-----------------------");
+            Console.WriteLine("-----------------");
             while (final != null)
             {
                 Console.WriteLine(final.ToString());

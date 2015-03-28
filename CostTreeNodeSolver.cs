@@ -12,7 +12,7 @@ namespace CPF_experiment
         protected MDD[] allMDDs;
         int maxCost;
         AgentState[] startingPos;
-        public int[] costs;
+        public int totalCost;
         public int generated;
         public int expanded;
         protected Run runner;
@@ -20,62 +20,93 @@ namespace CPF_experiment
 
         public int caViolations;
 
-        public static int matchCounter; //debugging
+        public static int matchCounter; // For debugging
 
         public CostTreeNodeSolver(ProblemInstance problem, Run runner)
         {
             this.runner = runner;
             this.problem = problem;
-            allMDDs = new MDD[problem.GetNumOfAgents()];
+            this.allMDDs = new MDD[problem.GetNumOfAgents()];
         }
-        public CostTreeNodeSolver(ProblemInstance problem, CostTreeNode costNode, Run runner) //make sure agent numbers are in the correct order
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="problem"></param>
+        /// <param name="runner"></param>
+        /// <param name="agentNums"></param>
+        /// <param name="costsNode">Of all the agents, not just the ones selected</param>
+        public CostTreeNodeSolver(ProblemInstance problem, Run runner, int[] agentNums, CostTreeNode costsNode)
         {
             this.runner = runner;
-            AgentState agent;
-            maxCost=0;
-            allMDDs = new MDD[problem.GetNumOfAgents()];
-            this.startingPos = problem.m_vAgents;
-            this.costs = costNode.costs;
             this.problem = problem;
+            this.allMDDs = new MDD[agentNums.Length];
 
-            maxCost = costNode.costs.Max();
-            for (int i = 0; i < startingPos.Length; i++) 
-            {
-                agent=startingPos[i];
-                allMDDs[i] = new MDD(i, agent.agent.agentNum, agent.lastMove, costNode.costs[i], maxCost, startingPos.Length, problem);
-            }
-
-            matchCounter = 0;
+            this.Setup(agentNums, costsNode);
         }
 
-        public virtual void setup(CostTreeNode costNode)
+        /// <summary>
+        /// Automatically calls Setup with the given costsNode
+        /// </summary>
+        /// <param name="problem"></param>
+        /// <param name="costsNode">TODO: Maybe just pass the array of costs here?</param>
+        /// <param name="runner"></param>
+        public CostTreeNodeSolver(ProblemInstance problem, CostTreeNode costNode, Run runner) // Make sure agent numbers are in the correct order
+            : this(problem, runner)
         {
-            AgentState agent;
-            maxCost = 0;
-            this.startingPos = problem.m_vAgents;
-            this.costs = costNode.costs;
+            this.Setup(costNode);
+        }
 
-            maxCost = costNode.costs.Max();
-            for (int i = 0; i < startingPos.Length; i++)
+        public virtual void Setup(CostTreeNode costsNode)
+        {
+            this.startingPos = problem.m_vAgents;
+            this.totalCost = costsNode.costs.Sum();
+            this.maxCost = costsNode.costs.Max();
+
+            for (int i = 0; i < this.allMDDs.Length; i++)
             {
-                agent = startingPos[i];
-                allMDDs[i] = new MDD(i, agent.agent.agentNum, agent.lastMove, costNode.costs[i], maxCost, startingPos.Length, problem);
+                this.allMDDs[i] = new MDD(i, startingPos[i].agent.agentNum, startingPos[i].lastMove,
+                                     costsNode.costs[i], maxCost, startingPos.Length, problem);
             }
-            generated = 0;
-            matchCounter = 0;
+            this.generated = 0;
+            // TODO: Not clearing the expanded count?
+            CostTreeNodeSolver.matchCounter = 0;
+        }
+
+        public virtual void Setup(int[] agentNums, CostTreeNode costsNode)
+        {
+            this.startingPos = new AgentState[agentNums.Length];
+            int index = 0;
+            foreach (var agentNum in agentNums)
+            {
+                while (problem.m_vAgents[index].agent.agentNum != agentNum)
+                    ++index;
+                this.startingPos[index] = this.problem.m_vAgents[index];
+            }
+            this.totalCost = costsNode.costs.Sum();
+            this.maxCost = costsNode.costs.Max();
+
+            for (int i = 0; i < this.allMDDs.Length; i++)
+            {
+                this.allMDDs[i] = new MDD(agentNums[i], startingPos[i].agent.agentNum, startingPos[i].lastMove,
+                                     costsNode.costs[i], maxCost, startingPos.Length, problem);
+            }
+            this.generated = 0;
+            // TODO: Not clearing the expanded count?
+            CostTreeNodeSolver.matchCounter = 0;
         }
 
         /// <summary>
         /// Tries to find a solution for the agents with the given cost.
         /// </summary>
         /// <returns>The solution if found or null otherwise</returns>
-        public abstract LinkedList<Move>[] Solve(HashSet<TimedMove> conflictTable, HashSet_U<TimedMove> CBS_CAT);
-        public int getGenerated() { return generated; }
+        public abstract SinglePlan[] Solve(Dictionary<TimedMove, List<int>> conflictTable, Dictionary<TimedMove, List<int>> CBS_CAT);
 
+        public int getGenerated() { return generated; }
     }
 
 
-    class CostTreeNode
+    public class CostTreeNode
     {
         public int[] costs;
 
@@ -83,26 +114,23 @@ namespace CPF_experiment
         {
             this.costs = costs;
         }
-        public void expandNode(LinkedList<CostTreeNode> openList, HashSet<CostTreeNode> closedList)
+
+        public void Expand(Queue<CostTreeNode> openList, HashSet<CostTreeNode> closedList)
         {
-            CostTreeNode temp;
             for (int j = 0; j < costs.Length; j++)
             {
-                int[] newCosts = new int[costs.Length];
-                for (int i = 0; i < costs.Length; i++)
-                {
-                    newCosts[i] = costs[i];
-                }
+                int[] newCosts = this.costs.ToArray<int>();
                 newCosts[j]++;
-                temp = new CostTreeNode(newCosts);
-                if (!closedList.Contains(temp))
+                var child = new CostTreeNode(newCosts);
+                if (!closedList.Contains(child))
                 {
-                    closedList.Add(temp);
-                    openList.AddLast(temp);
+                    closedList.Add(child);
+                    openList.Enqueue(child);
                 }
             }
         }
-        public int sum(int from, int to)
+
+        public int Sum(int from, int to)
         {
             int ans = 0;
             for (int i = from; i < to; i++)
@@ -111,73 +139,86 @@ namespace CPF_experiment
             }
             return ans;
         }
+
         public override int GetHashCode()
         {
             unchecked
             {
                 int ans = 0;
-                int[] primes = { 1, 2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 71, 73, 79 };
                 for (int i = 0; i < costs.Length; i++)
                 {
-                    ans += costs[i] * primes[i % primes.Length];
+                    ans += costs[i] * Constants.PRIMES_FOR_HASHING[i % Constants.PRIMES_FOR_HASHING.Length];
                 }
                 return ans;
             }
         }
+
         public override bool Equals(object obj)
         {
             CostTreeNode check = (CostTreeNode)obj;
-            for (int i = 0; i < costs.Length; i++)
-            {
-                if (costs[i]!=check.costs[i])
-                {
-                    return false;
-                }
-            }
-            return true;
+            return this.costs.SequenceEqual<int>(check.costs);
         }
     }
 
+    /// <summary>
+    /// Use this one!
+    /// </summary>
     class CostTreeNodeSolverOldMatching : CostTreeNodeSolver
     {
         int syncSize;
-        public CostTreeNodeSolverOldMatching(ProblemInstance problem, Run runner):base(problem,runner){}
+        public CostTreeNodeSolverOldMatching(ProblemInstance problem, Run runner) : base(problem, runner) {}
         public CostTreeNodeSolverOldMatching(ProblemInstance problem, CostTreeNode costNode, Run runner, int syncSize) : base(problem, costNode, runner) { this.syncSize = syncSize; }
-        public void setup(CostTreeNode costNode, int syncSize)
+        
+        public void Setup(CostTreeNode costNode, int syncSize)
         {
-            base.setup(costNode);
+            base.Setup(costNode);
             this.syncSize = syncSize;
         }
-        public override LinkedList<Move>[] Solve(HashSet<TimedMove> conflictTable, HashSet_U<TimedMove> CBS_CAT)
+
+        /// <summary>
+        /// Prunes the individual agent MDDs and, if possible, matches them to return a non-conflicting configuration of
+        /// paths of the given costs.
+        /// </summary>
+        /// <param name="conflictTable"></param>
+        /// <param name="CBS_CAT"></param>
+        /// <returns>
+        /// null if no solution is found.
+        /// </returns>
+        public override SinglePlan[] Solve(Dictionary<TimedMove, List<int>> conflictTable, Dictionary<TimedMove, List<int>> CBS_CAT)
         {
-            int notConflicting=1;
-            for (int i = allMDDs.Length - 1; i >= 0; i--)
-            {
-                for (int j = i + 1; j < allMDDs.Length; j++)
-                {
-                    if (syncSize == 2)
-                        notConflicting = allMDDs[i].sync2GDDs(allMDDs[j]);
-                    else if (syncSize == 3)
-                        notConflicting = allMDDs[i].sync3GDDs(allMDDs[j], j);
-                    //Run.resultsWriterdd.Write(matchCounter + ",");
-                    //Run.resultsWriterdd.WriteLine();
-                    if (notConflicting == 0)
-                    {
-                        return null;
-                    }
-                }
-            }
-            if (allMDDs[0].levels == null)
+            if (this.Prune()) // Everything was pruned
                 return null;
 
             CostTreeSearchSolver.passed++;
             AStarMDD findSolution = new AStarMDD(allMDDs, runner, conflictTable, CBS_CAT);
             
-            LinkedList<Move>[] ans =  findSolution.Solve();
-            generated = findSolution.generated;
-            expanded = findSolution.expanded;
-            caViolations = findSolution.conflictAvoidanceViolations;
+            SinglePlan[] ans = findSolution.Solve();
+            this.generated = findSolution.generated;
+            this.expanded = findSolution.expanded;
+            this.caViolations = findSolution.conflictAvoidanceViolations;
             return ans;
+        }
+
+        /// <summary>
+        /// Prunes the individual agent MDDs and prepares data for matching them
+        /// </summary>
+        /// <returns>Whether everything was pruned</returns>
+        public bool Prune()
+        {
+            for (int i = allMDDs.Length - 1; i >= 0; i--)
+            {
+                for (int j = i + 1; j < allMDDs.Length; j++)
+                {
+                    MDD.PruningDone pruningDone = MDD.PruningDone.NOTHING;
+                    pruningDone = allMDDs[i].SyncMDDs(allMDDs[j], this.syncSize == 3);
+
+                    if (pruningDone == MDD.PruningDone.EVERYTHING)
+                        return true;
+                }
+            }
+            if (allMDDs[0].levels == null)
+                return true;
+            return false;
         }
     }
 
@@ -185,17 +226,17 @@ namespace CPF_experiment
     {
         public CostTreeNodeSolverDDBF(ProblemInstance problem, Run runner) : base(problem, runner) { }
         public CostTreeNodeSolverDDBF(ProblemInstance problem, CostTreeNode costNode, Run runner) : base(problem, costNode, runner) { }
-        public override void setup(CostTreeNode costNode)
+        public override void Setup(CostTreeNode costNode)
         {
-            base.setup(costNode);
+            base.Setup(costNode);
         }
-        public override LinkedList<Move>[] Solve(HashSet<TimedMove> conflictTable, HashSet_U<TimedMove> CBS_CAT)
+        public override SinglePlan[] Solve(Dictionary<TimedMove, List<int>> conflictTable, Dictionary<TimedMove, List<int>> CBS_CAT)
         {
             for (int i = 0; i < allMDDs.Length; i++)
                 if (allMDDs[i].levels == null)
                     return null;
-            AStarMDD findSolution = new AStarMDD(allMDDs, runner, conflictTable,CBS_CAT);
-            LinkedList<Move>[] ans = findSolution.Solve();
+            AStarMDD findSolution = new AStarMDD(allMDDs, runner, conflictTable, CBS_CAT);
+            SinglePlan[] ans = findSolution.Solve();
             generated = findSolution.generated;
             expanded = findSolution.expanded;
             caViolations = findSolution.conflictAvoidanceViolations;
@@ -203,20 +244,20 @@ namespace CPF_experiment
         }
     }
 
-    class CostTreeNodeSolverKSimpaleMatching : CostTreeNodeSolver
+    class CostTreeNodeSolverKSimpleMatching : CostTreeNodeSolver
     {
         int maxGroupChecked;
-        public CostTreeNodeSolverKSimpaleMatching(ProblemInstance problem, Run runner) : base(problem, runner) { }
-        public CostTreeNodeSolverKSimpaleMatching(ProblemInstance problem, CostTreeNode costNode, Run runner, int maxGroupChecked) : base(problem, costNode, runner) { this.maxGroupChecked = maxGroupChecked; }
+        public CostTreeNodeSolverKSimpleMatching(ProblemInstance problem, Run runner) : base(problem, runner) { }
+        public CostTreeNodeSolverKSimpleMatching(ProblemInstance problem, CostTreeNode costNode, Run runner, int maxGroupChecked) : base(problem, costNode, runner) { this.maxGroupChecked = maxGroupChecked; }
         public void setup(CostTreeNode costNode,int maxGroupChecked)
         {
-            base.setup(costNode);
+            base.Setup(costNode);
             this.maxGroupChecked = maxGroupChecked;
         }
-        public override LinkedList<Move>[] Solve(HashSet<TimedMove> conflictTable, HashSet_U<TimedMove> CBS_CAT)
+        public override SinglePlan[] Solve(Dictionary<TimedMove, List<int>> conflictTable, Dictionary<TimedMove, List<int>> CBS_CAT)
         {
             AStarMDD findSolution;
-            LinkedList<Move>[] subCheck;
+            SinglePlan[] subCheck;
             MDD[] match;
             MddMatchAndPrune matcher = new MddMatchAndPrune(runner);
 
@@ -311,7 +352,7 @@ namespace CPF_experiment
             if (allMDDs[0].levels == null)
                 return null;
             findSolution = new AStarMDD(allMDDs, runner, conflictTable,CBS_CAT);
-            LinkedList<Move>[] ans = findSolution.Solve();
+            SinglePlan[] ans = findSolution.Solve();
             generated = findSolution.generated;
             expanded = findSolution.expanded;
             caViolations = findSolution.conflictAvoidanceViolations;
@@ -319,23 +360,23 @@ namespace CPF_experiment
         }
     }
 
-    class CostTreeNodeSolverRepatedMatching : CostTreeNodeSolver
+    class CostTreeNodeSolverRepeatedMatching : CostTreeNodeSolver
     {
         int syncSize;
-        public CostTreeNodeSolverRepatedMatching(ProblemInstance problem, Run runner) : base(problem, runner) { }
-        public CostTreeNodeSolverRepatedMatching(ProblemInstance problem, CostTreeNode costNode, Run runner, int syncSize) : base(problem, costNode, runner) { this.syncSize = syncSize; }
+        public CostTreeNodeSolverRepeatedMatching(ProblemInstance problem, Run runner) : base(problem, runner) { }
+        public CostTreeNodeSolverRepeatedMatching(ProblemInstance problem, CostTreeNode costNode, Run runner, int syncSize) : base(problem, costNode, runner) { this.syncSize = syncSize; }
         public void setup(CostTreeNode costNode, int syncSize)
         {
-            base.setup(costNode);
+            base.Setup(costNode);
             this.syncSize = syncSize;
         }
-        public override LinkedList<Move>[] Solve(HashSet<TimedMove> conflictTable, HashSet_U<TimedMove> CBS_CAT)
+        public override SinglePlan[] Solve(Dictionary<TimedMove, List<int>> conflictTable, Dictionary<TimedMove, List<int>> CBS_CAT)
         {
             MDD[] match = new MDD[2];
             bool Converging = true;
             int[] changed = new int[allMDDs.Length];
             int currentIteration = 0;
-            int conflictStatus=1;
+            MDD.PruningDone conflictStatus = MDD.PruningDone.NOTHING;
 
             while (Converging)
             {
@@ -346,35 +387,29 @@ namespace CPF_experiment
                 {
                     for (int j = i + 1; j < allMDDs.Length; j++)
                     {
-                        if (changed[i] >= currentIteration - 1 || changed[j] >= currentIteration - 1)//if at least one of the two MDDs was changed during the last iteration
+                        if (changed[i] >= currentIteration - 1 || changed[j] >= currentIteration - 1) // If at least one of the two MDDs was changed during the last iteration
                         {
-                            if (syncSize == 2)
-                                conflictStatus = allMDDs[i].sync2GDDs(allMDDs[j]);
-                            else if (syncSize == 3)
-                                conflictStatus = allMDDs[i].sync3GDDs(allMDDs[j], j);
+                            conflictStatus = allMDDs[i].SyncMDDs(allMDDs[j], this.syncSize == 3);
 
-                            if (conflictStatus == 0)
+                            if (conflictStatus == MDD.PruningDone.EVERYTHING)
                             {
                                 return null;
                             }
 
-                            else if (conflictStatus == 2)
+                            else if (conflictStatus == MDD.PruningDone.SOME)
                             {
                                 changed[i] = currentIteration;
                                 Converging = true;
                             }
 
-                            if (syncSize == 2)
-                                conflictStatus = allMDDs[i].sync2GDDs(allMDDs[j]);
-                            else if (syncSize == 3)
-                                conflictStatus = allMDDs[i].sync3GDDs(allMDDs[j], j);
+                            conflictStatus = allMDDs[i].SyncMDDs(allMDDs[j], this.syncSize == 3);
 
-                            if (conflictStatus == 0)
+                            if (conflictStatus == MDD.PruningDone.EVERYTHING)
                             {
                                 return null;
                             }
 
-                            else if (conflictStatus == 2)
+                            else if (conflictStatus == MDD.PruningDone.SOME)
                             {
                                 changed[i] = currentIteration;
                                 Converging = true;
@@ -386,8 +421,8 @@ namespace CPF_experiment
             CostTreeSearchSolver.passed++;
             if (allMDDs[0].levels == null)
                 return null;
-            AStarMDD findSolution = new AStarMDD(allMDDs, runner, conflictTable,CBS_CAT);
-            LinkedList<Move>[] ans = findSolution.Solve();
+            AStarMDD findSolution = new AStarMDD(allMDDs, runner, conflictTable, CBS_CAT);
+            SinglePlan[] ans = findSolution.Solve();
             generated = findSolution.generated;
             expanded = findSolution.expanded;
             caViolations = findSolution.conflictAvoidanceViolations;

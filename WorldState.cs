@@ -13,6 +13,7 @@ namespace CPF_experiment
         public int makespan; // Total time steps passed, max(agent makespans)
         public int g; // Sum of agent makespans until they reach their goal
         public int h;
+        public int hBonus;
         public AgentState[] allAgentsState;
         public WorldState prevStep;
         private int binaryHeapIndex;
@@ -25,27 +26,50 @@ namespace CPF_experiment
         /// Maps from agent num to the number of times the path up to this node collides with that agent
         /// </summary>
         public Dictionary<int, int> cbsInternalConflicts;
+        /// <summary>
+        /// Maps from agent num to the time of the first conflict with it
+        /// </summary>
+        public Dictionary<int, List<int>> conflictTimes;
+        /// <summary>
+        /// The min depth (makespan) from which a node may be considered a goal.
+        /// TODO: Consider moving out of the node object to a static variable or something.
+        ///       It doesn't change between nodes.
+        /// </summary>
         public int minDepth;
+        /// <summary>
+        /// The min cost (g) from which a node may be considered a goal.
+        /// TODO: Consider moving out of the node object to a static variable or something.
+        ///       It doesn't change between nodes.
+        /// </summary>
+        public int minCost;
         /// <summary>
         /// The last move of all agents that have already moved in this turn.
         /// Used for making sure the next agent move doesn't collide with moves already made.
         /// </summary>
-        public HashSet<TimedMove> currentMoves;
+        public Dictionary<TimedMove, int> currentMoves;
         protected static readonly int NOT_SET = -1;
         /// <summary>
         /// For computing expansion delay
         /// </summary>
         public int expandedCountWhenGenerated;
+        ///// <summary>
+        ///// For lazy heuristics
+        ///// </summary>
+        //public CBS_LocalConflicts cbsState;
         /// <summary>
-        /// For lazy heuristics
+        /// For MStar.
+        /// Disjoint sets of agent indices, since only internal agents are considered.
         /// </summary>
-        public CBS_LocalConflicts cbsState;
+        public DisjointSets<int> collisionSets;
+        //public ISet<int> currentCollisionSet;
+        public ISet<WorldState> backPropagationSet;
+        public TimedMove[] plannedMoves;
 
         /// <summary>
         /// Create a state with the given state for every agent.
         /// </summary>
         /// <param name="allAgentsState"></param>
-        public WorldState(AgentState[] allAgentsState, int minDepth = -1)
+        public WorldState(AgentState[] allAgentsState, int minDepth = -1, int minCost = -1)
         {
             this.allAgentsState = allAgentsState.ToArray<AgentState>();
             this.makespan = allAgentsState.Max<AgentState>(state => state.lastMove.time); // We expect to only find at most two G values within the agent group
@@ -53,11 +77,14 @@ namespace CPF_experiment
             this.potentialConflictsCount = 0;
             this.cbsInternalConflictsCount = 0;
             this.cbsInternalConflicts = new Dictionary<int, int>();
+            this.conflictTimes = new Dictionary<int, List<int>>();
             this.minDepth = minDepth;
-            this.currentMoves = new HashSet<TimedMove>();
+            this.minCost = minCost;
+            this.currentMoves = new Dictionary<TimedMove, int>();
             this.goalCost = NOT_SET;
             this.goalSingleCosts = null;
             this.singlePlans = null;
+            this.hBonus = 0;
         }
 
         /// <summary>
@@ -69,17 +96,19 @@ namespace CPF_experiment
             this.makespan = cpy.makespan;
             this.g = cpy.g;
             this.h = cpy.h;
-            // The potentialConflictsCount and cbsInternalConflictsCount are only copied later if necessary.
+            // The potentialConflictsCount, conflictTimes, cbsInternalConflicts and cbsInternalConflictsCount are only copied later if necessary.
             this.minDepth = cpy.minDepth;
+            this.minCost = cpy.minCost;
             this.allAgentsState = new AgentState[cpy.allAgentsState.Length];
             for (int i = 0; i < allAgentsState.Length; i++)
             {
-                this.allAgentsState[i] = new AgentState(cpy.allAgentsState[i]); // Shallow copy - it's still the same lastMove inside.
+                this.allAgentsState[i] = new AgentState(cpy.allAgentsState[i]); // Shallow copy - it's still the same lastMove inside. Why a copy?
             }
-            this.currentMoves = new HashSet<TimedMove>(cpy.currentMoves);
+            this.currentMoves = new Dictionary<TimedMove, int>(cpy.currentMoves);
             this.goalCost = NOT_SET;
             this.goalSingleCosts = null;
             this.singlePlans = null;
+            this.hBonus = 0;
         }
 
         /// <summary>
@@ -105,20 +134,25 @@ namespace CPF_experiment
             // If we know the optimal solution, it doesn't matter if this is a real goal node or not, we can finish.
             if (this.singlePlans != null)
             {
-                // Check if plans are long enough
+                // Check if plans are long enough and costly enough
                 if (this.singlePlans.All<SinglePlan>(plan => plan.GetSize() - 1 >= this.minDepth))
-                    return true;
+                {
+                    if (this.singlePlans.Sum<SinglePlan>(plan => plan.GetCost()) >= this.minCost)
+                        return true;
+                }
             }
 
-            if (makespan >= this.minDepth)
-            {
-                return h == 0; // That's crazy! A node that is close to the goal might also get h==0.
-                               // Our specific heuristic doesn't behave that way, though.
-                               // Not crazy, just assumes the heuristic is consistent, which has the property that only the goal has h==0.
-                               // SIC really is a consistent heuristic.
-                               // FIXME: Implement a proper goal test and use it when h==0.
-            }
-            return false;
+            if (this.g < this.minCost)
+                return false;
+
+            if (this.makespan < this.minDepth)
+                return false;
+
+            return this.h == 0; // That's crazy! A node that is close to the goal might also get h==0.
+                                // Our specific heuristic doesn't behave that way, though.
+                                // Not crazy, just assumes the heuristic is consistent, which has the property that only the goal has h==0.
+                                // SIC really is a consistent heuristic.
+                                // FIXME: Implement a proper goal test and use it when h==0.
         }
 
         protected SinglePlan[] singlePlans;
@@ -239,7 +273,23 @@ namespace CPF_experiment
             if (this.cbsInternalConflictsCount > that.cbsInternalConflictsCount)
                 return 1;
 
-            // f, conflicts and internal conflicts being equal, prefer nodes with a larger g
+            // //M-Star: prefer nodes with smaller collision sets:
+            //if (this.collisionSets != null) // than M-Star is running
+            //{
+            //    // The collision sets change during collision set backpropagation and closed list hits.
+            //    // Backpropagation goes from a node's child to the node, so it's tempting to think
+            //    // it only happens when the node is already expanded and out of the open list,
+            //    // but partial expansion makes that false. 
+            //    // Closed list hits can also happen while the node is waiting to be expanded.
+            //    // So the max rank can change while the node is in the open list - 
+            //    // it can't be used for tie breaking :(.
+            //    if (this.collisionSets.maxRank < that.collisionSets.maxRank)
+            //        return -1;
+            //    if (that.collisionSets.maxRank > this.collisionSets.maxRank)
+            //        return 1;
+            //}
+
+            // f, collision sets, conflicts and internal conflicts being equal, prefer nodes with a larger g
             // - they're closer to the goal so less nodes would probably be generated by them on the way to it.
             if (this.g < that.g)
                 return 1;
@@ -257,13 +307,30 @@ namespace CPF_experiment
             g = allAgentsState.Sum<AgentState>(agent => agent.g);
         }
 
+        /// <summary>
+        /// Prepare for re-insertion into the open list
+        /// </summary>
+        public virtual void Clear() { }
+
+        public virtual int f
+        {
+            get
+            {
+                return this.g + this.h;
+            }
+        }
+
         public override string ToString()
         {
-            string ans = "makespan: " + makespan + ", h: " + h + ", g: " + g + "\n";
+            string ans = "makespan: " + makespan + ", h: " + h + ", g: " + g;
+            ans += " ";
             foreach (AgentState temp in allAgentsState)
             {
-                ans +=" agent " + temp.agent.agentNum + ": " + temp.lastMove + "\n";
+                //ans +="\n agent " + temp.agent.agentNum + ": " + temp.lastMove;
+                //ans += " agent " + temp.agent.agentNum + ": " + temp.lastMove;
+                ans += "|" + temp.lastMove;
             }
+            ans += "|";
             return ans;
         }
 
@@ -355,15 +422,9 @@ namespace CPF_experiment
         /// <returns></returns>
         public virtual void UpdateConflictCounts(IReadOnlyDictionary<TimedMove, List<int>> conflictAvoidance)
         {
-            for (int i = 0; i < allAgentsState.Length; i++)
+            for (int i = 0; i < this.allAgentsState.Length; i++)
             {
-                List<int> colliding = allAgentsState[i].lastMove.GetColliding(conflictAvoidance);
-                foreach (int agentNum in colliding)
-                {
-                    if (this.cbsInternalConflicts.ContainsKey(agentNum) == false)
-                        this.cbsInternalConflicts[agentNum] = 0;
-                    this.cbsInternalConflicts[agentNum] += 1;
-                }
+                this.allAgentsState[i].lastMove.UpdateConflictCounts(conflictAvoidance, this.cbsInternalConflicts, this.conflictTimes);
             }
         }
 
@@ -374,5 +435,13 @@ namespace CPF_experiment
             // It might even be harder if the steps were away from the goal.
             return initial.Subproblem(this.allAgentsState);
         }
+
+        //public WorldState GetPlanStart(int agentIndex)
+        //{
+        //    WorldState node = this;
+        //    while (node.individualMStarBookmarks[agentIndex] != 0)
+        //        node = node.prevStep;
+        //    return node;
+        //}
     }
 }

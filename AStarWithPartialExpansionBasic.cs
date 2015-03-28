@@ -27,9 +27,9 @@ namespace CPF_experiment
         public AStarWithPartialExpansionBasic(HeuristicCalculator heuristic = null)
             : base(heuristic) { }
 
-        override protected WorldState CreateSearchRoot(int minDepth = -1)
+        override protected WorldState CreateSearchRoot(int minDepth = -1, int minCost = -1)
         {
-            return new WorldStateForPartialExpansion(this.instance.m_vAgents, minDepth); // Consider using a WorldStateForBasicPartialExpansion that only has the isAlreadyExpanded stuff
+            return new WorldStateForPartialExpansion(this.instance.m_vAgents, minDepth, minCost); // Consider using a WorldStateForBasicPartialExpansion that only has the IsAlreadyExpanded stuff
         }
 
         protected override WorldState CreateSearchNode(WorldState from)
@@ -37,20 +37,20 @@ namespace CPF_experiment
             return new WorldStateForPartialExpansion((WorldStateForPartialExpansion)from);
         }
 
-        public override void Setup(ProblemInstance problemInstance, int minDepth, Run runner) 
+        public override void Setup(ProblemInstance problemInstance, int minDepth, Run runner, int minCost = -1) 
         { 
-            base.Setup(problemInstance, minDepth, runner);
+            base.Setup(problemInstance, minDepth, runner, minCost);
             this.generatedAndDiscarded = 0;
             this.expandedFullStates = 0;
         }
 
-        override public string GetName() { return "(B)PEA*"; }
+        override public string GetName() { return "(B)PE" + base.GetName(); }
         
         override public void Expand(WorldState simpleLookingNode)
         {
             var node = (WorldStateForPartialExpansion)simpleLookingNode;
             //Debug.Print("Expanding node " + node);
-            if (!node.isAlreadyExpanded())
+            if (!node.IsAlreadyExpanded())
             {
                 node.alreadyExpanded = true;
                 this.expandedFullStates++;

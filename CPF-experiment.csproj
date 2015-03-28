@@ -9,7 +9,7 @@
     <OutputType>Exe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>CPF_experiment</RootNamespace>
-    <AssemblyName>CPF-experiment</AssemblyName>
+    <AssemblyName>d0</AssemblyName>
     <TargetFrameworkVersion>v4.5.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <FileUpgradeFlags>
@@ -42,10 +42,10 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-    <DocumentationFile>bin\Debug\CPF-experiment.xml</DocumentationFile>
-    <RunCodeAnalysis>true</RunCodeAnalysis>
+    <DocumentationFile>bin\Debug\d0.xml</DocumentationFile>
+    <RunCodeAnalysis>false</RunCodeAnalysis>
     <Prefer32Bit>false</Prefer32Bit>
-    <UseVSHostingProcess>true</UseVSHostingProcess>
+    <UseVSHostingProcess>false</UseVSHostingProcess>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -54,7 +54,7 @@
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-    <DocumentationFile>bin\Release\CPF-experiment.xml</DocumentationFile>
+    <DocumentationFile>bin\Release\d0.xml</DocumentationFile>
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
@@ -88,6 +88,10 @@
     <Compile Include="CbsHeuristic.cs" />
     <Compile Include="CBS_IDA.cs" />
     <Compile Include="CbsConflict.cs" />
+    <Compile Include="DisjointSets.cs" />
+    <Compile Include="MStar.cs" />
+    <Compile Include="MyExtensions.cs" />
+    <Compile Include="ConflictAvoidanceTable.cs" />
     <Compile Include="Dictionary_U.cs" />
     <Compile Include="DynamicRationalLazyOpenList.cs" />
     <Compile Include="IStatisticsCsvWriter.cs" />
@@ -127,13 +131,15 @@
     <Compile Include="CostTreeSearchSolver.cs" />
     <Compile Include="CostTreeNodeSolver.cs" />
     <Compile Include="TimedMove.cs" />
-    <Compile Include="Trevor.cs" />
+    <Compile Include="IndependenceDetection.cs" />
     <Compile Include="WorldState.cs" />
     <Compile Include="WorldStateForPartialExpansion.cs" />
     <Compile Include="WorldStateWithOD.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="app.config" />
+    <None Include="app.config">
+      <SubType>Designer</SubType>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <BootstrapperPackage Include=".NETFramework,Version=v4.0">

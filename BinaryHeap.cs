@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 namespace CPF_experiment
 {
     /// <summary>
@@ -17,20 +18,48 @@ namespace CPF_experiment
         private bool _sorted;
 
         // Constructors
-        public BinaryHeap()
-        {
-            _data = new IBinaryHeapItem[DEFAULT_SIZE];
-        }
-
         /// <summary>
         /// Creates a new binary heap.
         /// </summary>
-        private BinaryHeap(IBinaryHeapItem[] data, int count)
+        public BinaryHeap()
         {
-            Capacity = count;
+            _data = new IBinaryHeapItem[DEFAULT_SIZE];
+            // _capacity is already set to DEFAULT_SIZE
+            // _count already set to 0
+        }
+
+        /// <summary>
+        /// Creates a new binary heap with the specified initial capacity.
+        /// </summary>
+        public BinaryHeap(int capacity)
+        {
+            _data = new IBinaryHeapItem[capacity];
+            _capacity = capacity;
+            // _count already set to 0
+        }
+
+        /// <summary>
+        /// Creates a new binary heap from the given array.
+        /// </summary>
+        public BinaryHeap(IBinaryHeapItem[] data, int count)
+        {
             _count = count;
+            _capacity = count;
+            _data = new IBinaryHeapItem[_capacity];
             Array.Copy(data, _data, count);
         }
+
+        /// <summary>
+        /// Creates a new binary heap from the given collection.
+        /// </summary>
+        public BinaryHeap(IReadOnlyCollection<IBinaryHeapItem> from)
+            : this(from.Count)
+        {
+            foreach (var item in from)
+                this.Add(item);
+        }
+
+        // TODO: Support iterators!
 
         // Properties
         /// <summary>
@@ -43,16 +72,16 @@ namespace CPF_experiment
 
         /// <summary>
         /// Gets or sets the capacity of the heap.
+        /// Can only set it to values larger than the current capacity.
         /// </summary>
         public int Capacity
         {
             get { return _capacity; }
             set
             {
-                int previousCapacity = _capacity;
-                _capacity = Math.Max(value, _count);
-                if (_capacity != previousCapacity)
+                if (value > _capacity)
                 {
+                    _capacity = value;
                     IBinaryHeapItem[] temp = new IBinaryHeapItem[_capacity];
                     Array.Copy(_data, temp, _count);
                     _data = temp;
@@ -76,7 +105,7 @@ namespace CPF_experiment
         public void Clear()
         {
             this._count = 0;
-            _data = new IBinaryHeapItem[_capacity];
+            _data = new IBinaryHeapItem[_capacity]; // Faster than clearing the array, maybe
         }
         
         /// <summary>
@@ -273,15 +302,11 @@ namespace CPF_experiment
             get { return false; }
         }
         
-        public IBinaryHeapItem GetFirst()
-        {
-            return _data[0];
-        }
-        
         /// <summary>
         /// Removes an item from the binary heap. 
         /// Assumes item is or was in the heap. Doesn't use Equality checks.
         /// This will not remove duplicates.
+        /// TODO: Change into Remove(int binaryHeapIndex)!
         /// </summary>
         /// <param name="item">The item to be removed.</param>
         /// <returns>Boolean true if the item was removed.</returns>
@@ -295,11 +320,11 @@ namespace CPF_experiment
                 return false;
 
             _data[child_index].SetIndexInHeap(REMOVED_FROM_HEAP);
-            if (child_index == 0) // This seems unnecessary
-            {
-                Remove();
-                return true;
-            }
+            //if (child_index == 0) // This seems unnecessary
+            //{
+            //    Remove();
+            //    return true;
+            //}
 
             IBinaryHeapItem to_remove = _data[child_index];
             // Bubble to_remove up the heap
@@ -313,7 +338,7 @@ namespace CPF_experiment
                 child_index = father_index;
                 father_index = Parent(child_index);
             }
-            //we got to 0
+            // We got to 0
             _data[0] = to_remove;
             Remove(); // Ignoring the returned value.
             return true;

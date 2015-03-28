@@ -1,317 +1,292 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections;
+using System.Diagnostics;
 using System.Linq;
 
 namespace CPF_experiment
 {
-    class MDD
+    /// <summary>
+    /// A compact representation of all the paths to the goal of a given agent that are of a given cost and length
+    /// </summary>
+    public class MDD
     {
         public LinkedList<MDDNode>[] levels;
         private int agentNum;
         private int mddNum;
         public ProblemInstance problem;
-
-        public MDD(int mddNum, int agentNum, Move start_pos, int cost, int maxCostOnLevel, int numOfAgents, ProblemInstance instance)
+        public enum PruningDone : int
         {
-            //if (agentNum == 2 && maxCostOnLevel == 4)
-            //    Console.Write("ff");
+            EVERYTHING = 0,
+            NOTHING = 1,
+            SOME = 2
+        }
+        protected HashSet_U<CbsConstraint> constraints;
+        protected Dictionary<int, TimedMove>[] mustConstraints;
+        protected bool supportPruning;
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="mddNum"></param>
+        /// <param name="agentNum"></param>
+        /// <param name="start_pos"></param>
+        /// <param name="cost">The MDD must be of this cost</param>
+        /// <param name="numOfLevels">
+        /// The MDD must be of this number of levels, not counting level zero.
+        /// If higher than cost, the extra levels will be WAITs at the goal.
+        /// </param>
+        /// <param name="numOfAgents"></param>
+        /// <param name="instance"></param>
+        /// <param name="ignoreConstraints"></param>
+        public MDD(int mddNum, int agentNum, Move start_pos, int cost, int numOfLevels, int numOfAgents, ProblemInstance instance, bool ignoreConstraints = false, bool supportPruning = true)
+        {
             this.problem = instance;
             this.mddNum = mddNum;
             this.agentNum = agentNum;
-            levels = new LinkedList<MDDNode>[maxCostOnLevel + 1];
-            Hashtable closedList = new Hashtable();
-            LinkedList<MDDNode> children;
-            LinkedList<MDDNode> toDelete = null;
+            this.levels = new LinkedList<MDDNode>[numOfLevels + 1];
+            this.supportPruning = supportPruning;
 
-            for (int i = 0; i <= maxCostOnLevel; i++)
+            if (ignoreConstraints == false && instance.parameters.ContainsKey(CBS_LocalConflicts.CONSTRAINTS) &&
+                    ((HashSet_U<CbsConstraint>)instance.parameters[CBS_LocalConflicts.CONSTRAINTS]).Count != 0)
+            {
+                this.queryConstraint = new CbsConstraint();
+                this.queryConstraint.queryInstance = true;
+
+                this.constraints = (HashSet_U<CbsConstraint>)instance.parameters[CBS_LocalConflicts.CONSTRAINTS];
+            }
+
+            if (ignoreConstraints == false && instance.parameters.ContainsKey(CBS_LocalConflicts.MUST_CONSTRAINTS) &&
+                 ((HashSet_U<CbsConstraint>)instance.parameters[CBS_LocalConflicts.MUST_CONSTRAINTS]).Count != 0)
+            {
+                // TODO: Code dup with ClassicAStar's constructor
+                var musts = (HashSet_U<CbsConstraint>)instance.parameters[CBS_LocalConflicts.MUST_CONSTRAINTS];
+                this.mustConstraints = new Dictionary<int, TimedMove>[musts.Max<CbsConstraint>(con => con.GetTimeStep()) + 1]; // To have index MAX, array needs MAX + 1 places.
+                foreach (CbsConstraint con in musts)
+                {
+                    int timeStep = con.GetTimeStep();
+                    if (this.mustConstraints[timeStep] == null)
+                        this.mustConstraints[timeStep] = new Dictionary<int, TimedMove>();
+                    this.mustConstraints[timeStep][con.agentNum] = con.move;
+                }
+            }
+
+            var closedList = new Dictionary<MDDNode, MDDNode>();
+            var toDelete = new List<MDDNode>();
+
+            for (int i = 0; i <= numOfLevels; i++)
             {
                 levels[i] = new LinkedList<MDDNode>();
             }
-            MDDNode toAdd = new MDDNode(new TimedMove(start_pos, 0) , numOfAgents, this);
-            LinkedListNode<MDDNode> llNode = new LinkedListNode<MDDNode>(toAdd);
-            toAdd.setMyNode(llNode);
+            MDDNode root = new MDDNode(new TimedMove(start_pos, 0) , numOfAgents, this, supportPruning); // Root
+            LinkedListNode<MDDNode> llNode = new LinkedListNode<MDDNode>(root);
+            root.setMyNode(llNode);
             llNode.Value.startOrGoal = true;
             levels[0].AddFirst(llNode);
-            for (int i = 0; i < maxCostOnLevel ; i++)
+
+            for (int i = 0; i < numOfLevels ; i++) // For each level, populate the _next_ level
             {
-                int heuristicBound = cost - i - 1;
+                int heuristicBound = cost - i - 1; // We want g+h <= cost, so h <= cost-g. -1 because it's the bound of the _children_.
                 if (heuristicBound < 0)
-                {
                     heuristicBound = 0;
-                }
-                LinkedListNode<MDDNode> currentMddNode = levels[i].First;
-                while (currentMddNode != null)
+
+                // Go over each MDDNode in this level
+                foreach (MDDNode currentMddNode in levels[i]) // Since we're not deleting nodes in this method, we can use the simpler iteration method :)
                 {
-                    LinkedListNode<MDDNode> child;
-                    children = this.GetAllChildren(currentMddNode.Value, heuristicBound,numOfAgents,i);
-                    child = children.First;
-                    if (child == null)
+                    List<MDDNode> children = this.GetAllChildren(currentMddNode, heuristicBound, numOfAgents);
+                    if (children.Count == 0) // Heuristic wasn't perfect because of constraints, illegal moves or other reasons
+                        toDelete.Add(currentMddNode);
+
+                    foreach (MDDNode child in children)
                     {
-                        if (toDelete == null)
-                            toDelete = new LinkedList<MDDNode>();
-                        toDelete.AddFirst(currentMddNode.Value);
-                    }
-                    while (child != null)
-                    {
-                        toAdd = child.Value;
-                        if (closedList.Contains(toAdd))
+                        MDDNode toAdd = child; // The compiler won't let me assign to the foreach variable...
+                        if (closedList.ContainsKey(child))
                         {
-                            toAdd = (MDDNode)closedList[toAdd];
+                            toAdd = closedList[child];
                         }
                         else
                         {
-                            closedList.Add(toAdd,toAdd);
+                            closedList.Add(toAdd, toAdd);
                             llNode = new LinkedListNode<MDDNode>(toAdd);
                             toAdd.setMyNode(llNode);
-                            levels[i + 1].AddLast(llNode);
+                            levels[i + 1].AddLast(toAdd);
                         }
-                        currentMddNode.Value.addChild(toAdd);
-                        toAdd.addParent(currentMddNode.Value);
-
-                        child = child.Next;
+                        currentMddNode.addChild(toAdd); // forward edge
+                        toAdd.addParent(currentMddNode); // backward edge
                     }
-
-                    currentMddNode=currentMddNode.Next;
                 }
                 closedList.Clear();
             }
-            if (levels[maxCostOnLevel].Count != 0)
-                levels[maxCostOnLevel].First.Value.startOrGoal = true;
-            if (toDelete != null)
+
+            foreach (MDDNode goal in levels[numOfLevels]) // The goal may be reached in more than one direction
             {
-                foreach (MDDNode remove in toDelete)
-                {
-                    remove.delete();
-                }
+                goal.startOrGoal = true;
             }
-            if (levels[maxCostOnLevel].Count == 0 || levels[0].First.Value.isDeleted == true) //if no possible route mark levels as null
+
+            foreach (MDDNode remove in toDelete)
+            {
+                remove.delete();
+            }
+            
+            // Make sure the goal was reached - imperfect heuristics, constraints or illegal moves can cause this to be false.
+            if (levels[numOfLevels].Count == 0 || levels[0].First.Value.isDeleted == true) //if no possible route mark levels as null
                 levels = null;
         }
 
         /// <summary>
+        /// Just an optimization
+        /// </summary>
+        private CbsConstraint queryConstraint;
+
+        /// <summary>
         /// Returns all the children of a given MDD node that have a heuristic estimate that is not larger than the given heuristic bound.
         /// </summary>
-        /// <param name="father"></param>
-        /// <param name="heuristicBound"></param>
+        /// <param name="mdd"></param>
+        /// <param name="heuristicBound">The heuristic estimate of the returned children must be lower than or equal to the bound</param>
         /// <param name="numOfAgents">The number of agents in the MDD node</param>
         /// <returns>A list of relevant MDD nodes</returns>
-        private LinkedList<MDDNode> GetAllChildren(MDDNode father, int heuristicBound, int numOfAgents, int i)
+        private List<MDDNode> GetAllChildren(MDDNode father, int heuristicBound, int numOfAgents)
         {
-            LinkedList<MDDNode> children = new LinkedList<MDDNode>(); 
+            var children = new List<MDDNode>(); 
             foreach (TimedMove move in father.move.GetNextMoves())
             {
-                if ((this.problem.IsValid(move)) &&
-                    (this.problem.GetSingleAgentOptimalCost(this.agentNum, move.x, move.y) <= heuristicBound))
+                if (this.problem.IsValid(move) &&
+                    this.problem.GetSingleAgentOptimalCost(this.agentNum, move) <= heuristicBound) // Only nodes that can reach the goal in the given cost according to the heuristic.
                 {
-                    MDDNode child = new MDDNode(move, numOfAgents, this);
-                    children.AddFirst(child);
+                    if (this.constraints != null)
+                    {
+                        queryConstraint.Init(agentNum, move);
+
+                        if (this.constraints.Contains(queryConstraint))
+                            continue;
+                    }
+
+                    if (this.mustConstraints != null && move.time < this.mustConstraints.Length && // There may be a constraint on the timestep of the generated node
+                        this.mustConstraints[move.time] != null &&
+                        this.mustConstraints[move.time].ContainsKey(this.agentNum)) // This agent has a must constraint for this time step
+                    {
+                        if (this.mustConstraints[move.time][this.agentNum].Equals(move) == false)
+                            continue;
+                    }
+
+                    MDDNode child = new MDDNode(move, numOfAgents, this, this.supportPruning);
+                    children.Add(child);
                 }
             }
             return children;
         }
 
         /// <summary>
-        /// matche and prun MDD according to another MDD
+        /// Match and prune MDD according to another MDD.
         /// </summary>
         /// <param name="other"></param>
-        /// <param name="setUntil"></param>
-        /// <returns>0-if the entire tree was pruned 1-if nothing was pruned 2-if something was pruned</returns>
-        public int sync3GDDs(MDD other, int setUntil)
+        /// <param name="checkTriples">If true, use the "3E" method.</param>
+        public PruningDone SyncMDDs(MDD other, bool checkTriples)
         {
-            int ans = 1;
-            if (this.levels == null || other.levels == null)
-                return 0;
-            bool validParent;
-            LinkedListNode<MDDNode> parent;
-            MDDNode parentToDelete;
-            LinkedListNode<MDDNode> toSetCoexisting;
-            LinkedListNode<MDDNode> tempToSetCoexisting;
-            LinkedList<MDDNode> coexitingForNodeLL = new LinkedList<MDDNode>();
-            HashSet<MDDNode> coexitingForNodeHS = new HashSet<MDDNode>();
+            PruningDone ans = PruningDone.NOTHING;
+            if (this.levels == null || other.levels == null) // Either of the MDDs was already completely pruned already
+                return PruningDone.EVERYTHING;
 
-            coexitingForNodeLL.AddFirst(other.levels[0].First.Value);
-            levels[0].First.Value.setCoexist(coexitingForNodeLL, other.mddNum);
+            // Cheaply find the coexisting nodes on level zero - all nodes coexist because agent starting points never collide
+            LinkedList<MDDNode> coexistingNodesForLevelZero = new LinkedList<MDDNode>();
+            coexistingNodesForLevelZero.AddFirst(other.levels[0].First.Value);
+            levels[0].First.Value.setCoexist(coexistingNodesForLevelZero, other.mddNum);
 
             for (int i = 1; i < levels.Length; i++)
             {
-                toSetCoexisting = levels[i].First;
-                while (toSetCoexisting != null && toSetCoexisting.List != null)
+                LinkedListNode<MDDNode> toSetCoexisting = levels[i].First;
+                while (toSetCoexisting != null && toSetCoexisting.List != null) // FIXME: Can .First return null ever?
                 {
-                    if (toSetCoexisting.Value.isDeleted)
+                    if (toSetCoexisting.Value.isDeleted) // Previous level marked this MDDNode for deletion. Delete it and continue to the next.
                     {
-                        tempToSetCoexisting = toSetCoexisting;
+                        LinkedListNode<MDDNode> tempToSetCoexisting = toSetCoexisting;
                         toSetCoexisting = toSetCoexisting.Next;
                         levels[i].Remove(tempToSetCoexisting);
                         continue;
                     }
-                    coexitingForNodeLL = new LinkedList<MDDNode>();
-                    coexitingForNodeHS.Clear();
-                    
 
-                    parent=toSetCoexisting.Value.parents.First;
+                    var coexistingForNode = new HashSet<MDDNode>();
+
+                    // Go over all the node's parents and test their coexisting nodes' children for coexistance with this node
+                    LinkedListNode<MDDNode> parent = toSetCoexisting.Value.parents.First;
                     while (parent != null)
                     {
-                        validParent = false;
+                        bool validParent = false;
                         foreach (MDDNode coexist in parent.Value.coexistLinkedList[other.mddNum])
                         {
                             foreach (MDDNode child in coexist.children)
                             {
-                                if (!toSetCoexisting.Value.Equals(child))
+                                if (toSetCoexisting.Value.move.IsColliding(child.move) == false)
                                 {
-                                    if (!parent.Value.EqualsSwitch(child) || !toSetCoexisting.Value.EqualsSwitch(coexist))
-                                    {
-                                        if (toSetCoexisting.Value.isCoexistingWithOtherMDDs(child, other.mddNum))
-                                        {
-                                            validParent = true;
-
-                                            if (!coexitingForNodeHS.Contains(child))
-                                            {
-                                                CostTreeNodeSolver.matchCounter++;
-                                                coexitingForNodeHS.Add(child);
-                                                coexitingForNodeLL.AddFirst(child);
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        parentToDelete = parent.Value;
-                        parent = parent.Next;
-                        if (!validParent)
-                        {
-                            toSetCoexisting.Value.removeParent(parentToDelete);
-                            ans = 2;
-                        }
-                    }
-                    toSetCoexisting.Value.setCoexist(coexitingForNodeLL, other.mddNum);
-                    toSetCoexisting.Value.setUntil = setUntil;
-                    tempToSetCoexisting = toSetCoexisting;
-                    toSetCoexisting = toSetCoexisting.Next;
-                    if (tempToSetCoexisting.Value.getCoexistCount(other.mddNum) == 0)
-                    {
-                        tempToSetCoexisting.Value.delete();
-                        ans = 2;
-                    }
-                }
-                if (levels[0].First.Value.children.Count == 0)
-                {
-                    return 0;
-                }
-            }
-            return ans;
-        }
-
-        public int sync2GDDs(MDD other)
-        {
-            int ans = 1;
-            if (this.levels == null || other.levels == null)
-                return 0;
-            bool validParent;
-            LinkedListNode<MDDNode> parent;
-            MDDNode parentToDelete;
-            LinkedListNode<MDDNode> toSetCoexisting;
-            LinkedListNode<MDDNode> tempToSetCoexisting;
-            LinkedList<MDDNode> coexitingForNodeLL = new LinkedList<MDDNode>();
-            HashSet<MDDNode> coexitingForNodeHS = new HashSet<MDDNode>();
-
-            coexitingForNodeLL.AddFirst(other.levels[0].First.Value);
-            levels[0].First.Value.setCoexist(coexitingForNodeLL, other.mddNum);
-
-            for (int i = 1; i < levels.Length; i++)
-            {
-                toSetCoexisting = levels[i].First;
-                while (toSetCoexisting != null && toSetCoexisting.List != null)
-                {
-                    if (toSetCoexisting.Value.isDeleted)
-                    {
-                        tempToSetCoexisting = toSetCoexisting;
-                        toSetCoexisting = toSetCoexisting.Next;
-                        levels[i].Remove(tempToSetCoexisting);
-                        continue;
-                    }
-                    coexitingForNodeLL = new LinkedList<MDDNode>();
-                    coexitingForNodeHS.Clear();
-
-
-                    parent = toSetCoexisting.Value.parents.First;
-                    while (parent != null)
-                    {
-                        validParent = false;
-                        foreach (MDDNode coexist in parent.Value.coexistLinkedList[other.mddNum])
-                        {
-                            foreach (MDDNode child in coexist.children)
-                            {
-                                if (!toSetCoexisting.Value.Equals(child))
-                                {
-                                    if (!parent.Value.EqualsSwitch(child) || !toSetCoexisting.Value.EqualsSwitch(coexist))
+                                    if (checkTriples == false ||
+                                        toSetCoexisting.Value.isCoexistingWithOtherMDDs(child, other.mddNum)) // The "3" part
                                     {
                                         validParent = true;
 
-                                        if (!coexitingForNodeHS.Contains(child))
+                                        if (coexistingForNode.Contains(child) == false)
                                         {
                                             CostTreeNodeSolver.matchCounter++;
-                                            coexitingForNodeHS.Add(child);
-                                            coexitingForNodeLL.AddFirst(child);
+                                            coexistingForNode.Add(child);
                                         }
-
                                     }
                                 }
                             }
                         }
-                        parentToDelete = parent.Value;
+                        MDDNode parentDeletionCandidate = parent.Value;
                         parent = parent.Next;
                         if (!validParent)
                         {
-                            toSetCoexisting.Value.removeParent(parentToDelete);
-                            ans = 2;
+                            toSetCoexisting.Value.removeParent(parentDeletionCandidate); // And continue up the levels if necessary
+                            ans = PruningDone.SOME;
                         }
                     }
-                    toSetCoexisting.Value.setCoexist(coexitingForNodeLL, other.mddNum);
-                    tempToSetCoexisting = toSetCoexisting;
+                    toSetCoexisting.Value.setCoexist(new LinkedList<MDDNode>(coexistingForNode), other.mddNum);
+                    LinkedListNode<MDDNode> tempToSetCoexisting1 = toSetCoexisting;
                     toSetCoexisting = toSetCoexisting.Next;
-                    if (tempToSetCoexisting.Value.getCoexistCount(other.mddNum) == 0)
+                    if (tempToSetCoexisting1.Value.getCoexistCount(other.mddNum) == 0)
                     {
-                        tempToSetCoexisting.Value.delete();
-                        ans = 2;
+                        tempToSetCoexisting1.Value.delete();
+                        ans = PruningDone.SOME;
                     }
                 }
                 if (levels[0].First.Value.children.Count == 0)
                 {
-                    return 0;
+                    return PruningDone.EVERYTHING;
                 }
             }
             return ans;
         }
+
+        // TODO: Make a Combine method to multiply with another MDD.
 
         public int getMddNum()
         {
             return mddNum;
         }
+
         public int getAgentNum()
         {
             return mddNum;
         }
 
-        public void printGDD()
+        public void printMDD()
         {
             Console.WriteLine();
             Console.WriteLine();
             for (int j = 0; j < levels.Count(); j++)
             {
                 Console.WriteLine("\n\nlevel: " + j + " total- " + levels[j].Count+"  *****");
-                Console.WriteLine("------------------");
+                Console.WriteLine("-----------------");
                 foreach (MDDNode node in levels[j])
                 {
-                    Console.Write("\n\n-node- (" + node.getX() + "," + node.getY() + ") children: ");
+                    Console.Write("\n\n-node- " + node.ToString() + " children: ");
                     foreach (MDDNode child in node.children)
                     {
-                        Console.Write("(" + child.getX() + "," + child.getY() + ") ");
+                        Console.Write(child.ToString() + ") ");
                     }
                     Console.Write(" parents: ");
                     foreach (MDDNode parent in node.parents)
                     {
-                        Console.Write("(" + parent.getX() + "," + parent.getY() + ") ");
+                        Console.Write(parent.ToString() + ") ");
                     }
                     Console.Write(" coexist: ");
                     int i = 0;
@@ -320,7 +295,7 @@ namespace CPF_experiment
                         Console.Write(" for agents - " + i++);
                         foreach (MDDNode coexist in coexistList)
                         {
-                            Console.Write("(" + coexist.getX() + "," + coexist.getY() + ") ");
+                            Console.Write(coexist.ToString() + ") ");
                         }
                     }
                 }
@@ -329,30 +304,32 @@ namespace CPF_experiment
 
     }
 
-    class MDDNode
+    [DebuggerDisplay("{move}")]
+    public class MDDNode
     {
         public TimedMove move;
-        public int setUntil;
         public LinkedList<MDDNode> children;
         public LinkedList<MDDNode> parents;
         public LinkedList<MDDNode>[] coexistLinkedList;
-        public MDD father;
+        public MDD mdd;
         LinkedListNode<MDDNode> myNode;
         public bool startOrGoal;
-        public bool isDeleted; //to prevent delition loop
+        public bool isDeleted; //to prevent deletion loop
         public bool legal;
 
-        public MDDNode(TimedMove move, int numOfAgents, MDD father)
+        public MDDNode(TimedMove move, int numOfAgents, MDD mdd, bool supportPruning = true)
         {
             this.move = move;
-            this.father = father;
-            setUntil = 0;
+            this.mdd = mdd;
             children = new LinkedList<MDDNode>();
             parents = new LinkedList<MDDNode>();
-            coexistLinkedList = new LinkedList<MDDNode>[numOfAgents];
-            for (int i = 0; i < numOfAgents; i++)
+            if (supportPruning)
             {
-                coexistLinkedList[i] = new LinkedList<MDDNode>();
+                coexistLinkedList = new LinkedList<MDDNode>[numOfAgents];
+                for (int i = 0; i < numOfAgents; i++)
+                {
+                    coexistLinkedList[i] = new LinkedList<MDDNode>();
+                }
             }
         }
 
@@ -395,7 +372,7 @@ namespace CPF_experiment
                 }
                 else
                 {
-                    if (parents.Count == 0 && children.Count == 0)
+                    if (parents.Count == 0 && children.Count == 0) // A goal node has no children to begin with, a start node has no parents.
                     {
                         this.delete();
                         return;
@@ -407,12 +384,12 @@ namespace CPF_experiment
         public bool isCoexistingWithOtherMDDs(MDDNode toCheck, int otherAgent)
         {
             bool ans = false;
-            for (int i = father.getMddNum() + 1 ; i < otherAgent; i++)
+            for (int i = this.mdd.getMddNum() + 1 ; i < otherAgent; i++)
             {
                 ans = false;
-                foreach (MDDNode coexistingForOther in coexistLinkedList[i])
+                foreach (MDDNode coexistingForOther in this.coexistLinkedList[i])
                 {
-                    if (coexistingForOther.coexistLinkedList[toCheck.father.getMddNum()].Contains(toCheck))
+                    if (coexistingForOther.coexistLinkedList[toCheck.mdd.getMddNum()].Contains(toCheck))
                     {
                         ans = true;
                         break;
@@ -442,9 +419,9 @@ namespace CPF_experiment
             children.AddLast(child);
         }
         
-        public void setCoexist(LinkedList<MDDNode> coexists, int agentNum)
+        public void setCoexist(LinkedList<MDDNode> coexists, int mddNum)
         {
-            coexistLinkedList[agentNum] = coexists;
+            this.coexistLinkedList[mddNum] = coexists;
         }
         
         public void setMyNode(LinkedListNode<MDDNode> me)
@@ -452,15 +429,15 @@ namespace CPF_experiment
             myNode = me;
         }
         
-        public int getX()
-        {
-            return move.x;
-        }
+        //public int GetX()
+        //{
+        //    return move.x;
+        //}
         
-        public int getY()
-        {
-            return move.y;
-        }
+        //public int GetY()
+        //{
+        //    return move.y;
+        //}
         
         public int getVertexIndex()
         {
@@ -491,33 +468,22 @@ namespace CPF_experiment
                                                 // Behavior change: used to not compare the direction
         }
         
-        /// <summary>
-        /// Only uses the move
-        /// </summary>
-        /// <param name="obj"></param>
-        /// <returns></returns>
-        public bool EqualsSwitch(object obj)
-        {
-            MDDNode comp = (MDDNode)obj;
-            return this.move.Equals(comp.move); // Behavior change: used to not compare the time and the direction
-        }
-        
         public int getCoexistCount(int otherAgent)
         {
             return coexistLinkedList[otherAgent].Count;
         }
         
-        /// <summary>
-        /// TODO: This doesn't seem... correct. Also, there's a similar static method in class Move
-        /// </summary>
-        /// <param name="other"></param>
-        /// <returns></returns>
-        public int getDirection(MDDNode other)
-        {
-            int ans = 0;
-            ans += this.move.x - other.move.x + 1;
-            ans += 2 * (this.move.y - other.move.y + 1);
-            return ans - 1;
-        }
+        ///// <summary>
+        ///// TODO: This doesn't seem... correct. Also, there's a similar static method in class Move
+        ///// </summary>
+        ///// <param name="other"></param>
+        ///// <returns></returns>
+        //public int getDirection(MDDNode other)
+        //{
+        //    int ans = 0;
+        //    ans += this.move.x - other.move.x + 1;
+        //    ans += 2 * (this.move.y - other.move.y + 1);
+        //    return ans - 1;
+        //}
     }
 }

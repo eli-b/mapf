@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Collections.Generic;
 
 namespace CPF_experiment
 {
@@ -62,11 +63,24 @@ namespace CPF_experiment
 
     public interface ICbsSolver : ISolver, IAccumulatingStatisticsCsvWriter
     {
-        void Setup(ProblemInstance problemInstance, int minDepth, Run runner);
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="problemInstance"></param>
+        /// <param name="minDepth">!@# Shoud be more generally called minTimeStep? Because for CBS the depth isn't the time step</param>
+        /// <param name="runner"></param>
+        void Setup(ProblemInstance problemInstance, int minDepth, Run runner, int minCost);
         SinglePlan[] GetSinglePlans();
         int[] GetSingleCosts();
+        Dictionary<int, int> GetExternalConflictCounts();
+        Dictionary<int, List<int>> GetConflictTimes();
 
         int GetAccumulatedExpanded();
         int GetAccumulatedGenerated();
+    }
+
+    public interface IMStarSolver : ICbsSolver
+    {
+        // Just does the appropriate thing when it's under M-Star
     }
 }

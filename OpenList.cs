@@ -149,6 +149,16 @@ namespace CPF_experiment
             return this.heap.Remove(item);
         }
 
+        /// <summary>
+        /// Assumes item was added to the open list in the past
+        /// </summary>
+        /// <param name="item"></param>
+        /// <returns></returns>
+        public bool Contains(IBinaryHeapItem item)
+        {
+            return item.GetIndexInHeap() != BinaryHeap.REMOVED_FROM_HEAP;
+        }
+
         public virtual void OutputStatisticsHeader(TextWriter output)
         {
             output.Write(this.user.ToString() + " Quick Insertions");

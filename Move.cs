@@ -43,7 +43,7 @@ namespace CPF_experiment
 
         public Move(int x, int y, Direction direction)
         {
-            // TODO: Consider calling setup(x, y, direction) instead of this duplication
+            // TODO: Consider calling Setup(x, y, direction) instead of this duplication
             this.x = x;
             this.y = y;
             this.direction = direction;
@@ -51,7 +51,7 @@ namespace CPF_experiment
 
         public Move(Move cpy)
         {
-            // TODO: Consider calling setup(cpy) instead of this duplication
+            // TODO: Consider calling Setup(cpy) instead of this duplication
             this.x = cpy.x;
             this.y = cpy.y;
             this.direction = cpy.direction;
@@ -254,29 +254,29 @@ namespace CPF_experiment
             return this.x == other_source_x && this.y == other_source_y && other_x == source_x && other_y == source_y;
         }
 
-        public bool IsColliding(ISet<Move> group)
-        {
-            // Same target check
-            Direction saved_direction = direction;
-            direction = Direction.NO_DIRECTION;
-            if (group.Contains(this))
-            {
-                direction = saved_direction;
-                return true;
-            }
-            direction = saved_direction;
+        //public bool GetColliding(IReadOnlyDictionary<Move, List<Move>> group)
+        //{
+        //    // Same target check
+        //    Direction saved_direction = direction;
+        //    direction = Direction.NO_DIRECTION;
+        //    if (group.ContainsKey(this))
+        //    {
+        //        direction = saved_direction;
+        //        return true;
+        //    }
+        //    direction = saved_direction;
 
-            setOppositeMove();
-            if (group.Contains(this))
-            {
-                setOppositeMove();
-                return true;
-            }
-            setOppositeMove();
-            return false;
-        }
+        //    setOppositeMove();
+        //    if (group.ContainsKey(this))
+        //    {
+        //        setOppositeMove();
+        //        return true;
+        //    }
+        //    setOppositeMove();
+        //    return false;
+        //}
 
-        public static Direction getDirection(int to_x, int to_y, int from_x, int from_y)
+        public static Direction GetDirection(int to_x, int to_y, int from_x, int from_y)
         {
             return deltasToDirection[to_x - from_x + 1, to_y - from_y + 1]; // +1 since indexing starts from 0
         }

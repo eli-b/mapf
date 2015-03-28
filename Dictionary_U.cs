@@ -11,10 +11,10 @@ namespace CPF_experiment
     [Serializable]
     public class Dictionary_U<K, V> : IReadOnlyDictionary<K, List<V>>
     {
-        List<Dictionary<K, List<V>>> Data;
+        List<IReadOnlyDictionary<K, List<V>>> Data;
         public Dictionary_U()
         {
-            this.Data = new List<Dictionary<K, List<V>>>();
+            this.Data = new List<IReadOnlyDictionary<K, List<V>>>();
         }
 
         //public void Add(K value)
@@ -45,7 +45,7 @@ namespace CPF_experiment
 
         public IEnumerator<KeyValuePair<K, List<V>>> GetEnumerator()
         {
-            foreach (Dictionary<K, List<V>> dict in Data)
+            foreach (IReadOnlyDictionary<K, List<V>> dict in Data)
             {
                 foreach (KeyValuePair<K, List<V>> item in dict)
                 {
@@ -54,16 +54,18 @@ namespace CPF_experiment
             }
         }
 
-        // Summary:
-        //     Gets an enumerable collection that contains the keys in the read-only dictionary.
-        //
-        // Returns:
-        //     An enumerable collection that contains the keys in the read-only dictionary.
+        /// Summary:
+        ///     Gets an enumerable collection that contains the keys in the read-only dictionary.
+        ///     Warning: May contain duplicates if multiple inner dicts have the same key.
+        ///
+        /// Returns:
+        ///     An enumerable collection that contains the keys in the read-only dictionary.
+        ///     
         public IEnumerable<K> Keys
         {
             get
             {
-                foreach (Dictionary<K, List<V>> dict in Data)
+                foreach (IReadOnlyDictionary<K, List<V>> dict in Data)
                 {
                     foreach (KeyValuePair<K, List<V>> item in dict)
                     {
@@ -83,7 +85,7 @@ namespace CPF_experiment
         {
             get
             {
-                foreach (Dictionary<K, List<V>> dict in Data)
+                foreach (IReadOnlyDictionary<K, List<V>> dict in Data)
                 {
                     foreach (KeyValuePair<K, List<V>> item in dict)
                     {
@@ -115,7 +117,7 @@ namespace CPF_experiment
             {
                 var ret = new List<V>();
 
-                foreach (Dictionary<K, List<V>> dict in Data)
+                foreach (IReadOnlyDictionary<K, List<V>> dict in Data)
                 {
                     if (dict.ContainsKey(key))
                         ret.AddRange(dict[key]);
@@ -143,7 +145,7 @@ namespace CPF_experiment
 
         public bool ContainsKey(K key)
         {
-            foreach (Dictionary<K, List<V>> item in Data)
+            foreach (IReadOnlyDictionary<K, List<V>> item in Data)
             {
                 if (item.ContainsKey(key))
                     return true;
@@ -163,12 +165,12 @@ namespace CPF_experiment
             Data.Clear();
         }
 
-        public void Join(Dictionary<K, List<V>> other)
+        public void Join(IReadOnlyDictionary<K, List<V>> other)
         {
             Data.Add(other);
         }
 
-        public void Seperate(Dictionary<K, List<V>> other)
+        public void Separate(IReadOnlyDictionary<K, List<V>> other)
         {
             Data.Remove(other);
         }
@@ -178,7 +180,7 @@ namespace CPF_experiment
         /// </summary>
         public void Print()
         {
-            foreach (Dictionary<K, List<V>> dict in Data)
+            foreach (IReadOnlyDictionary<K, List<V>> dict in Data)
             {
                 foreach (KeyValuePair<K, List<V>> item in dict)
                 {
@@ -194,10 +196,8 @@ namespace CPF_experiment
         {
             get
             {
-                return this.Data.Sum<Dictionary<K, List<V>>>(dict => dict.Count);
+                return this.Data.Sum<IReadOnlyDictionary<K, List<V>>>(dict => dict.Count);
             }
         }
-
-        //public bool IsReadOnly { get { return true; } } // Using Add() it's read-only
     }
 }

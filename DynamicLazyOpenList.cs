@@ -6,7 +6,7 @@ using System.Diagnostics;
 
 namespace CPF_experiment
 {
-    public class DynamicLazyOpenList : OpenList
+    public class DynamicLazyOpenList : OpenList//<WorldState>
     {
         public LazyHeuristic expensive;
         protected Run runner;
@@ -41,24 +41,31 @@ namespace CPF_experiment
 
             while (true)
             {
-                WorldState next;
                 node = (WorldState)base.Remove();
 
                 if (node.GoalTest() == true || // Can't improve the h of the goal
                     this.runner.ElapsedMilliseconds() > Constants.MAX_TIME) // No time to continue improving H.
                 {
                     if (node.g + node.h < this.lastF) // This can happen if the last removed node had many runs of the expensive heuristic, which this node didn't yet have.
-                        node.h = this.lastF - node.g; // Just so we don't throw an inconsistency exception
+                    {
+                        int newH = this.lastF - node.g;
+                        node.hBonus += newH - node.h;
+                        node.h = newH; // Just so we don't throw an inconsistency exception
+                    }
                     break;
                 }
 
-                next = (WorldState)base.Peek();
+                var next = (WorldState)base.Peek();
                 int targetH = next.g + next.h + 1 - node.g;
                 // No matter if we tried reaching the same targetH before.
                 // We can actually improve the estimate again if the search hit the node generation thershold last time.
                 // The only node we can't improve the estimate for is a (generalized) goal node, and that's handled earlier
                 int expensiveEstimate = (int)this.expensive.h(node, targetH, branchingFactor);
-                node.h = Math.Max(node.h, expensiveEstimate); // Node may have inherited a better estimate from its parent
+                if (node.h < expensiveEstimate)
+                {
+                    node.hBonus += expensiveEstimate - node.h;
+                    node.h = expensiveEstimate; // Node may have inherited a better estimate from its parent
+                }
                 
                 if (node.CompareTo(next) == 1 || // node is not the smallest F anymore - re-insert into open list
                     node.g + node.h < lastF) // Never be inconsistent - don't return nodes with lower F than before. Try searching the node again.

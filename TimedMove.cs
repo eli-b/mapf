@@ -10,6 +10,8 @@ namespace CPF_experiment
     {
         public int time;
 
+//        public static const int FOREVER_AFTER = int.MaxValue
+
         public TimedMove(int x, int y, Move.Direction direction, int time)
             : base(x, y, direction)
         {
@@ -62,14 +64,28 @@ namespace CPF_experiment
             if (this.time != ((TimedMove)obj).time)
                 return false;
 
-            return base.Equals(obj);
+            //return base.Equals(obj);
+
+            // Begin copied code of base to avoid a method call
+            Move that = (Move)obj;
+            return (this.x == that.x && this.y == that.y &&
+                    ((this.direction == Direction.NO_DIRECTION) || (that.direction == Direction.NO_DIRECTION) ||
+                     (this.direction == that.direction)));
+            // End copied code of base
         }
 
         public override int GetHashCode()
         {
             unchecked
             {
-                return base.GetHashCode() * 3 + this.time;
+                //return base.GetHashCode() * 3 + this.time;
+
+                // Begin copied code of base to avoid a method call:
+                int hash = 17;
+                hash = 23 * hash + x;
+                hash = 23 * hash + y;
+                // End copied code of base
+                return hash * 3 + this.time;
             }
         }
 
@@ -127,7 +143,7 @@ namespace CPF_experiment
         }
 
         /// <summary>
-        /// Not used anywhere
+        /// 
         /// </summary>
         /// <param name="cpy"></param>
         public void setup(TimedMove cpy)
@@ -149,16 +165,11 @@ namespace CPF_experiment
             this.time = time;
         }
 
-        public bool IsColliding(ICollection<TimedMove> CAT)
+        public bool IsColliding(ICollection<TimedMove> moves)
         {
-            // Sadly, since there's currently no System.Collections.Generic.IReadOnlySet, Move.IsColliding accepts an ISet<Move>,
-            // so the compiler doesn't let us just call base.IsColliding(CAT) because base might put a Move that isn't a TimedMove in CAT,
-            if (CAT == null)
-                return false;
-
             Move.Direction saveDirection = this.direction;
             this.direction = Move.Direction.NO_DIRECTION;
-            if (CAT.Contains(this))
+            if (moves.Contains(this))
             {
                 this.direction = saveDirection;
                 return true;
@@ -166,7 +177,7 @@ namespace CPF_experiment
             this.direction = saveDirection;
 
             this.setOppositeMove();
-            if (CAT.Contains(this)) // Check direction too now
+            if (moves.Contains(this)) // Check direction too now
             {
                 this.setOppositeMove();
                 return true;
@@ -176,21 +187,127 @@ namespace CPF_experiment
             return false;
         }
 
-        public List<int> GetColliding(IReadOnlyDictionary<TimedMove, List<int>> CAT)
+        public bool IsColliding(IReadOnlyDictionary<TimedMove, int> timedMovesToAgentID)
         {
-            var ans = new List<int>(); // TODO: This method usually just returns an empty list. Have a static empty list ready and return it when necessary.
             Move.Direction saveDirection = this.direction;
             this.direction = Move.Direction.NO_DIRECTION;
-            if (CAT.ContainsKey(this))
-                ans.AddRange(CAT[this]);
+            if (timedMovesToAgentID.ContainsKey(this))
+            {
+                this.direction = saveDirection;
+                return true;
+            }
             this.direction = saveDirection;
 
             this.setOppositeMove();
-            if (CAT.ContainsKey(this)) // Check direction too now
-                ans.AddRange(CAT[this]);
+            if (timedMovesToAgentID.ContainsKey(this)) // Check direction too now
+            {
+                this.setOppositeMove();
+                return true;
+            }
             this.setOppositeMove();
 
-            return ans;
+            return false;
+        }
+
+        /// <summary>
+        /// Gets a dictionary mapping TimedMoves to the agent that already made them
+        /// and returns a list of agents this TimedMove collides with.
+        /// </summary>
+        /// <param name="timedMovesToAgentIndex"></param>
+        /// <returns></returns>
+        public List<int> GetColliding(IReadOnlyDictionary<TimedMove, int> timedMovesToAgentIndex)
+        {
+            List<int> ans = null;
+            Move.Direction saveDirection = this.direction;
+            Direction[] directions;
+            if (Constants.ALLOW_DIAGONAL_MOVE)
+                directions = Move.validDirections;
+            else
+                directions = Move.validDirectionsNoDiag;
+            foreach (var direction in directions) // TEMP FIX! Need to get rid of the whole NO_DIRECTION SHTICK! It breaks transitivity!
+            {
+                this.direction = direction;
+                if (timedMovesToAgentIndex.ContainsKey(this))
+                {
+                    if (ans == null)
+                        ans = new List<int>(4);
+                    ans.Add(timedMovesToAgentIndex[this]);
+                }
+            }
+            this.direction = saveDirection;
+
+            this.setOppositeMove();
+            if (timedMovesToAgentIndex.ContainsKey(this)) // Check direction too now
+            {
+                if (ans == null)
+                    ans = new List<int>(1);
+                ans.Add(timedMovesToAgentIndex[this]);
+            }
+            this.setOppositeMove();
+
+            if (ans != null)
+                return ans;
+            else
+                return TimedMove.emptyList;
+        }
+
+        private static readonly List<int> emptyList = new List<int>(0);
+
+        /// <summary>
+        /// Gets a dictionary mapping TimedMoves to the agents that already made them
+        /// and returns a list of agents this TimedMove collides with.
+        /// </summary>
+        /// <param name="timedMovesToAgentNumLists"></param>
+        /// <returns></returns>
+        public List<int> GetColliding(IReadOnlyDictionary<TimedMove, List<int>> timedMovesToAgentNumLists)
+        {
+            List<int> ans = null;
+            Move.Direction saveDirection = this.direction;
+            Direction[] directions;
+            if (Constants.ALLOW_DIAGONAL_MOVE)
+                directions = Move.validDirections;
+            else
+                directions = Move.validDirectionsNoDiag;
+            foreach (var direction in directions) // TEMP FIX! Need to get rid of the whole NO_DIRECTION SHTICK! It breaks transitivity!
+            {
+                this.direction = direction;
+                if (timedMovesToAgentNumLists.ContainsKey(this))
+                {
+                    if (ans == null)
+                        ans = new List<int>(timedMovesToAgentNumLists[this].Count + 3);
+                    ans.AddRange(timedMovesToAgentNumLists[this]);
+                }
+            }
+            this.direction = saveDirection;
+
+            this.setOppositeMove();
+            if (timedMovesToAgentNumLists.ContainsKey(this)) // Check direction too now
+            {
+                if (ans == null)
+                    ans = new List<int>(timedMovesToAgentNumLists[this].Count);
+                ans.AddRange(timedMovesToAgentNumLists[this]);
+            }
+            this.setOppositeMove();
+
+            if (ans != null)
+                return ans;
+            else
+                return TimedMove.emptyList;
+        }
+
+        public void UpdateConflictCounts(IReadOnlyDictionary<TimedMove, List<int>> conflictAvoidance,
+                                         Dictionary<int, int> conflictCounts, Dictionary<int, List<int>> conflictTimes)
+        {
+            List<int> colliding = this.GetColliding(conflictAvoidance);
+            foreach (int agentNum in colliding)
+            {
+                if (conflictCounts.ContainsKey(agentNum) == false)
+                    conflictCounts[agentNum] = 0;
+                conflictCounts[agentNum] += 1;
+                if (conflictTimes.ContainsKey(agentNum) == false)
+                    conflictTimes[agentNum] = new List<int>(4);
+                conflictTimes[agentNum].Add(this.time);
+            }
         }
     }
 }

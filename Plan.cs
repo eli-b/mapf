@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Diagnostics;
 
 namespace CPF_experiment
 {
@@ -134,6 +135,8 @@ namespace CPF_experiment
                     first = false;
                     if (newLocationsAtTime.SequenceEqual<Move>(this.locationsAtTimes.Last.Value))
                         continue;
+                    else
+                        Debug.Assert(false, "Continuing a plan doesn't start from the same state");
                 }
                 this.locationsAtTimes.AddLast(newLocationsAtTime);
             }
@@ -141,15 +144,19 @@ namespace CPF_experiment
 
         // TODO: Add GetCost and GetMakespan methods!
 
-        public SinglePlan[] GetSinglePlans()
-        {
-            SinglePlan[] ans = new SinglePlan[this.locationsAtTimes.First().Count];
-            for (int i = 0; i < ans.Length; i++)
-            {
-                ans[i] = new SinglePlan(this, i);
-            }
-            return ans;
-        }
+        ///// <summary>
+        ///// Not used. Creates SinglePlans with possibly wrong agentNum (agent index used for agentNum)
+        ///// </summary>
+        ///// <returns></returns>
+        //public SinglePlan[] GetSinglePlans()
+        //{
+        //    SinglePlan[] ans = new SinglePlan[this.locationsAtTimes.First().Count];
+        //    for (int i = 0; i < ans.Length; i++)
+        //    {
+        //        ans[i] = new SinglePlan(this, i);
+        //    }
+        //    return ans;
+        //}
 
         /// <summary>
         /// Returns the location of the agents at a given time. 
@@ -191,7 +198,7 @@ namespace CPF_experiment
             List<Move> thisLocations = this.GetLocationsAt(time);
             List<Move> otherLocations = otherPlan.GetLocationsAt(time);
 
-            // TODO: Think about better implementation of this
+            // TODO: Think of a better implementation of this
             foreach (Move aMove in thisLocations)
                 foreach (Move bMove in otherLocations)
                     if (aMove.IsColliding(bMove) == true)
@@ -235,7 +242,7 @@ namespace CPF_experiment
     public class SinglePlan
     {
         public List<Move> locationAtTimes { get; private set; }
-        int agentIndex;
+        public int agentNum;
 
         /// <summary>
         /// Not used
@@ -244,7 +251,7 @@ namespace CPF_experiment
         /// <param name="agentIndex"></param>
         public SinglePlan(WorldState goalState, int agentIndex)
         {
-            this.agentIndex = agentIndex;
+            this.agentNum = goalState.allAgentsState[agentIndex].agent.agentNum;
             WorldState currentNode = goalState;
             LinkedList<Move> locations = new LinkedList<Move>();
             while (currentNode != null)
@@ -255,9 +262,15 @@ namespace CPF_experiment
             this.locationAtTimes = locations.ToList<Move>();
         }
 
-        public SinglePlan(Plan plan, int agentIndex)
+        /// <summary>
+        /// Not used
+        /// </summary>
+        /// <param name="plan"></param>
+        /// <param name="agentIndex"></param>
+        /// <param name="agentNum"></param>
+        public SinglePlan(Plan plan, int agentIndex, int agentNum)
         {
-            this.agentIndex = agentIndex;
+            this.agentNum = agentNum;
             this.locationAtTimes = new List<Move>();
             foreach (List<Move> movesAtTimestep in plan.GetLocations())
             {
@@ -267,7 +280,7 @@ namespace CPF_experiment
 
         public SinglePlan(AgentState goalState)
         {
-            this.agentIndex = 0;
+            this.agentNum = goalState.agent.agentNum;
             AgentState currentNode = goalState;
             LinkedList<Move> locations = new LinkedList<Move>();
             while (currentNode != null)
@@ -278,30 +291,41 @@ namespace CPF_experiment
             this.locationAtTimes = locations.ToList<Move>();
         }
 
-        public SinglePlan(LinkedList<Move> route, int agentIndex)
+
+
+        public SinglePlan(LinkedList<Move> route, int agentNum)
         {
-            this.agentIndex = agentIndex;
+            this.agentNum = agentNum;
             locationAtTimes = route.ToList<Move>();
         }
 
         public SinglePlan(SinglePlan cpy)
         {
             this.locationAtTimes = cpy.locationAtTimes.ToList<Move>(); // Behavior change: used to do a deep copy, with cloned moves.
-            this.agentIndex = cpy.agentIndex;
+            this.agentNum = cpy.agentNum;
         }
 
+        /// <summary>
+        /// TODO: Get rid of the else
+        /// </summary>
+        /// <param name="time"></param>
+        /// <returns></returns>
         public Move GetLocationAt(int time)
         {
             if (time < this.locationAtTimes.Count)
                 return this.locationAtTimes[time];
             else
-                return this.locationAtTimes[this.locationAtTimes.Count - 1];
+            {
+                var rest = new TimedMove(this.locationAtTimes[this.locationAtTimes.Count - 1], time);
+                rest.direction = Move.Direction.Wait;
+                return rest;
+            }
         }
 
-        public override bool Equals(object obj)
+        public override bool Equals(object obj) // TODO: Implement GetHashCode!
         {
             SinglePlan other = (SinglePlan)obj;
-            return this.agentIndex == other.agentIndex && this.locationAtTimes.SequenceEqual<Move>(other.locationAtTimes);
+            return this.agentNum == other.agentNum && this.locationAtTimes.SequenceEqual<Move>(other.locationAtTimes);
         }
 
         /// <summary>
@@ -320,6 +344,8 @@ namespace CPF_experiment
                     first = false;
                     if (this.locationAtTimes[this.locationAtTimes.Count - 1].Equals(newLocationAtTime))
                         continue;
+                    else
+                        Debug.Assert(false, "Continuing a plan doesn't start from the same state");
                 }
                 this.locationAtTimes.Add(newLocationAtTime);
             }
@@ -334,11 +360,36 @@ namespace CPF_experiment
         /// <returns>The size of the plan, excluding WAITs at the goal</returns>
         public int GetSize()
         {
-            int ans = this.locationAtTimes.Count;
-            Move goal = this.locationAtTimes[ans - 1];
-            while (ans >= 2 && goal.x == locationAtTimes[ans - 2].x && goal.y == locationAtTimes[ans - 2].y)
-                ans--;
-            return ans;
+            int lastNonWaitIndex = this.locationAtTimes.Count - 1;
+            while (lastNonWaitIndex != 0 && locationAtTimes[lastNonWaitIndex].direction == Move.Direction.Wait)
+                lastNonWaitIndex--;
+            return lastNonWaitIndex + 1;
+        }
+
+        /// <summary>
+        /// TODO: Find all "GetSize() - 1" uses and replace them with this method
+        /// </summary>
+        /// <returns></returns>
+        public int GetCost()
+        {
+            if (Constants.Variant == Constants.ProblemVariant.ORIG)
+            {
+                return this.GetSize() - 1;
+            }
+            else if (Constants.Variant == Constants.ProblemVariant.NEW)
+            {
+                int cost = 0;
+                Move goal = this.locationAtTimes.Last<Move>(); // Assuming the plan ends at the goal
+                for (int i = 1; i < this.locationAtTimes.Count; i++) // The beginning position isn't a move
+                {
+                    Move move = this.locationAtTimes[i];
+                    if (move.x == goal.x && move.y == goal.y && move.direction == Move.Direction.Wait) // Waiting at the goal is free
+                        continue;
+                    cost += 1;
+                }
+                return cost;
+            }
+            return 0; // To quiet the compiler
         }
 
         /// <summary>
@@ -373,20 +424,14 @@ namespace CPF_experiment
             }
         }
 
-        public void AddPlanToCAT(IDictionary<TimedMove, List<int>> addTo, int until)
+        public override string ToString()
         {
-            for (int i = 0; i <= until; i++)
+            string s = "";
+            for (int time = 0; time < this.locationAtTimes.Count; time++)
             {
-                TimedMove step = new TimedMove(this.GetLocationAt(i), i); // TODO: Avoid creating new objects. Make the method return correctly timed moves.
-                if (addTo.ContainsKey(step))
-                    addTo[step].Add(this.agentIndex);
-                else
-                {
-                    var agentList = new List<int>();
-                    agentList.Add(this.agentIndex);
-                    addTo.Add(step, agentList);
-                }
+                s += "|" + this.GetLocationAt(time).ToString() + "|\n";
             }
+            return s;
         }
 
         public static SinglePlan[] GetSinglePlans(WorldState goalState) // FIXME: Duplication with other methods.
@@ -396,7 +441,6 @@ namespace CPF_experiment
                 allroutes[i] = new LinkedList<Move>();
 
             WorldState currentNode = goalState;
-            LinkedList<List<Move>> locationsAtTimes = new LinkedList<List<Move>>();
             while (currentNode != null)
             {
                 for (int i = 0; i < allroutes.Length; i++)
@@ -407,11 +451,16 @@ namespace CPF_experiment
             SinglePlan[] ans = new SinglePlan[goalState.allAgentsState.Length];
             for (int i = 0; i < ans.Length; i++)
             {
-                ans[i] = new SinglePlan(allroutes[i], i);
+                ans[i] = new SinglePlan(allroutes[i], goalState.allAgentsState[i].agent.agentNum);
             }
             return ans;
         }
 
+        /// <summary>
+        /// Creates SinglePlans with agentIndex as agentNum. Not suitable for subproblems.
+        /// </summary>
+        /// <param name="allRoutes"></param>
+        /// <returns></returns>
         public static SinglePlan[] GetSinglePlans(LinkedList<Move>[] allRoutes)
         {
             SinglePlan[] ans = new SinglePlan[allRoutes.Length];

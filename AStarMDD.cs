@@ -4,19 +4,22 @@ using System.Linq;
 
 namespace CPF_experiment
 {
+    /// <summary>
+    /// Finds the solution with the least number of conflicts, given a set of MDDs
+    /// </summary>
     class AStarMDD
     {
         MDD[] problem;
         Dictionary<MDDStep, MDDStep> closedList;
         Run runner;
-        BinaryHeap openList; // TODO: Is A*MDD a best-first-search? Is it safe to use OpenList instead?
+        BinaryHeap openList; // TODO: Not an OpenList for now because AStarMDD doesn't implement ISolver, which OpenList requires at its constructor.
         public int expanded;
         public int generated;
         public int conflictAvoidanceViolations;
-        HashSet<TimedMove> ID_CAT;
-        HashSet_U<TimedMove> CBS_CAT;
+        Dictionary<TimedMove, List<int>> ID_CAT;
+        Dictionary<TimedMove, List<int>> CBS_CAT;
 
-        public AStarMDD(MDD[] problem, Run runner, HashSet<TimedMove> conflicts, HashSet_U<TimedMove> CBS_CAT)
+        public AStarMDD(MDD[] problem, Run runner, Dictionary<TimedMove, List<int>> conflicts, Dictionary<TimedMove, List<int>> CBS_CAT)
         {
             this.expanded = 0;
             this.generated = 0;
@@ -35,11 +38,11 @@ namespace CPF_experiment
             }
             root = new MDDStep(sRoot, null);
             openList.Add(root);
-            // Not adding it automatically to the closed list here?
+            closedList.Add(root, root); // There will never be a hit. This is only done for consistancy
             conflictAvoidanceViolations = 0;
         }
        
-        public LinkedList<Move>[] Solve()
+        public SinglePlan[] Solve()
         {
             MDDStep currentNode;
             ExpandedNode toExpand = new ExpandedNode();
@@ -54,13 +57,13 @@ namespace CPF_experiment
                 // Check if node is the goal
                 if (this.GoalTest(currentNode))
                 {
-                    conflictAvoidanceViolations=currentNode.conflicts;
+                    conflictAvoidanceViolations = currentNode.conflicts;
                     return GetAnswer(currentNode);
                 }
 
                 // Expand
                 expanded++;
-                toExpand.setup(currentNode);
+                toExpand.Setup(currentNode);
                 Expand(toExpand);
             }
             return null;
@@ -68,13 +71,16 @@ namespace CPF_experiment
 
         public void Expand(ExpandedNode currentNode)
         {
-            MDDStep child = currentNode.getNextChild();
-            while (child != null)
+            while (true)
             {
+                MDDStep child = currentNode.GetNextChild();
+                if (child == null)
+                    break;
+
                 if (IsLegalMove(child))
                 {
-                        child.conflicts = currentNode.parent.conflicts;
-                        child.setConflicts(ID_CAT, CBS_CAT);
+                    child.conflicts = currentNode.parent.conflicts;
+                    child.SetConflicts(ID_CAT, CBS_CAT);
 
                     if (this.closedList.ContainsKey(child) == true)
                     {
@@ -93,7 +99,6 @@ namespace CPF_experiment
                         generated++;
                     }
                 }
-                child = currentNode.getNextChild();
             }
         }
 
@@ -126,43 +131,37 @@ namespace CPF_experiment
         
         private bool GoalTest(MDDStep toCheck)
         {
-            if (toCheck.getDepth() == problem[0].levels.Length - 1)
+            if (toCheck.GetDepth() == problem[0].levels.Length - 1)
                 return true;
             return false;
         }
 
-        private LinkedList<Move>[] GetAnswer(MDDStep finish)
+        private SinglePlan[] GetAnswer(MDDStep finish)
         {
-            if (finish == null)
-                return new LinkedList<Move>[1];
-            LinkedList<Move>[] ans = new LinkedList<Move>[problem.Length];
-            Move.Direction direction;
-            for (int i = 0; i < ans.Length; i++)
-                ans[i] = new LinkedList<Move>();
+            // TODO: Move the construction of the SinglePlans to a static method in SinglePlan
+            var routes = new LinkedList<Move>[problem.Length];
+            for (int i = 0; i < routes.Length; i++)
+                routes[i] = new LinkedList<Move>();
+
             MDDStep current = finish;
-            while (current.prevStep != null)
+            while (current != null)
             {
                 for (int i = 0; i < problem.Length; i++)
                 {
-                    direction = Move.getDirection(current.allSteps[i].getX(), current.allSteps[i].getY(), current.prevStep.allSteps[i].getX(), current.prevStep.allSteps[i].getY());
-                    ans[i].AddFirst(new Move(current.allSteps[i].getX(), current.allSteps[i].getY(), direction));
+                    routes[i].AddFirst(new Move(current.allSteps[i].move));
                 }
                 current = current.prevStep;
             }
-            for (int i = 0; i < problem.Length; i++)
-            {
-                ans[i].AddFirst(new Move(current.allSteps[i].getX(), current.allSteps[i].getY(), 0));
-            }
+
+            var ans = new SinglePlan[problem.Length];
+            for (int i = 0; i < ans.Length; i++)
+                ans[i] = new SinglePlan(routes[i], i);
             return ans;
         }
         
-        private bool CheckIfLegal(MDDNode from1, MDDNode to1, MDDNode from2, MDDNode to2)
+        private bool CheckIfLegal(MDDNode to1, MDDNode to2)
         {
-            if (to1.getX() == to2.getX() && to1.getY() == to2.getY())
-                return false;
-            if (to1.getX() == from2.getX() && from1.getX() == to2.getX() && to1.getY() == from2.getY() && from1.getY() == to2.getY())
-                return false;
-            return true;
+            return to1.move.IsColliding(to2.move) == false;
         }
         
         private bool IsLegalMove(MDDStep to)
@@ -175,14 +174,13 @@ namespace CPF_experiment
             {
                 for (int j = i+1; j < to.allSteps.Length; j++)
                 {
-                    if (CheckIfLegal(to.prevStep.allSteps[i], to.allSteps[i], to.prevStep.allSteps[j], to.allSteps[j]) == false)
+                    if (CheckIfLegal(to.allSteps[i], to.allSteps[j]) == false)
                         return false;
                 }
             }
             return true;
         }
     }
-
 
     class MDDStep : IComparable<IBinaryHeapItem>, IBinaryHeapItem
     {
@@ -235,26 +233,32 @@ namespace CPF_experiment
             }
         }
 
-        public int getDepth() { return allSteps[0].move.time; }
+        public int GetDepth() { return allSteps[0].move.time; }
 
-        public void setConflicts(HashSet<TimedMove> ID_CAT, HashSet_U<TimedMove> CBS_CAT)
+        /// <summary>
+        /// Updates the conflicts member according to given CATs. Both tables may be null.
+        /// </summary>
+        /// <param name="ID_CAT"></param>
+        /// <param name="CBS_CAT"></param>
+        public void SetConflicts(Dictionary<TimedMove, List<int>> ID_CAT, Dictionary<TimedMove, List<int>> CBS_CAT)
         {
-            TimedMove m2 = new TimedMove();
+            TimedMove queryMove = new TimedMove();
             if (this.prevStep == null)
                 return;
             for (int i = 0; i < allSteps.Length; i++)
             {
-                    m2.setup(allSteps[i].getX(), allSteps[i].getY(), Move.Direction.NO_DIRECTION, getDepth());
-                    if (ID_CAT != null && ID_CAT.Contains(m2))
-                        conflicts++;
-                    if (CBS_CAT != null && CBS_CAT.Contains(m2))
-                        conflicts++;
-                    m2.direction = Move.getDirection(allSteps[i].getX(), allSteps[i].getY(), prevStep.allSteps[i].getX(), prevStep.allSteps[i].getY());
-                    m2.setOppositeMove();
-                    if (ID_CAT != null && ID_CAT.Contains(m2))
-                        conflicts++;
-                    if (CBS_CAT != null && CBS_CAT.Contains(m2))
-                        conflicts++;
+                // TODO: Kill this code dup. The ConflictAvoidanceTable class takes care of it.
+                queryMove.setup(allSteps[i].move.x, allSteps[i].move.y, Move.Direction.NO_DIRECTION, allSteps[i].move.time);
+                if (ID_CAT != null && ID_CAT.ContainsKey(queryMove))
+                    conflicts++;
+                if (CBS_CAT != null && CBS_CAT.ContainsKey(queryMove))
+                    conflicts++;
+                queryMove.direction = allSteps[i].move.direction;
+                queryMove.setOppositeMove();
+                if (ID_CAT != null && ID_CAT.ContainsKey(queryMove))
+                    conflicts++;
+                if (CBS_CAT != null && CBS_CAT.ContainsKey(queryMove))
+                    conflicts++;
             }
         }
 
@@ -278,9 +282,9 @@ namespace CPF_experiment
             if (this.conflicts > that.conflicts)
                 return 1;
 
-            if (this.getDepth() > that.getDepth())
+            if (this.GetDepth() > that.GetDepth())
                 return -1;
-            if (this.getDepth() < that.getDepth())
+            if (this.GetDepth() < that.GetDepth())
                 return 1;
 
             return 0;
@@ -297,7 +301,7 @@ namespace CPF_experiment
         public ExpandedNode(MDDStep parent)
         {
             this.parent = parent;
-            chosenChild = new int[parent.allSteps.Length];
+            this.chosenChild = new int[parent.allSteps.Length];
             foreach (MDDNode node in parent.allSteps)
             {
                 if (node.children.Count == 0)
@@ -308,43 +312,47 @@ namespace CPF_experiment
             }
         }
 
-        public void setup(MDDStep parent)
+        public void Setup(MDDStep parent)
         {
             this.parent = parent;
-            chosenChild = new int[parent.allSteps.Length];
+            this.chosenChild = new int[parent.allSteps.Length];
             foreach (MDDNode node in parent.allSteps)
             {
                 if (node.children.Count == 0)
                 {
-                    chosenChild[0] = -1;
+                    this.chosenChild[0] = -1;
                     break;
                 }
             }
         }
 
-        public MDDStep getNextChild()
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns>The next child, or null if there aren't any more</returns>
+        public MDDStep GetNextChild()
         {
-            if (chosenChild[0] == -1)
+            if (this.chosenChild[0] == -1)
                 return null;
-            MDDNode[] ans=new MDDNode[parent.allSteps.Length];
+            var ans = new MDDNode[parent.allSteps.Length];
             for (int i = 0; i < ans.Length; i++)
             {
-                ans[i] = parent.allSteps[i].children.ElementAt(chosenChild[i]);
+                ans[i] = parent.allSteps[i].children.ElementAt(this.chosenChild[i]);
             }
-            setNextChild(chosenChild.Length - 1);
+            SetNextChild(this.chosenChild.Length - 1);
             return new MDDStep(ans, parent);
         }
 
-        private void setNextChild(int agentNum)
+        private void SetNextChild(int agentNum)
         {
             if (agentNum == -1)
-                chosenChild[0] = -1;
-            else if (chosenChild[agentNum] < parent.allSteps[agentNum].children.Count - 1)
-                chosenChild[agentNum]++;
+                this.chosenChild[0] = -1;
+            else if (this.chosenChild[agentNum] < parent.allSteps[agentNum].children.Count - 1)
+                this.chosenChild[agentNum]++;
             else
             {
-                chosenChild[agentNum] = 0;
-                setNextChild(agentNum - 1);
+                this.chosenChild[agentNum] = 0;
+                SetNextChild(agentNum - 1);
             }
         }
     }

@@ -7,18 +7,18 @@ namespace CPF_experiment
 {
     public class CbsConstraint : IComparable
     {
-        public byte agent {get; protected set;}
-        protected TimedMove move;
+        public byte agentNum {get; protected set;}
+        public TimedMove move {get; protected set;}
         public bool queryInstance = false;
 
-        public CbsConstraint(int agent, int posX, int posY, Move.Direction direction, int timeStep)
+        public CbsConstraint(int agentNum, int posX, int posY, Move.Direction direction, int timeStep)
         {
-            this.Init(agent, posX, posY, direction, timeStep);
+            this.Init(agentNum, posX, posY, direction, timeStep);
         }
 
-        public CbsConstraint(int agent, TimedMove move)
+        public CbsConstraint(int agentNum, TimedMove move)
         {
-            this.Init(agent, move);
+            this.Init(agentNum, move);
         }
 
         public CbsConstraint() : this(-1, -1, -1, Move.Direction.NO_DIRECTION, -1) {} // Nonsense values until Init, just allocate move
@@ -31,29 +31,29 @@ namespace CPF_experiment
             if (agentA)
             {
                 move = conflict.agentAmove;
-                agentNum = instance.m_vAgents[conflict.agentA].agent.agentNum;
+                agentNum = instance.m_vAgents[conflict.agentAIndex].agent.agentNum;
             }
             else
             {
                 move = conflict.agentBmove;
-                agentNum = instance.m_vAgents[conflict.agentB].agent.agentNum;
+                agentNum = instance.m_vAgents[conflict.agentBIndex].agent.agentNum;
             }
 
-            this.agent = (byte)agentNum;
+            this.agentNum = (byte)agentNum;
             this.move = new TimedMove(move, conflict.timeStep);
 
             if (conflict.vertex)
                 this.move.direction = Move.Direction.NO_DIRECTION;
         }
 
-        public void Init(int agent, int posX, int posY, Move.Direction direction, int timeStep)
+        public void Init(int agentNum, int posX, int posY, Move.Direction direction, int timeStep)
         {
-            this.Init(agent, new TimedMove(posX, posY, direction, timeStep));
+            this.Init(agentNum, new TimedMove(posX, posY, direction, timeStep));
         }
 
-        public void Init(int agent, TimedMove move)
+        public void Init(int agentNum, TimedMove move)
         {
-            this.agent = (byte)agent;
+            this.agentNum = (byte)agentNum;
             this.move = move;
         }
 
@@ -66,7 +66,7 @@ namespace CPF_experiment
         }
 
         /// <summary>
-        /// Checks that the agent is equal, and compares the move.
+        /// Checks that the agentNum is equal, and compares the move.
         /// If one of the constraints is a query, an instance only created and used to quickly search for a move in a set of constraints,
         /// the direction is ignored if the other constraint is a vertex constraint.
         /// </summary>
@@ -75,7 +75,7 @@ namespace CPF_experiment
         public override bool Equals(object obj)
         {
             CbsConstraint other = (CbsConstraint)obj;
-            if (this.agent != other.agent)
+            if (this.agentNum != other.agentNum)
                 return false;
 
             Debug.Assert(this.queryInstance == false || other.queryInstance == false); // At most one of the instances is a query
@@ -84,7 +84,7 @@ namespace CPF_experiment
             if (this.queryInstance || other.queryInstance) // This way if the constraint is a vertex constraint than it will be equal to a query containing a move from any direction to that position,
                                                            // and if it is an edge constraint than it will only be equal to queries containing a move from that specific direction to that position.
                 return this.move.Equals(other.move);
-            else // A vertex constraint is different to an edge constraint for the same agent and position.
+            else // A vertex constraint is different to an edge constraint for the same agentNum and position.
                  // Must check the direction explicitly because vertex constraints have no direction and moves with no direction
                  // compare equal to moves with any direction
                 return this.move.Equals(other.move) && this.move.direction == other.move.direction; 
@@ -100,7 +100,7 @@ namespace CPF_experiment
             {
                 int ans = 0;
                 ans += this.move.GetHashCode() * 3;
-                ans += this.agent * 5;
+                ans += this.agentNum * 5;
                 return ans;
             }
         }
@@ -114,7 +114,7 @@ namespace CPF_experiment
         
         public override string ToString()
         {
-            return move.ToString() + "-" + move.direction + " time=" + move.time + " agent " + agent + "";
+            return move.ToString() + "-" + move.direction.ToString().PadRight(12) + " time=" + move.time + " agentNum " + agentNum + "";
         }
 
         /// <summary>
@@ -126,7 +126,7 @@ namespace CPF_experiment
         {
             if (this.move.Equals(other.move) == false) // Minor behavior change: if exactly one move has a set direction, and they're otherwise equal the method used to return true.
                 return true;
-            if (this.agent == other.agent)
+            if (this.agentNum == other.agentNum)
                 return false;
             return true;
         }
@@ -140,7 +140,7 @@ namespace CPF_experiment
 
         public bool ViolatesMustConstraint(byte agent, TimedMove move)
         {
-            if (this.agent != agent)
+            if (this.agentNum != agent)
                 return false;
             return this.move.Equals(move) == false;
         }

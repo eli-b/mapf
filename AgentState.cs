@@ -21,6 +21,9 @@ namespace CPF_experiment
         private int binaryHeapIndex;
         public int potentialConflicts;
         public ushort potentialConflictsID;
+        /// <summary>
+        /// Only used by AStarForSingleAgent, which should itself be deleted.
+        /// </summary>
         [NonSerialized] public AgentState prev;
         /// <summary>
         /// For CBS this must be set to false.
@@ -42,9 +45,14 @@ namespace CPF_experiment
             this.agent = copy.agent;
             this.h = copy.h;
             this.arrivalTime = copy.arrivalTime;
-            this.lastMove = new TimedMove(copy.lastMove); // Can we just do this.lastMove = copy.lastMove? I think we can now, since MoveTo replaces the move
+            this.lastMove = copy.lastMove; //new TimedMove(copy.lastMove); // Can we just do this.lastMove = copy.lastMove? I think we can now, since MoveTo replaces the move
+            //this.prev = copy;
+            this.g = copy.g;
         }
 
+        /// <summary>
+        /// Only used by EnumeratedPDB - check if can be removed
+        /// </summary>
         public void SwapCurrentWithGoal()
         {
             int nTemp = lastMove.x;
@@ -62,9 +70,25 @@ namespace CPF_experiment
         {
             this.lastMove = move;
 
+            bool isWait = move.direction == Move.Direction.Wait;
+            bool atGoal = this.AtGoal();
+
             // If performed a non WAIT move and reached the agent's goal - store the arrival time
-            if ((move.direction != Move.Direction.Wait) && (this.AtGoal()))
+            if (atGoal && (isWait == false))
                 this.arrivalTime = move.time;
+
+            if (Constants.Variant == Constants.ProblemVariant.ORIG)
+            {
+                if (this.AtGoal())
+                    this.g = this.arrivalTime;
+                else
+                    this.g = this.lastMove.time;
+            }
+            else if (Constants.Variant == Constants.ProblemVariant.NEW)
+            {
+                if ((atGoal && isWait) == false)
+                    this.g += 1;
+            }
         }
 
         /// <summary>
@@ -76,16 +100,7 @@ namespace CPF_experiment
             return this.agent.Goal.Equals(this.lastMove); // Comparing Move to TimedMove is allowed, the reverse isn't.
         }
 
-        public int g
-        {
-            get
-            {
-                if (this.AtGoal())
-                    return this.arrivalTime;
-                else
-                    return this.lastMove.time;
-            }
-        }
+        public int g;
 
         /// <summary>
         /// BH_Item implementation

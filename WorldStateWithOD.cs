@@ -3,7 +3,7 @@
 namespace CPF_experiment
 {
     /// <summary>
-    /// This class represents a state in the A* search with operator decomposition, as proposed by Trevor Scott Standley's AAAI paper in 2010.
+    /// This class represents a state in the A* search with operator decomposition, as proposed by IndependenceDetection Scott Standley's AAAI paper in 2010.
     /// More specifically, states can represent a partial move, in which only some of the agents have moved
     /// and the other have not yet moved in this turn. 
     /// </summary>
@@ -16,7 +16,7 @@ namespace CPF_experiment
         /// </summary>
         public int agentTurn;
 
-        public WorldStateWithOD(AgentState[] states, int minDepth = -1) : base(states, minDepth)
+        public WorldStateWithOD(AgentState[] states, int minDepth = -1, int minCost = -1) : base(states, minDepth, minCost)
         {
             this.agentTurn = 0;
         }
@@ -52,12 +52,14 @@ namespace CPF_experiment
             {
                 subproblem.parameters = new Dictionary<string,object>(subproblem.parameters); // Use a copy to not pollute general problem instance with the must constraints
                 if (subproblem.parameters.ContainsKey(CBS_LocalConflicts.MUST_CONSTRAINTS) == false)
-                    subproblem.parameters[CBS_LocalConflicts.MUST_CONSTRAINTS] = new List<CbsConstraint>();
-                var mustConstraints = (List<CbsConstraint>)subproblem.parameters[CBS_LocalConflicts.MUST_CONSTRAINTS];
+                    subproblem.parameters[CBS_LocalConflicts.MUST_CONSTRAINTS] = new HashSet_U<CbsConstraint>();
+                var mustConstraints = (HashSet_U<CbsConstraint>)subproblem.parameters[CBS_LocalConflicts.MUST_CONSTRAINTS];
+                var newMustConstraints = new HashSet<CbsConstraint>();
                 for (int i = 0; i < this.agentTurn; ++i)
                 {
-                    mustConstraints.Add(new CbsConstraint(this.allAgentsState[i].agent.agentNum, this.allAgentsState[i].lastMove));
+                    newMustConstraints.Add(new CbsConstraint(this.allAgentsState[i].agent.agentNum, this.allAgentsState[i].lastMove));
                 }
+                mustConstraints.Join(newMustConstraints);
             }
 
             return subproblem;
@@ -186,13 +188,12 @@ namespace CPF_experiment
         /// <returns></returns>
         public override void UpdateConflictCounts(IReadOnlyDictionary<TimedMove, List<int>> conflictAvoidance)
         {
-            int lastMove = agentTurn - 1;
+            int lastAgentToMove = agentTurn - 1;
             if (agentTurn == 0)
-                lastMove = allAgentsState.Length - 1;
+                lastAgentToMove = allAgentsState.Length - 1;
 
-            List<int> colliding = allAgentsState[lastMove].lastMove.GetColliding(conflictAvoidance);
-            foreach (int agentNum in colliding)
-                this.cbsInternalConflicts[agentNum] += 1;
+            allAgentsState[lastAgentToMove].lastMove.UpdateConflictCounts(conflictAvoidance,
+                                                                          this.cbsInternalConflicts, this.conflictTimes);
         }
     }
 }

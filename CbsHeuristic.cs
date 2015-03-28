@@ -299,40 +299,40 @@ namespace CPF_experiment
         {
             this.cbs.OutputAccumulatedStatistics(output);
 
-            double averageExpandedHigh = 0;
-            double averageGeneratedHigh = 0;
-            double averageExpandedLow = 0;
-            double averageGeneratedLow = 0;
-            double averageRunTime = 0;
-            double averageImprovement = 0;
+            double accAverageExpandedHigh = 0;
+            double accAverageGeneratedHigh = 0;
+            double accAverageExpandedLow = 0;
+            double accAverageGeneratedLow = 0;
+            double accAverageRunTime = 0;
+            double accAverageImprovement = 0;
 
             if (this.nCalls != 0) // Stats are available
             {
-                averageExpandedHigh = this.cbs.GetAccumulatedExpanded() / this.nCalls;
-                averageGeneratedHigh = this.cbs.GetAccumulatedGenerated() / this.nCalls;
-                averageExpandedLow = this.cbs.GetLowLevelExpanded() / this.nCalls;
-                averageGeneratedLow = this.cbs.GetLowLevelGenerated() / this.nCalls;
-                averageRunTime = this.accTotalRuntime / this.accNCalls;
-                averageImprovement = this.accTotalImprovement / this.accNCalls;
+                accAverageExpandedHigh = this.cbs.GetAccumulatedExpanded() / this.nCalls;
+                accAverageGeneratedHigh = this.cbs.GetAccumulatedGenerated() / this.nCalls;
+                accAverageExpandedLow = this.cbs.GetLowLevelExpanded() / this.nCalls;
+                accAverageGeneratedLow = this.cbs.GetLowLevelGenerated() / this.nCalls;
+                accAverageRunTime = this.accTotalRuntime / this.accNCalls;
+                accAverageImprovement = this.accTotalImprovement / this.accNCalls;
             }
 
-            Console.WriteLine("{0} Accumulated Average Expanded Nodes (High-Level): {1}", this, averageExpandedHigh);
-            Console.WriteLine("{0} Accumulated Average Generated Nodes (High-Level): {1}", this, averageGeneratedHigh);
-            Console.WriteLine("{0} Accumulated Average Expanded Nodes (Low-Level): {1}", this, averageExpandedLow);
-            Console.WriteLine("{0} Accumulated Average Generated Nodes (Low-Level): {1}", this, averageGeneratedLow);
+            Console.WriteLine("{0} Accumulated Average Expanded Nodes (High-Level): {1}", this, accAverageExpandedHigh);
+            Console.WriteLine("{0} Accumulated Average Generated Nodes (High-Level): {1}", this, accAverageGeneratedHigh);
+            Console.WriteLine("{0} Accumulated Average Expanded Nodes (Low-Level): {1}", this, accAverageExpandedLow);
+            Console.WriteLine("{0} Accumulated Average Generated Nodes (Low-Level): {1}", this, accAverageGeneratedLow);
 
-            output.Write(averageExpandedHigh + Run.RESULTS_DELIMITER);
-            output.Write(averageGeneratedHigh + Run.RESULTS_DELIMITER);
-            output.Write(averageExpandedLow + Run.RESULTS_DELIMITER);
-            output.Write(averageGeneratedLow + Run.RESULTS_DELIMITER);
+            output.Write(accAverageExpandedHigh + Run.RESULTS_DELIMITER);
+            output.Write(accAverageGeneratedHigh + Run.RESULTS_DELIMITER);
+            output.Write(accAverageExpandedLow + Run.RESULTS_DELIMITER);
+            output.Write(accAverageGeneratedLow + Run.RESULTS_DELIMITER);
 
-            Console.WriteLine("{0} Average Runtime: {1}", this, averageRunTime);
-            Console.WriteLine("{0} Average Improvement Achieved: {1}", this, averageImprovement);
+            Console.WriteLine("{0} Average Runtime: {1}", this, accAverageRunTime);
+            Console.WriteLine("{0} Average Improvement Achieved: {1}", this, accAverageImprovement);
             Console.WriteLine("{0} Nodes Solved: {1}", this, this.accNodesSolved);
             Console.WriteLine("{0} Num Calls: {1}", this, this.accNCalls);
 
-            output.Write(averageRunTime + Run.RESULTS_DELIMITER);
-            output.Write(averageImprovement + Run.RESULTS_DELIMITER);
+            output.Write(accAverageRunTime + Run.RESULTS_DELIMITER);
+            output.Write(accAverageImprovement + Run.RESULTS_DELIMITER);
             output.Write(this.accNodesSolved + Run.RESULTS_DELIMITER);
             output.Write(this.accNCalls + Run.RESULTS_DELIMITER);            
         }

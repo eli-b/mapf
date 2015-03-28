@@ -4,3 +4,5 @@ obj/Debug/*
 bin/Debug/*
 bin/Release/*
 obj/Release/*
+.svn-old/
+*.orig

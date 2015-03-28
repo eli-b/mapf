@@ -143,15 +143,15 @@ namespace CPF_experiment
                 stepLength = 1;
             bool ok1 = false, ok2 = false;
 
-            if (node.totalCost + conflict.timeStep + stepLength - node.PathLength(conflict.agentA) <= fBound)
+            if (node.totalCost + conflict.timeStep + stepLength - node.PathLength(conflict.agentAIndex) <= fBound)
             {
                 ok1 = true;
                 if (node.DoesMustConstraintAllow(con1))
                 {
-                    toAdd = new CbsNode(node, con1, conflict.agentA);
+                    toAdd = new CbsNode(node, con1, conflict.agentAIndex);
                     toAdd.SetMustConstraint(con2);
 
-                    if (toAdd.Replan3b(conflict.agentA, Math.Max(minCost, conflict.timeStep)))
+                    if (toAdd.Replan3b(conflict.agentAIndex, Math.Max(minCost, conflict.timeStep)))
                     {
                         this.highLevelGenerated++;
                         if (toAdd.totalCost <= fBound)
@@ -165,15 +165,15 @@ namespace CPF_experiment
                 }
             }
 
-            if (node.totalCost + conflict.timeStep + stepLength - node.PathLength(conflict.agentB) <= fBound)
+            if (node.totalCost + conflict.timeStep + stepLength - node.PathLength(conflict.agentBIndex) <= fBound)
             {
                 ok2 = true;
                 if (node.DoesMustConstraintAllow(con2))
                 {
-                    toAdd = new CbsNode(node, con2, conflict.agentB);
+                    toAdd = new CbsNode(node, con2, conflict.agentBIndex);
                     toAdd.SetMustConstraint(con1);
 
-                    if (toAdd.Replan3b(conflict.agentB, Math.Max(minCost, conflict.timeStep)))
+                    if (toAdd.Replan3b(conflict.agentBIndex, Math.Max(minCost, conflict.timeStep)))
                     {
                         this.highLevelGenerated++;
                         if (toAdd.totalCost <= fBound)
@@ -189,13 +189,13 @@ namespace CPF_experiment
 
             if (ok1 && ok2)
             {
-                toAdd = new CbsNode(node, con1, conflict.agentA);
-                if (toAdd.Replan3b(conflict.agentA, Math.Max(minCost, conflict.timeStep)))
+                toAdd = new CbsNode(node, con1, conflict.agentAIndex);
+                if (toAdd.Replan3b(conflict.agentAIndex, Math.Max(minCost, conflict.timeStep)))
                 {
                     if (toAdd.totalCost <= fBound)
                     {
-                        toAdd = new CbsNode(toAdd, con2, conflict.agentB);
-                        if (toAdd.Replan(conflict.agentB, Math.Max(minCost, conflict.timeStep)))
+                        toAdd = new CbsNode(toAdd, con2, conflict.agentBIndex);
+                        if (toAdd.Replan(conflict.agentBIndex, Math.Max(minCost, conflict.timeStep)))
                             // FIXME: Should this really use the regular Replan() or was this a typo?
                         {
                             this.highLevelGenerated++;
@@ -254,20 +254,20 @@ namespace CPF_experiment
 
             this.instance = problemInstance;
             this.runner = runner;
-            root = new CbsNode(instance.m_vAgents.Length, problemInstance, this.solver, this.lowLevelSolver, runner);
+            //root = new CbsNode(instance.m_vAgents.Length, problemInstance, this.solver, this.lowLevelSolver, this); // FIXME!
             this.highLevelExpanded = 0;
             this.highLevelGenerated = 1;
             maxSizeGroup = 1;
             this.totalCost = 0;
 
-            if (problemInstance.parameters.ContainsKey(Trevor.MAXIMUM_COST_KEY))
-                this.maxCost = (int)(problemInstance.parameters[Trevor.MAXIMUM_COST_KEY]);
+            if (problemInstance.parameters.ContainsKey(IndependenceDetection.MAXIMUM_COST_KEY))
+                this.maxCost = (int)(problemInstance.parameters[IndependenceDetection.MAXIMUM_COST_KEY]);
             else
                 this.maxCost = int.MaxValue;
 
-            if (problemInstance.parameters.ContainsKey(CBS_LocalConflicts.INTERNAL_CAT) == false) // Top-most CBS only
+            if (problemInstance.parameters.ContainsKey(CBS_LocalConflicts.CAT) == false) // Top-most CBS only
             {
-                problemInstance.parameters[CBS_LocalConflicts.INTERNAL_CAT] = new HashSet_U<TimedMove>();
+                problemInstance.parameters[CBS_LocalConflicts.CAT] = new HashSet_U<TimedMove>();
                 problemInstance.parameters[CBS_LocalConflicts.CONSTRAINTS] = new HashSet_U<CbsConstraint>();
                 problemInstance.parameters[CBS_LocalConflicts.MUST_CONSTRAINTS] = new List<CbsConstraint>();
                 this.topMost = true;
@@ -297,7 +297,7 @@ namespace CPF_experiment
         protected void addToGlobalConflictCount(CbsConflict conflict)
         {
             if (conflict != null)
-                globalConflictsCounter[Math.Max(conflict.agentA, conflict.agentB)][Math.Min(conflict.agentA, conflict.agentB)]++;
+                globalConflictsCounter[Math.Max(conflict.agentAIndex, conflict.agentBIndex)][Math.Min(conflict.agentAIndex, conflict.agentBIndex)]++;
         }
 
         public string GetName()
