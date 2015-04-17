@@ -49,9 +49,10 @@ for i, reader in enumerate(readers):
 
 solver_success_rate_per_num_of_agents = defaultdict(Counter)        
 # 2. Average the results:
-for num_of_agents, success_counts in solver_successes_per_num_of_agents.iteritems():
-    for solver, success_count in success_counts.iteritems():
-        solver_success_rate_per_num_of_agents[num_of_agents][solver] = float(success_count) / solver_run_count_per_num_of_agents[num_of_agents][solver]
+for num_of_agents, run_counts in solver_run_count_per_num_of_agents.iteritems():
+    success_counts = solver_successes_per_num_of_agents[num_of_agents]
+    for solver, run_count in run_counts.iteritems():
+        solver_success_rate_per_num_of_agents[num_of_agents][solver] = float(success_counts[solver]) / run_count
      
 # 3. Print success rates per category
 parameters_pat = re.compile(r"\d+", re.DOTALL & re.VERBOSE)
@@ -63,7 +64,7 @@ sorted_solver_names = list(sorted(
 #sorted_solver_names = ["MA-CBS+BP2", "MA-CBS+BP1", "MA-CBS"] # Allows manually choosing the order of solvers in the legend
 #sorted_solver_names = ["ICBS(10)+ID", "ICTS+ID", "EPEA*+ID", ] # Allows manually choosing the order of solvers in the legend
 #sorted_solver_names = ["CBS+IMP1+IMP2", "CBS+IMP1", "CBS+IMP2", "CBS"]
-sorted_solver_names = ["MA-CBS(5)+IMP3", "MA-CBS(5)",]
+#sorted_solver_names = ["MA-CBS(5)+IMP3", "MA-CBS(5)",]
 #sorted_solver_names = ["MA-CBS(256)", "EPEA*", "ICBS(256)", "ICTS", "CBS+IMP1+IMP2", "CBS+IMP1", "CBS"]
 #sorted_solver_names = ["MA-CBS(5)", "MA-CBS(50)", "MA-CBS(5)+IMP3", "ICBS(5) (full restart)"]
 #sorted_solver_names = [ "MA-CBS(64)+IMP3", "MA-CBS(64)"]  # "CBS", "ICTS", "EPEA*",
