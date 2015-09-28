@@ -13,6 +13,10 @@ namespace CPF_experiment
         public LinkedList<MDDNode>[] levels;
         private int agentNum;
         private int mddNum;
+        /// <summary>
+        /// Just for printing the node
+        /// </summary>
+        private int cost;
         public ProblemInstance problem;
         public enum PruningDone : int
         {
@@ -43,6 +47,7 @@ namespace CPF_experiment
             this.problem = instance;
             this.mddNum = mddNum;
             this.agentNum = agentNum;
+            this.cost = cost;
             this.levels = new LinkedList<MDDNode>[numOfLevels + 1];
             this.supportPruning = supportPruning;
 
@@ -270,23 +275,22 @@ namespace CPF_experiment
 
         public void printMDD()
         {
-            Console.WriteLine();
-            Console.WriteLine();
+            Console.WriteLine(String.Format("MDD for agent {0}, {1} steps, cost {2}:", this.agentNum, this.levels.Length, this.cost));
             for (int j = 0; j < levels.Count(); j++)
             {
-                Console.WriteLine("\n\nlevel: " + j + " total- " + levels[j].Count+"  *****");
-                Console.WriteLine("-----------------");
+                Console.WriteLine("Level " + j + ", " + levels[j].Count + " nodes:");
                 foreach (MDDNode node in levels[j])
                 {
-                    Console.Write("\n\n-node- " + node.ToString() + " children: ");
+                    Console.Write("Node " + node.ToString());
+                    Console.Write(" children: ");
                     foreach (MDDNode child in node.children)
                     {
-                        Console.Write(child.ToString() + ") ");
+                        Console.Write(child.ToString() + ", ");
                     }
                     Console.Write(" parents: ");
                     foreach (MDDNode parent in node.parents)
                     {
-                        Console.Write(parent.ToString() + ") ");
+                        Console.Write(parent.ToString() + ", ");
                     }
                     Console.Write(" coexist: ");
                     int i = 0;
@@ -300,6 +304,7 @@ namespace CPF_experiment
                     }
                 }
             }
+            Console.WriteLine("------");
         }
 
     }
@@ -316,6 +321,15 @@ namespace CPF_experiment
         public bool startOrGoal;
         public bool isDeleted; //to prevent deletion loop
         public bool legal;
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
+        public override string ToString()
+        {
+            return this.move.ToString();
+        }
 
         public MDDNode(TimedMove move, int numOfAgents, MDD mdd, bool supportPruning = true)
         {
