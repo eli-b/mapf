@@ -140,13 +140,12 @@ namespace CPF_experiment
                 var optimalMoves = new Move[this.m_nLocations];
                 for (int i = 0; i < m_nLocations; i++)
                     shortestPathLengths[i] = -1;
-                for (int i = 0; i < m_nLocations; i++)
-                    optimalMoves[i] = null;
                 var openlist = new Queue<AgentState>();
 
                 // Create initial state
-                var goalState = new AgentState(this.m_vAgents[agentId].agent.Goal.x,
-                        this.m_vAgents[agentId].agent.Goal.y, -1, -1, agentId);
+                var agentStartState = this.m_vAgents[agentId];
+                var agent = agentStartState.agent;
+                var goalState = new AgentState(agent.Goal.x, agent.Goal.y, -1, -1, agentId);
                 int goalIndex = this.GetCardinality(goalState.lastMove);
                 shortestPathLengths[goalIndex] = 0;
                 optimalMoves[goalIndex] = new Move(goalState.lastMove);
@@ -174,6 +173,12 @@ namespace CPF_experiment
                         }
                     }
 
+                }
+
+                int start = this.GetCardinality(agentStartState.lastMove);
+                if (shortestPathLengths[start] == -1)
+                {
+                    throw new Exception(String.Format("Unsolvable instance! Agent {0} cannot reach its goal", agentId));
                 }
 
                 this.singleAgentOptimalCosts[agentId] = shortestPathLengths;

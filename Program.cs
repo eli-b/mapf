@@ -35,12 +35,22 @@ namespace CPF_experiment
         /// <param name="fileName"></param>
         public void RunInstance(string fileName)
         {
+            ProblemInstance instance;
+            try
+            {
+                instance = ProblemInstance.Import(Directory.GetCurrentDirectory() + "\\Instances\\" + fileName);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(String.Format("Skipping bad problem instance {0}. Error: {1}", fileName, e.Message));
+                return;
+            }
+
             Run runner = new Run();
             bool resultsFileExisted = File.Exists(RESULTS_FILE_NAME);
             runner.OpenResultsFile(RESULTS_FILE_NAME);
             if (resultsFileExisted == false)
                 runner.PrintResultsFileHeader();
-            ProblemInstance instance = ProblemInstance.Import(Directory.GetCurrentDirectory() + "\\Instances\\" + fileName);
             runner.SolveGivenProblem(instance);
             runner.CloseResultsFile();
         }
