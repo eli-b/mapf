@@ -449,12 +449,12 @@ namespace CPF_experiment
         /// Given an agent located at the nth location on our board that is
         /// not occupied by an obstacle, we return n.
         /// </summary>
-        /// <param name="ags">An agent's current location.</param>
+        /// <param name="location">An agent's current location.</param>
         /// <returns>n, where the agent is located at the nth non-obstacle
         /// location in our grid.</returns>
         public Int32 GetCardinality(Move location)
         {
-            return (m_vCardinality[location.x, location.y]);
+            return m_vCardinality[location.x, location.y];
         }
         
         private void PrecomputePermutations()
