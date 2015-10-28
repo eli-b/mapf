@@ -131,7 +131,7 @@ namespace CPF_experiment
 
             // Prune nodes that can't get to the target F - even before their real H is calculated!
             generated = generated.Where<WorldState>(
-                node => ((WorldStateForPartialExpansion)node).remainingDeltaF != byte.MaxValue && // last move was good
+                node => ((WorldStateForPartialExpansion)node).remainingDeltaF != ushort.MaxValue && // last move was good
                         ((WorldStateForPartialExpansion)node).hasChildrenForCurrentDeltaF(agentIndex+1)
                                                                     ).ToList<WorldState>();
 

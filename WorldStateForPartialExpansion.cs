@@ -11,11 +11,11 @@ namespace CPF_experiment
         /// <summary>
         /// Starts at zero, incremented after a node is expanded once. Set on Expand.
         /// </summary>
-        public byte targetDeltaF;
+        public ushort targetDeltaF;
         /// <summary>
         /// Remaining delta F towards targetDeltaF. Reset on Expand.
         /// </summary>
-        public byte remainingDeltaF;
+        public ushort remainingDeltaF;
         /// <summary>
         /// For each agent and each direction it can go, the effect of that move on F
         /// byte.MaxValue means this is an illegal move. Only computed on demand.
@@ -24,7 +24,7 @@ namespace CPF_experiment
         /// <summary>
         /// Only computed on demand
         /// </summary>
-        protected byte maxDeltaF;
+        protected ushort maxDeltaF;
         /// <summary>
         /// Per each agent and delta F, has 1 if that delta F is achievable by moving the agents starting from this one on,
         /// -1 if it isn't, and 0 if we don't know yet.
@@ -198,7 +198,7 @@ namespace CPF_experiment
         /// <param name="agentNum"></param>
         /// <param name="remainingTargetDeltaF"></param>
         /// <returns></returns>
-        protected bool existsChildForF(int agentNum, byte remainingTargetDeltaF)
+        protected bool existsChildForF(int agentNum, ushort remainingTargetDeltaF)
         {
             // Stopping conditions:
             if (agentNum == allAgentsState.Length)
@@ -229,17 +229,18 @@ namespace CPF_experiment
         }
 
         /// <summary>
-        /// An agent was moved between calculating the singleAgentDeltaFs and this call. Using the data that describes its delta F potential before the move.
+        /// An agent was moved between calculating the singleAgentDeltaFs and this call.
+        /// Using the data that describes its delta F potential before the move.
         /// </summary>
         /// <param name="agentIndex"></param>
         public void UpdateRemainingDeltaF(int agentIndex) {
-            Debug.Assert(this.remainingDeltaF != byte.MaxValue);
+            Debug.Assert(this.remainingDeltaF != ushort.MaxValue, "Remaining deltaF is ushort.MaxValue, a reserved value with special meaning. agentIndex=" + agentIndex);
 
             byte lastMoveDeltaF = this.singleAgentDeltaFs[agentIndex][(int)this.allAgentsState[agentIndex].lastMove.direction];
             if (lastMoveDeltaF != byte.MaxValue && this.remainingDeltaF >= lastMoveDeltaF)
                 this.remainingDeltaF -= lastMoveDeltaF;
             else
-                this.remainingDeltaF = byte.MaxValue; // Either because last move was illegal or because the delta F from the last move was more than the entire remaining delta F budget
+                this.remainingDeltaF = ushort.MaxValue; // Either because last move was illegal or because the delta F from the last move was more than the entire remaining delta F budget
         }
 
         /// <summary>
