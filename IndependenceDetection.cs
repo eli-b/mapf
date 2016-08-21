@@ -5,8 +5,8 @@ using System.Collections;
 using System.IO;
 using System.Diagnostics;
 
-using MongoDB.Bson;
-using MongoDB.Driver;
+//using MongoDB.Bson;
+//using MongoDB.Driver;
 
 namespace CPF_experiment
 {
@@ -127,7 +127,7 @@ namespace CPF_experiment
         /// <summary>
         /// Prints statistics of a single run to the given output. 
         /// </summary>
-        public void OutputStatistics(TextWriter output, BsonDocument row)
+        public void OutputStatistics(TextWriter output)//, BsonDocument row)
         {
             Console.WriteLine("Total Expanded Nodes: {0}", this.expanded);
             Console.WriteLine("Total Generated Nodes: {0}", this.generated);
