@@ -93,8 +93,8 @@ namespace CPF_experiment
                         for (int i = 0; i < instances; i++)
                         {
                             string allocation = Process.GetCurrentProcess().ProcessName.Substring(1);
-                            if (i % 33 != Convert.ToInt32(allocation)) // grids!
-                                continue;
+                            //if (i % 33 != Convert.ToInt32(allocation)) // grids!
+                            //    continue;
 
                             //if (i % 5 != 0) // grids!
                             //    continue;
@@ -136,8 +136,6 @@ namespace CPF_experiment
                             }
 
                             runner.SolveGivenProblem(instance);
-
-                            //return; // DELETE ME!!!!!!!!!!!!!!!!!!!!!!!!!@# JUST FOR DEBUGGING!!!
 
                             // Save the latest problem
                             if (File.Exists(currentProblemFileName))
@@ -199,9 +197,9 @@ namespace CPF_experiment
             {
                 for (int i = 0; i < numInstances; i++)
                 {
-                    string name = Process.GetCurrentProcess().ProcessName.Substring(1);
-                    if (i % 33 != Convert.ToInt32(name)) // DAO!
-                        continue;
+                    //string name = Process.GetCurrentProcess().ProcessName.Substring(1);
+                    //if (i % 33 != Convert.ToInt32(name)) // DAO!
+                    //    continue;
 
                     for (int map = 0; map < mapFileNames.Length; map++)
                     {
