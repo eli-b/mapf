@@ -555,7 +555,7 @@ namespace CPF_experiment
              * reproducible experiments.
              */
             //Random rand = new Random();
-
+            Debug.WriteLine(string.Format("Generating instance with {0} agents, {1] obstacles of size {2}", agentsNum, obstaclesNum, gridSize));
             if (agentsNum + obstaclesNum + 1 > gridSize * gridSize)
                 throw new Exception("Not enough room for " + agentsNum + ", " + obstaclesNum + " and one empty space in a " + gridSize + "x" + gridSize + "map.");
 
@@ -644,12 +644,7 @@ namespace CPF_experiment
         /// <returns></returns>
         public ProblemInstance GenerateDragonAgeProblemInstance(string mapFileName, int agentsNum)
         {
-            /**
-             * Randomization based on timer is disabled for purposes of getting
-             * reproducible experiments.
-             */
-            //Random rand = new Random();
-
+            Debug.WriteLine(string.Format("Generating instance with {0} agents", agentsNum));
             TextReader input = new StreamReader(mapFileName);
             string[] lineParts;
             string line;
