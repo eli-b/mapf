@@ -1071,7 +1071,7 @@ namespace CPF_experiment
                         improvedHOfOldNode = true;
                     }
 
-                    byte hackData = 0;
+                    ushort hackData = 0;
                     if (inClosedList.GetType() == typeof(WorldStateForPartialExpansion))
                     {
                         // OPTIMIZATION HACK:
