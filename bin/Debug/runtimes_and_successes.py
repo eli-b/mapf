@@ -10,6 +10,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 import re
+import traceback
 
 input_paths = sys.argv[1:]
 
@@ -41,7 +42,7 @@ for i, reader in enumerate(readers):
             solvers_that_succeeded = [col_name[:-len(" Success")] for col_name, col_val in row.iteritems() \
                                       if col_name in success_fieldnames if int(col_val) == 1]
         except (TypeError, ValueError) as e:
-            print "Problem in row: num agents=", row["Num Of Agents"], " instance id=", row["Instance Id"], e
+            print "Problem in row: num agents={} instance id={}:\n{}".format(row["Num Of Agents"], row["Instance Id"], traceback.format_exc())
             #raise
             continue
         solver_run_count_per_num_of_agents[num_of_agents].update(solvers_run) # Add the counts of the items in solvers
@@ -153,7 +154,7 @@ for i, reader in enumerate(readers):
                                              if solver_name in relevant_solvers_in_category}
             
         except (TypeError, ValueError) as e:
-            print "Problem in row: num agents=", row["Num Of Agents"], " instance id=", row["Instance Id"], e
+            print "Problem in row: num agents={} instance id={}:\n{}".format(row["Num Of Agents"], row["Instance Id"], traceback.format_exc())
             #raise
             continue
         
