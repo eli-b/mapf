@@ -35,26 +35,27 @@ namespace CPF_experiment
 
         public override bool Equals(object obj)
         {
-            if (this.agentAIndex != ((CbsConflict)obj).agentAIndex)
+            var other = (CbsConflict)obj;
+            if (this.agentAIndex != other.agentAIndex)
                 return false;
-            if (this.agentBIndex != ((CbsConflict)obj).agentBIndex)
+            if (this.agentBIndex != other.agentBIndex)
                 return false;
-            if (this.vertex != ((CbsConflict)obj).vertex)
+            if (this.vertex != other.vertex)
                 return false;
-            if (this.timeStep != ((CbsConflict)obj).timeStep)
+            if (this.timeStep != other.timeStep)
                 return false;
             if (this.vertex)
             { // Compare dests, ignore directions. Enough to compare one agent's move because the other is colliding with it.
-                if (this.agentAmove.x != ((CbsConflict)obj).agentAmove.x)
+                if (this.agentAmove.x != other.agentAmove.x)
                     return false;
-                if (this.agentAmove.y != ((CbsConflict)obj).agentAmove.y)
+                if (this.agentAmove.y != other.agentAmove.y)
                     return false;
             }
             else
             { // Compare dests and directions (unless direction is NO_DIRECTION)
-                if (this.agentAmove.Equals(((CbsConflict)obj).agentAmove) == false)
+                if (this.agentAmove.Equals(other.agentAmove) == false)
                     return false;
-                if (this.agentBmove.Equals(((CbsConflict)obj).agentBmove) == false)
+                if (this.agentBmove.Equals(other.agentBmove) == false)
                     return false;
             }               
             return true;

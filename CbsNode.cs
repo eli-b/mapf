@@ -1245,7 +1245,8 @@ namespace CPF_experiment
                 groupA = groups[aConflictingGroupMemberIndex];
                 groupB = groups[bConflictingGroupMemberIndex];
             }
-            this.largerConflictingGroupSize = Math.Max(groupA.Count, groupB.Count);
+
+            this.largerConflictingGroupSize = Math.Max(groupA.Count, groupB.Count);  // TODO: explain why
 
             if (groupA.Count == 1 && groupB.Count == 1) // We assume they collide.
             {
