@@ -336,20 +336,27 @@ namespace CPF_experiment
         }
 
         /// <summary>
-        /// if we move the i'st agent we check whether it is legal with all agents that moved before, i.e. from that point forward
+        /// If we move the i'th agent we check whether it is legal with all agents that moved before,
+        /// i.e. from that point forward
         /// </summary>
         /// <param name="checkFrom"></param>
         /// <returns></returns>
          private bool isLegal(int checkFrom)
         {
-            // check if all moves are legal from the i agents forward (collisons+head on collisions)
+            // check if all moves are legal from the i agent forward (collisons+head on collisions)
              for (int i = checkFrom; i < nodesFromChildrenList.Length - 1; i++)
             {
+                var node = nodesFromChildrenList[i].Value;
                 for (int j = i+1; j < nodesFromChildrenList.Length; j++)
                 {
-                    if (nodesFromChildrenList[i].Value.Equals(nodesFromChildrenList[j].Value))
+                    var other = nodesFromChildrenList[j].Value;
+                    // TODO: Replace the following duplicated logic is node.move.isColliding(other.move)
+                    //       after making sure results stay correct
+                    if (node.Equals(other))
                         return false;
-                    if (nodesFromChildrenList[i].Value.getVertexIndex() == prevStep.allPositions[j].getVertexIndex() && nodesFromChildrenList[j].Value.getVertexIndex() == prevStep.allPositions[i].getVertexIndex())
+                    if (Constants.ALLOW_HEAD_ON_COLLISION == false &&
+                        node.getVertexIndex() == prevStep.allPositions[j].getVertexIndex() && 
+                        node.getVertexIndex() == prevStep.allPositions[i].getVertexIndex())
                         return false;
                 }
             }

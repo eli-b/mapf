@@ -247,11 +247,18 @@ namespace CPF_experiment
             if (this.x == other_x && this.y == other_y)
                 return true;
             // Head-on collision check
-            var source_x = this.x + directionToOppositeDeltas[(int)this.direction, 0];
-            var source_y = this.y + directionToOppositeDeltas[(int)this.direction, 1];
-            var other_source_x = other_x + directionToOppositeDeltas[(int)other_direction, 0];
-            var other_source_y = other_y + directionToOppositeDeltas[(int)other_direction, 1];
-            return this.x == other_source_x && this.y == other_source_y && other_x == source_x && other_y == source_y;
+            if (Constants.ALLOW_HEAD_ON_COLLISION == false)
+            {
+                var source_x = this.x + directionToOppositeDeltas[(int)this.direction, 0];
+                var source_y = this.y + directionToOppositeDeltas[(int)this.direction, 1];
+                var other_source_x = other_x + directionToOppositeDeltas[(int)other_direction, 0];
+                var other_source_y = other_y + directionToOppositeDeltas[(int)other_direction, 1];
+                return this.x == other_source_x && this.y == other_source_y && other_x == source_x && other_y == source_y;
+            }
+            else
+            {
+                return false;
+            }
         }
 
         //public bool GetColliding(IReadOnlyDictionary<Move, List<Move>> group)
