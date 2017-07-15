@@ -176,13 +176,16 @@ namespace CPF_experiment
             }
             this.direction = saveDirection;
 
-            this.setOppositeMove();
-            if (moves.Contains(this)) // Check direction too now
+            if (Constants.ALLOW_HEAD_ON_COLLISION == false)
             {
                 this.setOppositeMove();
-                return true;
+                if (moves.Contains(this)) // Check direction too now
+                {
+                    this.setOppositeMove();
+                    return true;
+                }
+                this.setOppositeMove();
             }
-            this.setOppositeMove();
 
             return false;
         }
@@ -198,13 +201,16 @@ namespace CPF_experiment
             }
             this.direction = saveDirection;
 
-            this.setOppositeMove();
-            if (timedMovesToAgentID.ContainsKey(this)) // Check direction too now
+            if (Constants.ALLOW_HEAD_ON_COLLISION == false)
             {
                 this.setOppositeMove();
-                return true;
+                if (timedMovesToAgentID.ContainsKey(this)) // Check direction too now
+                {
+                    this.setOppositeMove();
+                    return true;
+                }
+                this.setOppositeMove();
             }
-            this.setOppositeMove();
 
             return false;
         }
@@ -236,14 +242,17 @@ namespace CPF_experiment
             }
             this.direction = saveDirection;
 
-            this.setOppositeMove();
-            if (timedMovesToAgentIndex.ContainsKey(this)) // Check direction too now
+            if (Constants.ALLOW_HEAD_ON_COLLISION == false)
             {
-                if (ans == null)
-                    ans = new List<int>(1);
-                ans.Add(timedMovesToAgentIndex[this]);
+                this.setOppositeMove();
+                if (timedMovesToAgentIndex.ContainsKey(this)) // Check direction too now
+                {
+                    if (ans == null)
+                        ans = new List<int>(1);
+                    ans.Add(timedMovesToAgentIndex[this]);
+                }
+                this.setOppositeMove();
             }
-            this.setOppositeMove();
 
             if (ans != null)
                 return ans;
@@ -274,20 +283,23 @@ namespace CPF_experiment
                 if (timedMovesToAgentNumLists.ContainsKey(this))
                 {
                     if (ans == null)
-                        ans = new List<int>(timedMovesToAgentNumLists[this].Count + 3);
+                        ans = new List<int>(timedMovesToAgentNumLists[this].Count + 3);  // Why +3? Just preemptively taking more space?
                     ans.AddRange(timedMovesToAgentNumLists[this]);
                 }
             }
             this.direction = saveDirection;
 
-            this.setOppositeMove();
-            if (timedMovesToAgentNumLists.ContainsKey(this)) // Check direction too now
+            if (Constants.ALLOW_HEAD_ON_COLLISION == false)
             {
-                if (ans == null)
-                    ans = new List<int>(timedMovesToAgentNumLists[this].Count);
-                ans.AddRange(timedMovesToAgentNumLists[this]);
+                this.setOppositeMove();
+                if (timedMovesToAgentNumLists.ContainsKey(this)) // Check direction too now
+                {
+                    if (ans == null)
+                        ans = new List<int>(timedMovesToAgentNumLists[this].Count);
+                    ans.AddRange(timedMovesToAgentNumLists[this]);
+                }
+                this.setOppositeMove();
             }
-            this.setOppositeMove();
 
             if (ans != null)
                 return ans;
