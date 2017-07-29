@@ -274,11 +274,11 @@ namespace CPF_experiment
                 variants += " without smart tie breaking";
             if (this.useMddH == true)
                 variants += " with MDD heuristic";
-            if (this.mergeCausesRestart == true)
+            if (this.mergeCausesRestart == true && mergeThreshold != -1)
                 variants += " with merge&restart";
 
             if (mergeThreshold == -1)
-                return "Basic-CBS/" + lowLevelSolvers + variants;
+                return "CBS/" + lowLevelSolvers + variants;
             return "MA-CBS-Local-" + mergeThreshold + "/" + lowLevelSolvers + variants;
         }
 
