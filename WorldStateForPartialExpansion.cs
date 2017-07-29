@@ -119,8 +119,8 @@ namespace CPF_experiment
             // Set values
             for (int i = 0; i < allAgentsState.Length; i++)
             {
-                hBefore = problem.GetSingleAgentOptimalCost(allAgentsState[i]); // According to SIC
-
+                hBefore = problem.GetSingleAgentOptimalCost(allAgentsState[i]);
+                
                 int singleAgentMaxLegalDeltaF = -1;
 
                 foreach (TimedMove check in allAgentsState[i].lastMove.GetNextMoves())
@@ -131,9 +131,9 @@ namespace CPF_experiment
                     }
                     else
                     {
-                        hAfter = problem.GetSingleAgentOptimalCost(allAgentsState[i].agent.agentNum, check); // According to SIC
+                        hAfter = problem.GetSingleAgentOptimalCost(allAgentsState[i].agent.agentNum, check);
 
-                        if (Constants.Variant == Constants.ProblemVariant.ORIG)
+                        if (Constants.sumOfCostsVariant == Constants.SumOfCostsVariant.ORIG)
                         {
                             if (hBefore != 0)
                                 singleAgentDeltaFs[i][(int)check.direction] = (byte)(hAfter - hBefore + 1); // h difference + g difference in this specific domain
@@ -144,7 +144,7 @@ namespace CPF_experiment
 
                             singleAgentMaxLegalDeltaF = Math.Max(singleAgentMaxLegalDeltaF, singleAgentDeltaFs[i][(int)check.direction]);
                         }
-                        else if (Constants.Variant == Constants.ProblemVariant.NEW)
+                        else if (Constants.sumOfCostsVariant == Constants.SumOfCostsVariant.WAITING_AT_GOAL_ALWAYS_FREE)
                         {
                             if (hBefore == 0 && hAfter == 0)
                                 singleAgentDeltaFs[i][(int)check.direction] = 0; // This is a WAIT move at the goal.

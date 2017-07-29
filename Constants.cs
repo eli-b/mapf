@@ -41,14 +41,23 @@ namespace CPF_experiment
         public const bool ALLOW_DIAGONAL_MOVE = false;
         public static readonly int NUM_ALLOWED_DIRECTIONS = ALLOW_DIAGONAL_MOVE ? Move.NUM_DIRECTIONS : Move.NUM_NON_DIAG_MOVES;
 
-        public enum ProblemVariant : byte
+        public enum SumOfCostsVariant : byte
         {
             ORIG = 0, // Moving from goal incurs cost equal to all waits in the goal, plus the movement out.
-            NEW, // Waiting at the goal is free
+            WAITING_AT_GOAL_ALWAYS_FREE, // Waiting at the goal is always free
         }
-        /// <summary>
-        /// For partial expansion
-        /// </summary>
-        public static ProblemVariant Variant = ProblemVariant.ORIG;
+
+        public static SumOfCostsVariant sumOfCostsVariant = SumOfCostsVariant.ORIG;
+
+        public enum CostFunction : byte
+        {
+            SUM_OF_COSTS = 0,
+            MAKESPAN,
+            MAKESPAN_THEN_SUM_OF_COSTS, // Weird variant where the optimal solution is one with
+                                        // minimum makespan where the sum of costs is minimal among
+                                        // such solutions
+        }
+
+        public static CostFunction costFunction = CostFunction.SUM_OF_COSTS;
     }
 }

@@ -77,14 +77,14 @@ namespace CPF_experiment
             if (atGoal && (isWait == false))
                 this.arrivalTime = move.time;
 
-            if (Constants.Variant == Constants.ProblemVariant.ORIG)
+            if (Constants.sumOfCostsVariant == Constants.SumOfCostsVariant.ORIG)
             {
                 if (this.AtGoal())
                     this.g = this.arrivalTime;
                 else
                     this.g = this.lastMove.time;
             }
-            else if (Constants.Variant == Constants.ProblemVariant.NEW)
+            else if (Constants.sumOfCostsVariant == Constants.SumOfCostsVariant.WAITING_AT_GOAL_ALWAYS_FREE)
             {
                 if ((atGoal && isWait) == false)
                     this.g += 1;

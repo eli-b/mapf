@@ -200,7 +200,18 @@ namespace CPF_experiment
             Debug.Assert(this.GoalTest(), "Only call for goal nodes!");
 
             if (goalCost == NOT_SET) // This is just a proper goal
-                return this.g;
+            {
+                if (Constants.costFunction == Constants.CostFunction.SUM_OF_COSTS)
+                {
+                    return this.g;
+                }
+                else if (Constants.costFunction == Constants.CostFunction.MAKESPAN ||
+                    Constants.costFunction == Constants.CostFunction.MAKESPAN_THEN_SUM_OF_COSTS)
+                {
+                    return this.makespan;
+                }
+                return 0; // To quiet the compiler
+            }
             else                     // This is a generalised goal node - it stores the optimal path to the goal through it
                 return this.goalCost;
         }
@@ -304,7 +315,16 @@ namespace CPF_experiment
         /// </summary>
         public virtual void CalculateG()
         {
-            g = allAgentsState.Sum<AgentState>(agent => agent.g);
+            if (Constants.costFunction == Constants.CostFunction.SUM_OF_COSTS)
+            {
+                g = allAgentsState.Sum<AgentState>(agent => agent.g);
+            }
+            else if (Constants.costFunction == Constants.CostFunction.MAKESPAN ||
+                Constants.costFunction == Constants.CostFunction.MAKESPAN_THEN_SUM_OF_COSTS)
+            {
+                g = makespan;  // Let's hope makespan var is correct
+            }
+            
         }
 
         /// <summary>

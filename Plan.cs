@@ -372,22 +372,29 @@ namespace CPF_experiment
         /// <returns></returns>
         public int GetCost()
         {
-            if (Constants.Variant == Constants.ProblemVariant.ORIG)
+            if (Constants.costFunction == Constants.CostFunction.SUM_OF_COSTS)
+            {
+                if (Constants.sumOfCostsVariant == Constants.SumOfCostsVariant.ORIG)
+                {
+                    return this.GetSize() - 1;
+                }
+                else if (Constants.sumOfCostsVariant == Constants.SumOfCostsVariant.WAITING_AT_GOAL_ALWAYS_FREE)
+                {
+                    int cost = 0;
+                    Move goal = this.locationAtTimes.Last<Move>(); // Assuming the plan ends at the goal
+                    for (int i = 1; i < this.locationAtTimes.Count; i++) // The beginning position isn't a move
+                    {
+                        Move move = this.locationAtTimes[i];
+                        if (move.x == goal.x && move.y == goal.y && move.direction == Move.Direction.Wait) // Waiting at the goal is free
+                            continue;
+                        cost += 1;
+                    }
+                    return cost;
+                }
+            }
+            else if (Constants.costFunction == Constants.CostFunction.MAKESPAN_THEN_SUM_OF_COSTS)
             {
                 return this.GetSize() - 1;
-            }
-            else if (Constants.Variant == Constants.ProblemVariant.NEW)
-            {
-                int cost = 0;
-                Move goal = this.locationAtTimes.Last<Move>(); // Assuming the plan ends at the goal
-                for (int i = 1; i < this.locationAtTimes.Count; i++) // The beginning position isn't a move
-                {
-                    Move move = this.locationAtTimes[i];
-                    if (move.x == goal.x && move.y == goal.y && move.direction == Move.Direction.Wait) // Waiting at the goal is free
-                        continue;
-                    cost += 1;
-                }
-                return cost;
             }
             return 0; // To quiet the compiler
         }

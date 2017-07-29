@@ -141,6 +141,12 @@ namespace CPF_experiment
             this.bypassStrategy = bypassStrategy;
             this.doMalte = doMalte;
             this.conflictChoice = conflictChoice;
+            if (Constants.costFunction != Constants.CostFunction.SUM_OF_COSTS)
+            {
+                Debug.Assert(conflictChoice != ConflictChoice.CARDINAL_MDD, "Under makespan, increasing the cost for a single agent might not increase the cost for the solution." +
+                                                                            "Before this strategy is enabled we need to add a consideration of whether the agent whose cost will " +
+                                                                            "increase has the highest cost in the solution first");
+            }
             this.tieBreakForMoreConflictsOnly = justbreakForConflicts;
             this.useMddH = useMddHeuristic;
             this.lookaheadMaxExpansions = lookaheadMaxExpansions;
@@ -1650,16 +1656,19 @@ namespace CPF_experiment
             int groupSize = node.GetGroupSize(conflictingAgentIndex);
             closedListHitChildCost = -1;
 
-            if ((Constants.Variant == Constants.ProblemVariant.ORIG &&
+            if (Constants.costFunction == Constants.CostFunction.SUM_OF_COSTS && // Otherwise adding a constraint to an agent at a time step after
+                                                                                       // it reaches its goal doesn't necessarily increase the cost,
+                                                                                       // so we're not allowed to defer expansion
+                ((Constants.sumOfCostsVariant == Constants.SumOfCostsVariant.ORIG &&
                 expansionsState == CbsNode.ExpansionState.NOT_EXPANDED && conflict.vertex == true &&
                  conflict.timeStep >= node.allSingleAgentCosts[conflictingAgentIndex] && // TODO: Can't just check whether the node is at its goal - the plan may involve it passing through its goal and returning to it later because of preexisting constraints.
                  node.h < conflict.timeStep + 1 - node.allSingleAgentCosts[conflictingAgentIndex] && // Otherwise we won't be increasing its h and there would be no reason to delay expansion
                  groupSize == 1) || // Otherwise an agent in the group can be forced to take a longer route without increasing the group's cost because another agent would be able to take a shorter route.
-               (Constants.Variant == Constants.ProblemVariant.NEW &&
+               (Constants.sumOfCostsVariant == Constants.SumOfCostsVariant.WAITING_AT_GOAL_ALWAYS_FREE &&
                 expansionsState == CbsNode.ExpansionState.NOT_EXPANDED && conflict.vertex == true &&
                 ((conflict.timeStep > planSize - 1 && node.h < 2) ||
                  (conflict.timeStep == planSize - 1 && node.h < 1)) &&
-                groupSize == 1)) // Otherwise an agent in the group can be forced to take a longer route without increasing the group's cost because another agent would be able to take a shorter route.
+                groupSize == 1))) // Otherwise an agent in the group can be forced to take a longer route without increasing the group's cost because another agent would be able to take a shorter route.
             // Conflict happens when or after the agent reaches its goal, and the agent is in a single-agent group.
             // With multi-agent groups, banning the goal doesn't guarantee a higher cost solution,
             // since if an agent is forced to take a longer route it may enable another agent in the group
@@ -1685,9 +1694,9 @@ namespace CPF_experiment
                     node.agentBExpansion = CbsNode.ExpansionState.DEFERRED;
                 // Add the minimal delta in the child's cost:
                 // since we're banning the goal at conflict.timeStep, it must at least do conflict.timeStep+1 steps
-                if (Constants.Variant == Constants.ProblemVariant.ORIG)
+                if (Constants.sumOfCostsVariant == Constants.SumOfCostsVariant.ORIG)
                     node.h = (ushort)(conflict.timeStep + 1 - node.allSingleAgentCosts[conflictingAgentIndex]);
-                else if (Constants.Variant == Constants.ProblemVariant.NEW)
+                else if (Constants.sumOfCostsVariant == Constants.SumOfCostsVariant.WAITING_AT_GOAL_ALWAYS_FREE)
                 {
                     if (conflict.timeStep > planSize - 1) // Agent will need to step out and step in to the goal, at least
                         node.h = 2;

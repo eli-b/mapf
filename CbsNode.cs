@@ -272,7 +272,15 @@ namespace CPF_experiment
                                     out this.conflictCountsPerAgent[i], out this.conflictTimesPerAgent[i]);
                     allSingleAgentPlans[i].ContinueWith(optimalPlan);
                     allSingleAgentCosts[i] = problem.m_vAgents[i].g + problem.GetSingleAgentOptimalCost(problem.m_vAgents[i]);
-                    totalCost += (ushort)allSingleAgentCosts[i];
+                    if (Constants.costFunction == Constants.CostFunction.SUM_OF_COSTS)
+                    {
+                        totalCost += (ushort)allSingleAgentCosts[i];
+                    }
+                    else if (Constants.costFunction == Constants.CostFunction.MAKESPAN ||
+                        Constants.costFunction == Constants.CostFunction.MAKESPAN_THEN_SUM_OF_COSTS)
+                    {
+                        totalCost = Math.Max(totalCost, (ushort)allSingleAgentCosts[i]);
+                    }
 
                     this.UpdateAtGoalConflictCounts(i, maxPlanSize, CAT);
                 }
@@ -484,7 +492,17 @@ namespace CPF_experiment
                 mustConstraints.Separate(newMustConstraints);
 
             // Calc totalCost
-            this.totalCost = (ushort) Math.Max(this.allSingleAgentCosts.Sum(), this.totalCost); // Conserve totalCost from partial expansion if it's higher (only happens when shuffling a partially expanded node)
+            if (Constants.costFunction == Constants.CostFunction.SUM_OF_COSTS)
+            {
+                this.totalCost = (ushort)Math.Max(this.allSingleAgentCosts.Sum(), this.totalCost); // Conserve totalCost from partial
+                                                                                                   // expansion if it's higher (only happens when shuffling a partially expanded node)
+            }
+            else if (Constants.costFunction == Constants.CostFunction.MAKESPAN ||
+                Constants.costFunction == Constants.CostFunction.MAKESPAN_THEN_SUM_OF_COSTS)
+            {
+                this.totalCost = (ushort)Math.Max(this.allSingleAgentCosts.Max(), this.totalCost); // Conserve totalCost from partial
+                                                                                                   // expansion if it's higher (only happens when shuffling a partially expanded node)
+            }
 
             this.isGoal = this.countsOfInternalAgentsThatConflict.All(i => i == 0);
 
@@ -2197,7 +2215,15 @@ namespace CPF_experiment
             Debug.Assert(j == replanSize);
 
             // Calc totalCost
-            this.totalCost = (ushort)this.allSingleAgentCosts.Sum();
+            if (Constants.costFunction == Constants.CostFunction.SUM_OF_COSTS)
+            {
+                this.totalCost = (ushort)this.allSingleAgentCosts.Sum();
+            }
+            else if (Constants.costFunction == Constants.CostFunction.MAKESPAN ||
+                Constants.costFunction == Constants.CostFunction.MAKESPAN_THEN_SUM_OF_COSTS)
+            {
+                this.totalCost = (ushort)this.allSingleAgentCosts.Max();
+            }
 
             // PrintPlan();
 

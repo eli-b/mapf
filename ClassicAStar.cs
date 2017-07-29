@@ -530,8 +530,8 @@ namespace CPF_experiment
             {
                 if (runner.ElapsedMilliseconds() > Constants.MAX_TIME)
                     return;
-                currentNode.CalculateG();
                 currentNode.makespan++;
+                currentNode.CalculateG();
                 currentNode.h = (int)this.heuristic.h(currentNode);
 
                 if (currentNode.g < currentNode.minCost)
