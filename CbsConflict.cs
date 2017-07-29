@@ -1,4 +1,5 @@
-﻿
+﻿using System.Diagnostics;
+
 namespace CPF_experiment
 {
     public class CbsConflict
@@ -24,7 +25,10 @@ namespace CPF_experiment
             if (agentAMove.x == agentBMove.x && agentAMove.y == agentBMove.y) // Same dest, from any direction
                 this.vertex = true;
             else
+            {
                 this.vertex = false;
+                Debug.Assert(Constants.ALLOW_HEAD_ON_COLLISION == false, "Creating an edge conflict when head-on collision are allowed");
+            }
             //this.guaranteedCardinal = false;
         }
 
