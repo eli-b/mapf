@@ -58,7 +58,8 @@ namespace CPF_experiment
             singleAgentDeltaFs = cpy.singleAgentDeltaFs; // For the UpdateRemainingDeltaF call on temporary nodes.
                                                          // Notice that after an agent is moved its row won't be up-to-date.
             fLookup = cpy.fLookup; // For the hasChildrenForCurrentDeltaF call on temporary nodes.
-                                   // Notice that after an agent is moved, all rows up to and including the one of the agent that moved won't be up-to-date.
+                                   // Notice that after an agent is moved, all rows up to and including the one of the agent that moved
+                                   // won't be up-to-date.
             maxDeltaF = cpy.maxDeltaF; // Not necessarily achievable after some of the agents moved.
             // The above is OK because we won't be using data for agents that already moved.
         }
@@ -141,8 +142,6 @@ namespace CPF_experiment
                                 singleAgentDeltaFs[i][(int)check.direction] = (byte)(hAfter - hBefore + makespan - allAgentsState[i].arrivalTime + 1);
                             else
                                 singleAgentDeltaFs[i][(int)check.direction] = 0; // This is a WAIT move at the goal.
-
-                            singleAgentMaxLegalDeltaF = Math.Max(singleAgentMaxLegalDeltaF, singleAgentDeltaFs[i][(int)check.direction]);
                         }
                         else if (Constants.sumOfCostsVariant == Constants.SumOfCostsVariant.WAITING_AT_GOAL_ALWAYS_FREE)
                         {
@@ -150,9 +149,8 @@ namespace CPF_experiment
                                 singleAgentDeltaFs[i][(int)check.direction] = 0; // This is a WAIT move at the goal.
                             else
                                 singleAgentDeltaFs[i][(int)check.direction] = (byte)(hAfter - hBefore + 1); // h difference + g difference in this specific domain
-
-                            singleAgentMaxLegalDeltaF = Math.Max(singleAgentMaxLegalDeltaF, singleAgentDeltaFs[i][(int)check.direction]);
                         }
+                        singleAgentMaxLegalDeltaF = Math.Max(singleAgentMaxLegalDeltaF, singleAgentDeltaFs[i][(int)check.direction]);
                     }
                 }
 
@@ -216,7 +214,10 @@ namespace CPF_experiment
             // Recursive actions:
             for (int direction = 0; direction < Constants.NUM_ALLOWED_DIRECTIONS; direction++)
             {
-                if (singleAgentDeltaFs[agentNum][direction] > remainingTargetDeltaF) // Small optimization - no need to make the recursive call just to request a negative target from it and get false (because we assume the heuristic function is consistent)
+                if (singleAgentDeltaFs[agentNum][direction] > remainingTargetDeltaF) // Small optimization - no need to make the recursive
+                                                                                     // call just to request a negative target from it and
+                                                                                     // get false (because we assume the heuristic function
+                                                                                     // is consistent)
                     continue;
                 if (existsChildForF(agentNum + 1, (byte)(remainingTargetDeltaF - singleAgentDeltaFs[agentNum][direction])))
                 {

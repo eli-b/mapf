@@ -1709,12 +1709,9 @@ namespace CPF_experiment
         {
             CbsNode other = (CbsNode)item;
 
-            int thisTotalCostPlusH = this.totalCost + this.h;
-            int otherTotalCostPlusH = other.totalCost + other.h;
-
-            if (thisTotalCostPlusH < otherTotalCostPlusH)
+            if (this.f < other.f)
                 return -1;
-            if (thisTotalCostPlusH > otherTotalCostPlusH)
+            if (this.f > other.f)
                 return 1;
 
             return this.CompareToIgnoreH(other);
