@@ -430,7 +430,9 @@ namespace CPF_experiment
                 //    }
                 //}
 
-                if (this.mstar == false) // Backpropagation can cause the root to be re-expanded after many more expensive nodes were expanded.
+                if (this.mstar == false && // Backpropagation can cause the root to be re-expanded after many more expensive nodes were expanded.
+                    (Constants.costFunction == Constants.CostFunction.SUM_OF_COSTS || this.GetType() != typeof(AStarWithOD)))  // A*+OD on makespan can have final nodes with lower F than intermediate nodes because the move cost is
+                                                                                                                               // attributed to the first agent and its gains may show up in a later agent's h
                     Debug.Assert(currentNode.f >= lastF,
                                  "A* node with decreasing F: " + (currentNode.g + currentNode.h) + " < " + lastF + ".");
                 else
