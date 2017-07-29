@@ -545,7 +545,8 @@ namespace CPF_experiment
             }
 
             // BPMX (Felner et al. 2005) stage:
-            if ((this.heuristic.GetType() != typeof(SumIndividualCosts)) || (this.openList.GetType() != typeof(OpenList)))
+            if ((this.heuristic.GetType() != typeof(SumIndividualCosts) &&
+                (this.heuristic.GetType() != typeof(MaxIndividualCosts))) || (this.openList.GetType() != typeof(OpenList)))
             // otherwise if we just use SIC and no lazy heuristic in addition to it,
             // then our heuristic is consistent and BPMX isn't necessary
             {
