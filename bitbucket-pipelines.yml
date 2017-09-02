@@ -5,4 +5,4 @@ pipelines:
     block-commit:
         - step:
             script:
-              - dotnet build MAPF
+              - dotnet build MAPF.csproj
