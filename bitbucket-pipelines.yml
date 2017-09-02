@@ -1,12 +1,8 @@
-# This is a sample build configuration for all languages.
-# Check our guides at https://confluence.atlassian.com/x/5Q4SMw for more examples.
-# Only use spaces to indent your .yml configuration.
-# -----
-# You can specify a custom docker image from Docker Hub as your build environment.
-# image: docker-image:tag
+image: microsoft/dotnet:2.0.0-sdk-jessie
 
 pipelines:
-  default:
-    - step:
-        script:
-          - echo "Everything is awesome!"
+  branches:
+    block-commit:
+        - step:
+            script:
+              - dotnet build CPF-experiment
