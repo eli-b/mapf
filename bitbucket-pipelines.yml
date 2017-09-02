@@ -5,5 +5,4 @@ pipelines:
     block-commit:
         - step:
             script:
-              - dotnet restore
-              - dotnet build CPF-experiment
+              - dotnet build MAPF

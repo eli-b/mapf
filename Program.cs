@@ -261,8 +261,6 @@ namespace CPF_experiment
         {
             Program me = new Program();
             Program.RESULTS_FILE_NAME = Process.GetCurrentProcess().ProcessName + ".csv";
-            TextWriterTraceListener tr1 = new TextWriterTraceListener(System.Console.Out);
-            Debug.Listeners.Add(tr1);
             if (System.Diagnostics.Debugger.IsAttached)
                 Constants.MAX_TIME = int.MaxValue;
 
