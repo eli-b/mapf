@@ -1,7 +1,0 @@
-image: microsoft/dotnet:2.0.0-sdk-jessie
-
-pipelines:
-  default:
-    - step:
-        script:
-          - dotnet build CPF-experiment
