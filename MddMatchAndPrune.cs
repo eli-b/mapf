@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 
 namespace CPF_experiment
@@ -133,9 +134,7 @@ namespace CPF_experiment
             {
                 foreach (MDDNode node in allMDDs[i].levels[level])
                 {
-                    if (node.isDeleted)
-                        continue;
-                    parentI = 0;
+                    Debug.Assert(node.isBeingDeleted == false);
 
                     for (int d = 0; d < 5; d++)
                         parentsToDelete[d] = null;

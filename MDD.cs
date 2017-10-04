@@ -133,7 +133,7 @@ namespace CPF_experiment
             }
             
             // Make sure the goal was reached - imperfect heuristics, constraints or illegal moves can cause this to be false.
-            if (levels[numOfLevels].Count == 0 || levels[0].First.Value.isDeleted == true) // No possible route to goal was found
+            if (levels[numOfLevels].Count == 0) // No possible route to goal was found
                 levels = null;
         }
 
@@ -192,68 +192,54 @@ namespace CPF_experiment
                 return PruningDone.EVERYTHING;
 
             // Cheaply find the coexisting nodes on level zero - all nodes coexist because agent starting points never collide
-            LinkedList<MDDNode> coexistingNodesForLevelZero = new LinkedList<MDDNode>();
-            coexistingNodesForLevelZero.AddFirst(other.levels[0].First.Value);
-            levels[0].First.Value.setCoexist(coexistingNodesForLevelZero, other.mddNum);
+            var coexistingNodesForLevelZero = new HashSet<MDDNode>();
+            coexistingNodesForLevelZero.Add(other.levels[0].First.Value);
+            levels[0].First.Value.SetCoexistingNodes(coexistingNodesForLevelZero, other.mddNum);
 
             for (int i = 1; i < levels.Length; i++)
             {
-                LinkedListNode<MDDNode> toSetCoexisting = levels[i].First;
-                while (toSetCoexisting != null && toSetCoexisting.List != null) // FIXME: Can .First return null ever?
+                foreach (var node in levels[i])
                 {
-                    if (toSetCoexisting.Value.isDeleted) // Previous level marked this MDDNode for deletion. Delete it and continue to the next.
-                    {
-                        LinkedListNode<MDDNode> tempToSetCoexisting = toSetCoexisting;
-                        toSetCoexisting = toSetCoexisting.Next;
-                        levels[i].Remove(tempToSetCoexisting);
-                        continue;
-                    }
-
                     var coexistingForNode = new HashSet<MDDNode>();
 
                     // Go over all the node's parents and test their coexisting nodes' children for coexistance with this node
-                    LinkedListNode<MDDNode> parent = toSetCoexisting.Value.parents.First;
-                    while (parent != null)
+                    foreach (var parent in node.parents)
                     {
                         bool validParent = false;
-                        foreach (MDDNode coexist in parent.Value.coexistLinkedList[other.mddNum])
+                        foreach (MDDNode parentCoexistingNode in parent.coexistingNodesFromOtherMdds[other.mddNum])
                         {
-                            foreach (MDDNode child in coexist.children)
+                            foreach (MDDNode childOfParentCoexistingNode in parentCoexistingNode.children)
                             {
-                                if (toSetCoexisting.Value.move.IsColliding(child.move) == false)
+                                if (node.move.IsColliding(childOfParentCoexistingNode.move) == false)
                                 {
                                     if (checkTriples == false ||
-                                        toSetCoexisting.Value.isCoexistingWithOtherMDDs(child, other.mddNum)) // The "3" part
+                                        node.IsCoexistingWithOtherMDDs(childOfParentCoexistingNode, other.mddNum)) // The "3" part
                                     {
                                         validParent = true;
 
-                                        if (coexistingForNode.Contains(child) == false)
+                                        if (coexistingForNode.Contains(childOfParentCoexistingNode) == false)
                                         {
                                             CostTreeNodeSolver.matchCounter++;
-                                            coexistingForNode.Add(child);
+                                            coexistingForNode.Add(childOfParentCoexistingNode);
                                         }
                                     }
                                 }
                             }
                         }
-                        MDDNode parentDeletionCandidate = parent.Value;
-                        parent = parent.Next;
                         if (!validParent)
                         {
-                            toSetCoexisting.Value.removeParent(parentDeletionCandidate); // And continue up the levels if necessary
+                            node.removeParent(parent); // And continue up the levels if necessary
                             ans = PruningDone.SOME;
                         }
                     }
-                    toSetCoexisting.Value.setCoexist(new LinkedList<MDDNode>(coexistingForNode), other.mddNum);
-                    LinkedListNode<MDDNode> tempToSetCoexisting1 = toSetCoexisting;
-                    toSetCoexisting = toSetCoexisting.Next;
-                    if (tempToSetCoexisting1.Value.getCoexistCount(other.mddNum) == 0)
+                    node.SetCoexistingNodes(coexistingForNode, other.mddNum);
+                    if (node.getCoexistingNodesCount(other.mddNum) == 0)
                     {
-                        tempToSetCoexisting1.Value.delete();
+                        node.delete();
                         ans = PruningDone.SOME;
                     }
                 }
-                if (levels[0].First.Value.children.Count == 0)
+                if (levels[0].Count == 0)
                 {
                     return PruningDone.EVERYTHING;
                 }
@@ -294,12 +280,12 @@ namespace CPF_experiment
                     }
                     Console.Write(" coexist: ");
                     int i = 0;
-                    foreach (LinkedList<MDDNode> coexistList in node.coexistLinkedList)
+                    foreach (HashSet<MDDNode> coexistingNodesFromOtherMdds in node.coexistingNodesFromOtherMdds)
                     {
                         Console.Write(" for agents - " + i++);
-                        foreach (MDDNode coexist in coexistList)
+                        foreach (MDDNode coexistingNode in coexistingNodesFromOtherMdds)
                         {
-                            Console.Write(coexist.ToString() + ") ");
+                            Console.Write(coexistingNode.ToString() + ") ");
                         }
                     }
                 }
@@ -315,12 +301,12 @@ namespace CPF_experiment
         public TimedMove move;
         public LinkedList<MDDNode> children;
         public LinkedList<MDDNode> parents;
-        public LinkedList<MDDNode>[] coexistLinkedList;
+        public HashSet<MDDNode>[] coexistingNodesFromOtherMdds;
         public MDD mdd;
         LinkedListNode<MDDNode> myNode;
         public bool startOrGoal;
-        public bool isDeleted; //to prevent deletion loop
-        public bool legal;
+        public bool isBeingDeleted; // Not actually needed
+        public bool legal;  // For AstarMDD
 
         /// <summary>
         /// 
@@ -339,19 +325,18 @@ namespace CPF_experiment
             parents = new LinkedList<MDDNode>();
             if (supportPruning)
             {
-                coexistLinkedList = new LinkedList<MDDNode>[numOfAgents];
+                coexistingNodesFromOtherMdds = new HashSet<MDDNode>[numOfAgents];
                 for (int i = 0; i < numOfAgents; i++)
                 {
-                    coexistLinkedList[i] = new LinkedList<MDDNode>();
+                    coexistingNodesFromOtherMdds[i] = new HashSet<MDDNode>();
                 }
             }
         }
 
         public void delete()
         {
-            if (isDeleted)
-                return;
-            isDeleted = true;
+            Debug.Assert(this.isBeingDeleted == false, "This is unexpected");
+            this.isBeingDeleted = true;
             LinkedListNode<MDDNode> toDelete = parents.First;
             LinkedListNode<MDDNode> nextToDelete;
             while (toDelete != null)
@@ -369,41 +354,47 @@ namespace CPF_experiment
                 toDelete.Value.deleteIfOrphanOrChildless();
                 toDelete = nextToDelete;
             }
-           // myNode.List.Remove(myNode);
+            myNode.List.Remove(myNode);
         }
         
         public void deleteIfOrphanOrChildless()
         {
-            if (!isDeleted)
+            Debug.Assert(this.isBeingDeleted == false, "unexpected");
+            if (!this.startOrGoal)
             {
-                if (!startOrGoal)
+                if (parents.Count == 0 || children.Count == 0)
                 {
-                    if (parents.Count == 0 || children.Count == 0)
-                    {
-                        this.delete();
-                        return;
-                    }
+                    this.delete();
                 }
-                else
+            }
+            else
+            {
+                if (parents.Count == 0 && children.Count == 0) // A goal node has no children to begin with, a start node has no parents.
                 {
-                    if (parents.Count == 0 && children.Count == 0) // A goal node has no children to begin with, a start node has no parents.
-                    {
-                        this.delete();
-                        return;
-                    }
+                    this.delete();
                 }
             }
         }
 
-        public bool isCoexistingWithOtherMDDs(MDDNode toCheck, int otherAgent)
+        /// <summary>
+        /// Checks if given MDD node coexists with all nodes from earlier checked MDDs that were
+        /// previously found to coexist with this node.
+        /// Assumes before MDDs i,j are checked for coexistence, all MDDs k such that i &lt; k &lt; j
+        /// were checked.
+        /// </summary>
+        /// <param name="toCheck"></param>
+        /// <param name="otherAgentIndex"></param>
+        /// <returns></returns>
+        public bool IsCoexistingWithOtherMDDs(MDDNode toCheck, int otherAgentIndex)
         {
+            Debug.Assert(toCheck.mdd.getMddNum() == otherAgentIndex, "unexpected");
             bool ans = false;
-            for (int i = this.mdd.getMddNum() + 1 ; i < otherAgent; i++)
+            for (int i = this.mdd.getMddNum() + 1 ; i < otherAgentIndex; i++)
             {
                 ans = false;
-                foreach (MDDNode coexistingForOther in this.coexistLinkedList[i])
+                foreach (MDDNode coexistingNode in this.coexistingNodesFromOtherMdds[i])
                 {
-                    if (coexistingForOther.coexistLinkedList[toCheck.mdd.getMddNum()].Contains(toCheck))
+                    if (coexistingNode.coexistingNodesFromOtherMdds[toCheck.mdd.getMddNum()].Contains(toCheck))
                     {
                         ans = true;
                         break;
@@ -433,25 +424,16 @@ namespace CPF_experiment
             children.AddLast(child);
         }
         
-        public void setCoexist(LinkedList<MDDNode> coexists, int mddNum)
+        public void SetCoexistingNodes(HashSet<MDDNode> coexistingNodes, int mddNum)
         {
-            this.coexistLinkedList[mddNum] = coexists;
+            Debug.Assert(coexistingNodes.All<MDDNode>(node => node.mdd.getMddNum() == mddNum), "unexpected");
+            this.coexistingNodesFromOtherMdds[mddNum] = coexistingNodes;
         }
         
         public void setMyNode(LinkedListNode<MDDNode> me)
         {
             myNode = me;
         }
-        
-        //public int GetX()
-        //{
-        //    return move.x;
-        //}
-        
-        //public int GetY()
-        //{
-        //    return move.y;
-        //}
         
         public int getVertexIndex()
         {
@@ -482,9 +464,9 @@ namespace CPF_experiment
                                                 // Behavior change: used to not compare the direction
         }
         
-        public int getCoexistCount(int otherAgent)
+        public int getCoexistingNodesCount(int otherAgent)
         {
-            return coexistLinkedList[otherAgent].Count;
+            return coexistingNodesFromOtherMdds[otherAgent].Count;
         }
         
         ///// <summary>
