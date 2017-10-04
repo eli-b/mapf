@@ -107,6 +107,9 @@ namespace CPF_experiment
         public ConflictChoice conflictChoice;
         public bool tieBreakForMoreConflictsOnly;
         public bool useMddH;
+        /// <summary>
+        /// Maps CostTreeNode objects to whether there's a solution with the current costs
+        /// </summary>
         public Dictionary<CostTreeNode, bool> costTreeMDDResults;
         public int lookaheadMaxExpansions;
         public enum ConflictChoice : byte
@@ -137,7 +140,6 @@ namespace CPF_experiment
             this.solver = generalSolver;
             this.singleAgentSolver = singleAgentSolver;
             this.doShuffle = doShuffle;
-            //this.doShuffle = doShuffle || useMddHeuristic;
             this.bypassStrategy = bypassStrategy;
             this.doMalte = doMalte;
             this.conflictChoice = conflictChoice;
@@ -154,7 +156,7 @@ namespace CPF_experiment
 
             if (useMddHeuristic)
             {
-                costTreeMDDResults = new Dictionary<CostTreeNode, bool>();
+                this.costTreeMDDResults = new Dictionary<CostTreeNode, bool>();
             }
         }
         
@@ -596,9 +598,9 @@ namespace CPF_experiment
                     this.nodesPushedBack++;
                     continue;
                     // Notice that even though we may iterate over conflicts later,
-                    // even there is a conflict that we can identify as cardinal,
+                    // even if there is a conflict that we can identify as cardinal,
                     // then the first conflict chosen _will_ be cardinal, so this is
-                    // the only place we need allow pushing nodes back.
+                    // the only place we need to allow pushing nodes back.
                     // We may discover cardinal conflicts in hindsight later, but there
                     // would be no point in pushing their node back at that point,
                     // as we would've already made the split by then.
@@ -1573,24 +1575,18 @@ namespace CPF_experiment
                 return true; // Without saving the result, as it's just a cop-out
             }
 
-            /*
-            var nodeSolver = new CostTreeNodeSolverOldMatching(this.instance, costsNode, this.runner, 2);
-            //SinglePlan[] plans = nodeSolver.Solve(null, null);
-            //if (plans == null)
-            if (nodeSolver.Prune())
-             */
             int maxCost = Math.Max(node.allSingleAgentCosts[node.conflict.agentAIndex],
                                    node.allSingleAgentCosts[node.conflict.agentBIndex]);
             var mddA = new MDD(node.conflict.agentAIndex, this.instance.m_vAgents[node.conflict.agentAIndex].agent.agentNum,
                                 this.instance.m_vAgents[node.conflict.agentAIndex].lastMove,
                                 costsNode.costs[node.conflict.agentAIndex], maxCost,
-                                this.instance.GetNumOfAgents(), this.instance, true);
+                                this.instance.GetNumOfAgents(), this.instance, ignoreConstraints: true);
             var mddB = new MDD(node.conflict.agentBIndex, this.instance.m_vAgents[node.conflict.agentBIndex].agent.agentNum,
                                this.instance.m_vAgents[node.conflict.agentBIndex].lastMove,
                                costsNode.costs[node.conflict.agentBIndex], maxCost,
-                               this.instance.GetNumOfAgents(), this.instance, true);
+                               this.instance.GetNumOfAgents(), this.instance, ignoreConstraints: true);
             this.mddsBuilt += 2;
-            MDD.PruningDone ans = mddA.SyncMDDs(mddB, false);
+            MDD.PruningDone ans = mddA.SyncMDDs(mddB, checkTriples: false);
             if (ans == MDD.PruningDone.EVERYTHING)
             {
                 this.costTreeMDDResults.Add(costsNode, false);
