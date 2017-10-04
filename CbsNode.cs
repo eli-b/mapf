@@ -968,8 +968,8 @@ namespace CPF_experiment
             Queue<Tuple<int, int, int>> PossiblyCardinalFirstCanBuildMdd = new Queue<Tuple<int, int, int>>(); // Going over these just get the first element, build its MDD and 
             Queue<int> ToCheck = new Queue<int>(Enumerable.Range(0, this.allSingleAgentPlans.Length));
             // Positively cardinal conflicts are just yielded immediately
-            // Edges are only entered to a queue once, not once for each end. Only if the conflicting agent with the larger index
-            // can have an MDD built and the one with the lower can't, an edge is entered in reverse.
+            // Conflicting agents are only entered into a queue once. Only if the conflicting agent with the larger index
+            // can have an MDD built and the one with the lower can't, a pair of conflicting agents is entered in reverse.
 
             bool checkAnyway = false; // Needed when rechecking agents to signal that we shouldn't 
                                       // rely on the other end to check a conflict
@@ -1003,8 +1003,7 @@ namespace CPF_experiment
                         {
                             if (hasMDD) // Check if not cardinal
                             {
-                                bool iNarrow = conflictTime >= this.mdds[i].levels.Length || // At goal conflict
-                                                this.mdds[i].levels[conflictTime].Count == 1;
+                                bool iNarrow = this.DoesAgentHaveNoOtherOption(i, conflictTime, conflictingAgentIndex, groups);
                                 if (iNarrow == false) // Then it isn't cardinal. May still be semi cardinal.
                                 {
                                     if (otherHasMDD == false) // Skip building the second MDD even if it's possible
@@ -1014,8 +1013,7 @@ namespace CPF_experiment
                                     }
                                     else // Other has MDD
                                     {
-                                        bool otherNarrow = conflictTime >= this.mdds[conflictingAgentIndex].levels.Length ||
-                                                        this.mdds[conflictingAgentIndex].levels[conflictTime].Count == 1;
+                                        bool otherNarrow = this.DoesAgentHaveNoOtherOption(conflictingAgentIndex, conflictTime, i, groups);
                                         if (otherNarrow == false)
                                         {
                                             NotCardinalNotSemi.Enqueue(new Tuple<int, int, int>(i, conflictingAgentIndex, conflictTime));
@@ -1045,8 +1043,7 @@ namespace CPF_experiment
                                     }
                                     else // Other has MDD
                                     {
-                                        bool otherNarrow = conflictTime >= this.mdds[conflictingAgentIndex].levels.Length ||
-                                                        this.mdds[conflictingAgentIndex].levels[conflictTime].Count == 1;
+                                        bool otherNarrow = this.DoesAgentHaveNoOtherOption(conflictingAgentIndex, conflictTime, i, groups);
                                         if (otherNarrow == false) // iNarrow but other not narrow
                                         {
                                             SemiCardinal.Enqueue(new Tuple<int, int, int>(i, conflictingAgentIndex, conflictTime));
@@ -2233,6 +2230,29 @@ namespace CPF_experiment
 
             // PrintConflict();
             return true;
+        }
+
+        /// <summary>
+        /// Assumes agents conflict given time, and an MDD has been built for the agent
+        /// </summary>
+        /// <param name="agentIndex"></param>
+        /// <param name="conflictTime"></param>
+        /// <param name="conflictingAgentIndex"></param>
+        /// <param name="groups"></param>
+        /// <returns></returns>
+        private bool DoesAgentHaveNoOtherOption(int agentIndex, int conflictTime, int conflictingAgentIndex, ISet<int>[] groups)
+        {
+            bool stayingAtGoalConflict = conflictTime > this.mdds[agentIndex].levels.Length;
+            bool vertexConflict = stayingAtGoalConflict ||
+                                    FindConflict(agentIndex, conflictingAgentIndex, conflictTime, groups).vertex;
+            // If it's an edge conflict, and the MDD's width at the conflict time is 1,
+            // this agent's cost will increase if split on this conflict - it's at least a semi-cardinal conflict.
+            // If it's a vertex conflict, then even if the MDD's width at the conflict time is greater than 1,
+            // it might still be a semi-cardinal or cardinal conflict if all of the agent's MDD's nodes at this
+            // time move to the same vertex (from different directions)
+            Move moveOfFirstMddNodeInLevelWithoutDirection = this.mdds[agentIndex].levels[conflictTime].First.Value.move.GetMoveWithoutDirection();
+            return (vertexConflict == false && this.mdds[agentIndex].levels[conflictTime].Count == 1) ||
+                   (this.mdds[agentIndex].levels[conflictTime].All<MDDNode>(node => node.move.Equals(moveOfFirstMddNodeInLevelWithoutDirection)));
         }
     }
 
