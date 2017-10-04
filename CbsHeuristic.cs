@@ -78,7 +78,7 @@ namespace CPF_experiment
         /// <param name="s"></param>
         /// <param name="targetCost">Stop when the target cost is reached</param>
         /// <param name="sicEstimate">For a debug assertion.</param>
-        /// <param name="lowLevelGeneratedCap">The number of low level nodes to generated</param>
+        /// <param name="lowLevelGeneratedCap">The number of low level nodes to generate</param>
         /// <param name="milliCap">The process total millisecond count to stop at</param>
         /// <param name="resume">Whether to resume the last search instead of solving the given node. Assumes the last search was from the same node as the given node.</param>
         /// <returns></returns>
