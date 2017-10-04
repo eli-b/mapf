@@ -82,7 +82,8 @@ namespace CPF_experiment
         /// <param name="milliCap">The process total millisecond count to stop at</param>
         /// <param name="resume">Whether to resume the last search instead of solving the given node. Assumes the last search was from the same node as the given node.</param>
         /// <returns></returns>
-        protected uint h(WorldState s, int targetCost, int sicEstimate=-1, int lowLevelGeneratedCap=-1, int milliCap=int.MaxValue, bool resume=false)
+        protected uint h(WorldState s, int targetCost, int sicEstimate=-1, int lowLevelGeneratedCap=-1,
+                         int milliCap=int.MaxValue, bool resume=false)
         {
             double start = this.runner.ElapsedMilliseconds();
 
@@ -355,7 +356,7 @@ namespace CPF_experiment
             // No need to check if SIC is zero because this heuristic is run after SIC was already computed, not instead of it.
             int lowLevelGeneratedCap = (int) Math.Round(effectiveBranchingFactor * this.instance.m_vAgents.Length); // Cap of B_of_AStar * K,
                                                                                                                     // because CBS low level nodes are of one agent only so they're about k times cheaper to work with
-            return this.h(s, s.g + targetH, -1, lowLevelGeneratedCap);
+            return base.h(s, s.g + targetH, -1, lowLevelGeneratedCap);
         }
 
         /// <summary>
@@ -368,7 +369,7 @@ namespace CPF_experiment
         public uint h(WorldState s, int targetH, float effectiveBranchingFactor, int millisCap, bool resume)
         {
             // No need to check if SIC is zero because this heuristic is run after SIC was already computed, not instead of it.
-            return this.h(s, s.g + targetH, -1, int.MaxValue, millisCap, resume);
+            return base.h(s, s.g + targetH, -1, int.MaxValue, millisCap, resume);
         }
 
         public override string ToString()
