@@ -358,7 +358,7 @@ namespace CPF_experiment
             {
                 nextToDelete = toDelete.Next;
                 toDelete.Value.children.Remove(this);
-                toDelete.Value.checkAndDelete();
+                toDelete.Value.deleteIfOrphanOrChildless();
                 toDelete = nextToDelete;
             }
             toDelete = children.First;
@@ -366,13 +366,13 @@ namespace CPF_experiment
             {
                 nextToDelete = toDelete.Next;
                 toDelete.Value.parents.Remove(this);
-                toDelete.Value.checkAndDelete();
+                toDelete.Value.deleteIfOrphanOrChildless();
                 toDelete = nextToDelete;
             }
            // myNode.List.Remove(myNode);
         }
         
-        public void checkAndDelete()
+        public void deleteIfOrphanOrChildless()
         {
             if (!isDeleted)
             {
@@ -419,8 +419,8 @@ namespace CPF_experiment
         {
             parent.children.Remove(this);
             this.parents.Remove(parent);
-            parent.checkAndDelete();
-            this.checkAndDelete(); //remove if there is a bug
+            parent.deleteIfOrphanOrChildless();
+            this.deleteIfOrphanOrChildless();
         }
         
         public void addParent(MDDNode parent)
