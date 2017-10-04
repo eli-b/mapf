@@ -22,7 +22,7 @@ namespace CPF_experiment
         protected int minCost;
         protected int maxThreshold;
         protected int maxSizeGroup;
-        protected HeuristicCalculator heuristic;
+        protected IHeuristicCalculator heuristic;
         int[][] globalConflictsCounter;
         CbsNode root;
         bool topMost;
@@ -278,13 +278,13 @@ namespace CPF_experiment
             minCost = 0;
         }
 
-        public void SetHeuristic(HeuristicCalculator heuristic)
+        public void SetHeuristic(IHeuristicCalculator heuristic)
         {
             this.heuristic = heuristic;
             this.solver.SetHeuristic(heuristic);
         }
 
-        public HeuristicCalculator GetHeuristic()
+        public IHeuristicCalculator GetHeuristic()
         {
             return this.heuristic;
         }

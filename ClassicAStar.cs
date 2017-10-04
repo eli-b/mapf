@@ -12,7 +12,7 @@ namespace CPF_experiment
     public class ClassicAStar : ICbsSolver, IMStarSolver
     {
         protected ProblemInstance instance;
-        protected HeuristicCalculator heuristic;
+        protected IHeuristicCalculator heuristic;
         public OpenList openList;
         public Dictionary<WorldState, WorldState> closedList;
         protected int solutionDepth;
@@ -62,7 +62,7 @@ namespace CPF_experiment
         /// <summary>
         /// Default constructor.
         /// </summary>
-        public ClassicAStar(HeuristicCalculator heuristic = null, bool mStar = false, bool mStarShuffle = false)
+        public ClassicAStar(IHeuristicCalculator heuristic = null, bool mStar = false, bool mStarShuffle = false)
         {
             this.closedList = new Dictionary<WorldState, WorldState>();
             this.openList = new OpenList(this);
@@ -162,12 +162,12 @@ namespace CPF_experiment
             this.illegalMoves = null;
         }
 
-        public void SetHeuristic(HeuristicCalculator heuristic)
+        public void SetHeuristic(IHeuristicCalculator heuristic)
         {
             this.heuristic = heuristic;
         }
 
-        public HeuristicCalculator GetHeuristic()
+        public IHeuristicCalculator GetHeuristic()
         {
             return this.heuristic;
         }

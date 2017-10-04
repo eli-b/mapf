@@ -9,7 +9,7 @@ namespace CPF_experiment
     public class DynamicRationalLazyOpenList : OpenList//<WorldState>US
     {
         protected Run runner;
-        public LazyHeuristic expensive;
+        public ILazyHeuristic expensive;
         protected int lastF;
         protected int skips;
         protected int accSkips;
@@ -27,7 +27,7 @@ namespace CPF_experiment
         protected double accSumExpandTimes;
         protected int accNumExpands;
 
-        public DynamicRationalLazyOpenList(ISolver user, LazyHeuristic expensive, Run runner)
+        public DynamicRationalLazyOpenList(ISolver user, ILazyHeuristic expensive, Run runner)
             : base(user)
         {
             this.expensive = expensive;
@@ -121,7 +121,7 @@ namespace CPF_experiment
                     WorldStateForPartialExpansion nodeCopy = new WorldStateForPartialExpansion((WorldStateForPartialExpansion)node); // So the solution won't leak to the node when we try to solve it.
                     double expensiveCallStartTime = watch.Elapsed.TotalMilliseconds;
                     // Using a separate statistic for the oracle to keep the stats clean
-                    int expensiveEstimate = (int)((LazyHeuristic)this.runner.heuristics[this.runner.heuristics.Count - 1]).h(
+                    int expensiveEstimate = (int)((ILazyHeuristic)this.runner.heuristics[this.runner.heuristics.Count - 1]).h(
                                                                                     nodeCopy, targetH, -1, int.MaxValue, false);
                     double expensiveCallTotalTime = watch.Elapsed.TotalMilliseconds - expensiveCallStartTime;
 

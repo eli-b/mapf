@@ -14,7 +14,7 @@ namespace CPF_experiment
         protected int generatedFullStates;
         protected int accGeneratedFullStates;
 
-        public AStarWithOD(HeuristicCalculator heuristic = null, bool mstar = false, bool mstarShuffle = false)
+        public AStarWithOD(IHeuristicCalculator heuristic = null, bool mstar = false, bool mstarShuffle = false)
             : base(heuristic, mstar, mstarShuffle) { }
 
         override protected WorldState CreateSearchRoot(int minDepth = -1, int minCost = -1)

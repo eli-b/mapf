@@ -4,7 +4,7 @@ using System.IO;
 
 namespace CPF_experiment
 {
-    public class AdditivePDBs : HeuristicCalculator
+    public class AdditivePDBs : IHeuristicCalculator
     {
         List<PDB> m_vPDBs; 
 

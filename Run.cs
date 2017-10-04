@@ -90,7 +90,7 @@ namespace CPF_experiment
         /// <summary>
         /// all types of heuristics used
         /// </summary>
-        public List<HeuristicCalculator> heuristics; // FIXME: Make unpublic again later
+        public List<IHeuristicCalculator> heuristics; // FIXME: Make unpublic again later
 
         /// <summary>
         /// Counts the number of times each algorithm went out of time consecutively
@@ -105,7 +105,7 @@ namespace CPF_experiment
             this.watch = Stopwatch.StartNew();
 
             // Preparing the heuristics:
-            heuristics = new List<HeuristicCalculator>();
+            heuristics = new List<IHeuristicCalculator>();
             var sic = new SumIndividualCosts();
             heuristics.Add(sic);
             var astar = new ClassicAStar(sic);

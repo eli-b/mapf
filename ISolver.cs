@@ -29,9 +29,9 @@ namespace CPF_experiment
         /// Set the heuristic
         /// </summary>
         /// <param name="heuristic"></param>
-        void SetHeuristic(HeuristicCalculator heuristic);
+        void SetHeuristic(IHeuristicCalculator heuristic);
 
-        HeuristicCalculator GetHeuristic();
+        IHeuristicCalculator GetHeuristic();
 
         /// <summary>
         /// Clears the relevant data structures and variables to free memory usage.

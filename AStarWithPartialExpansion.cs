@@ -10,7 +10,7 @@ namespace CPF_experiment
         protected int expandedFullStates;
         protected int accExpandedFullStates;
 
-        public AStarWithPartialExpansion(HeuristicCalculator heuristic = null, bool mstar = false, bool mstarShuffle = false)
+        public AStarWithPartialExpansion(IHeuristicCalculator heuristic = null, bool mstar = false, bool mstarShuffle = false)
             : base(heuristic, mstar, mstarShuffle) { }
 
         override protected WorldState CreateSearchRoot(int minDepth = -1, int minCost = -1)

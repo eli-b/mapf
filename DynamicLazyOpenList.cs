@@ -8,11 +8,11 @@ namespace CPF_experiment
 {
     public class DynamicLazyOpenList : OpenList//<WorldState>
     {
-        public LazyHeuristic expensive;
+        public ILazyHeuristic expensive;
         protected Run runner;
         protected int lastF;
 
-        public DynamicLazyOpenList(ISolver user, LazyHeuristic expensive, Run runner)
+        public DynamicLazyOpenList(ISolver user, ILazyHeuristic expensive, Run runner)
             : base(user)
         {
             this.expensive = expensive;

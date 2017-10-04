@@ -39,17 +39,17 @@ namespace CPF_experiment
         protected int accMinGroupSize;
         public ISolver groupSolver;
         public ISolver singleAgentSolver;
-        protected HeuristicCalculator heuristic;
+        protected IHeuristicCalculator heuristic;
         private ISet<Conflict> allConflicts;
         private int solutionDepth;
         private Dictionary<TimedMove, List<int>> conflictAvoidance;
         private int maxSolutionCostFound;
         private string name;
 
-        public IndependenceDetection(HeuristicCalculator heuristic)
+        public IndependenceDetection(IHeuristicCalculator heuristic)
             : this(new ClassicAStar(heuristic), new AStarWithOD(heuristic), heuristic) { }
 
-        public IndependenceDetection(ISolver singleAgentSolver, ISolver groupSolver, HeuristicCalculator heuristic)
+        public IndependenceDetection(ISolver singleAgentSolver, ISolver groupSolver, IHeuristicCalculator heuristic)
         {
             this.singleAgentSolver = singleAgentSolver;
             this.groupSolver = groupSolver;
@@ -79,13 +79,13 @@ namespace CPF_experiment
                 this.allGroups.AddLast(new AgentsGroup(this.instance, new AgentState[1] { agentStartState }, this.singleAgentSolver, this.groupSolver));
         }
 
-        public void SetHeuristic(HeuristicCalculator heuristic)
+        public void SetHeuristic(IHeuristicCalculator heuristic)
         {
             this.heuristic = heuristic;
             this.groupSolver.SetHeuristic(heuristic);
         }
 
-        public HeuristicCalculator GetHeuristic()
+        public IHeuristicCalculator GetHeuristic()
         {
             return this.heuristic;
         }

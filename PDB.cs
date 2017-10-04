@@ -5,7 +5,7 @@ using System.Collections.Generic;
 namespace CPF_experiment
 {
     [Serializable]
-    class PDB : HeuristicCalculator
+    class PDB : IHeuristicCalculator
     {
         [NonSerialized] protected ProblemInstance m_Problem;
 

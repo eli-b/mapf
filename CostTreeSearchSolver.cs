@@ -124,9 +124,9 @@ namespace CPF_experiment
             }
         }
 
-        public void SetHeuristic(HeuristicCalculator heuristic) {}
+        public void SetHeuristic(IHeuristicCalculator heuristic) {}
 
-        public HeuristicCalculator GetHeuristic()
+        public IHeuristicCalculator GetHeuristic()
         {
             return null;
         }

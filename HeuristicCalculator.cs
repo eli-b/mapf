@@ -3,7 +3,7 @@ using System.IO;
 
 namespace CPF_experiment
 {
-    public interface HeuristicCalculator : IAccumulatingStatisticsCsvWriter
+    public interface IHeuristicCalculator : IAccumulatingStatisticsCsvWriter
     {
         /// <summary>Returns the heuristic estimate.</summary>
         /// <param name="s">The current state.</param>
@@ -19,7 +19,7 @@ namespace CPF_experiment
         void init(ProblemInstance pi, List<uint> vAgents);
     }
 
-    public interface LazyHeuristic : HeuristicCalculator
+    public interface ILazyHeuristic : IHeuristicCalculator
     {
         /// <summary>Returns the heuristic estimate. Used when a low level generated nodes cap is needed.</summary>
         /// <param name="s">The current state.</param>

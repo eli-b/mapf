@@ -24,7 +24,7 @@ namespace CPF_experiment
         public int nextFvalue;
         public int currentFTarget;
 
-        public AStarWithPartialExpansionBasic(HeuristicCalculator heuristic = null)
+        public AStarWithPartialExpansionBasic(IHeuristicCalculator heuristic = null)
             : base(heuristic) { }
 
         override protected WorldState CreateSearchRoot(int minDepth = -1, int minCost = -1)

@@ -4,10 +4,10 @@ using System.Collections.Generic;
 
 namespace CPF_experiment
 {
-    class RandomChoiceOfHeuristic : HeuristicCalculator
+    class RandomChoiceOfHeuristic : IHeuristicCalculator
     {
-        protected HeuristicCalculator first;
-        protected HeuristicCalculator second;
+        protected IHeuristicCalculator first;
+        protected IHeuristicCalculator second;
         protected double p;
         protected Random rand;
 
@@ -18,7 +18,7 @@ namespace CPF_experiment
         /// <param name="second"></param>
         /// <param name="p"></param>
         /// <param name="seed"></param>
-        public RandomChoiceOfHeuristic(HeuristicCalculator first, HeuristicCalculator second, double p, int seed = 0)
+        public RandomChoiceOfHeuristic(IHeuristicCalculator first, IHeuristicCalculator second, double p, int seed = 0)
         {
             this.first = first;
             this.second = second;

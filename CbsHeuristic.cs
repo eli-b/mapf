@@ -10,7 +10,7 @@ namespace CPF_experiment
     ///       The only CBS things in it are the targetCost, the Debug.Assert that the root costs exactly like SIC's
     ///       estimate, and the statistics.
     /// </summary>
-    class CbsHeuristic : HeuristicCalculator
+    class CbsHeuristic : IHeuristicCalculator
     {
         protected CBS_LocalConflicts cbs;
         protected ProblemInstance instance;
@@ -338,7 +338,7 @@ namespace CPF_experiment
         }
     }
 
-    class DyanamicLazyCbsh : CbsHeuristic, LazyHeuristic
+    class DyanamicLazyCbsh : CbsHeuristic, ILazyHeuristic
     {
         public DyanamicLazyCbsh(CBS_LocalConflicts cbs, Run runner, bool reportSolution = false, bool validate = false)
             : base(cbs, runner, reportSolution, -1, validate) {}

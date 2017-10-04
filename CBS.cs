@@ -207,12 +207,12 @@ namespace CPF_experiment
             this.Setup(problemInstance, 0, runner);
         }
 
-        public void SetHeuristic(HeuristicCalculator heuristic)
+        public void SetHeuristic(IHeuristicCalculator heuristic)
         {
             this.solver.SetHeuristic(heuristic);
         }
 
-        public HeuristicCalculator GetHeuristic()
+        public IHeuristicCalculator GetHeuristic()
         {
             return this.solver.GetHeuristic();
         }
