@@ -133,7 +133,7 @@ namespace CPF_experiment
             }
             
             // Make sure the goal was reached - imperfect heuristics, constraints or illegal moves can cause this to be false.
-            if (levels[numOfLevels].Count == 0 || levels[0].First.Value.isDeleted == true) //if no possible route mark levels as null
+            if (levels[numOfLevels].Count == 0 || levels[0].First.Value.isDeleted == true) // No possible route to goal was found
                 levels = null;
         }
 
