@@ -75,7 +75,7 @@ namespace CPF_experiment
                 }
             }
 
-            var closedList = new Dictionary<MDDNode, MDDNode>();
+            var perLevelClosedList = new Dictionary<MDDNode, MDDNode>();
             var toDelete = new List<MDDNode>();
 
             for (int i = 0; i <= numOfLevels; i++)
@@ -104,13 +104,13 @@ namespace CPF_experiment
                     foreach (MDDNode child in children)
                     {
                         MDDNode toAdd = child; // The compiler won't let me assign to the foreach variable...
-                        if (closedList.ContainsKey(child))
+                        if (perLevelClosedList.ContainsKey(child))
                         {
-                            toAdd = closedList[child];
+                            toAdd = perLevelClosedList[child];
                         }
                         else
                         {
-                            closedList.Add(toAdd, toAdd);
+                            perLevelClosedList.Add(toAdd, toAdd);
                             llNode = new LinkedListNode<MDDNode>(toAdd);
                             toAdd.setMyNode(llNode);
                             levels[i + 1].AddLast(toAdd);
@@ -119,7 +119,7 @@ namespace CPF_experiment
                         toAdd.addParent(currentMddNode); // backward edge
                     }
                 }
-                closedList.Clear();
+                perLevelClosedList.Clear();
             }
 
             foreach (MDDNode goal in levels[numOfLevels]) // The goal may be reached in more than one direction
