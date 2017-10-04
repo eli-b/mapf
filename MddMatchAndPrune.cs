@@ -9,7 +9,7 @@ namespace CPF_experiment
         MDD[] allMDDs;
         Queue<MddMatchAndPruneState> openList;
         Dictionary<MddMatchAndPruneState, MddMatchAndPruneState> closedList;
-        int solutionDepth; //the depth is the cost + 1 because the root also counts as a level
+        int solutionDepth; // The depth is the cost + 1 because the root also counts as a level
         MddMatchAndPruneState goal; // This will contain the goal node if such was found
         bool legal; //indicates if all single MDDs are legal
         public bool[] conflicted; //indicates if the matching process found any illegal nodes/edges and pruned any of the MDDs
@@ -121,12 +121,12 @@ namespace CPF_experiment
 
 
         /// <summary>
-        /// prunes a given level according to the edgesMatrix
+        /// Prunes a given level according to the edgesMatrix
         /// </summary>
         /// <param name="level"></param>
         private void pruneLevel(int level)
         {
-            MDDNode[] parentsToDelte = new MDDNode[5];
+            MDDNode[] parentsToDelete = new MDDNode[5];
             int parentI;
 
             for (int i = 0; i < allMDDs.Length; i++)
@@ -138,21 +138,22 @@ namespace CPF_experiment
                     parentI = 0;
 
                     for (int d = 0; d < 5; d++)
-                        parentsToDelte[d] = null;
+                        parentsToDelete[d] = null;
 
+                    parentI = 0;
                     foreach (MDDNode parent in node.parents)
                     {
                         //if not legal
                         if ((int)CostTreeSearchSolver.edgesMatrix[i, parent.getVertexIndex(), (int) node.move.direction /*or parent.move.direction, I'm not sure*/] != CostTreeSearchSolver.edgesMatrixCounter + 1)
                         {
-                            parentsToDelte[parentI] = parent;
+                            parentsToDelete[parentI] = parent;
                             this.conflicted[i] = true;
                         }
                         parentI++;
                     }
-                    foreach (MDDNode delteParent in parentsToDelte)
-                        if (delteParent != null)
-                           node.removeParent(delteParent);
+                    foreach (MDDNode deleteParent in parentsToDelete)
+                        if (deleteParent != null)
+                           node.removeParent(deleteParent);
                 }    
             }
         }
