@@ -117,7 +117,9 @@ namespace CPF_experiment
             FIRST = 0,
             MOST_CONFLICTING,
             CARDINAL_MDD,
-            CARDINAL_LOOKAHEAD
+            CARDINAL_LOOKAHEAD,
+            EXHAUSTIVE_CARDINAL_GREEDY,
+            EXHAUSTIVE_CARDINAL_LAZY
         }
         public enum BypassStrategy : byte
         {
@@ -145,9 +147,12 @@ namespace CPF_experiment
             this.conflictChoice = conflictChoice;
             if (Constants.costFunction != Constants.CostFunction.SUM_OF_COSTS)
             {
-                Debug.Assert(conflictChoice != ConflictChoice.CARDINAL_MDD, "Under makespan, increasing the cost for a single agent might not increase the cost for the solution." +
-                                                                            "Before this strategy is enabled we need to add a consideration of whether the agent whose cost will " +
-                                                                            "increase has the highest cost in the solution first");
+                Debug.Assert(conflictChoice != ConflictChoice.CARDINAL_MDD &&
+                             conflictChoice != ConflictChoice.EXHAUSTIVE_CARDINAL_GREEDY &&
+                             conflictChoice != ConflictChoice.EXHAUSTIVE_CARDINAL_LAZY,
+                    "Under makespan, increasing the cost for a single agent might not increase the cost for the solution." +
+                    "Before this strategy is enabled we need to add a consideration of whether the agent whose cost will " +
+                    "increase has the highest cost in the solution first");
             }
             this.tieBreakForMoreConflictsOnly = justbreakForConflicts;
             this.useMddH = useMddHeuristic;
@@ -667,8 +672,11 @@ namespace CPF_experiment
 
                 // Shuffle stage:
                 if (this.doShuffle)
+                {
                     this.Shuffle(currentNode);
+                }
 
+                // Update nodesExpandedWithGoalCost statistic
                 if (currentNode.totalCost > currentCost) // Needs to be here because the goal may have a cost unseen before
                 {
                     currentCost = currentNode.totalCost;
@@ -1085,7 +1093,8 @@ namespace CPF_experiment
             return false;
         }
 
-        public virtual void Expand(CbsNode node)
+
+        private void ExpandIgnoringCardinalsButSupportingBP2(CbsNode node)
         {
             ushort parentCost = node.totalCost;
             ushort parentH = node.h;
@@ -1096,160 +1105,21 @@ namespace CPF_experiment
             int origSemiCardinalConflictSplits = this.semiCardinalConflictSplits;
             int origNonCardinalConflictSplits = this.nonCardinalConflictSplits;
 
-            //var costs = new CostTreeNode(node.allSingleAgentCosts);
-            //bool alreadyLookedAhead = this.lookedAhead.Contains(costs);
-
-            if (debug)
-                if (this.bypassStrategy == BypassStrategy.BEST_FIT_LOOKAHEAD && node.parentAlreadyLookedAheadOf)
-                    Debug.Print("Not looking ahead from this node, one of its ancestors of the same cost was already looked ahead of");
-
-            if (this.conflictChoice == ConflictChoice.FIRST || this.conflictChoice == ConflictChoice.MOST_CONFLICTING) // They just a conflict once and stick with it.
+            if (this.bypassStrategy == BypassStrategy.NONE)
             {
-                if (this.bypassStrategy == BypassStrategy.NONE)
+                this.ExpandImpl(node, adopt: false, children: out children,
+                                reinsertParent: out reinsertParent, adoptBy: null);
+            }
+            else if (this.bypassStrategy == BypassStrategy.FIRST_FIT_LOOKAHEAD || node.parentAlreadyLookedAheadOf) // Do bypass but don't look ahead
+            {
+                bool adoptionPerformedBefore = false;
+                while (true) // Until a node with a higher cost is found or a goal is found
                 {
-                    this.ExpandImpl(node, false, out children, out reinsertParent, null);
-                }
-                else if (this.bypassStrategy == BypassStrategy.FIRST_FIT_LOOKAHEAD || node.parentAlreadyLookedAheadOf) // Do bypass but don't look ahead
-                {
-                    bool adoptionPerformedBefore = false;
-                    while (true) // Until a node with a higher cost is found or a goal is found
-                    {
-                        var lookAheadOpenList = new OpenList(this);
-                        var lookAheadSameCostNodes = new HashSet<CbsNode>();
-                        var lookAheadLargerCostNodes = new HashSet<CbsNode>();
-                        var lookAheadSameCostNodesToReinsertWithHigherCost = new HashSet<CbsNode>();
-                        lookAheadOpenList.Add(node);
-
-                        if (debug)
-                        {
-                            if (lookAheadOpenList.Count != 0)
-                                Debug.Print("Starting lookahead:");
-                        }
-                        IList<CbsNode> lookAheadChildren;
-                        bool lookAheadReinsertParent;
-                        bool adopted = false;
-                        int expansions = 0;
-                        while (lookAheadOpenList.Count != 0)
-                        {
-                            if (expansions + 1 > this.lookaheadMaxExpansions) // + 1 because we're checking before the coming expansion. lookaheadMaxExpansions = 1 is the minimum working value.
-                            {
-                                if (debug)
-                                    Debug.WriteLine("Lookahead count exceeded. Stopping lookahead.");
-                                break;
-                            }
-
-                            if (runner.ElapsedMilliseconds() > Constants.MAX_TIME)
-                                return;
-
-                            CbsNode lookAheadNode = (CbsNode)lookAheadOpenList.Remove();
-                            lookAheadNode.ChooseConflict();
-
-                            if (debug)
-                                Debug.WriteLine("Looking ahead from node hash: " + lookAheadNode.GetHashCode() + ".");
-
-                            adopted = this.ExpandImpl(lookAheadNode, true, out lookAheadChildren, out lookAheadReinsertParent, node);
-                            expansions++;
-
-                            if (adopted == true)
-                            {
-                                this.lookAheadNodesCreated += lookAheadChildren.Count + 1; // Either 1, if the first child was adopted, or 2 otherwise. +1 for the node itself before it adopted another solution.
-                                this.cardinalConflictSplits = origCardinalConflictSplits;
-                                this.semiCardinalConflictSplits = origSemiCardinalConflictSplits;
-                                this.nonCardinalConflictSplits = origNonCardinalConflictSplits;
-                                break; // Insert children into open list
-                            }
-
-                            if (lookAheadReinsertParent)
-                                lookAheadSameCostNodesToReinsertWithHigherCost.Add(lookAheadNode);
-
-                            foreach (var child in lookAheadChildren)
-                            {
-                                this.lookAheadNodesCreated++;
-                                this.closedList.Add(child, child); // Temporarily! Just so look ahead expansion can use this data
-                                if (child.totalCost == node.totalCost)
-                                {
-                                    lookAheadOpenList.Add(child);
-                                    lookAheadSameCostNodes.Add(child);
-                                }
-                                else
-                                    lookAheadLargerCostNodes.Add(child); // No need to check if it's already there since the closed list is properly maintained
-                            }
-                        }
-
-                        if (debug)
-                            if (adopted == false && lookAheadOpenList.Count == 0)
-                                Debug.WriteLine("Lookahead exhausted all same cost nodes.");
-
-                        if (adopted && adoptionPerformedBefore == false)
-                        {
-                            adoptionPerformedBefore = true;
-                            this.bypasses++; // Only count one adoption for the entire look ahead subtree branch traversed.
-                        }
-
-                        if (node.GoalTest()) // Lookahead found an admissable solution! (The original node to expand wasn't a goal)
-                        {
-                            if (debug)
-                                Debug.WriteLine("Goal found with same cost - stopping lookahead.");
-                            this.openList.Add(node);
-                            return;
-                        }
-
-                        if (adopted == false) // Insert children into open list
-                        {
-                            if (node.h < 1 && lookAheadOpenList.Count == 0) // Looked ahead exhaustively
-                                node.h = 1; // We know the goal isn't under it with the same cost
-
-                            // We already expanded this whole subtree of same cost nodes (at least partially). Insert the frontier to the open list.
-                            reinsertParent = false; // It may reinserted as an element of the lookAheadSameCostNodesToReinsertWithHigherCost
-                            children = lookAheadLargerCostNodes.ToList<CbsNode>(); // Larger cost nodes aren't expanded so they're always on the frontier
-                            int unexpandedSameCostNodes = lookAheadOpenList.Count;
-                            while (lookAheadOpenList.Count != 0)
-                            {
-                                var child = (CbsNode)lookAheadOpenList.Remove();
-                                children.Add(child); // Unexapnded so it's also on the frontier
-                                this.closedList.Remove(child); // Just so it'll be inserted into the open list at the end of the method
-                            }
-                            foreach (var reInsertNode in lookAheadSameCostNodesToReinsertWithHigherCost)
-                            {
-                                if (reInsertNode == node)
-                                {
-                                    reinsertParent = true;
-                                    continue;
-                                }
-                                children.Add(reInsertNode);
-                                this.closedList.Remove(reInsertNode); // Just so it'll be inserted into the open list at the end of the method
-                                //if (reInsertNode == node) // Re-inserting the original node that was to be expanded, with a higher h
-                                //    this.highLevelGenerated--; // It'll be counted as a new generated child later, and we don't need to count it twice
-                            }
-                            foreach (CbsNode lookAheadNode in lookAheadLargerCostNodes)
-                                this.closedList.Remove(lookAheadNode); // Just so they'll be inserted into the open list at the end of the method
-                            this.lookAheadNodesCreated -= lookAheadSameCostNodes.Count + lookAheadLargerCostNodes.Count; // None of these nodes weren't wasted effort, they were properly generated
-                            this.highLevelGenerated += lookAheadSameCostNodes.Count
-                                                       - lookAheadSameCostNodesToReinsertWithHigherCost.Count
-                                                       - unexpandedSameCostNodes; // You could say they were generated and not looked ahead at, and they won't be counted later.
-                            this.highLevelExpanded += lookAheadSameCostNodes.Count - unexpandedSameCostNodes;
-
-                            break;
-                        }
-                        else // Adopted. Do a new round of expansions.
-                        {
-                            foreach (CbsNode lookAheadNode in lookAheadLargerCostNodes)
-                                this.closedList.Remove(lookAheadNode); // Just so they'll be inserted into the open list at the end of the method
-                            foreach (CbsNode lookAheadNode in lookAheadSameCostNodes)
-                                this.closedList.Remove(lookAheadNode); // Just so they'll be inserted into the open list at the end of the method
-                            // The only difference in closed list cleanup after adoption is that expanded same cost nodes are also removed from the closed list.
-                        }
-                    }
-                }
-                else // this.bypassStrategy == BypassStrategy.BEST_FIT_LOOKAHEAD and this set of costs not already done
-                {
-                    // FIXME: lookaheadMaxExpansions isn't respected correctly here. We actually limit the number of same-cost nodes generated, which is similar but not the same.
                     var lookAheadOpenList = new OpenList(this);
                     var lookAheadSameCostNodes = new HashSet<CbsNode>();
                     var lookAheadLargerCostNodes = new HashSet<CbsNode>();
                     var lookAheadSameCostNodesToReinsertWithHigherCost = new HashSet<CbsNode>();
                     lookAheadOpenList.Add(node);
-                    node.parentAlreadyLookedAheadOf = true;
 
                     if (debug)
                     {
@@ -1258,25 +1128,40 @@ namespace CPF_experiment
                     }
                     IList<CbsNode> lookAheadChildren;
                     bool lookAheadReinsertParent;
+                    bool adopted = false;
+                    int expansions = 0;
                     while (lookAheadOpenList.Count != 0)
                     {
-                        if (lookAheadSameCostNodes.Count + 1 >= this.lookaheadMaxExpansions) // + 1 for the root
+                        if (expansions + 1 > this.lookaheadMaxExpansions) // + 1 because we're checking before the coming expansion. lookaheadMaxExpansions = 1 is the minimum working value.
                         {
                             if (debug)
                                 Debug.WriteLine("Lookahead count exceeded. Stopping lookahead.");
                             break;
                         }
 
-                        CbsNode lookAheadNode = (CbsNode)lookAheadOpenList.Remove();
-                        lookAheadNode.ChooseConflict();
-
                         if (runner.ElapsedMilliseconds() > Constants.MAX_TIME)
                             return;
+
+                        CbsNode lookAheadNode = (CbsNode)lookAheadOpenList.Remove();
+                        lookAheadNode.ChooseConflict();
 
                         if (debug)
                             Debug.WriteLine("Looking ahead from node hash: " + lookAheadNode.GetHashCode() + ".");
 
-                        this.ExpandImpl(lookAheadNode, false, out lookAheadChildren, out lookAheadReinsertParent); // Ignoring return val since we're explicitly not allowing adoption
+                        adopted = this.ExpandImpl(lookAheadNode, adopt: true,
+                                                  children: out lookAheadChildren,
+                                                  reinsertParent: out lookAheadReinsertParent,
+                                                  adoptBy: node);
+                        expansions++;
+
+                        if (adopted == true)
+                        {
+                            this.lookAheadNodesCreated += lookAheadChildren.Count + 1; // Either 1, if the first child was adopted, or 2 otherwise. +1 for the node itself before it adopted another solution.
+                            this.cardinalConflictSplits = origCardinalConflictSplits;
+                            this.semiCardinalConflictSplits = origSemiCardinalConflictSplits;
+                            this.nonCardinalConflictSplits = origNonCardinalConflictSplits;
+                            break; // Insert children into open list
+                        }
 
                         if (lookAheadReinsertParent)
                             lookAheadSameCostNodesToReinsertWithHigherCost.Add(lookAheadNode);
@@ -1287,85 +1172,45 @@ namespace CPF_experiment
                             this.closedList.Add(child, child); // Temporarily! Just so look ahead expansion can use this data
                             if (child.totalCost == node.totalCost)
                             {
-                                if (child.GoalTest()) // Lookahead found an admissable solution!
-                                {
-                                    if (debug)
-                                        Debug.WriteLine("Goal found with same cost - stopping lookahead.");
-                                    this.openList.Add(child); // Technically should have just breaked and let node adopt child. This is just a short-cut.
-                                    this.bypasses++; // Just a technicality needed to make the adoption count not lower than if we didn't use immediate adoption. You could say we adopt the goal's solution.
-                                    return;
-                                }
-
-                                if (lookAheadSameCostNodes.Contains(child) == false)
-                                {
-                                    lookAheadOpenList.Add(child);
-                                    lookAheadSameCostNodes.Add(child);
-                                }
+                                lookAheadOpenList.Add(child);
+                                lookAheadSameCostNodes.Add(child);
                             }
                             else
-                                lookAheadLargerCostNodes.Add(child); // No need to check if it's already there :)
+                                lookAheadLargerCostNodes.Add(child); // No need to check if it's already there since the closed list is properly maintained
                         }
                     }
 
-                    if (node.h < 1 && lookAheadOpenList.Count == 0) // Looked ahead exhaustively
-                        node.h = 1; // We know the goal isn't under it with the same cost
+                    if (debug)
+                        if (adopted == false && lookAheadOpenList.Count == 0)
+                            Debug.WriteLine("Lookahead exhausted all same cost nodes.");
 
-                    bool bypassPerformed = false;
-                    // Find the best look ahead node and check if it's worth adopting
-                    if (lookAheadSameCostNodes.Count != 0)
+                    if (adopted && adoptionPerformedBefore == false)
                     {
-                        IList<CbsNode> lookAheadSameCostNodesSerialzed = lookAheadSameCostNodes.ToList<CbsNode>();
-                        CbsNode adoptionCandidate = lookAheadSameCostNodesSerialzed[0];
-                        for (int i = 1; i < lookAheadSameCostNodesSerialzed.Count; i++)
-                        {
-                            if (lookAheadSameCostNodesSerialzed[i].CompareToIgnoreH(adoptionCandidate) == -1)
-                                adoptionCandidate = lookAheadSameCostNodesSerialzed[i];
-                        }
-                        if (AdoptConditionally(node, adoptionCandidate, parentH))
-                        {
-                            bypassPerformed = true;
-                            this.bypasses++;
-
-                            this.cardinalConflictSplits = origCardinalConflictSplits;
-                            this.semiCardinalConflictSplits = origSemiCardinalConflictSplits;
-                            this.nonCardinalConflictSplits = origNonCardinalConflictSplits;
-
-                            // Remove cancelled look-ahead nodes from closed list
-                            foreach (CbsNode lookAheadNode in lookAheadSameCostNodes)
-                                this.closedList.Remove(lookAheadNode);
-                            foreach (CbsNode lookAheadNode in lookAheadLargerCostNodes)
-                                this.closedList.Remove(lookAheadNode);
-
-                            if (this.openList.Count != 0 && ((CbsNode)this.openList.Peek()).f < node.f)
-                            // This is a new unexpanded node, and we just raised its h, so we can push it back
-                            // FIXME: More duplication of the push back logic
-                            {
-                                reinsertParent = true;
-                                children = new List<CbsNode>(); // Children will be generated when this node comes out of the open list
-
-                                if (this.debug)
-                                    Debug.Print("Reinserting node into the open list with h=1, since the goal wasn't found with the same cost under it.");
-                            }
-                            else
-                            {
-                                // We updated the node, need to re-expand it. Surprisingly, re-expansion can produce even better nodes for adoption, so we need to allow immediate expansion too.
-                                // TODO: Just re-run the infinite lookahead? That would be the immediate adoption variant above
-                                this.Expand(node);
-                                return;
-                            }
-                        }
+                        adoptionPerformedBefore = true;
+                        this.bypasses++; // Only count one adoption for the entire look ahead subtree branch traversed.
                     }
 
-                    if (bypassPerformed == false)
+                    if (node.GoalTest()) // Lookahead found an admissable solution! (The original node to expand wasn't a goal)
                     {
-                        // Adoption not performed, and we already expanded this whole subtree of same cost nodes (at least partially)
-                        reinsertParent = false; // It may reinserted as an element of the children list
-                        children = lookAheadLargerCostNodes.ToList<CbsNode>();
+                        if (debug)
+                            Debug.WriteLine("Goal found with same cost - stopping lookahead.");
+                        this.openList.Add(node);
+                        return;
+                    }
+
+                    if (adopted == false) // Insert children into open list
+                    {
+                        if (node.h < 1 && lookAheadOpenList.Count == 0) // Looked ahead exhaustively
+                            node.h = 1; // We know the goal isn't under it with the same cost
+
+                        // We already expanded this whole subtree of same cost nodes (at least partially). Insert the frontier to the open list.
+                        reinsertParent = false; // It may be reinserted as an element of the lookAheadSameCostNodesToReinsertWithHigherCost
+                        children = lookAheadLargerCostNodes.ToList<CbsNode>(); // Larger cost nodes aren't expanded so they're always on the frontier
                         int unexpandedSameCostNodes = lookAheadOpenList.Count;
                         while (lookAheadOpenList.Count != 0)
                         {
                             var child = (CbsNode)lookAheadOpenList.Remove();
-                            children.Add(child);
+                            children.Add(child); // Unexapnded so it's also on the frontier
                             this.closedList.Remove(child); // Just so it'll be inserted into the open list at the end of the method
                         }
                         foreach (var reInsertNode in lookAheadSameCostNodesToReinsertWithHigherCost)
@@ -1377,176 +1222,355 @@ namespace CPF_experiment
                             }
                             children.Add(reInsertNode);
                             this.closedList.Remove(reInsertNode); // Just so it'll be inserted into the open list at the end of the method
-                            if (reInsertNode == node) // Re-inserting the original node that was to be expanded, with a higher h
-                                this.highLevelGenerated--; // It'll be counted as a new generated child later, and we don't need to count it twice
                         }
                         foreach (CbsNode lookAheadNode in lookAheadLargerCostNodes)
                             this.closedList.Remove(lookAheadNode); // Just so they'll be inserted into the open list at the end of the method
-                        this.lookAheadNodesCreated -= lookAheadSameCostNodes.Count + lookAheadLargerCostNodes.Count; // These nodes weren't wasted effort
-                        this.highLevelGenerated += lookAheadSameCostNodes.Count - lookAheadSameCostNodesToReinsertWithHigherCost.Count - unexpandedSameCostNodes; // You could say they were generated and not looked ahead at, and they won't be counted later.
+                        this.lookAheadNodesCreated -= lookAheadSameCostNodes.Count + lookAheadLargerCostNodes.Count; // None of these nodes weren't wasted effort, they were properly generated
+                        this.highLevelGenerated += lookAheadSameCostNodes.Count
+                                                   - lookAheadSameCostNodesToReinsertWithHigherCost.Count
+                                                   - unexpandedSameCostNodes; // You could say they were generated and not looked ahead at, and they won't be counted later.
                         this.highLevelExpanded += lookAheadSameCostNodes.Count - unexpandedSameCostNodes;
+
+                        break;
                     }
-                }
-
-
-                // Both children considered. None adopted. Add them to the open list, and re-insert the partially expanded parent too if necessary.
-                if (reinsertParent)
-                    this.openList.Add(node); // Re-insert node into open list with higher cost, don't re-increment global conflict counts
-
-                foreach (var child in children)
-                {
-                    closedList.Add(child, child);
-
-                    if (child.totalCost == parentCost) // Total cost didn't increase (yet)
+                    else // Adopted. Do a new round of expansions.
                     {
-                        child.h = parentH;
-
-                        if (this.bypassStrategy == BypassStrategy.BEST_FIT_LOOKAHEAD)
-                            child.parentAlreadyLookedAheadOf = true;
-                    }
-                    else if (this.bypassStrategy == BypassStrategy.BEST_FIT_LOOKAHEAD)
-                       child.parentAlreadyLookedAheadOf = false;
-
-                    if (child.totalCost <= this.maxCost)
-                    {
-                        this.highLevelGenerated++;
-                        openList.Add(child);
+                        foreach (CbsNode lookAheadNode in lookAheadLargerCostNodes)
+                            this.closedList.Remove(lookAheadNode); // Just so they'll be inserted into the open list at the end of the method
+                        foreach (CbsNode lookAheadNode in lookAheadSameCostNodes)
+                            this.closedList.Remove(lookAheadNode); // Just so they'll be inserted into the open list at the end of the method
+                                                                   // The only difference in closed list cleanup after adoption is that expanded same cost nodes are also removed from the closed list.
                     }
                 }
             }
-            else // We try to split according to cardinal conflicts
+            else // this.bypassStrategy == BypassStrategy.BEST_FIT_LOOKAHEAD and this set of costs not already done
             {
-                Debug.Assert(this.bypassStrategy == BypassStrategy.NONE || this.lookaheadMaxExpansions == 1, "Only BP1 is supported with cardinal conflict choice");  // Assumed in order to simplify code
-                Debug.Assert(this.bypassStrategy != BypassStrategy.BEST_FIT_LOOKAHEAD, "Only first-fit adoption is supported with cardinal conflict choice"); // Assumed in order to simplify code
-                HashSet<CbsConflict> conflictsProcessed = new HashSet<CbsConflict>(); // Needed if we restart iteration because of adopting a bypass
+                // FIXME: lookaheadMaxExpansions isn't respected correctly here. We actually limit the number of same-cost nodes generated, which is similar but not the same.
+                var lookAheadOpenList = new OpenList(this);
+                var lookAheadSameCostNodes = new HashSet<CbsNode>();
+                var lookAheadLargerCostNodes = new HashSet<CbsNode>();
+                var lookAheadSameCostNodesToReinsertWithHigherCost = new HashSet<CbsNode>();
+                lookAheadOpenList.Add(node);
+                node.parentAlreadyLookedAheadOf = true;
 
-                bool adoptionPerformedBefore = false;
-
-                while (true)
+                if (debug)
                 {
-                    conflictsProcessed.Add(node.conflict);
-
-                    bool adopted = this.ExpandImpl(node, bypassStrategy != BypassStrategy.NONE, out children, out reinsertParent, null);
-
-                    if (this.mergeCausesRestart && (this.closedList.Count == 0)) // HACK: Means a restart was triggered
-                        break;
-
-                    if (adopted)
+                    if (lookAheadOpenList.Count != 0)
+                        Debug.Print("Starting lookahead:");
+                }
+                IList<CbsNode> lookAheadChildren;
+                bool lookAheadReinsertParent;
+                while (lookAheadOpenList.Count != 0)
+                {
+                    if (lookAheadSameCostNodes.Count + 1 >= this.lookaheadMaxExpansions) // + 1 for the root
                     {
-                        if (adoptionPerformedBefore == false)
+                        if (debug)
+                            Debug.WriteLine("Lookahead count exceeded. Stopping lookahead.");
+                        break;
+                    }
+
+                    CbsNode lookAheadNode = (CbsNode)lookAheadOpenList.Remove();
+                    lookAheadNode.ChooseConflict();
+
+                    if (runner.ElapsedMilliseconds() > Constants.MAX_TIME)
+                        return;
+
+                    if (debug)
+                        Debug.WriteLine("Looking ahead from node hash: " + lookAheadNode.GetHashCode() + ".");
+
+                    this.ExpandImpl(lookAheadNode, false, out lookAheadChildren, out lookAheadReinsertParent); // Ignoring return val since we're explicitly not allowing adoption
+
+                    if (lookAheadReinsertParent)
+                        lookAheadSameCostNodesToReinsertWithHigherCost.Add(lookAheadNode);
+
+                    foreach (var child in lookAheadChildren)
+                    {
+                        this.lookAheadNodesCreated++;
+                        this.closedList.Add(child, child); // Temporarily! Just so look ahead expansion can use this data
+                        if (child.totalCost == node.totalCost)
                         {
-                            adoptionPerformedBefore = true;
-                            this.bypasses++; // Only count one adoption for the entire look ahead subtree branch traversed.
+                            if (child.GoalTest()) // Lookahead found an admissable solution!
+                            {
+                                if (debug)
+                                    Debug.WriteLine("Goal found with same cost - stopping lookahead.");
+                                this.openList.Add(child); // Technically should have just breaked and let node adopt child. This is just a short-cut.
+                                this.bypasses++; // Just a technicality needed to make the adoption count not lower than if we didn't use immediate adoption. You could say we adopt the goal's solution.
+                                return;
+                            }
+
+                            if (lookAheadSameCostNodes.Contains(child) == false)
+                            {
+                                lookAheadOpenList.Add(child);
+                                lookAheadSameCostNodes.Add(child);
+                            }
                         }
-                        this.lookAheadNodesCreated += children.Count + 1; // Either 1, if the first child was adopted, or 2 otherwise. +1 for the node itself before it adopted another solution.
+                        else
+                            lookAheadLargerCostNodes.Add(child); // No need to check if it's already there :)
+                    }
+                }
+
+                if (node.h < 1 && lookAheadOpenList.Count == 0) // Looked ahead exhaustively
+                    node.h = 1; // We know the goal isn't under it with the same cost
+
+                bool bypassPerformed = false;
+                // Find the best look ahead node and check if it's worth adopting
+                if (lookAheadSameCostNodes.Count != 0)
+                {
+                    IList<CbsNode> lookAheadSameCostNodesSerialzed = lookAheadSameCostNodes.ToList<CbsNode>();
+                    CbsNode adoptionCandidate = lookAheadSameCostNodesSerialzed[0];
+                    for (int i = 1; i < lookAheadSameCostNodesSerialzed.Count; i++)
+                    {
+                        if (lookAheadSameCostNodesSerialzed[i].CompareToIgnoreH(adoptionCandidate) == -1)
+                            adoptionCandidate = lookAheadSameCostNodesSerialzed[i];
+                    }
+                    if (AdoptConditionally(node, adoptionCandidate, parentH))
+                    {
+                        bypassPerformed = true;
+                        this.bypasses++;
+
                         this.cardinalConflictSplits = origCardinalConflictSplits;
                         this.semiCardinalConflictSplits = origSemiCardinalConflictSplits;
                         this.nonCardinalConflictSplits = origNonCardinalConflictSplits;
-                        
-                        if (node.GoalTest()) // Adoption found an admissable solution! (The original node to expand wasn't a goal)
+
+                        // Remove cancelled look-ahead nodes from closed list
+                        foreach (CbsNode lookAheadNode in lookAheadSameCostNodes)
+                            this.closedList.Remove(lookAheadNode);
+                        foreach (CbsNode lookAheadNode in lookAheadLargerCostNodes)
+                            this.closedList.Remove(lookAheadNode);
+
+                        if (this.openList.Count != 0 && ((CbsNode)this.openList.Peek()).f < node.f)
+                        // This is a new unexpanded node, and we just raised its h, so we can push it back
+                        // FIXME: More duplication of the push back logic
                         {
-                            if (debug)
-                                Debug.WriteLine("Bypass found a goal! Inserting it into OPEN.");
-                            this.openList.Add(node);
-                            return;
-                        }
-                        
-                        node.conflict = null; // Probably already is null, since it adopted the conflict from its child and its child hasn't chosen yet. Just to be safe.
-                                              // This is needed to make ChooseConflict() do anything.
-                        node.ChooseConflict(); // There must be a conflict, since this isn't a goal
-                        while (conflictsProcessed.Contains(node.conflict))
-                        {
-                            bool choseNext = node.ChooseNextConflict();
-                            if (choseNext == false)
-                                break; // No other conflict available, split according to current one, even though it was already checked - it isn't a cardinal conflict.
-                        }
-                        continue;
-                    }
+                            reinsertParent = true;
+                            children = new List<CbsNode>(); // Children will be generated when this node comes out of the open list
 
-                    if (
-                        children.All(child => child.totalCost > node.totalCost) && // All generated nodes have a higher cost
-                        ((node.agentAExpansion == CbsNode.ExpansionState.EXPANDED && node.agentBExpansion == CbsNode.ExpansionState.EXPANDED) || // Both children generated by now
-                        (node.agentAExpansion == CbsNode.ExpansionState.EXPANDED && node.agentBExpansion == CbsNode.ExpansionState.DEFERRED) || // One child still deferred, will surely have a higher cost (that's why it was deferred)
-                        (node.agentAExpansion == CbsNode.ExpansionState.DEFERRED && node.agentBExpansion == CbsNode.ExpansionState.EXPANDED)) // One child still deferred, will surely have a higher cost (that's why it was deferred)
-                            ) // A cardinal conflict
-                    {
-                        if (this.debug)
-                            Debug.WriteLine("This was a cardinal conflict (or at least a deferred child). Inserting the generated children into OPEN.");
-
-                        break; // Look no further
-                    }
-
-                    if (children.Any(child => child.GoalTest() && child.totalCost == node.totalCost)) // Admissable goal found (and adoption isn't enabled, otherwise the goal would have been adopted above)
-                    {
-                        if (this.debug)
-                            Debug.WriteLine("Admissable goal found! Inserting the generated children into OPEN.");
-
-                        break; // Look no further
-                    }
-
-                    bool rerunExpansion = false;
-                    CbsConflict originalConflict = node.conflict;
-                    while (node.nextConflictCouldBeCardinal && node.ChooseNextConflict())
-                    {
-                        if (conflictsProcessed.Contains(node.conflict) == false) // We didn't already work on this conflict yet.
-                        {
-                            rerunExpansion = true;
-                            break;
+                            if (this.debug)
+                                Debug.Print("Reinserting node into the open list with h=1, since the goal wasn't found with the same cost under it.");
                         }
                         else
                         {
-                            if (this.debug)
-                                Debug.WriteLine("Skipping conflict " + node.conflict.ToString() + " - we already know it isn't cardinal");
+                            // We updated the node, need to re-expand it. Surprisingly, re-expansion can produce even better nodes for adoption, so we need to allow immediate expansion too.
+                            // TODO: Just re-run the infinite lookahead? That would be the immediate adoption variant above
+                            this.Expand(node);
+                            return;
                         }
                     }
-                    if (rerunExpansion == false)
-                    {
-                        node.conflict = originalConflict; // May have been cycled by the above loop but re-expanding was skipped as the new conflict was already tried.
-                                                          // Restoring the conflict is important in order to have a consistent tree where constraints come from the conflict
-                                                          // of the node's parent
-                        if (this.debug)
-                            Debug.WriteLine("This was a non-cardinal conflict but there aren't more promising conflicts to try. Inserting the generated children into OPEN.");
-                        break;
-                    }
-
-                    if (this.debug)
-                        Debug.WriteLine("This was a non-cardinal conflict. Trying another conflict: " + node.conflict.ToString());
-                    // Cancel partial expansion effects:
-                    node.agentAExpansion = CbsNode.ExpansionState.NOT_EXPANDED;
-                    node.agentBExpansion = CbsNode.ExpansionState.NOT_EXPANDED;
-                    node.h = parentH;
-                    // Take care of counts:
-                    this.lookAheadNodesCreated += children.Count; // FIXME: This is a different kind of lookahead! Not looking at 
-                                                                  // nodes in the subtree below the node to expand that have the
-                                                                  // same cost and trying to find one with less conflicts,
-                                                                  // this time, it's looking ahead at the immediate children
-                                                                  // of a node to check if the conflict is cardinal.
                 }
 
-                if (reinsertParent)
-                    this.openList.Add(node); // Re-insert node into open list with higher cost, don't re-increment global conflict counts
-                else
-                    node.ClearConflictChoiceData(); // We could do it even if there was a partial expansion and the node is
-                                                    // being re-inserted into OPEN.
-                                                    // If a lookahead chooser settled on
-                                                    // a semi-cardinal or non-cardinal, then there are no other conflicts left
-                                                    // so the conflict choosing state is unnecessary, but then ChooseNextConflict
-                                                    // would need to allow the iterator to be null.
-                                                    // If an MDD building chooser settled on a semi-cardinal or non-cardinal,
-                                                    // there could still be other conflicts, but they are known not to be cardinal.
-                foreach (var child in children)
+                if (bypassPerformed == false)
                 {
-                    closedList.Add(child, child);
-
-                    if (child.totalCost == parentCost) // Total cost didn't increase
-                        child.h = parentH;
-
-                    if (child.totalCost <= this.maxCost)
+                    // Adoption not performed, and we already expanded this whole subtree of same cost nodes (at least partially)
+                    reinsertParent = false; // It may reinserted as an element of the children list
+                    children = lookAheadLargerCostNodes.ToList<CbsNode>();
+                    int unexpandedSameCostNodes = lookAheadOpenList.Count;
+                    while (lookAheadOpenList.Count != 0)
                     {
-                        this.highLevelGenerated++;
-                        openList.Add(child);
+                        var child = (CbsNode)lookAheadOpenList.Remove();
+                        children.Add(child);
+                        this.closedList.Remove(child); // Just so it'll be inserted into the open list at the end of the method
                     }
+                    foreach (var reInsertNode in lookAheadSameCostNodesToReinsertWithHigherCost)
+                    {
+                        if (reInsertNode == node)
+                        {
+                            reinsertParent = true;
+                            continue;
+                        }
+                        children.Add(reInsertNode);
+                        this.closedList.Remove(reInsertNode); // Just so it'll be inserted into the open list at the end of the method
+                        if (reInsertNode == node) // Re-inserting the original node that was to be expanded, with a higher h
+                            this.highLevelGenerated--; // It'll be counted as a new generated child later, and we don't need to count it twice
+                    }
+                    foreach (CbsNode lookAheadNode in lookAheadLargerCostNodes)
+                        this.closedList.Remove(lookAheadNode); // Just so they'll be inserted into the open list at the end of the method
+                    this.lookAheadNodesCreated -= lookAheadSameCostNodes.Count + lookAheadLargerCostNodes.Count; // These nodes weren't wasted effort
+                    this.highLevelGenerated += lookAheadSameCostNodes.Count - lookAheadSameCostNodesToReinsertWithHigherCost.Count - unexpandedSameCostNodes; // You could say they were generated and not looked ahead at, and they won't be counted later.
+                    this.highLevelExpanded += lookAheadSameCostNodes.Count - unexpandedSameCostNodes;
                 }
+            }
+
+
+            // Both children considered. None adopted. Add them to the open list, and re-insert the partially expanded parent too if necessary.
+            if (reinsertParent)
+                this.openList.Add(node); // Re-insert node into open list with higher cost, don't re-increment global conflict counts
+
+            foreach (var child in children)
+            {
+                closedList.Add(child, child);
+
+                child.h = Math.Max(child.h, (ushort) (parentH - (child.totalCost - parentCost)));
+
+                if (this.bypassStrategy == BypassStrategy.BEST_FIT_LOOKAHEAD)
+                {
+                    if (child.totalCost == parentCost) // Total cost didn't increase (yet)
+                        child.parentAlreadyLookedAheadOf = true;
+                    else
+                        child.parentAlreadyLookedAheadOf = false;
+                }
+
+                if (child.totalCost <= this.maxCost)
+                {
+                    this.highLevelGenerated++;
+                    openList.Add(child);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Supports Prefering cardinal conflicts and BP1 with lookaheadMaxExpansions == 1
+        /// </summary>
+        /// <param name="node"></param>
+        private void IcbsExpand(CbsNode node)
+        {
+            ushort parentCost = node.totalCost;
+            ushort parentH = node.h;
+            IList<CbsNode> children = null; // To quiet the compiler
+            bool reinsertParent = false; // To quiet the compiler
+
+            int origCardinalConflictSplits = this.cardinalConflictSplits;
+            int origSemiCardinalConflictSplits = this.semiCardinalConflictSplits;
+            int origNonCardinalConflictSplits = this.nonCardinalConflictSplits;
+
+            Debug.Assert(this.bypassStrategy == BypassStrategy.NONE || this.lookaheadMaxExpansions == 1, "Only BP1 is supported with cardinal conflict choice");  // Assumed in order to simplify code
+            Debug.Assert(this.bypassStrategy != BypassStrategy.BEST_FIT_LOOKAHEAD, "Only first-fit adoption is supported with cardinal conflict choice"); // Assumed in order to simplify code
+            HashSet<CbsConflict> conflictsProcessed = new HashSet<CbsConflict>(); // Needed if we restart iteration because of adopting a bypass
+
+            bool adoptionPerformedBefore = false;
+
+            // Adoption and cardinal-lookahead cycle
+            while (true)
+            {
+                conflictsProcessed.Add(node.conflict);
+
+                bool adopted = this.ExpandImpl(node, adopt: bypassStrategy != BypassStrategy.NONE,
+                                               children: out children, reinsertParent: out reinsertParent,
+                                               adoptBy: null);
+
+                if (this.mergeCausesRestart && (this.closedList.Count == 0)) // HACK: Means a restart was triggered
+                    break;
+
+                if (adopted)
+                {
+                    if (adoptionPerformedBefore == false)
+                    {
+                        adoptionPerformedBefore = true;
+                        this.bypasses++; // Only count one adoption for the entire look ahead subtree branch traversed.
+                    }
+                    this.lookAheadNodesCreated += children.Count + 1; // Either 1, if the first child was adopted, or 2 otherwise. +1 for the node itself before it adopted another solution.
+                    this.cardinalConflictSplits = origCardinalConflictSplits;
+                    this.semiCardinalConflictSplits = origSemiCardinalConflictSplits;
+                    this.nonCardinalConflictSplits = origNonCardinalConflictSplits;
+
+                    if (node.GoalTest()) // Adoption found an admissable solution! (The original node to expand wasn't a goal)
+                    {
+                        if (debug)
+                            Debug.WriteLine("Bypass found a goal! Inserting it into OPEN.");
+                        this.openList.Add(node);
+                        return;
+                    }
+
+                    node.conflict = null; // Probably already is null, since it adopted the conflict from its child and its child hasn't chosen yet. Just to be safe.
+                                          // This is needed to make ChooseConflict() do anything.
+                    node.ChooseConflict(); // There must be a conflict, since this isn't a goal
+                                           // Try not to choose a conflict we've already tried before
+                    if (node.CyclePotentiallyCardinalUntriedConflicts(conflictsProcessed))
+                        continue;
+                    else
+                        break; // No other conflict available, split according to current one, even though it was already checked - it isn't a cardinal conflict.
+                }
+
+                if (
+                    children.All(child => child.totalCost > node.totalCost) && // All generated nodes have a higher cost
+                    ((node.agentAExpansion == CbsNode.ExpansionState.EXPANDED && node.agentBExpansion == CbsNode.ExpansionState.EXPANDED) || // Both children generated by now (possibly one in the past and one deferred to now)
+                    (node.agentAExpansion == CbsNode.ExpansionState.EXPANDED && node.agentBExpansion == CbsNode.ExpansionState.DEFERRED) || // One child still deferred, will surely have a higher cost (that's why it was deferred)
+                    (node.agentAExpansion == CbsNode.ExpansionState.DEFERRED && node.agentBExpansion == CbsNode.ExpansionState.EXPANDED)) // One child still deferred, will surely have a higher cost (that's why it was deferred)
+                        ) // A cardinal or semi-cardinal conflict
+                {
+                    if (this.debug)
+                        Debug.WriteLine("This was a cardinal or a semi-cardinal conflict. Inserting the generated children into OPEN.");
+
+                    break; // Look no further
+                }
+
+                if (children.Any(child => child.GoalTest() && child.totalCost == node.totalCost)) // Admissable goal found (and adoption isn't enabled, otherwise the goal would have been adopted above)
+                {
+                    if (this.debug)
+                        Debug.WriteLine("Admissable goal found! Inserting the generated children into OPEN.");
+
+                    break; // Look no further
+                }
+
+                if (node.CyclePotentiallyCardinalUntriedConflicts(conflictsProcessed) == false)
+                {
+                    if (this.debug)
+                        Debug.WriteLine("This was a non-cardinal conflict but there aren't more " +
+                                        "promising conflicts to try. Inserting the generated children into OPEN.");
+                    break; // Look no further
+                }
+                else
+                {
+                    if (this.debug)
+                        Debug.WriteLine($"This was a non-cardinal conflict. Trying potentially-cardinal conflict: {node.conflict}");
+                }
+
+                // Prepare to restart the loop
+                // Cancel partial expansion effects:
+                node.agentAExpansion = CbsNode.ExpansionState.NOT_EXPANDED;
+                node.agentBExpansion = CbsNode.ExpansionState.NOT_EXPANDED;
+                node.h = parentH;
+                // Take care of counts:
+                this.lookAheadNodesCreated += children.Count; // FIXME: This is a different kind of lookahead! Not looking at 
+                                                                // nodes in the subtree below the node to expand that have the
+                                                                // same cost and trying to find one with less conflicts,
+                                                                // this time, it's looking ahead at the immediate children
+                                                                // of a node to check if the conflict is cardinal.
+            }
+
+            if (reinsertParent)
+            {
+                this.openList.Add(node); // Re-insert node into open list with higher cost, don't re-increment global conflict counts
+            }
+            else
+            {
+                node.ClearConflictChoiceData(); // We could do it even if there was a partial expansion and the node is
+                                                // being re-inserted into OPEN.
+                                                // If a lookahead chooser settled on
+                                                // a semi-cardinal or non-cardinal, then there are no other conflicts left
+                                                // so the conflict choosing state is unnecessary, but then ChooseNextConflict
+                                                // would need to allow the iterator to be null.
+                                                // If an MDD building chooser settled on a semi-cardinal or non-cardinal,
+                                                // there could still be other conflicts, but they are known not to be cardinal.
+            }
+
+            foreach (var child in children)
+            {
+                closedList.Add(child, child);
+
+                // Bequeath remainder of h to children
+                child.h = Math.Max(child.h, (ushort) (parentH - (child.totalCost - parentCost)));
+
+                if (child.totalCost <= this.maxCost)
+                {
+                    this.highLevelGenerated++;
+                    openList.Add(child);
+                }
+            }
+        }
+
+        public virtual void Expand(CbsNode node)
+        {
+            if (debug)
+                if (this.bypassStrategy == BypassStrategy.BEST_FIT_LOOKAHEAD && node.parentAlreadyLookedAheadOf)
+                    Debug.Print("Not looking ahead from this node, one of its ancestors of the same cost was already looked ahead of");
+
+            if (this.conflictChoice == ConflictChoice.FIRST || this.conflictChoice == ConflictChoice.MOST_CONFLICTING) // Then just choose a conflict once and stick with it.
+            {
+                this.ExpandIgnoringCardinalsButSupportingBP2(node);
+            }
+            else // We try to split according to cardinal conflicts
+            {
+                this.IcbsExpand(node);
             }
         }
 
@@ -1653,18 +1677,31 @@ namespace CPF_experiment
             closedListHitChildCost = -1;
 
             if (Constants.costFunction == Constants.CostFunction.SUM_OF_COSTS && // Otherwise adding a constraint to an agent at a time step after
-                                                                                       // it reaches its goal doesn't necessarily increase the cost,
-                                                                                       // so we're not allowed to defer expansion
+                                                                                 // it reaches its goal doesn't necessarily increase the cost,
+                                                                                 // so we're not allowed to defer expansion.
+                                                                                 // I think in a makespan variant this optimization is inapplicable:
+                                                                                 // You can't have a conflict at the last step of the agent with the longest plan,
+                                                                                 // because who would conflict with it? An agent with a longer plan? (no such agent)
+                                                                                 // An agent with a plan of the same length? (but goals don't collide)
                 ((Constants.sumOfCostsVariant == Constants.SumOfCostsVariant.ORIG &&
-                expansionsState == CbsNode.ExpansionState.NOT_EXPANDED && conflict.vertex == true &&
-                 conflict.timeStep >= node.allSingleAgentCosts[conflictingAgentIndex] && // TODO: Can't just check whether the node is at its goal - the plan may involve it passing through its goal and returning to it later because of preexisting constraints.
+                expansionsState == CbsNode.ExpansionState.NOT_EXPANDED && conflict.vertex == true &&  // An edge conflict at the goal isn't guaranteed
+                                                                                                      // to increase the cost - the agent might be able to reach the goal from another direction
+                 conflict.timeStep >= node.allSingleAgentCosts[conflictingAgentIndex] && // Can't just check whether the node is at its goal - 
+                                                                                         // the plan may involve it passing through its goal and returning to it later because of preexisting constraints.
+                                                                                         // This assumes unit move costs
                  node.h < conflict.timeStep + 1 - node.allSingleAgentCosts[conflictingAgentIndex] && // Otherwise we won't be increasing its h and there would be no reason to delay expansion
-                 groupSize == 1) || // Otherwise an agent in the group can be forced to take a longer route without increasing the group's cost because another agent would be able to take a shorter route.
+                                                                                                     // The agent's new cost will be at least conflict.timeStep + 1, so however much this is more than its current cost 
+                                                                                                     // is an admissable heuristic
+                 groupSize == 1) || // Otherwise an agent in the group can be forced to take a longer
+                                    // route without increasing the group's cost because
+                                    // another agent would be able to take a shorter route.
                (Constants.sumOfCostsVariant == Constants.SumOfCostsVariant.WAITING_AT_GOAL_ALWAYS_FREE &&
                 expansionsState == CbsNode.ExpansionState.NOT_EXPANDED && conflict.vertex == true &&
                 ((conflict.timeStep > planSize - 1 && node.h < 2) ||
-                 (conflict.timeStep == planSize - 1 && node.h < 1)) &&
-                groupSize == 1))) // Otherwise an agent in the group can be forced to take a longer route without increasing the group's cost because another agent would be able to take a shorter route.
+                 (conflict.timeStep == planSize - 1 && node.h < 1)) &&  // Otherwise we won't be increasing its h and there would be no reason to delay expansion
+                groupSize == 1))) // Otherwise an agent in the group can be forced to take a longer
+                                  // route without increasing the group's cost because
+                                  // another agent would be able to take a shorter route.
             // Conflict happens when or after the agent reaches its goal, and the agent is in a single-agent group.
             // With multi-agent groups, banning the goal doesn't guarantee a higher cost solution,
             // since if an agent is forced to take a longer route it may enable another agent in the group
@@ -1691,13 +1728,19 @@ namespace CPF_experiment
                 // Add the minimal delta in the child's cost:
                 // since we're banning the goal at conflict.timeStep, it must at least do conflict.timeStep+1 steps
                 if (Constants.sumOfCostsVariant == Constants.SumOfCostsVariant.ORIG)
-                    node.h = (ushort)(conflict.timeStep + 1 - node.allSingleAgentCosts[conflictingAgentIndex]);
+                {
+                    node.h = Math.Max(node.h, (ushort)(conflict.timeStep + 1 - node.allSingleAgentCosts[conflictingAgentIndex]));
+                    // Technically, we've already made sure above we're going to increase the node's h,
+                    // This is just to make the line look correct without reading the complex if statement above.
+                }
                 else if (Constants.sumOfCostsVariant == Constants.SumOfCostsVariant.WAITING_AT_GOAL_ALWAYS_FREE)
                 {
                     if (conflict.timeStep > planSize - 1) // Agent will need to step out and step in to the goal, at least
-                        node.h = 2;
+                        node.h = Math.Max(node.h, (ushort) 1);
                     else // Conflict is just when agent enters the goal, it'll have to at least wait one timestep.
-                        node.h = 1;
+                        node.h = Math.Max(node.h, (ushort) 1);
+                    // Technically, we've already made sure above we're going to increase the node's h,
+                    // This is just to make the line look correct without reading the complex if statement above.
                 }
                 this.partialExpansions++;
                 return node;

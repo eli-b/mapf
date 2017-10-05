@@ -772,13 +772,47 @@ namespace CPF_experiment
             this.mdds = null;
         }
 
-        /// Returns whether another conflict was found
+        /// <summary>
+        /// Assumes current conflict was found to be not cardinal
+        /// </summary>
+        /// <param name="tried"></param>
+        /// <returns>Whether we found a new potentially cardinal conflict to work on</returns>
+        public bool CyclePotentiallyCardinalUntriedConflicts(HashSet<CbsConflict> tried)
+        {
+            CbsConflict originalConflict = this.conflict;
+
+            while (this.nextConflictCouldBeCardinal)
+            {
+                CbsConflict oldConflict = this.conflict;
+                bool cycled = this.ChooseNextConflict();
+                if (cycled)
+                {
+                    if (this.cbs.debug)
+                        Debug.WriteLine($"Skipped conflict {oldConflict} - we already know it " +
+                                        $"isn't cardinal and the next one might be");
+                    if (tried.Contains(this.conflict) == false) // We haven't already worked on this conflict and it might be cardinal
+                    {
+                        return true;
+                    }
+                }
+                else
+                    break;
+            }
+            // No more untried potentially cardinal conflicts, revert to the original tried non-cardinal conflict
+            this.conflict = originalConflict;  // Restore the original conflict
+            return false;
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns>Whether another conflict was found</returns>
         public bool ChooseNextConflict()
         {
-            bool hasNext = this.nextConflicts.MoveNext();
-            if (hasNext)
+            bool hadNext = this.nextConflicts.MoveNext();
+            if (hadNext)
                 this.conflict = this.nextConflicts.Current;
-            return hasNext;
+            return hadNext;
         }
 
         /// <summary>
@@ -828,82 +862,15 @@ namespace CPF_experiment
                 }
                 this.conflict = this.nextConflicts.Current;
             }
+            else if (this.cbs.conflictChoice == CBS_LocalConflicts.ConflictChoice.EXHAUSTIVE_CARDINAL_GREEDY) {
+
+            }
+            else if (this.cbs.conflictChoice == CBS_LocalConflicts.ConflictChoice.EXHAUSTIVE_CARDINAL_LAZY) {
+
+            }
             else
                 throw new Exception("Unknown conflict choosing method");
         }
-
-        ///// <summary>
-        ///// Chooses an internal conflict to work on.
-        ///// </summary>
-        //public void ChooseConflict()
-        //{
-        //    if (this.allSingleAgentPlans.Length == 1) // A single internal agent can't conflict with anything internally
-        //        return;
-
-        //    if (this.isGoal) // Goal nodes don't have conflicts
-        //        return;
-
-        //    if (this.conflict != null) // Conflict already chosen before
-        //        return;
-
-        //    this.conflict = null;
-        //    int groupRepA = -1;
-        //    int groupRepB = -1;
-        //    int time = int.MaxValue;
-
-        //    if (this.cbs.conflictChoice == CBS_LocalConflicts.ConflictChoice.FIRST)
-        //        ChooseFirstConflict(out groupRepA, out groupRepB, out time);
-        //    else if (this.cbs.conflictChoice == CBS_LocalConflicts.ConflictChoice.MOST_CONFLICTING)
-        //        ChooseBestConflict(out groupRepA, out groupRepB, out time);
-        //    else if (this.cbs.conflictChoice == CBS_LocalConflicts.ConflictChoice.CARDINAL_MDD)
-        //        ChooseCardinalConflict(out groupRepA, out groupRepB, out time);
-        //    else
-        //        throw new Exception("Unknown conflict choosing method");
-
-        //    this.conflict = FindConflict(groupRepA, groupRepB, time);
-        //}
-
-        ///// <summary>
-        ///// Returns a cardinal conflict where both agents have MDDs built already.
-        ///// Remember conflicts for agents whose MDD was built during the iteration might not be returned here.
-        ///// </summary>
-        ///// <returns></returns>
-        //private CbsConflict GetExistingMddCardinalConflict()
-        //{
-        //    for (int i = 0; i < this.problem.m_vAgents.Length; i++)
-        //    {
-        //        if (this.mdds[i] == null)
-        //            continue;
-
-        //        foreach (int conflictingAgentNum in this.conflictTimesPerAgent[i].Keys)
-        //        {
-        //            int conflictingAgentIndex = this.agentNumToIndex[conflictingAgentNum];
-        //            if (this.mdds[conflictingAgentIndex] == null)
-        //                continue;
-
-        //            foreach (int conflictTime in this.conflictTimesPerAgent[i][conflictingAgentNum])
-        //            {
-        //                bool iNarrow = conflictTime >= this.mdds[i].levels.Length || // At goal conflict
-        //                                this.mdds[i].levels[conflictTime].Count == 1;
-        //                if (iNarrow == false)
-        //                    continue;
-
-        //                bool otherNarrow = conflictTime >= this.mdds[conflictingAgentIndex].levels.Length ||
-        //                                this.mdds[conflictingAgentIndex].levels[conflictTime].Count == 1;
-        //                if (otherNarrow == false)
-        //                    continue;
-                        
-        //                // We only build MDDs for single-agent agent groups so we don't need to look for the 
-        //                // specific agents that conflict
-        //                Move first = this.allSingleAgentPlans[i].GetLocationAt(conflictTime);
-        //                Move second = this.allSingleAgentPlans[conflictingAgentIndex].GetLocationAt(conflictTime);
-        //                return new CbsConflict(i, conflictingAgentIndex, first, second, conflictTime);
-        //            }
-        //        }
-        //    }
-            
-        //    return null;
-        //}
 
         /// <summary>
         /// No special ordering.
@@ -1349,143 +1316,6 @@ namespace CPF_experiment
                 return false;
         }
 
-        //private void ChooseCardinalConflict(out int groupRepA, out int groupRepB, out int time)
-        //{
-        //    groupRepA = -1; // To quiet the compiler
-        //    groupRepB = -1; // To quiet the compiler
-        //    time = int.MaxValue;
-        //    int semiCardinalTime = int.MaxValue;
-
-        //    AgentToCheckForCardinalConflicts[] agentsData = new AgentToCheckForCardinalConflicts[this.problem.m_vAgents.Length];
-        //    int[] groupSizes = this.GetGroupSizes();
-        //    for (int i = 0; i < agentsData.Length; i++)
-        //    {
-        //        agentsData[i] = new AgentToCheckForCardinalConflicts(
-        //            /*this.mdds[i] != null,
-        //            this.conflictCountsPerAgent[i].Keys.Where<int>(num => this.mdds[this.agentNumToIndex[num]] != null).Count(),*/
-        //            groupSizes[i],
-        //            -1 * this.conflictCountsPerAgent[i].Values.Sum(), // Prefer LARGER degree if former parameters are equal
-        //            this.allSingleAgentCosts[i], i);
-        //    }
-
-        //    BinaryHeap toCheck = new BinaryHeap(agentsData);
-
-        //    while (toCheck.Count != 0)
-        //    {
-        //        int i = ((AgentToCheckForCardinalConflicts) toCheck.Remove()).index;
-
-        //        if (this.cbs.debug)
-        //            Debug.WriteLine("Checking agent index " + i + " for cardinal conflicts:");
-
-        //        // TODO: CHECK CONFLICT GRAPH EDGES THAT ARE ALREADY COVERED FROM BOTH SIDES FIRST!
-
-        //        // Check agents that already have an MDD first, (among them check agents with smaller groups first,) among them check lower indices first
-        //        //int[] otherAgentIndices = this.conflictTimesPerAgent[i].Keys.Select<int, int>(num => this.agentNumToIndex[num]).ToArray<int>();
-        //        ////Array.Sort<int, int>(otherAgentIndices.Select<int, int>(index => groupSizes[index]).ToArray<int>(), otherAgentIndices);
-        //        //Array.Sort<int, int>(otherAgentIndices.Select<int, int>(index => this.mdds[index] != null ? 0 : this.allSingleAgentCosts[index]).ToArray<int>(), otherAgentIndices);
-
-        //        BinaryHeap otherAgents = new BinaryHeap(
-        //            this.conflictTimesPerAgent[i].Keys.Select<int, AgentToCheckForCardinalConflicts>(
-        //                num => agentsData[this.agentNumToIndex[num]]
-        //            ).ToList<AgentToCheckForCardinalConflicts>());
-
-        //        while (otherAgents.Count != 0)
-        //        {
-        //            int otherAgentIndex = ((AgentToCheckForCardinalConflicts) otherAgents.Remove()).index;
-        //            //if (haveMDD.Contains(otherAgentIndex) == false && dontHaveMDD.Contains(otherAgentIndex) == false)
-        //            //if (agentsData[otherAgentIndex].GetIndexInHeap() == BinaryHeap.REMOVED_FROM_HEAP)
-        //            //    continue; // Only check each pair once. If the other agent is already done then its conflicts were already done.
-
-        //            if (this.cbs.debug)
-        //                Debug.WriteLine("with agent index " + otherAgentIndex);
-
-        //            List<int> conflictTimes = this.conflictTimesPerAgent[i][otherAgentIndex];
-        //            foreach (var conflictTime in conflictTimes)
-        //            {
-        //                // For now, we don't build k-agent MDDs for meta-agents,
-        //                // so we need to find the specific agents that conflict to use their MDD
-        //                // (even if it sometimes means choosing conflicts that aren't actually cardinal,
-        //                // because an agent in a group may have a narrow level in its MDD conflict and not raise
-        //                // the total cost since the other agents in its group actually have implicit constraints
-        //                // currently forcing them not to conflict with the agent's current plan, and when we force
-        //                // the agent to replan, we're changing the implicit constraints on the other agents in its group,
-        //                // possibly allowing them to find cheaper plans (but never cheaper than the cost increase the
-        //                // agent just received, otherwise the group's current plan isn't optimal wrt its current constraints)):
-        //                int specificConflictingAgentA, specificConflictingAgentB;
-        //                this.FindConflicting(i, otherAgentIndex, conflictTime, out specificConflictingAgentA, out specificConflictingAgentB);
-
-        //                // Not pruning the MDDs to allow reusing them later, even if it means missing cardinal conflicts.
-        //                // It's also faster.
-        //                // TODO: Is this a good choice? yes. See text document in Search folder.
-
-        //                this.buildMddForAgent(specificConflictingAgentA); // Only now. This may never happen if all the agent's conflicts were already checked from the other side
-
-        //                bool iNarrow = conflictTime >= this.mdds[specificConflictingAgentA].levels.Length || // At goal conflict
-        //                                this.mdds[specificConflictingAgentA].levels[conflictTime].Count == 1;
-
-        //                if (iNarrow == false && this.mdds[specificConflictingAgentB] == null) // It isn't a cardinal conflict. Skip building the MDD for the other agent.
-        //                                                                                      // It may still be a semi-cardinal conflict, but it's too expensive to check for that now, when finding a cardinal conflict is still possible.
-        //                                                                                      // Since we do let conflict graph edges be checked twice, we'll find if this is a semi-cardinal conflict if we reach the other agent later while checking for cardinal conflicts.
-        //                {
-        //                    continue;
-        //                }
-
-        //                // Prepare the other MDD if necessary
-        //                this.buildMddForAgent(specificConflictingAgentB);
-        //                //if (dontHaveMDD.Contains(conflict.agentBIndex))
-        //                //{
-        //                //    dontHaveMDD.Remove(conflict.agentBIndex);
-        //                //    haveMDD.Add(conflict.agentBIndex);
-        //                //}
-        //                if (agentsData[specificConflictingAgentB].GetIndexInHeap() != BinaryHeap.REMOVED_FROM_HEAP &&
-        //                    agentsData[specificConflictingAgentB].hasMDD == false)
-        //                {
-        //                    toCheck.Remove(agentsData[specificConflictingAgentB]);
-        //                    agentsData[specificConflictingAgentB].hasMDD = true;
-        //                    toCheck.Add(agentsData[specificConflictingAgentB]);
-        //                }
-
-        //                bool otherNarrow = conflictTime >= this.mdds[specificConflictingAgentB].levels.Length ||
-        //                                this.mdds[specificConflictingAgentB].levels[conflictTime].Count == 1;
-
-        //                if (iNarrow && otherNarrow)
-        //                {
-        //                    // This is a cardinal conflict
-        //                    time = conflictTime;
-        //                    groupRepA = i;
-        //                    groupRepB = otherAgentIndex;
-        //                    if (this.cbs.debug)
-        //                        Debug.WriteLine("Cardinal conflict found! " + time +  " " + groupRepA + " " + groupRepB);
-        //                    if (this.h < 1) // The children's cost will be at least 1 more than this node's cost
-        //                        this.h = 1;
-        //                    return;
-        //                }
-        //                else if (iNarrow || otherNarrow) // but not both
-        //                {
-        //                    // This is a semi-cardinal conflict
-        //                    semiCardinalTime = conflictTime;
-        //                    groupRepA = i;
-        //                    groupRepB = otherAgentIndex;
-        //                }
-        //            }
-        //        }
-        //    }
-
-        //    // No cardinal conflict found
-        //    if (semiCardinalTime != int.MaxValue)
-        //    {
-        //        time = semiCardinalTime;
-        //        if (this.cbs.debug)
-        //            Debug.WriteLine("Settling for a semi-cardinal conflict.");
-        //    }
-        //    else
-        //    {
-        //        if (this.cbs.debug)
-        //            Debug.WriteLine("No cardinal conflict found. Choosing a conflict that involves the most conflicting agent.");
-        //        this.ChooseBestConflict(out groupRepA, out groupRepB, out time);
-        //    }
-        //}
-
         private void ChooseFirstConflict(out int groupRepA, out int groupRepB, out int time)
         {
             groupRepA = -1; // To quiet the compiler
@@ -1538,73 +1368,6 @@ namespace CPF_experiment
             time = this.conflictTimesPerAgent[chosenAgentIndex] // Yes, the index of the first and the num of the second
                                                  [problem.m_vAgents[chosenConflictingAgentIndex].agent.agentNum][0];
         }
-
-        ///// <summary>
-        ///// Finds the first conflict (timewise) between the first smallest grouped agent that conflicts internally with the most other agents
-        ///// and the first smallest grouped agent that conflicts internally with the most other agents among the agents the prior conflicts with internally,
-        ///// or declares this node as a goal.
-        ///// Choosing the agent that conflicts the most is a greedy strategy.
-        ///// Had replanning promised to resolve all conflicts, it would've been better to choose according to the minimum vertex cover.
-        ///// 
-        ///// Assumes all agents are initially on the same timestep (no OD).
-        ///// 
-        ///// TODO: Save the time of the first conflict too in the perAgent dictionary.
-        ///// Then we won't have to scan the plans for the conflict, and would be able to also prefer eariler conflicts on top of all the above criteria.
-        ///// I think they're more likely to cause big changes in the plan,
-        ///// making the probability the unselected conflicts will be resolved by luck greater.
-        ///// </summary>
-        //private void ChooseConflict()
-        //{
-
-        //    this.conflict = null;
-        //    if (this.allSingleAgentPlans.Length == 1)
-        //        return;
-
-        //    IList<int> agentIndicesThatConflictInternallyWithTheMostAgents = this.countsOfInternalAgentsThatConflict.IndicesOfMax<int>(); // Replanning it can potentially resolve the most conflicts.
-        //    IList<int> smallestGroupedMostConflictingAgentIndices = agentIndicesThatConflictInternallyWithTheMostAgents.AllMax(agentIndex => -1 * this.GetGroupSize(agentIndex));
-        //    int firstSmallestGroupedMostConflictingAgentIndex = smallestGroupedMostConflictingAgentIndices.Min(); // Deterministically tie-breaking is important.
-        //    int numAgentsItConflictsWith = this.countsOfInternalAgentsThatConflict[firstSmallestGroupedMostConflictingAgentIndex];
-
-        //    if (numAgentsItConflictsWith == 0)
-        //        return; // This is a goal node
-
-        //    int maxPlanSize = this.allSingleAgentPlans.Max<SinglePlan>(plan => plan.GetSize());
-
-        //    // We could just look for any of this agent's conflicts,
-        //    // but for efficiency, let's choose a specific agent it conflicts with and look for the first conflict between them,
-        //    // instead of checking all the agents it conflicts with for conflicts on every time step.
-        //    // There has to be an agent it conflicts with since the conflictsCount only counts internal conflicts.
-        //    // The best choice among the agents it conflicts with is the one with the highest conflicts count itself:
-        //    IEnumerable<int> conflictsWithAgentNums = this.conflictCountsPerAgent[firstSmallestGroupedMostConflictingAgentIndex].Keys;
-        //    IEnumerable<int> conflictsWithInternallyAgentNums = conflictsWithAgentNums.Where<int>(agentNum => this.agentNumToIndex.ContainsKey(agentNum));
-        //    IEnumerable<int> conflictsWithInternallyAgentIndices = conflictsWithInternallyAgentNums.Select<int, int>(agentNum => this.agentNumToIndex[agentNum]);
-        //    IList<int> mostConflictingAmongThem = conflictsWithInternallyAgentIndices.AllMax(agentIndex => this.countsOfInternalAgentsThatConflict[agentIndex]);
-        //    IList<int> smallestGroupedAmongThemMostConflictingAmongThem = mostConflictingAmongThem.AllMax(agentIndex => -1 * this.GetGroupSize(agentIndex)); // Smaller groups are easier to replan, and it also promotes a more balanced merging tree
-        //    int firstSmallestGroupedMostConflictingAmongThem = smallestGroupedAmongThemMostConflictingAmongThem.Min(); // Deterministically tie-breaking.
-
-        //    ISet<int> groupA = this.GetGroup(firstSmallestGroupedMostConflictingAgentIndex);
-        //    ISet<int> groupB = this.GetGroup(firstSmallestGroupedMostConflictingAmongThem);
-
-        //    // Check in every time step that the plans do not collide
-        //    for (int time = 1; time < maxPlanSize; time++) // No conflicts assumed in time=0
-        //    {
-        //        foreach (int a in groupA)
-        //            foreach (int b in groupB)
-        //            {
-        //                if (allSingleAgentPlans[a].IsColliding(time, allSingleAgentPlans[b]))
-        //                {
-        //                    int initialTimeStep = this.problem.m_vAgents[0].lastMove.time; // To account for solving partially solved problems.
-        //                    // This assumes the makespan of all the agents is the same.
-        //                    Move first = allSingleAgentPlans[a].GetLocationAt(time);
-        //                    Move second = allSingleAgentPlans[b].GetLocationAt(time);
-        //                    this.conflict = new CbsConflict(a, b, first, second, time + initialTimeStep);
-        //                    return;
-        //                }
-        //            }
-        //    }
-
-        //    throw new Exception("Conflict not found");
-        //}
 
         public CbsConflict GetConflict()
         {
