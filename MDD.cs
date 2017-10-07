@@ -113,7 +113,7 @@ namespace CPF_experiment
                             perLevelClosedList.Add(toAdd, toAdd);
                             llNode = new LinkedListNode<MDDNode>(toAdd);
                             toAdd.setMyNode(llNode);
-                            levels[i + 1].AddLast(toAdd);
+                            levels[i + 1].AddLast(llNode);
                         }
                         currentMddNode.addChild(toAdd); // forward edge
                         toAdd.addParent(currentMddNode); // backward edge
