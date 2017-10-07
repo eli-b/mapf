@@ -124,37 +124,37 @@ namespace CPF_experiment
         /// <summary>
         /// Child from branch action constructor
         /// </summary>
-        /// <param name="father"></param>
+        /// <param name="parent"></param>
         /// <param name="newConstraint"></param>
         /// <param name="agentToReplan"></param>
-        public CbsNode(CbsNode father, CbsConstraint newConstraint, int agentToReplan)
+        public CbsNode(CbsNode parent, CbsConstraint newConstraint, int agentToReplan)
         {
-            this.allSingleAgentPlans = father.allSingleAgentPlans.ToArray<SinglePlan>();
-            this.allSingleAgentCosts = father.allSingleAgentCosts.ToArray<int>();
-            this.mdds = father.mdds.ToArray<MDD>();
+            this.allSingleAgentPlans = parent.allSingleAgentPlans.ToArray<SinglePlan>();
+            this.allSingleAgentCosts = parent.allSingleAgentCosts.ToArray<int>();
+            this.mdds = parent.mdds.ToArray<MDD>();
             this.mdds[agentToReplan] = null; // This agent has a new constraint, its old MDD isn't relevant anymore.
-            this.countsOfInternalAgentsThatConflict = father.countsOfInternalAgentsThatConflict.ToArray<int>();
-            this.conflictCountsPerAgent = new Dictionary<int, int>[father.conflictCountsPerAgent.Length];
+            this.countsOfInternalAgentsThatConflict = parent.countsOfInternalAgentsThatConflict.ToArray<int>();
+            this.conflictCountsPerAgent = new Dictionary<int, int>[parent.conflictCountsPerAgent.Length];
             for (int i = 0; i < this.conflictCountsPerAgent.Length; i++)
-                this.conflictCountsPerAgent[i] = new Dictionary<int, int>(father.conflictCountsPerAgent[i]); // Need a separate copy because unlike plans, the conflict counts for agents that aren't replanned do change.
-            this.conflictTimesPerAgent = new Dictionary<int, List<int>>[father.conflictTimesPerAgent.Length];
+                this.conflictCountsPerAgent[i] = new Dictionary<int, int>(parent.conflictCountsPerAgent[i]); // Need a separate copy because unlike plans, the conflict counts for agents that aren't replanned do change.
+            this.conflictTimesPerAgent = new Dictionary<int, List<int>>[parent.conflictTimesPerAgent.Length];
             for (int i = 0; i < this.conflictTimesPerAgent.Length; i++)
             {
                 this.conflictTimesPerAgent[i] = new Dictionary<int, List<int>>(); // Need a separate copy because unlike plans, the conflict counts for agents that aren't replanned do change.
-                foreach (var kvp in father.conflictTimesPerAgent[i])
+                foreach (var kvp in parent.conflictTimesPerAgent[i])
                     this.conflictTimesPerAgent[i][kvp.Key] = new List<int>(kvp.Value);
             }
-            this.agentsGroupAssignment = father.agentsGroupAssignment.ToArray<ushort>();
-            this.agentNumToIndex = father.agentNumToIndex;
-            this.prev = father;
+            this.agentsGroupAssignment = parent.agentsGroupAssignment.ToArray<ushort>();
+            this.agentNumToIndex = parent.agentNumToIndex;
+            this.prev = parent;
             this.constraint = newConstraint;
             this.depth = (ushort)(this.prev.depth + 1);
             this.agentAExpansion = ExpansionState.NOT_EXPANDED;
             this.agentBExpansion = ExpansionState.NOT_EXPANDED;
             this.replanSize = 1;
-            this.solver = father.solver;
-            this.singleAgentSolver = father.singleAgentSolver;
-            this.cbs = father.cbs;
+            this.solver = parent.solver;
+            this.singleAgentSolver = parent.singleAgentSolver;
+            this.cbs = parent.cbs;
         }
 
         /// <summary>
@@ -341,7 +341,8 @@ namespace CPF_experiment
         /// <param name="subGroup">If given, assume CAT is already populated and use this subGroup</param>
         /// <param name="maxPlanSize">If given, use it instead of computing it</param>
         /// <returns></returns>
-        public bool Replan(int agentForReplan, int depthToReplan, List<AgentState> subGroup = null, int maxPlanSize = -1, int minCost = -1)
+        public bool Replan(int agentForReplan, int depthToReplan, List<AgentState> subGroup = null,
+                           int maxPlanSize = -1, int minCost = -1)
         {
             ProblemInstance problem = this.cbs.GetProblemInstance();
             Dictionary_U<TimedMove, int> CAT = (Dictionary_U<TimedMove, int>)problem.parameters[CBS_LocalConflicts.CAT];
@@ -773,33 +774,19 @@ namespace CPF_experiment
         }
 
         /// <summary>
-        /// Assumes current conflict was found to be not cardinal
+        /// Use after expanding a node and finding the conflict wasn't cardinal
         /// </summary>
-        /// <param name="tried"></param>
         /// <returns>Whether we found a new potentially cardinal conflict to work on</returns>
-        public bool CyclePotentiallyCardinalUntriedConflicts(HashSet<CbsConflict> tried)
+        public bool ChooseNextPotentiallyCardinalConflicts()
         {
-            CbsConflict originalConflict = this.conflict;
-
-            while (this.nextConflictCouldBeCardinal)
+            if (this.nextConflictCouldBeCardinal)
             {
-                CbsConflict oldConflict = this.conflict;
                 bool cycled = this.ChooseNextConflict();
                 if (cycled)
-                {
-                    if (this.cbs.debug)
-                        Debug.WriteLine($"Skipped conflict {oldConflict} - we already know it " +
-                                        $"isn't cardinal and the next one might be");
-                    if (tried.Contains(this.conflict) == false) // We haven't already worked on this conflict and it might be cardinal
-                    {
-                        return true;
-                    }
-                }
+                    return true;
                 else
-                    break;
+                    return false;
             }
-            // No more untried potentially cardinal conflicts, revert to the original tried non-cardinal conflict
-            this.conflict = originalConflict;  // Restore the original conflict
             return false;
         }
 
@@ -830,25 +817,31 @@ namespace CPF_experiment
             if (this.conflict != null) // Conflict already chosen before
                 return;
 
-            int groupRepA = -1;
-            int groupRepB = -1;
-            int time = int.MaxValue;
-
             if (this.cbs.conflictChoice == CBS_LocalConflicts.ConflictChoice.FIRST)
             {
+                int groupRepA = -1;
+                int groupRepB = -1;
+                int time = int.MaxValue;
                 ChooseFirstConflict(out groupRepA, out groupRepB, out time);
                 this.conflict = FindConflict(groupRepA, groupRepB, time);
             }
-            else if (this.cbs.conflictChoice == CBS_LocalConflicts.ConflictChoice.MOST_CONFLICTING)
+            else if (this.cbs.conflictChoice == CBS_LocalConflicts.ConflictChoice.MOST_CONFLICTING_SMALLEST_AGENTS)
             {
-                ChooseBestConflict(out groupRepA, out groupRepB, out time);
+                int groupRepA = -1;
+                int groupRepB = -1;
+                int time = int.MaxValue;
+                ChooseConflictOfMostConflictingSmallestAgents(out groupRepA, out groupRepB, out time);
                 this.conflict = FindConflict(groupRepA, groupRepB, time);
             }
             else if (this.cbs.conflictChoice == CBS_LocalConflicts.ConflictChoice.CARDINAL_MDD)
             {
                 this.nextConflicts = this.GetConflictsCardinalFirstUsingMdd().GetEnumerator();
                 bool hasConflict = this.nextConflicts.MoveNext(); // This node isn't a goal node so this is expected to return true - a conflict should be found
-                Debug.Assert(hasConflict, "Non-goal node found no conflict");
+                if (hasConflict == false)
+                {
+                    this.DebugPrint();
+                    Debug.Assert(false, "Non-goal node found no conflict");
+                }
                 this.conflict = this.nextConflicts.Current;
             }
             else if (this.cbs.conflictChoice == CBS_LocalConflicts.ConflictChoice.CARDINAL_LOOKAHEAD)
@@ -863,10 +856,24 @@ namespace CPF_experiment
                 this.conflict = this.nextConflicts.Current;
             }
             else if (this.cbs.conflictChoice == CBS_LocalConflicts.ConflictChoice.EXHAUSTIVE_CARDINAL_GREEDY) {
-
+                this.nextConflicts = this.GetConflictsExhaustivelySearchingForCardinalsGreedily().GetEnumerator();
+                bool hasConflict = this.nextConflicts.MoveNext(); // This node isn't a goal node so this is expected to return true - a conflict should be found
+                if (hasConflict == false)
+                {
+                    this.DebugPrint();
+                    Debug.Assert(false, "Non-goal node found no conflict");
+                }
+                this.conflict = this.nextConflicts.Current;
             }
             else if (this.cbs.conflictChoice == CBS_LocalConflicts.ConflictChoice.EXHAUSTIVE_CARDINAL_LAZY) {
-
+                this.nextConflicts = this.GetConflictsExhaustivelySearchingForCardinalsLazily().GetEnumerator();
+                bool hasConflict = this.nextConflicts.MoveNext(); // This node isn't a goal node so this is expected to return true - a conflict should be found
+                if (hasConflict == false)
+                {
+                    this.DebugPrint();
+                    Debug.Assert(false, "Non-goal node found no conflict");
+                }
+                this.conflict = this.nextConflicts.Current;
             }
             else
                 throw new Exception("Unknown conflict choosing method");
@@ -881,20 +888,108 @@ namespace CPF_experiment
             ISet<int>[] groups = this.GetGroups();
             this.nextConflictCouldBeCardinal = true; // We don't know
 
-            for (int i = 0; i < this.conflictTimesPerAgent.Length; i++)
+            for (int agentIndex = 0; agentIndex < this.conflictTimesPerAgent.Length; agentIndex++)
             {
-                foreach (int conflictingAgentNum in this.conflictTimesPerAgent[i].Keys)
+                foreach (int conflictingAgentNum in this.conflictTimesPerAgent[agentIndex].Keys)
                 {
                     int conflictingAgentIndex = this.agentNumToIndex[conflictingAgentNum];
-                    if (conflictingAgentIndex < i)
+                    if (conflictingAgentIndex < agentIndex)
                         continue; // Return each conflict only once
 
-                    foreach (int conflictTime in this.conflictTimesPerAgent[i][conflictingAgentNum])
+                    foreach (int conflictTime in this.conflictTimesPerAgent[agentIndex][conflictingAgentNum])
                     {
-                        yield return FindConflict(i, conflictingAgentIndex, conflictTime, groups);
+                        yield return FindConflict(agentIndex, conflictingAgentIndex, conflictTime, groups);
                     }
                 }
             }
+        }
+
+        /// <summary>
+        /// Assumes this.mergeThreshold == -1
+        /// </summary>
+        /// <returns></returns>
+        private IEnumerable<CbsConflict> GetConflictsExhaustivelySearchingForCardinalsGreedily()
+        {
+            var disjointCardinallyConflictingAgents = new DisjointSets<int>();
+            ISet<int>[] groups = this.GetGroups();
+
+            foreach (var agentIndex in Enumerable.Range(0, this.allSingleAgentPlans.Length))
+            {
+                if (this.conflictTimesPerAgent[agentIndex].Count == 0)
+                    continue;  // Agent has no conflicts
+                this.buildMddForAgentWithItsCurrentCost(agentIndex);  // Does nothing if it's built already
+
+                foreach (int conflictingAgentNum in this.conflictTimesPerAgent[agentIndex].Keys)
+                {
+                    int conflictingAgentIndex = this.agentNumToIndex[conflictingAgentNum];
+                    this.buildMddForAgentWithItsCurrentCost(conflictingAgentIndex);  // Does nothing if it's built already
+
+                    foreach (int conflictTime in this.conflictTimesPerAgent[agentIndex][conflictingAgentNum])
+                    {
+                        bool iNarrow = this.DoesAgentHaveNoOtherOption(agentIndex, conflictTime, conflictingAgentIndex, groups);
+                        if (iNarrow)
+                        {
+                            bool otherNarrow = this.DoesAgentHaveNoOtherOption(conflictingAgentIndex, conflictTime, agentIndex, groups);
+                            if (otherNarrow)  // Both narrow!
+                            {
+                                disjointCardinallyConflictingAgents.Union(agentIndex, conflictingAgentIndex);
+                            }
+                        }
+                    }
+                }
+            }
+
+            this.h = Math.Max(this.h, (ushort)disjointCardinallyConflictingAgents.GetNumOfSets());
+            return this.GetConflictsCardinalFirstUsingMdd();
+        }
+
+        /// <summary>
+        /// Assumes this.mergeThreshold == -1
+        /// </summary>
+        /// <returns></returns>
+        private IEnumerable<CbsConflict> GetConflictsExhaustivelySearchingForCardinalsLazily()
+        {
+            var disjointCardinallyConflictingAgents = new DisjointSets<int>();
+            ISet<int>[] groups = this.GetGroups();
+
+            foreach (var agentIndex in Enumerable.Range(0, this.allSingleAgentPlans.Length))
+            {
+                if (this.conflictTimesPerAgent[agentIndex].Count == 0)
+                    continue;  // Agent has no conflicts
+                this.buildMddForAgentWithItsCurrentCost(agentIndex);  // Does nothing if it's built already
+
+                foreach (int conflictingAgentNum in this.conflictTimesPerAgent[agentIndex].Keys)
+                {
+                    int conflictingAgentIndex = this.agentNumToIndex[conflictingAgentNum];
+                    this.buildMddForAgentWithItsCurrentCost(conflictingAgentIndex);  // Does nothing if it's built already
+
+                    foreach (int conflictTime in this.conflictTimesPerAgent[agentIndex][conflictingAgentNum])
+                    {
+                        bool iNarrow = this.DoesAgentHaveNoOtherOption(agentIndex, conflictTime, conflictingAgentIndex, groups);
+                        if (iNarrow)
+                        {
+                            bool otherNarrow = this.DoesAgentHaveNoOtherOption(conflictingAgentIndex, conflictTime, agentIndex, groups);
+                            if (otherNarrow)  // Both narrow!
+                            {
+                                disjointCardinallyConflictingAgents.Union(agentIndex, conflictingAgentIndex);
+                                if (this.h < disjointCardinallyConflictingAgents.GetNumOfSets())
+                                {
+                                    this.h = (ushort) disjointCardinallyConflictingAgents.GetNumOfSets();
+                                    CbsConflict cardinal = FindConflict(agentIndex, conflictingAgentIndex, conflictTime);
+                                    cardinal.mddPredictedCardinal = true;
+                                    // No need to set this.nextConflictCouldBeCardinal to true. Thie conflict is cardinal so the solver has not reason to cycle conflicts.
+                                    yield return cardinal;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // No cardinal conflict was found
+            var FullSearchIterator = this.GetConflictsCardinalFirstUsingMdd();
+            foreach (var conflict in FullSearchIterator)
+                yield return conflict;
         }
 
         /// <summary>
@@ -908,7 +1003,7 @@ namespace CPF_experiment
         /// Trying to build MDDs as late as possible.
         /// 
         /// TODO: Consider turning all queues into priority queues that prefer smaller agents, smaller degree etc.
-        /// TODO: Find a better data strcture to support faster deletion from queues.
+        /// TODO: Find a better data structure to support faster deletion from queues.
         /// </summary>
         /// <returns></returns>
         private IEnumerable<CbsConflict> GetConflictsCardinalFirstUsingMdd()
@@ -921,46 +1016,56 @@ namespace CPF_experiment
             return GetConflictsCardinalFirstUsingMddInternal();
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
         private IEnumerable<CbsConflict> GetConflictsCardinalFirstUsingMddInternal()
         {
             ISet<int>[] groups = this.GetGroups();
             // Queue items are <first agent index, second agent index, time>
-            Queue<Tuple<int, int, int>> NotCardinalMaybeSemi = new Queue<Tuple<int, int, int>>(); // Because first has an MDD
-            Queue<Tuple<int, int, int>> NotCardinalNotSemi = new Queue<Tuple<int, int, int>>();
-            Queue<Tuple<int, int, int>> SemiCardinal = new Queue<Tuple<int, int, int>>();
-            Queue<Tuple<int, int, int>> PossiblyCardinalFirstHasMddSecondDoesNotButCan = new Queue<Tuple<int, int, int>>();
-            Queue<Tuple<int, int, int>> PossiblyCardinalFirstHasMddSecondCannot = new Queue<Tuple<int, int, int>>();
-            Queue<Tuple<int, int, int>> PossiblyCardinalBothCannotBuildMdd = new Queue<Tuple<int, int, int>>();
-            Queue<Tuple<int, int, int>> PossiblyCardinalFirstCanBuildMdd = new Queue<Tuple<int, int, int>>(); // Going over these just get the first element, build its MDD and 
-            Queue<int> ToCheck = new Queue<int>(Enumerable.Range(0, this.allSingleAgentPlans.Length));
+            var NotCardinalMaybeSemi = new Queue<Tuple<int, int, int>>(); // Because first has an MDD
+            var NotCardinalNotSemi = new Queue<Tuple<int, int, int>>();
+            var SemiCardinal = new Queue<Tuple<int, int, int>>();
+            var PossiblyCardinalFirstHasMddSecondDoesNotButCan = new Queue<Tuple<int, int, int>>();
+            var PossiblyCardinalFirstHasMddSecondCannot = new Queue<Tuple<int, int, int>>();
+            var PossiblyCardinalBothCannotBuildMdd = new Queue<Tuple<int, int, int>>();
+            var PossiblyCardinalFirstCanBuildMdd = new Queue<Tuple<int, int, int>>(); // Going over these just get the first element, build its MDD and 
+            var AgentIndexesWaitingToCheckTheirConflictsForCardinality = new Queue<int>(Enumerable.Range(0, this.allSingleAgentPlans.Length)); // Initially go over all conflicting agents.
+                                                                                                                                               // TODO: this will also go over non-conflicting agents harmlessly. Is there an easy way to get a list of agents that have conflicts?
             // Positively cardinal conflicts are just yielded immediately
             // Conflicting agents are only entered into a queue once. Only if the conflicting agent with the larger index
             // can have an MDD built and the one with the lower can't, a pair of conflicting agents is entered in reverse.
 
-            bool checkAnyway = false; // Needed when rechecking agents to signal that we shouldn't 
-                                      // rely on the other end to check a conflict
+            bool allowAgentOrderFlip = true; // Needed when rechecking agents to signal that we shouldn't 
+                                              // rely on the other end to check a conflict
 
             // Incrementally scan conflicts and build MDDs
             while (true)
             {
-                // 1. Go over ToCheck, sorting conflicts into queues and yielding cardinal conflicts as necessary,
+                // 1. Go over AgentIndexesWaitingToCheckTheirConflictsForCardinality,
+                // sorting conflicts into queues and yielding cardinal conflicts as necessary,
                 // but not building new MDDs.
-                while (ToCheck.Count != 0)
+                while (AgentIndexesWaitingToCheckTheirConflictsForCardinality.Count != 0)  // Can't use foreach, we actually want to drain the queue
                 {
-                    int i = ToCheck.Dequeue();
-                    bool hasMDD = this.mdds[i] != null && this.mdds[i].levels != null;
-                    bool canBuildMDD = groups[i].Count == 1 && this.mdds[i] == null; // If building the MDD failed once mark it as unbuildable
+                    var i = AgentIndexesWaitingToCheckTheirConflictsForCardinality.Dequeue();
+                    bool hasMDD = this.mdds[i] != null;  // No need to check if its levels is null, we don't sync MDDs and we know there's a path with the current cost for the agent
+                    bool canBuildMDD = groups[i].Count == 1;
 
                     foreach (int conflictingAgentNum in this.conflictTimesPerAgent[i].Keys)
                     {
                         int conflictingAgentIndex = this.agentNumToIndex[conflictingAgentNum];
-                        bool otherHasMDD = this.mdds[conflictingAgentIndex] != null && this.mdds[conflictingAgentIndex].levels != null;
+                        bool otherHasMDD = this.mdds[conflictingAgentIndex] != null;
                         bool otherCanBuildMdd = groups[conflictingAgentIndex].Count == 1 && this.mdds[conflictingAgentIndex] == null;
 
-                        if (otherCanBuildMdd && (checkAnyway == false))
+                        if (allowAgentOrderFlip)
                         {
-                            if ((conflictingAgentIndex < i) || (canBuildMDD == false))
-                                continue; // We'll take care of this conflict from the other end
+                            if ((conflictingAgentIndex < i) || (canBuildMDD == false && otherCanBuildMdd))
+                                continue; // We'll take care of this conflict from the other end,
+                                          // either because it's the first conflict sorting round
+                                          // and we want to consider each conflict only once,
+                                          // or because only the second agent can build an MDD and we
+                                          // prefer the agent that can build an MDD to be the first one.
                         }
 
                         // Reaching here means either i < conflictingAgentIndex,
@@ -1019,9 +1124,9 @@ namespace CPF_experiment
                                         {
                                             Debug.WriteLine("Cardinal conflict chosen.");
                                             CbsConflict cardinal = FindConflict(i, conflictingAgentIndex, conflictTime, groups);
-                                            if (this.h < 1) // The children's cost will be at least 1 more than this node's cost
-                                                this.h = 1;
-                                            // No need to set this.nextConflictCouldBeCardinal to true. A cardinal conflict has already been found.
+                                            cardinal.mddPredictedCardinal = true;
+                                            this.h = Math.Max(this.h, (ushort) 1);  // The children's cost will be at least 1 more than this node's cost
+                                            // No need to set this.nextConflictCouldBeCardinal to true. This conflict is cardinal so the solver has no reason to cycle conflicts.
                                             yield return cardinal;
                                             continue;
                                         }
@@ -1046,35 +1151,35 @@ namespace CPF_experiment
                     }
                 }
 
-                checkAnyway = true;
-
+                allowAgentOrderFlip = false;  // We've flipped all we needed above
+                
                 // 2.
                 if (PossiblyCardinalFirstHasMddSecondDoesNotButCan.Count != 0)
                 {
                     //   a. Get one conflict from PossiblyCardinalFirstHasMddSecondDoesNotButCan and build the second agent's
                     // MDD.
                     int agentToBuildAnMddFor = PossiblyCardinalFirstHasMddSecondDoesNotButCan.Dequeue().Item2;
-                    this.buildMddForAgent(agentToBuildAnMddFor);
+                    this.buildMddForAgentWithItsCurrentCost(agentToBuildAnMddFor);
                     //   b. Remove other conflicts from PossiblyCardinalFirstHasMddSecondDoesNotButCan where the second
                     //      agent is the one we built an MDD for (in all of those, the first agent's index is lower than the second's,
                     //      since we could build an MDD for it).
                     PossiblyCardinalFirstHasMddSecondDoesNotButCan = new Queue<Tuple<int,int,int>>(
                             PossiblyCardinalFirstHasMddSecondDoesNotButCan.Where<Tuple<int, int, int>>(
                                 tuple => tuple.Item2 != agentToBuildAnMddFor));
-                    //   c. Remove conflicts from PossiblyCardinalFirstCanBuildMdd where  the first or second agent is the one we
+                    //   c. Remove conflicts from PossiblyCardinalFirstCanBuildMdd where the first or second agent is the one we
                     //      built the MDD for.
                     PossiblyCardinalFirstCanBuildMdd = new Queue<Tuple<int, int, int>>(
                         PossiblyCardinalFirstCanBuildMdd.Where<Tuple<int, int, int>>(tuple => (tuple.Item2 != agentToBuildAnMddFor) &&
                                                                                               (tuple.Item1 != agentToBuildAnMddFor))
                                                                                        );
-                    //   d. Remove conflicts from NotCardinalMaybeSemi where the first or second agent is the one we
+                    //   d. Remove conflicts from NotCardinalMaybeSemi where the second agent is the one we
                     //      built the MDD for
                     NotCardinalMaybeSemi = new Queue<Tuple<int, int, int>>(
                         NotCardinalMaybeSemi.Where<Tuple<int, int, int>>(tuple => tuple.Item2 != agentToBuildAnMddFor));
                     //   e. No need to check for the agent's conflicts in PossiblyCardinalFirstHasMddSecondCannot,
                     //      PossiblyCardinalBothCannotBuildMdd, NotCardinalNotSemi, SemiCardinal
-                    //   f. Enter the agent into ToCheck. 
-                    ToCheck.Enqueue(agentToBuildAnMddFor);
+                    //   f. Enter the agent into AgentIndexesWaitingToCheckTheirConflictsForCardinality. 
+                    AgentIndexesWaitingToCheckTheirConflictsForCardinality.Enqueue(agentToBuildAnMddFor);
                     continue;
                 }
 
@@ -1084,27 +1189,27 @@ namespace CPF_experiment
                     //   a. Get one conflict from PossiblyCardinalFirstCanBuildMdd and build the first agent's
                     // MDD.
                     int agentToBuildAnMddFor = PossiblyCardinalFirstCanBuildMdd.Dequeue().Item1;
-                    this.buildMddForAgent(agentToBuildAnMddFor);
+                    this.buildMddForAgentWithItsCurrentCost(agentToBuildAnMddFor);
                     //   b. Remove other conflicts from PossiblyCardinalFirstHasMddSecondDoesNotButCan where the second
                     //      agent is the one we built an MDD for (in all of those, the first agent's index is lower than the second's,
                     //      since we could build an MDD for it).
                     PossiblyCardinalFirstHasMddSecondDoesNotButCan = new Queue<Tuple<int, int, int>>(
                             PossiblyCardinalFirstHasMddSecondDoesNotButCan.Where<Tuple<int, int, int>>(
                                 tuple => tuple.Item2 != agentToBuildAnMddFor));
-                    //   c. Remove conflicts from PossiblyCardinalFirstCanBuildMdd where  the first or second agent is the one we
+                    //   c. Remove conflicts from PossiblyCardinalFirstCanBuildMdd where the first or second agent is the one we
                     //      built the MDD for.
                     PossiblyCardinalFirstCanBuildMdd = new Queue<Tuple<int, int, int>>(
                         PossiblyCardinalFirstCanBuildMdd.Where<Tuple<int, int, int>>(tuple => (tuple.Item2 != agentToBuildAnMddFor) &&
                                                                                               (tuple.Item1 != agentToBuildAnMddFor))
                                                                                        );
-                    //   d. Remove conflicts from NotCardinalMaybeSemi where the first or second agent is the one we
+                    //   d. Remove conflicts from NotCardinalMaybeSemi where the second agent is the one we
                     //      built the MDD for
                     NotCardinalMaybeSemi = new Queue<Tuple<int, int, int>>(
                         NotCardinalMaybeSemi.Where<Tuple<int, int, int>>(tuple => tuple.Item2 != agentToBuildAnMddFor));
                     //   e. No need to check for the agent's conflicts in PossiblyCardinalFirstHasMddSecondCannot,
                     //      PossiblyCardinalBothCannotBuildMdd, NotCardinalNotSemi, SemiCardinal
-                    //   f. Enter the agent into ToCheck. 
-                    ToCheck.Enqueue(agentToBuildAnMddFor);
+                    //   f. Enter the agent into AgentIndexesWaitingToCheckTheirConflictsForCardinality. 
+                    AgentIndexesWaitingToCheckTheirConflictsForCardinality.Enqueue(agentToBuildAnMddFor);
                     continue;
                 }
                 
@@ -1162,7 +1267,7 @@ namespace CPF_experiment
             Debug.Assert(PossiblyCardinalFirstHasMddSecondCannot.Count == 0);
             Debug.Assert(PossiblyCardinalBothCannotBuildMdd.Count == 0);
             Debug.Assert(PossiblyCardinalFirstCanBuildMdd.Count == 0);
-            Debug.Assert(ToCheck.Count == 0);
+            Debug.Assert(AgentIndexesWaitingToCheckTheirConflictsForCardinality.Count == 0);
         }
 
         /// <summary>
@@ -1248,9 +1353,9 @@ namespace CPF_experiment
             throw new Exception("Conflict not found");
         }
 
-        private bool buildMddForAgent(int conflictingIndex)
+        private bool buildMddForAgentWithItsCurrentCost(int agentIndex)
         {
-            if (this.mdds[conflictingIndex] == null)
+            if (this.mdds[agentIndex] == null)
             {
                 Debug.WriteLine($"Building MDD for agent index {agentIndex}");
 
@@ -1274,7 +1379,7 @@ namespace CPF_experiment
                 int depth = this.allSingleAgentCosts.Max();
 
                 IEnumerable<CbsConstraint> myConstraints = constraints.Where<CbsConstraint>(
-                    constraint => constraint.agentNum == problem.m_vAgents[conflictingIndex].agent.agentNum);
+                    constraint => constraint.agentNum == problem.m_vAgents[agentIndex].agent.agentNum);
                 if (myConstraints.Count<CbsConstraint>() != 0)
                 {
                     int maxConstraintTimeStep = myConstraints.Max<CbsConstraint>(constraint => constraint.time);
@@ -1283,7 +1388,7 @@ namespace CPF_experiment
                 if (mustConstraints != null)
                 {
                     IEnumerable<CbsConstraint> myMustConstraints = mustConstraints.Where<CbsConstraint>(
-                        constraint => constraint.agentNum == problem.m_vAgents[conflictingIndex].agent.agentNum);
+                        constraint => constraint.agentNum == problem.m_vAgents[agentIndex].agent.agentNum);
                     if (myMustConstraints.Count<CbsConstraint>() != 0)
                     {
                         int maxMustConstraintTimeStep = myMustConstraints.Max<CbsConstraint>(constraint => constraint.time);
@@ -1291,9 +1396,9 @@ namespace CPF_experiment
                     }
                 }
 
-                this.mdds[conflictingIndex] =
-                    new MDD(conflictingIndex, problem.m_vAgents[conflictingIndex].agent.agentNum,
-                        problem.m_vAgents[conflictingIndex].GetMove(), this.allSingleAgentCosts[conflictingIndex],
+                this.mdds[agentIndex] =
+                    new MDD(agentIndex, problem.m_vAgents[agentIndex].agent.agentNum,
+                        problem.m_vAgents[agentIndex].GetMove(), this.allSingleAgentCosts[agentIndex],
                         depth, problem.GetNumOfAgents(), problem, false, false);
 
                 constraints.Separate(newConstraints);
@@ -1340,7 +1445,7 @@ namespace CPF_experiment
         /// TODO: Prefer conflicts where one of the conflicting agents is at their goal, to reduce the danger of task blow-up
         /// by enabling partial expansion. On the other hand, partial expansion is only possible in basic CBS.
         /// </summary>
-        private void ChooseBestConflict(out int groupRepA, out int groupRepB, out int time)
+        private void ChooseConflictOfMostConflictingSmallestAgents(out int groupRepA, out int groupRepB, out int time)
         {
             Func<int, double> formula = i => this.countsOfInternalAgentsThatConflict[i] / ((double)(1 << (this.GetGroupSize(i) - 1)));
 
@@ -1380,7 +1485,7 @@ namespace CPF_experiment
             this.agentBExpansion = CbsNode.ExpansionState.NOT_EXPANDED;
             this.allSingleAgentCosts = child.allSingleAgentCosts;
             this.allSingleAgentPlans = child.allSingleAgentPlans;
-            this.conflict = child.conflict;
+            this.conflict = child.conflict;  // Probably null, see below
             this.isGoal = child.isGoal;
             this.countsOfInternalAgentsThatConflict = child.countsOfInternalAgentsThatConflict;
             this.conflictCountsPerAgent = child.conflictCountsPerAgent;
@@ -1388,14 +1493,18 @@ namespace CPF_experiment
             this.totalExternalAgentsThatConflict = child.totalExternalAgentsThatConflict;
             this.minOpsToSolve = child.minOpsToSolve;
             this.totalInternalAgentsThatConflict = child.totalInternalAgentsThatConflict;
-            this.agentsGroupAssignment = child.agentsGroupAssignment;
             this.totalConflictsWithExternalAgents = child.totalConflictsWithExternalAgents;
             this.totalConflictsBetweenInternalAgents = child.totalConflictsBetweenInternalAgents;
             this.largerConflictingGroupSize = child.largerConflictingGroupSize;
+            // We don't adopt the child's constraints, nor its agents groups assignment
+            // this.mdds is kept unchanged too since the cost of the replanned (meta-)agent
+            // didn't change and we added no constraints.
 
             this.ChooseConflict(); // child probably hasn't chosen a conflict (and will never get a chance to),
                                    // need to choose the new conflict to work on.
                                    // (if child somehow had a conflict already, ChooseConflict does nothing)
+                                   // We can't just continue the node's conflict iteration since
+                                   // some conflicts may have been eliminated by the new plans
         }
 
         /// <summary>
@@ -1997,9 +2106,11 @@ namespace CPF_experiment
         /// <returns></returns>
         private bool DoesAgentHaveNoOtherOption(int agentIndex, int conflictTime, int conflictingAgentIndex, ISet<int>[] groups)
         {
-            bool stayingAtGoalConflict = conflictTime > this.mdds[agentIndex].levels.Length;
-            bool vertexConflict = stayingAtGoalConflict ||
-                                    FindConflict(agentIndex, conflictingAgentIndex, conflictTime, groups).vertex;
+            bool stayingAtGoalConflict = conflictTime >= this.mdds[agentIndex].levels.Length;
+            if (stayingAtGoalConflict)  // Then it must be a vertex conflict, and the agent can't have another option at same cost
+                return true;
+            var conflict = FindConflict(agentIndex, conflictingAgentIndex, conflictTime, groups);
+            bool vertexConflict = conflict.vertex;
             // If it's an edge conflict, and the MDD's width at the conflict time is 1,
             // this agent's cost will increase if split on this conflict - it's at least a semi-cardinal conflict.
             // If it's a vertex conflict, then even if the MDD's width at the conflict time is greater than 1,
@@ -2007,7 +2118,7 @@ namespace CPF_experiment
             // time move to the same vertex (from different directions)
             Move moveOfFirstMddNodeInLevelWithoutDirection = this.mdds[agentIndex].levels[conflictTime].First.Value.move.GetMoveWithoutDirection();
             return (vertexConflict == false && this.mdds[agentIndex].levels[conflictTime].Count == 1) ||
-                   (this.mdds[agentIndex].levels[conflictTime].All<MDDNode>(node => node.move.Equals(moveOfFirstMddNodeInLevelWithoutDirection)));
+                   (vertexConflict == true && this.mdds[agentIndex].levels[conflictTime].All<MDDNode>(node => node.move.Equals(moveOfFirstMddNodeInLevelWithoutDirection)));
         }
     }
 

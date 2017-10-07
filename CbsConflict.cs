@@ -13,6 +13,7 @@ namespace CPF_experiment
         /// If true, conflict is two agents have same dest, from any direction. Otherwise it's an edge conflict.
         /// </summary>
         public bool vertex;
+        public bool mddPredictedCardinal;
 
         public CbsConflict(int conflictingAgentAIndex, int conflictingAgentBIndex, Move agentAMove, Move agentBMove, int timeStep)
         {

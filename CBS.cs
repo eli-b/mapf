@@ -115,7 +115,7 @@ namespace CPF_experiment
         public enum ConflictChoice : byte
         {
             FIRST = 0,
-            MOST_CONFLICTING,
+            MOST_CONFLICTING_SMALLEST_AGENTS,
             CARDINAL_MDD,
             CARDINAL_LOOKAHEAD,
             EXHAUSTIVE_CARDINAL_GREEDY,
@@ -278,6 +278,11 @@ namespace CPF_experiment
                 variants += " choosing cardinal conflicts using MDD";
             else if (this.conflictChoice == ConflictChoice.CARDINAL_LOOKAHEAD)
                 variants += " choosing cardinal conflicts using lookahead";
+            else if (this.conflictChoice == ConflictChoice.EXHAUSTIVE_CARDINAL_GREEDY)
+                variants += " choosing cardinal conflicts using MDD and using greedy disjoint heuristic";
+            else if (this.conflictChoice == ConflictChoice.EXHAUSTIVE_CARDINAL_LAZY)
+                variants += " choosing cardinal conflicts using MDD and using lazy disjoint heuristic";
+
             if (this.tieBreakForMoreConflictsOnly == true)
                 variants += " without smart tie breaking";
             if (this.useMddH == true)
@@ -966,11 +971,13 @@ namespace CPF_experiment
         /// 
         /// </summary>
         /// <param name="node"></param>
-        /// <param name="node"></param>
+        /// <param name="adopt"></param>
         /// <param name="children"></param>
+        /// <param name="reinsertParent">If it was only partially expanded</param>
         /// <param name="adoptBy">If not given, adoption is done by expanded node</param>
         /// <returns>true if adopted - need to rerun this method, ignoring the returned children from this call, bacause adoption was performed</returns>
-        protected bool ExpandImpl(CbsNode node, bool adopt, out IList<CbsNode> children, out bool reinsertParent, CbsNode adoptBy = null)
+        protected bool ExpandImpl(CbsNode node, bool adopt, out IList<CbsNode> children,
+                                  out bool reinsertParent, CbsNode adoptBy = null)
         {
             CbsConflict conflict = node.GetConflict();
             children = new List<CbsNode>();
@@ -1017,7 +1024,8 @@ namespace CPF_experiment
             }
 
             // Generate left child:
-            child = ConstraintExpand(node, true, out closedListHitChildCost);
+            child = ConstraintExpand(node, doLeftChild: true,
+                                     closedListHitChildCost: out closedListHitChildCost);
             if (child != null)
             {
                 if (child == node) // Expansion deferred
@@ -1371,7 +1379,10 @@ namespace CPF_experiment
             {
                 closedList.Add(child, child);
 
-                child.h = Math.Max(child.h, (ushort) (parentH - (child.totalCost - parentCost)));
+                // Bequeath remainder of h from parent
+                int remainingParentH = parentH - (child.totalCost - parentCost);
+                if (child.h < remainingParentH)
+                    child.h = (ushort) remainingParentH;
 
                 if (this.bypassStrategy == BypassStrategy.BEST_FIT_LOOKAHEAD)
                 {
@@ -1390,7 +1401,8 @@ namespace CPF_experiment
         }
 
         /// <summary>
-        /// Supports Prefering cardinal conflicts and BP1 with lookaheadMaxExpansions == 1
+        /// Supports Prefering cardinal conflicts and BP1 with lookaheadMaxExpansions == 1,
+        /// assumes we choose cardinal conflicts using one of the methods
         /// </summary>
         /// <param name="node"></param>
         private void IcbsExpand(CbsNode node)
@@ -1406,15 +1418,12 @@ namespace CPF_experiment
 
             Debug.Assert(this.bypassStrategy == BypassStrategy.NONE || this.lookaheadMaxExpansions == 1, "Only BP1 is supported with cardinal conflict choice");  // Assumed in order to simplify code
             Debug.Assert(this.bypassStrategy != BypassStrategy.BEST_FIT_LOOKAHEAD, "Only first-fit adoption is supported with cardinal conflict choice"); // Assumed in order to simplify code
-            HashSet<CbsConflict> conflictsProcessed = new HashSet<CbsConflict>(); // Needed if we restart iteration because of adopting a bypass
 
             bool adoptionPerformedBefore = false;
 
             // Adoption and cardinal-lookahead cycle
             while (true)
             {
-                conflictsProcessed.Add(node.conflict);
-
                 bool adopted = this.ExpandImpl(node, adopt: bypassStrategy != BypassStrategy.NONE,
                                                children: out children, reinsertParent: out reinsertParent,
                                                adoptBy: null);
@@ -1422,7 +1431,7 @@ namespace CPF_experiment
                 if (this.mergeCausesRestart && (this.closedList.Count == 0)) // HACK: Means a restart was triggered
                     break;
 
-                if (adopted)
+                if (adopted) // Either we found a goal, or we need to re-expand using a remaining conflict
                 {
                     if (adoptionPerformedBefore == false)
                     {
@@ -1441,14 +1450,11 @@ namespace CPF_experiment
                         return;
                     }
 
-                    node.conflict = null; // Probably already is null, since it adopted the conflict from its child and its child hasn't chosen yet. Just to be safe.
-                                          // This is needed to make ChooseConflict() do anything.
-                    node.ChooseConflict(); // There must be a conflict, since this isn't a goal
-                                           // Try not to choose a conflict we've already tried before
-                    if (node.CyclePotentiallyCardinalUntriedConflicts(conflictsProcessed))
-                        continue;
-                    else
-                        break; // No other conflict available, split according to current one, even though it was already checked - it isn't a cardinal conflict.
+                    Debug.Assert(node.conflict != null, "A conflict should have been found");
+                    // We might re-encounter conflicts we've already found aren't cardinal, but
+                    // since at least one path changed, the number of conflicts after adopting a child
+                    // might become smaller after adopting a child's solution this time
+                    continue;
                 }
 
                 if (
@@ -1463,6 +1469,11 @@ namespace CPF_experiment
 
                     break; // Look no further
                 }
+                else
+                { 
+                    // This wasn't a cardinal conflict
+                    Debug.Assert(node.conflict.mddPredictedCardinal == false, "MDD predicted this would be a cardinal conflict but it isn't");
+                }
 
                 if (children.Any(child => child.GoalTest() && child.totalCost == node.totalCost)) // Admissable goal found (and adoption isn't enabled, otherwise the goal would have been adopted above)
                 {
@@ -1472,7 +1483,8 @@ namespace CPF_experiment
                     break; // Look no further
                 }
 
-                if (node.CyclePotentiallyCardinalUntriedConflicts(conflictsProcessed) == false)
+                // This wasn't a cardinal conflict. Try to find a different conflict to try.
+                if (node.ChooseNextPotentiallyCardinalConflicts() == false)
                 {
                     Debug.WriteLine("This was a non-cardinal conflict but there aren't more " +
                                     "promising conflicts to try. Inserting the generated children into OPEN.");
@@ -1516,8 +1528,10 @@ namespace CPF_experiment
             {
                 closedList.Add(child, child);
 
-                // Bequeath remainder of h to children
-                child.h = Math.Max(child.h, (ushort) (parentH - (child.totalCost - parentCost)));
+                // Bequeath remainder of h from parent
+                int remainingParentH = parentH - (child.totalCost - parentCost);
+                if (child.h < remainingParentH)
+                    child.h = (ushort)remainingParentH;
 
                 if (child.totalCost <= this.maxCost)
                 {
@@ -1532,7 +1546,7 @@ namespace CPF_experiment
             if (this.bypassStrategy == BypassStrategy.BEST_FIT_LOOKAHEAD && node.parentAlreadyLookedAheadOf)
                 Debug.Print("Not looking ahead from this node, one of its ancestors of the same cost was already looked ahead of");
 
-            if (this.conflictChoice == ConflictChoice.FIRST || this.conflictChoice == ConflictChoice.MOST_CONFLICTING) // Then just choose a conflict once and stick with it.
+            if (this.conflictChoice == ConflictChoice.FIRST || this.conflictChoice == ConflictChoice.MOST_CONFLICTING_SMALLEST_AGENTS) // Then just choose a conflict once and stick with it.
             {
                 this.ExpandIgnoringCardinalsButSupportingBP2(node);
             }
@@ -1736,20 +1750,18 @@ namespace CPF_experiment
                     int minCost = -1;
                     //if (this.useMddHeuristic)
                     //    minCost = node.GetGroupCost(conflictingAgentIndex) + 1;
-                    bool success = child.Replan(conflictingAgentIndex, this.minDepth, null, -1, minCost); // The node takes the max between minDepth and the max time over all constraints.
+                    bool success = child.Replan(conflictingAgentIndex, this.minDepth,
+                                                null, -1, minCost); // The node takes the max between minDepth and the max time over all constraints.
 
                     if (success == false)
                         return null; // A timeout probably occured
 
-                    if (debug)
-                    {
-                        Debug.WriteLine("Child hash: " + child.GetHashCode());
-                        Debug.WriteLine("Child cost: " + child.totalCost);
-                        Debug.WriteLine("Child min ops to solve: " + child.minOpsToSolve);
-                        Debug.WriteLine("Child num of agents that conflict: " + child.totalInternalAgentsThatConflict);
-                        Debug.WriteLine("Child num of internal conflicts: " + child.totalConflictsBetweenInternalAgents);
-                        Debug.WriteLine("");
-                    }
+                    Debug.WriteLine($"Child hash: {child.GetHashCode()}");
+                    Debug.WriteLine($"Child cost: {child.totalCost}");
+                    Debug.WriteLine($"Child min ops to solve: {child.minOpsToSolve}");
+                    Debug.WriteLine($"Child num of agents that conflict: {child.totalInternalAgentsThatConflict}");
+                    Debug.WriteLine($"Child num of internal conflicts: {child.totalConflictsBetweenInternalAgents}");
+                    Debug.WriteLine("");
 
                     if (child.totalCost < node.totalCost && groupSize == 1) // Catch the error early
                     {
