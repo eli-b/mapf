@@ -139,8 +139,57 @@ namespace CPF_experiment
 
                             // Save the latest problem
                             if (File.Exists(currentProblemFileName))
-                                File.Delete(currentProblemFileName);
-                            var lastProblemFile = new StreamWriter(currentProblemFileName);
+                            {
+                                try
+                                {
+                                    File.Delete(currentProblemFileName);
+                                }
+                                catch (Exception)
+                                {
+                                    try
+                                    {
+                                        File.Delete(currentProblemFileName);
+                                    }
+                                    catch (Exception)
+                                    {
+
+                                        try
+                                        {
+                                            File.Delete(currentProblemFileName);
+                                        }
+                                        catch (Exception)
+                                        {
+
+                                            throw;
+                                        }
+                                    }
+                                }
+                                
+                            }
+                            StreamWriter lastProblemFile;
+                            try
+                            {
+                                lastProblemFile = new StreamWriter(currentProblemFileName);
+                            }
+                            catch (Exception)
+                            {
+                                try
+                                {
+                                    lastProblemFile = new StreamWriter(currentProblemFileName);
+                                }
+                                catch (Exception)
+                                {
+                                    try
+                                    {
+                                        lastProblemFile = new StreamWriter(currentProblemFileName);
+                                    }
+                                    catch (Exception)
+                                    {
+
+                                        throw;
+                                    }
+                                }
+                            }
                             lastProblemFile.Write("{0},{1},{2},{3}", gs, obs, ag, i);
                             for (int j = 0; j < runner.outOfTimeCounters.Length; j++)
                             {
