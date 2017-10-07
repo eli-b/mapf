@@ -311,7 +311,10 @@ namespace CPF_experiment
             Program me = new Program();
             Program.RESULTS_FILE_NAME = Process.GetCurrentProcess().ProcessName + ".csv";
             if (System.Diagnostics.Debugger.IsAttached)
+            {
                 Constants.MAX_TIME = int.MaxValue;
+                Debug.WriteLine("Debugger attached - running without a timeout!!");
+            }
 
             if (Directory.Exists(Directory.GetCurrentDirectory() + "\\Instances") == false)
             {
