@@ -754,13 +754,6 @@ namespace CPF_experiment
             // Solve using the different algorithms
             Console.WriteLine($"Solving {instance}");
             this.PrintProblemStatistics(instance);
-            //double cr0 = instance.getConflictRation(0);
-            //double cr1 = instance.getConflictRation(1);
-
-            //Debug.WriteLine("Conflict ratio (first order): " + cr0);
-            //Debug.WriteLine("Conflict ratio (second order): " + cr1);
-            //this.resultsWriter.Write(cr0 + RESULTS_DELIMITER);
-            //this.resultsWriter.Write(cr1 + RESULTS_DELIMITER);
 
             // Initializing all heuristics, whereever they're used
             for (int i = 0; i < heuristics.Count; i++)
