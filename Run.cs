@@ -557,9 +557,9 @@ namespace CPF_experiment
              * reproducible experiments.
              */
             //Random rand = new Random();
-            Debug.WriteLine(string.Format("Generating instance with {0} agents, {1] obstacles of size {2}", agentsNum, obstaclesNum, gridSize));
+            Debug.WriteLine($"Generating instance with {agentsNum} agents, {obstaclesNum} obstacles of size {gridSize}");
             if (agentsNum + obstaclesNum + 1 > gridSize * gridSize)
-                throw new Exception("Not enough room for " + agentsNum + ", " + obstaclesNum + " and one empty space in a " + gridSize + "x" + gridSize + "map.");
+                throw new Exception($"Not enough room for {agentsNum}, {obstaclesNum} and one empty space in a {gridSize}x{gridSize} map.");
 
             int x;
             int y;
@@ -646,7 +646,7 @@ namespace CPF_experiment
         /// <returns></returns>
         public ProblemInstance GenerateDragonAgeProblemInstance(string mapFileName, int agentsNum)
         {
-            Debug.WriteLine(string.Format("Generating instance with {0} agents", agentsNum));
+            Debug.WriteLine($"Generating instance with {agentsNum} agents");
             TextReader input = new StreamReader(mapFileName);
             string[] lineParts;
             string line;
@@ -752,7 +752,7 @@ namespace CPF_experiment
             List<uint> agentList = Enumerable.Range(0, instance.m_vAgents.Length).Select<int, uint>(x=> (uint)x).ToList<uint>(); // FIXME: Must the heuristics really receive a list of uints?
             
             // Solve using the different algorithms
-            Debug.WriteLine("Solving " + instance);
+            Console.WriteLine($"Solving {instance}");
             this.PrintProblemStatistics(instance);
             //double cr0 = instance.getConflictRation(0);
             //double cr1 = instance.getConflictRation(1);
@@ -828,7 +828,7 @@ namespace CPF_experiment
                         if (planSize < 200)
                             plan.PrintPlan();
                         else
-                            Console.WriteLine("Plan is too long to print (" + planSize + " steps).");
+                            Console.WriteLine($"Plan is too long to print ({planSize} steps).");
                         outOfTimeCounters[i] = 0;
 
                         // Validate solution:
@@ -840,7 +840,7 @@ namespace CPF_experiment
                         else // Problem solved before
                         {
                             Debug.Assert(solutionCost == solverSolutionCost,
-                                solvers[firstSolverToSolveIndex] + " solution cost is different than that of " + solvers[i]); // Assuming algs are supposed to find an optimal solution, this is an error.
+                                $"{solvers[firstSolverToSolveIndex]} solution cost is different than that of {solvers[i]}"); // Assuming algs are supposed to find an optimal solution, this is an error.
                             //Debug.Assert(solvers[0].GetExpanded() == solvers[i].GetExpanded(), "Different Expanded");
                             //Debug.Assert(solvers[0].GetGenerated() == solvers[i].GetGenerated(), "Different Generated");
                             //Debug.Assert(solvers[0].GetSolutionDepth() == solvers[i].GetSolutionDepth(), "Depth Bug " + solvers[i]);
@@ -871,7 +871,7 @@ namespace CPF_experiment
         {
             // Run the algorithm
             bool solved;
-            Console.WriteLine("-----------------" + solver + "-----------------");
+            Console.WriteLine($"-----------------{solver}-----------------");
             this.startTime = this.ElapsedMillisecondsTotal();
             solver.Setup(instance, this);
             solved = solver.Solve();

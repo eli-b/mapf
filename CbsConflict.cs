@@ -32,7 +32,8 @@ namespace CPF_experiment
 
         public override string ToString()
         {
-            return "Agent " + this.agentAIndex + " going " + this.agentAmove + " collides with agent " + this.agentBIndex + " going " + this.agentBmove + " at time " + this.timeStep;
+            return $"Agent {this.agentAIndex} going {this.agentAmove} collides with agent " +
+                   $"{this.agentBIndex} going {this.agentBmove} at time {this.timeStep}";
         }
 
         public override bool Equals(object obj)

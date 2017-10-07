@@ -21,7 +21,7 @@ namespace CPF_experiment
 
         public override string ToString()
         {
-            return "DynamicLazyOpenList/" + this.expensive;
+            return $"DynamicLazyOpenList/{this.expensive}";
         }
 
         public override IBinaryHeapItem Remove()

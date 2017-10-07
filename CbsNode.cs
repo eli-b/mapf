@@ -509,41 +509,41 @@ namespace CPF_experiment
             return true;
         }
 
-        public void Print()
+        public void DebugPrint()
         {
             Debug.WriteLine("");
             Debug.WriteLine("");
-            Debug.WriteLine("Node hash: " + this.GetHashCode());
-            Debug.WriteLine("Total cost so far: " + this.totalCost);
-            Debug.WriteLine("h: " + this.h);
-            Debug.WriteLine("Min estimated ops needed: " + this.minOpsToSolve);
-            Debug.WriteLine("Expansion state: " + this.agentAExpansion + ", " + this.agentBExpansion);
-            Debug.WriteLine("Num of external agents that conflict: " + totalExternalAgentsThatConflict);
-            Debug.WriteLine("Num of internal agents that conflict: " + totalInternalAgentsThatConflict);
-            Debug.WriteLine("Num of conflicts between internal agents: " + totalConflictsBetweenInternalAgents);
-            Debug.WriteLine("Node depth: " + this.depth);
+            Debug.WriteLine($"Node hash: {this.GetHashCode()}");
+            Debug.WriteLine($"Total cost so far: {this.totalCost}");
+            Debug.WriteLine($"h: {this.h}");
+            Debug.WriteLine($"Min estimated ops needed: {this.minOpsToSolve}");
+            Debug.WriteLine($"Expansion state: {this.agentAExpansion}, {this.agentBExpansion}");
+            Debug.WriteLine($"Num of external agents that conflict: {totalExternalAgentsThatConflict}");
+            Debug.WriteLine($"Num of internal agents that conflict: {totalInternalAgentsThatConflict}");
+            Debug.WriteLine($"Num of conflicts between internal agents: {totalConflictsBetweenInternalAgents}");
+            Debug.WriteLine($"Node depth: {this.depth}");
             if (this.prev != null)
-                Debug.WriteLine("Parent hash: " + this.prev.GetHashCode());
+                Debug.WriteLine($"Parent hash: {this.prev.GetHashCode()}");
             IList<CbsConstraint> constraints = this.GetConstraintsOrdered();
-            Debug.WriteLine(constraints.Count.ToString() + " relevant internal constraints so far: ");
+            Debug.WriteLine($"{constraints.Count} relevant internal constraints so far: ");
             foreach (CbsConstraint constraint in constraints)
             {
                 Debug.WriteLine(constraint);
             }
             ISet<CbsConstraint> mustConstraints = this.GetMustConstraints(); // TODO: Ordered
-            Debug.WriteLine(mustConstraints.Count.ToString() + " relevant internal must constraints so far: ");
+            Debug.WriteLine($"{mustConstraints.Count} relevant internal must constraints so far: ");
             foreach (CbsConstraint mustConstraint in mustConstraints)
             {
                 Debug.WriteLine(mustConstraint);
             }
             ProblemInstance problem = this.cbs.GetProblemInstance();
             var externalConstraints = (HashSet_U<CbsConstraint>)problem.parameters[CBS_LocalConflicts.CONSTRAINTS];
-            Debug.WriteLine(externalConstraints.Count.ToString() + " external constraints: ");
+            Debug.WriteLine($"{externalConstraints.Count} external constraints: ");
             foreach (CbsConstraint constraint in externalConstraints)
             {
                 Debug.WriteLine(constraint);
             }
-            Debug.WriteLine("Conflict: " + this.GetConflict());
+            Debug.WriteLine($"Conflict: {this.GetConflict()}");
             Debug.Write("Agent group assignments: ");
             for (int j = 0; j < this.agentsGroupAssignment.Length; j++)
             {
@@ -559,17 +559,17 @@ namespace CPF_experiment
             Debug.Write("Internal agents that conflict with each agent: ");
             for (int j = 0; j < this.countsOfInternalAgentsThatConflict.Length; j++)
             {
-                Debug.Write(" " + this.countsOfInternalAgentsThatConflict[j]);
+                Debug.Write($" {this.countsOfInternalAgentsThatConflict[j]}");
             }
             Debug.WriteLine("");
             for (int j = 0; j < this.conflictCountsPerAgent.Length; j++)
             {
                 //if (this.conflictCountsPerAgent[j].Count != 0)
                 {
-                    Debug.Write("Agent " + problem.m_vAgents[j].agent.agentNum + " conflict counts: ");
+                    Debug.Write($"Agent {problem.m_vAgents[j].agent.agentNum} conflict counts: ");
                     foreach (var pair in this.conflictCountsPerAgent[j])
 	                {
-                        Debug.Write(pair.Key.ToString() + ":" + pair.Value.ToString() + " ");
+                        Debug.Write($"{pair.Key}:{pair.Value} ");
 	                }
                     Debug.WriteLine("");
 
@@ -579,10 +579,10 @@ namespace CPF_experiment
             {
                 //if (this.conflictCountsPerAgent[j].Count != 0)
                 {
-                    Debug.Write("Agent " + problem.m_vAgents[j].agent.agentNum + " conflict times: ");
+                    Debug.Write($"Agent {problem.m_vAgents[j].agent.agentNum} conflict times: ");
                     foreach (var pair in this.conflictTimesPerAgent[j])
                     {
-                        Debug.Write(pair.Key.ToString() + ":[" + String.Join(",", pair.Value) + "], ");
+                        Debug.Write($"{pair.Key}:[{String.Join(",", pair.Value)}], ");
                     }
                     Debug.WriteLine("");
 
@@ -592,10 +592,10 @@ namespace CPF_experiment
             {
                 for (int i = 0; i < ((CBS_GlobalConflicts)this.cbs).globalConflictsCounter.Length; i++)
 			    {
-                    Debug.Write("Agent " + i.ToString() + " global historic conflict counts: ");
+                    Debug.Write($"Agent {i} global historic conflict counts: ");
                     for (int j = 0; j < i; j++)
                     {
-                        Debug.Write("a" + j.ToString() + ":" + ((CBS_GlobalConflicts)this.cbs).globalConflictsCounter[i][j] + " ");
+                        Debug.Write($"a{j}:{((CBS_GlobalConflicts)this.cbs).globalConflictsCounter[i][j]} ");
                     }
                     Debug.WriteLine("");
 			    }
@@ -857,7 +857,7 @@ namespace CPF_experiment
                 bool hasConflict = this.nextConflicts.MoveNext(); // This node isn't a goal node so this is expected to return true - a conflict should be found
                 if (hasConflict == false)
                 {
-                    this.Print();
+                    this.DebugPrint();
                     Debug.Assert(false, "Non-goal node found no conflict");
                 }
                 this.conflict = this.nextConflicts.Current;
@@ -915,8 +915,7 @@ namespace CPF_experiment
         {
             if (this.totalConflictsBetweenInternalAgents == 1)
             {
-                if (this.cbs.debug)
-                    Debug.WriteLine("Single conflict. Just choosing it.");
+                Debug.WriteLine("Single conflict. Just choosing it.");
                 return GetConflictsNoOrder();
             }
             return GetConflictsCardinalFirstUsingMddInternal();
@@ -1018,8 +1017,7 @@ namespace CPF_experiment
                                         }
                                         else // Both narrow!
                                         {
-                                            if (this.cbs.debug)
-                                                Debug.WriteLine("Cardinal conflict chosen.");
+                                            Debug.WriteLine("Cardinal conflict chosen.");
                                             CbsConflict cardinal = FindConflict(i, conflictingAgentIndex, conflictTime, groups);
                                             if (this.h < 1) // The children's cost will be at least 1 more than this node's cost
                                                 this.h = 1;
@@ -1116,8 +1114,7 @@ namespace CPF_experiment
             // Yield the possibly cardinal conflicts where we can't build an MDD for the second agent
             while (PossiblyCardinalFirstHasMddSecondCannot.Count != 0)
             {
-                if (this.cbs.debug)
-                    Debug.WriteLine("We'll try and see if this conflict is cardinal");
+                Debug.WriteLine("We'll try and see if this conflict is cardinal");
                 var tuple = PossiblyCardinalFirstHasMddSecondCannot.Dequeue();
                 this.nextConflictCouldBeCardinal = (PossiblyCardinalFirstHasMddSecondCannot.Count != 0) ||
                                                    (PossiblyCardinalBothCannotBuildMdd.Count != 0);
@@ -1127,8 +1124,7 @@ namespace CPF_experiment
             // Yield the possibly cardinal conflicts where we can't build an MDD for either agent
             while (PossiblyCardinalBothCannotBuildMdd.Count != 0)
             {
-                if (this.cbs.debug)
-                    Debug.WriteLine("We'll try and see if this conflict is cardinal");
+                Debug.WriteLine("We'll try and see if this conflict is cardinal");
                 var tuple = PossiblyCardinalBothCannotBuildMdd.Dequeue();
                 this.nextConflictCouldBeCardinal = PossiblyCardinalBothCannotBuildMdd.Count != 0;
                 yield return FindConflict(tuple.Item1, tuple.Item2, tuple.Item3, groups);
@@ -1139,8 +1135,7 @@ namespace CPF_experiment
             // Yield semi cardinal conflicts
             while (SemiCardinal.Count != 0)
             {
-                if (this.cbs.debug)
-                    Debug.WriteLine("Settling for a semi-cardinal conflict.");
+                Debug.WriteLine("Settling for a semi-cardinal conflict.");
                 var tuple = SemiCardinal.Dequeue();
                 yield return FindConflict(tuple.Item1, tuple.Item2, tuple.Item3, groups);
             }
@@ -1148,16 +1143,14 @@ namespace CPF_experiment
             // Yield the non cardinal conflicts, possibly semi first
             while (NotCardinalMaybeSemi.Count != 0)
             {
-                if (this.cbs.debug)
-                    Debug.WriteLine("No cardinal conflict found. This one's possibly a semi cardinal conflict.");
+                Debug.WriteLine("No cardinal conflict found. This one's possibly a semi cardinal conflict.");
                 var tuple = NotCardinalMaybeSemi.Dequeue();
                 yield return FindConflict(tuple.Item1, tuple.Item2, tuple.Item3, groups);
             }
 
             while (NotCardinalNotSemi.Count != 0)
             {
-                if (this.cbs.debug)
-                    Debug.WriteLine("Non-cardinal conflict chosen");
+                Debug.WriteLine("Non-cardinal conflict chosen");
                 var tuple = NotCardinalNotSemi.Dequeue();
                 yield return FindConflict(tuple.Item1, tuple.Item2, tuple.Item3, groups);
             }
@@ -1251,7 +1244,7 @@ namespace CPF_experiment
             }
 
             // A conflict should have been found
-            this.Print();
+            this.DebugPrint();
             throw new Exception("Conflict not found");
         }
 
@@ -1259,8 +1252,7 @@ namespace CPF_experiment
         {
             if (this.mdds[conflictingIndex] == null)
             {
-                if (this.cbs.debug)
-                    Debug.WriteLine("Building MDD for agent index " + conflictingIndex);
+                Debug.WriteLine($"Building MDD for agent index {agentIndex}");
 
                 // TODO: Code dup with Replan, Solve
                 ProblemInstance problem = this.cbs.GetProblemInstance();

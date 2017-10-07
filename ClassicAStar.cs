@@ -184,9 +184,9 @@ namespace CPF_experiment
 
         public override string ToString()
         {
-            string ret = this.GetName() + "/" + this.heuristic;
+            string ret = $"{this.GetName()}/{this.heuristic}";
             if (this.openList.GetType() != typeof(OpenList))
-                ret += " with " + this.openList;
+                ret += $" with {this.openList}";
             return ret;
         }
 
@@ -403,7 +403,7 @@ namespace CPF_experiment
                 if (debug)
                 {
                     Debug.WriteLine("");
-                    Debug.WriteLine("Expanding node: " + currentNode);
+                    Debug.WriteLine($"Expanding node: {currentNode}");
                 }
 
                 //if (this.instance.m_vAgents.Length > 2)
@@ -434,7 +434,7 @@ namespace CPF_experiment
                     (Constants.costFunction == Constants.CostFunction.SUM_OF_COSTS || this.GetType() != typeof(AStarWithOD)))  // A*+OD on makespan can have final nodes with lower F than intermediate nodes because the move cost is
                                                                                                                                // attributed to the first agent and its gains may show up in a later agent's h
                     Debug.Assert(currentNode.f >= lastF,
-                                 "A* node with decreasing F: " + (currentNode.g + currentNode.h) + " < " + lastF + ".");
+                                 $"A* node with decreasing F: {currentNode.g + currentNode.h} < {lastF}.");
                 else
                 {
                     // Record the max F. Assert that the goal's F isn't smaller than it.

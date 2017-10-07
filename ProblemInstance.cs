@@ -178,7 +178,7 @@ namespace CPF_experiment
                 int start = this.GetCardinality(agentStartState.lastMove);
                 if (shortestPathLengths[start] == -1)
                 {
-                    throw new Exception(String.Format("Unsolvable instance! Agent {0} cannot reach its goal", agentId));
+                    throw new Exception($"Unsolvable instance! Agent {agentId} cannot reach its goal");
                 }
 
                 this.singleAgentOptimalCosts[agentId] = shortestPathLengths;
@@ -408,13 +408,13 @@ namespace CPF_experiment
             TextWriter output = new StreamWriter(Directory.GetCurrentDirectory() + "\\Instances\\"+fileName);
             // Output the instance ID
             if (this.parameters.ContainsKey(ProblemInstance.GRID_NAME_KEY))
-                output.WriteLine(this.instanceId.ToString() + "," + this.parameters[ProblemInstance.GRID_NAME_KEY]);
+                output.WriteLine($"{this.instanceId},{this.parameters[ProblemInstance.GRID_NAME_KEY]}");
             else
                 output.WriteLine(this.instanceId);
 
             // Output the grid
             output.WriteLine("Grid:");
-            output.WriteLine(this.m_vGrid.GetLength(0) + "," + this.m_vGrid[0].GetLength(0));
+            output.WriteLine($"{this.m_vGrid.GetLength(0)},{this.m_vGrid[0].GetLength(0)}");
                         
             for (int i = 0; i < this.m_vGrid.GetLength(0); i++)
             {
@@ -536,10 +536,10 @@ namespace CPF_experiment
 
         public override string ToString()
         {
-            string str = "Problem instance:" + instanceId;
+            string str = $"Problem instance:{instanceId}";
             if (this.parameters.ContainsKey(ProblemInstance.GRID_NAME_KEY))
-                str += " Grid Name:" + this.parameters[ProblemInstance.GRID_NAME_KEY];
-            str += " #Agents:" + m_vAgents.Length + ", GridCells:" + m_nLocations + ", #Obstacles:" + m_nObstacles;
+                str += $" Grid Name:{this.parameters[ProblemInstance.GRID_NAME_KEY]}";
+            str += $" #Agents:{m_vAgents.Length}, GridCells:{m_nLocations}, #Obstacles:{m_nObstacles}";
             return str;
         }
     }

@@ -261,31 +261,31 @@ namespace CPF_experiment
 
         public void printMDD()
         {
-            Console.WriteLine(String.Format("MDD for agent {0}, {1} steps, cost {2}:", this.agentNum, this.levels.Length, this.cost));
+            Console.WriteLine($"MDD for agent {this.agentNum}, {this.levels.Length} steps, cost {this.cost}:");
             for (int j = 0; j < levels.Count(); j++)
             {
-                Console.WriteLine("Level " + j + ", " + levels[j].Count + " nodes:");
+                Console.WriteLine($"Level {j}, {levels[j].Count} nodes:");
                 foreach (MDDNode node in levels[j])
                 {
-                    Console.Write("Node " + node.ToString());
+                    Console.Write($"Node {node}");
                     Console.Write(" children: ");
                     foreach (MDDNode child in node.children)
                     {
-                        Console.Write(child.ToString() + ", ");
+                        Console.Write($"{child}, ");
                     }
                     Console.Write(" parents: ");
                     foreach (MDDNode parent in node.parents)
                     {
-                        Console.Write(parent.ToString() + ", ");
+                        Console.Write($"{parent}, ");
                     }
                     Console.Write(" coexist: ");
                     int i = 0;
                     foreach (HashSet<MDDNode> coexistingNodesFromOtherMdds in node.coexistingNodesFromOtherMdds)
                     {
-                        Console.Write(" for agents - " + i++);
+                        Console.Write($" for agents - {i++}");
                         foreach (MDDNode coexistingNode in coexistingNodesFromOtherMdds)
                         {
-                            Console.Write(coexistingNode.ToString() + ") ");
+                            Console.Write($"{coexistingNode}) ");
                         }
                     }
                 }

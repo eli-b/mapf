@@ -249,28 +249,29 @@ namespace CPF_experiment
         {
             string lowLevelSolvers;
             if (mergeThreshold == -1 || Object.ReferenceEquals(this.singleAgentSolver, this.solver))
-                lowLevelSolvers = "(" + this.singleAgentSolver + ")";
+                lowLevelSolvers = $"({this.singleAgentSolver})";
             else
-                lowLevelSolvers = "(single:" + singleAgentSolver + " multi:" + solver + ")";
+                lowLevelSolvers = $"(single:{singleAgentSolver} multi:{solver})";
             string variants = "";
             if (this.doShuffle)
                 variants += " with shuffle";
             if (this.bypassStrategy == BypassStrategy.FIRST_FIT_LOOKAHEAD)
             {
                 if (this.lookaheadMaxExpansions != int.MaxValue)
-                    variants += " with first fit adoption max expansions: " + this.lookaheadMaxExpansions;
+                    variants += $" with first fit adoption max expansions: {this.lookaheadMaxExpansions}";
                 else
-                    variants += " with first fit adoption max expansions: $\\infty$"; // LaTeX inifinity symbol
+                    variants += " with first fit adoption max expansions: $\\infty$"; // LaTeX infinity symbol
             }
             if (this.bypassStrategy == BypassStrategy.BEST_FIT_LOOKAHEAD)
             {
                 if (this.lookaheadMaxExpansions == int.MaxValue)
                     variants += " with infinite lookahead best fit adoption";
                 else
-                    variants += " with " + this.lookaheadMaxExpansions.ToString() + " lookahead best fit adoption";
+                    variants += $" with {this.lookaheadMaxExpansions} lookahead best fit adoption";
             }
             if (this.doMalte)
                 variants += " with Malte";
+
             if (this.conflictChoice == ConflictChoice.FIRST)
                 variants += " choosing the first conflict in CBS nodes";
             else if (this.conflictChoice == ConflictChoice.CARDINAL_MDD)
@@ -285,8 +286,8 @@ namespace CPF_experiment
                 variants += " with merge&restart";
 
             if (mergeThreshold == -1)
-                return "CBS/" + lowLevelSolvers + variants;
-            return "MA-CBS-Local-" + mergeThreshold + "/" + lowLevelSolvers + variants;
+                return $"CBS/{lowLevelSolvers}{variants}";
+            return $"MA-CBS-Local-{mergeThreshold}/{lowLevelSolvers}{variants}";
         }
 
         public override string ToString()
@@ -613,8 +614,7 @@ namespace CPF_experiment
 
                 this.addToGlobalConflictCount(currentNode.GetConflict()); // TODO: Make CBS_GlobalConflicts use nodes that do this automatically after choosing a conflict
 
-                if (debug)
-                    currentNode.Print();
+                currentNode.DebugPrint();
 
                 // Lazy MDD stage
                 if (this.useMddH)
@@ -651,22 +651,18 @@ namespace CPF_experiment
                             }
                             else
                             {
-                                if (this.debug)
-                                    Debug.Print("MDD proved this node isn't solvable with its current costs, but the next node isn't smaller than the current node with its improved h, so we're not pushing it back.");
+                                Debug.Print("MDD proved this node isn't solvable with its current costs, but the next node isn't smaller than the current node with its improved h, so we're not pushing it back.");
                             }
                         }
                     }
                     else
                     {
-                        if (debug)
-                        {
-                            if (currentNode.h != 0)
-                                Debug.Print("Not building an MDD on this node, h was already computed on it");
-                            else if (this.openList.Count == 0)
-                                Debug.Print("Not building an MDD on this node, it's the only one in the open list");
-                            else
-                                Debug.Print("Not building an MDD on this node, we can't raise its h enough to push it back");
-                        }
+                        if (currentNode.h != 0)
+                            Debug.Print("Not building an MDD on this node, h was already computed on it");
+                        else if (this.openList.Count == 0)
+                            Debug.Print("Not building an MDD on this node, it's the only one in the open list");
+                        else
+                            Debug.Print("Not building an MDD on this node, we can't raise its h enough to push it back");
                     }
                 }
 
@@ -690,7 +686,8 @@ namespace CPF_experiment
                 // Check if node is the goal
                 if (currentNode.GoalTest())
                 {
-                    Debug.Assert(currentNode.totalCost >= maxExpandedNodeCostPlusH, "CBS goal node found with lower cost than the max cost node ever expanded: " + currentNode.totalCost + " < " + maxExpandedNodeCostPlusH);
+                    Debug.Assert(currentNode.totalCost >= maxExpandedNodeCostPlusH,
+                                 $"CBS goal node found with lower cost than the max cost node ever expanded: {currentNode.totalCost} < {maxExpandedNodeCostPlusH}");
                     // This is subtle, but MA-CBS may expand nodes in a non non-decreasing order:
                     // If a node with a non-optimal constraint is expanded and we decide to merge the agents,
                     // the resulting node can have a lower cost than before, since we ignore the non-optimal constraint
@@ -706,8 +703,7 @@ namespace CPF_experiment
                     // For an example for this subtle case happening, see problem instance 63 of the random grid with 4 agents,
                     // 55 grid cells and 9 obstacles.
 
-                    if (debug)
-                        Debug.WriteLine("-----------------");
+                    Debug.WriteLine("-----------------");
                     this.totalCost = currentNode.totalCost;
                     this.solutionDepth = this.totalCost - initialEstimate;
                     this.goalNode = currentNode; // Saves the single agent plans and costs
@@ -727,8 +723,7 @@ namespace CPF_experiment
                     (this.milliCap != int.MaxValue && // (This check is much cheaper than the method call)
                      this.runner.ElapsedMilliseconds() > this.milliCap)) // Search is taking too long.
                 {
-                    if (debug)
-                        Debug.WriteLine("-----------------");
+                    Debug.WriteLine("-----------------");
                     this.totalCost = maxExpandedNodeCostPlusH; // This is the min possible cost so far.
                     this.openList.Add(currentNode); // To be able to continue the search later
                     this.CleanGlobals();
@@ -738,8 +733,7 @@ namespace CPF_experiment
                 if (maxExpandedNodeCostPlusH < currentNode.totalCost + currentNode.h)
                 {
                     maxExpandedNodeCostPlusH = currentNode.totalCost + currentNode.h;
-                    if (debug)
-                        Debug.Print("New max F: {0}", maxExpandedNodeCostPlusH);
+                    Debug.Print("New max F: {0}", maxExpandedNodeCostPlusH);
                 }
                 
                 // Expand
@@ -819,11 +813,8 @@ namespace CPF_experiment
                    )
                 {
                     // Are infinite improvement loops possible (a1 improves by screwing a2 and vice versa)? I don't think so, because we're looking for strictly better solutions.
-                    if (debug)
-                    {
-                        Debug.WriteLine("");
-                        Debug.WriteLine("Shuffling the first agent...");
-                    }
+                    Debug.WriteLine("");
+                    Debug.WriteLine("Shuffling the first agent...");
 
                     groupRepresentative = currentNode.agentsGroupAssignment[conflict.agentAIndex];
                     internalConflictCountBefore = currentNode.countsOfInternalAgentsThatConflict[groupRepresentative];
@@ -843,29 +834,28 @@ namespace CPF_experiment
                     if ((internalConflictCountAfter > internalConflictCountBefore) ||
                         (internalConflictCountAfter == internalConflictCountBefore) && (externalConflictCountAfter >= externalConflictCountBefore))
                     {
-                        if (debug)
-                            Debug.WriteLine("Shuffling the first agent didn't help: internal before=" + internalConflictCountBefore + " internal after=" + internalConflictCountAfter +
-                                            " external before=" + externalConflictCountBefore + " external after=" + externalConflictCountAfter);
+                        Debug.WriteLine($"Shuffling the first agent didn't help: " +
+                                        $"internal before={internalConflictCountBefore} " +
+                                        $"internal after={internalConflictCountAfter} " +
+                                        $"external before={externalConflictCountBefore} " +
+                                        $"external after={externalConflictCountAfter}");
                         // Notice the shuffle can't increase the number of conflicts as the low level tries to minimize it,
                         // and the current configuration of paths is possible.
                     }
                     else
                     {
-                        if (debug)
-                        {
-                            Debug.WriteLine("Shuffling the left agent helped! internal before=" + internalConflictCountBefore + " internal after=" + internalConflictCountAfter +
-                                            " external before=" + externalConflictCountBefore + " external after=" + externalConflictCountAfter);
-                            currentNode.Print();
-                        }
+                        Debug.WriteLine($"Shuffling the left agent helped! " +
+                                        $"internal before={internalConflictCountBefore} " +
+                                        $"internal after={internalConflictCountAfter} " +
+                                        $"external before={externalConflictCountBefore} " +
+                                        $"external after={externalConflictCountAfter}");
+                        currentNode.DebugPrint();
                     }
                     if (currentNode.GetConflict() == null ||
                         currentNode.GetConflict().Equals(lastConflict) == false) // Shuffling can help even without changing the conflict, by resolving unselected conflicts
                     {
-                        if (debug)
-                        {
-                            Debug.WriteLine("Conflict changed - restarting shuffle");
-                            //currentNode.Print();
-                        }
+                        Debug.WriteLine("Conflict changed - restarting shuffle");
+                        //currentNode.Print();
                         conflictChanged = true;
                         continue;
                     }
@@ -874,8 +864,7 @@ namespace CPF_experiment
                 }
                 else
                 {
-                    if (debug)
-                        Debug.WriteLine("Skipping shuffling of first agent - it was just replanned, merged or reshuffled");
+                    Debug.WriteLine("Skipping shuffling of first agent - it was just replanned, merged or reshuffled");
                 }
 
 
@@ -905,11 +894,8 @@ namespace CPF_experiment
                     )
                    )
                 {
-                    if (debug)
-                    {
-                        Debug.WriteLine("");
-                        Debug.WriteLine("Shuffling the second agent...");
-                    }
+                    Debug.WriteLine("");
+                    Debug.WriteLine("Shuffling the second agent...");
 
                     conflict = currentNode.GetConflict();
                     groupRepresentative = currentNode.agentsGroupAssignment[conflict.agentBIndex];
@@ -929,42 +915,41 @@ namespace CPF_experiment
                     if ((internalConflictCountAfter > internalConflictCountBefore) ||
                         (internalConflictCountAfter == internalConflictCountBefore) && (externalConflictCountAfter >= externalConflictCountBefore))
                     {
-                        if (debug)
-                            Debug.WriteLine("Shuffling the second agent didn't help: internal before=" + internalConflictCountBefore + " internal after=" + internalConflictCountAfter +
-                                            " external before=" + externalConflictCountBefore + " external after=" + externalConflictCountAfter);
+                        Debug.WriteLine($"Shuffling the second agent didn't help: " +
+                                        $"internal before={internalConflictCountBefore} " +
+                                        $"internal after={internalConflictCountAfter} " +
+                                        $"external before={externalConflictCountBefore} " +
+                                        $"external after={externalConflictCountAfter}");
                     }
                     else
                     {
-                        if (debug)
-                        {
-                            Debug.WriteLine("Shuffling the second agent helped! internal before=" + internalConflictCountBefore + " internal after=" + internalConflictCountAfter +
-                                            " external before=" + externalConflictCountBefore + " external after=" + externalConflictCountAfter);
-                            currentNode.Print();
-                        }
+                        Debug.WriteLine($"Shuffling the second agent helped! " +
+                                        $"internal before={internalConflictCountBefore} " +
+                                        $"internal after={internalConflictCountAfter} " +
+                                        $"external before={externalConflictCountBefore} " +
+                                        $"external after={externalConflictCountAfter}");
+                        currentNode.DebugPrint();
                     }
 
                 }
                 else
                 {
-                    if (debug)
-                        Debug.WriteLine("Skipping shuffling of second agent - it was just replanned, merged or reshuffled and the first agent's shuffle didn't change the first agent's plan"); // So the second agent will see the exact same CAT
+                    Debug.WriteLine("Skipping shuffling of second agent - it was just replanned, " +
+                                    "merged or reshuffled and the first agent's shuffle didn't " +
+                                    "change the first agent's plan"); // So the second agent will see the exact same CAT
                 }
 
                 if (currentNode.GetConflict() == null ||
                     currentNode.GetConflict().Equals(lastConflict) == false)
                 {
-                    if (debug)
-                    {
-                        Debug.WriteLine("Conflict changed - restarting shuffle");
-                        //currentNode.Print();
-                    }
+                    Debug.WriteLine("Conflict changed - restarting shuffle");
+                    //currentNode.Print();
                     conflictChanged = true;
                     continue;
                 }
                 else
                 {
-                    if (debug)
-                        Debug.WriteLine("Still the exact same conflict - stop shuffling");
+                    Debug.WriteLine("Still the exact same conflict - stop shuffling");
                     break;
                 }
             }
@@ -1121,11 +1106,8 @@ namespace CPF_experiment
                     var lookAheadSameCostNodesToReinsertWithHigherCost = new HashSet<CbsNode>();
                     lookAheadOpenList.Add(node);
 
-                    if (debug)
-                    {
-                        if (lookAheadOpenList.Count != 0)
-                            Debug.Print("Starting lookahead:");
-                    }
+                    if (lookAheadOpenList.Count != 0)
+                        Debug.Print("Starting lookahead:");
                     IList<CbsNode> lookAheadChildren;
                     bool lookAheadReinsertParent;
                     bool adopted = false;
@@ -1134,8 +1116,7 @@ namespace CPF_experiment
                     {
                         if (expansions + 1 > this.lookaheadMaxExpansions) // + 1 because we're checking before the coming expansion. lookaheadMaxExpansions = 1 is the minimum working value.
                         {
-                            if (debug)
-                                Debug.WriteLine("Lookahead count exceeded. Stopping lookahead.");
+                            Debug.WriteLine("Lookahead count exceeded. Stopping lookahead.");
                             break;
                         }
 
@@ -1145,8 +1126,7 @@ namespace CPF_experiment
                         CbsNode lookAheadNode = (CbsNode)lookAheadOpenList.Remove();
                         lookAheadNode.ChooseConflict();
 
-                        if (debug)
-                            Debug.WriteLine("Looking ahead from node hash: " + lookAheadNode.GetHashCode() + ".");
+                        Debug.WriteLine($"Looking ahead from node hash: {lookAheadNode.GetHashCode()}.");
 
                         adopted = this.ExpandImpl(lookAheadNode, adopt: true,
                                                   children: out lookAheadChildren,
@@ -1180,9 +1160,8 @@ namespace CPF_experiment
                         }
                     }
 
-                    if (debug)
-                        if (adopted == false && lookAheadOpenList.Count == 0)
-                            Debug.WriteLine("Lookahead exhausted all same cost nodes.");
+                    if (adopted == false && lookAheadOpenList.Count == 0)
+                        Debug.WriteLine("Lookahead exhausted all same cost nodes.");
 
                     if (adopted && adoptionPerformedBefore == false)
                     {
@@ -1192,8 +1171,7 @@ namespace CPF_experiment
 
                     if (node.GoalTest()) // Lookahead found an admissable solution! (The original node to expand wasn't a goal)
                     {
-                        if (debug)
-                            Debug.WriteLine("Goal found with same cost - stopping lookahead.");
+                        Debug.WriteLine("Goal found with same cost - stopping lookahead.");
                         this.openList.Add(node);
                         return;
                     }
@@ -1253,19 +1231,15 @@ namespace CPF_experiment
                 lookAheadOpenList.Add(node);
                 node.parentAlreadyLookedAheadOf = true;
 
-                if (debug)
-                {
-                    if (lookAheadOpenList.Count != 0)
-                        Debug.Print("Starting lookahead:");
-                }
+                if (lookAheadOpenList.Count != 0)
+                    Debug.Print("Starting lookahead:");
                 IList<CbsNode> lookAheadChildren;
                 bool lookAheadReinsertParent;
                 while (lookAheadOpenList.Count != 0)
                 {
                     if (lookAheadSameCostNodes.Count + 1 >= this.lookaheadMaxExpansions) // + 1 for the root
                     {
-                        if (debug)
-                            Debug.WriteLine("Lookahead count exceeded. Stopping lookahead.");
+                        Debug.WriteLine("Lookahead count exceeded. Stopping lookahead.");
                         break;
                     }
 
@@ -1275,8 +1249,7 @@ namespace CPF_experiment
                     if (runner.ElapsedMilliseconds() > Constants.MAX_TIME)
                         return;
 
-                    if (debug)
-                        Debug.WriteLine("Looking ahead from node hash: " + lookAheadNode.GetHashCode() + ".");
+                    Debug.WriteLine($"Looking ahead from node hash: {lookAheadNode.GetHashCode()}.");
 
                     this.ExpandImpl(lookAheadNode, false, out lookAheadChildren, out lookAheadReinsertParent); // Ignoring return val since we're explicitly not allowing adoption
 
@@ -1291,8 +1264,7 @@ namespace CPF_experiment
                         {
                             if (child.GoalTest()) // Lookahead found an admissable solution!
                             {
-                                if (debug)
-                                    Debug.WriteLine("Goal found with same cost - stopping lookahead.");
+                                Debug.WriteLine("Goal found with same cost - stopping lookahead.");
                                 this.openList.Add(child); // Technically should have just breaked and let node adopt child. This is just a short-cut.
                                 this.bypasses++; // Just a technicality needed to make the adoption count not lower than if we didn't use immediate adoption. You could say we adopt the goal's solution.
                                 return;
@@ -1464,8 +1436,7 @@ namespace CPF_experiment
 
                     if (node.GoalTest()) // Adoption found an admissable solution! (The original node to expand wasn't a goal)
                     {
-                        if (debug)
-                            Debug.WriteLine("Bypass found a goal! Inserting it into OPEN.");
+                        Debug.WriteLine("Bypass found a goal! Inserting it into OPEN.");
                         this.openList.Add(node);
                         return;
                     }
@@ -1503,15 +1474,13 @@ namespace CPF_experiment
 
                 if (node.CyclePotentiallyCardinalUntriedConflicts(conflictsProcessed) == false)
                 {
-                    if (this.debug)
-                        Debug.WriteLine("This was a non-cardinal conflict but there aren't more " +
-                                        "promising conflicts to try. Inserting the generated children into OPEN.");
+                    Debug.WriteLine("This was a non-cardinal conflict but there aren't more " +
+                                    "promising conflicts to try. Inserting the generated children into OPEN.");
                     break; // Look no further
                 }
                 else
                 {
-                    if (this.debug)
-                        Debug.WriteLine($"This was a non-cardinal conflict. Trying potentially-cardinal conflict: {node.conflict}");
+                    Debug.WriteLine($"This was a non-cardinal conflict. Trying potentially-cardinal conflict: {node.conflict}");
                 }
 
                 // Prepare to restart the loop
@@ -1560,9 +1529,8 @@ namespace CPF_experiment
 
         public virtual void Expand(CbsNode node)
         {
-            if (debug)
-                if (this.bypassStrategy == BypassStrategy.BEST_FIT_LOOKAHEAD && node.parentAlreadyLookedAheadOf)
-                    Debug.Print("Not looking ahead from this node, one of its ancestors of the same cost was already looked ahead of");
+            if (this.bypassStrategy == BypassStrategy.BEST_FIT_LOOKAHEAD && node.parentAlreadyLookedAheadOf)
+                Debug.Print("Not looking ahead from this node, one of its ancestors of the same cost was already looked ahead of");
 
             if (this.conflictChoice == ConflictChoice.FIRST || this.conflictChoice == ConflictChoice.MOST_CONFLICTING) // Then just choose a conflict once and stick with it.
             {
@@ -1638,20 +1606,16 @@ namespace CPF_experiment
             CbsNode child = new CbsNode(node, node.agentsGroupAssignment[conflict.agentAIndex], node.agentsGroupAssignment[conflict.agentBIndex]);
             if (closedList.ContainsKey(child) == false) // We may have already merged these agents in the parent
             {
-                if (debug)
-                    Debug.WriteLine("Merging agents {0} and {1}", conflict.agentAIndex, conflict.agentBIndex);
+                Debug.WriteLine("Merging agents {0} and {1}", conflict.agentAIndex, conflict.agentBIndex);
                 bool success = child.Replan(conflict.agentAIndex, this.minDepth); // or agentBIndex. Doesn't matter - they're in the same group.
 
                 if (success == false) // A timeout probably occured
                     return null;
 
-                if (debug)
-                {
-                    Debug.WriteLine("Child hash: " + child.GetHashCode());
-                    Debug.WriteLine("Child cost: " + child.totalCost);
-                    Debug.WriteLine("Child min ops to solve: " + child.minOpsToSolve);
-                    Debug.WriteLine("");
-                }
+                Debug.WriteLine($"Child hash: {child.GetHashCode()}");
+                Debug.WriteLine($"Child cost: {child.totalCost}");
+                Debug.WriteLine($"Child min ops to solve: {child.minOpsToSolve}");
+                Debug.WriteLine("");
 
                 this.maxSizeGroup = Math.Max(this.maxSizeGroup, child.replanSize);
 
@@ -1719,8 +1683,7 @@ namespace CPF_experiment
                 if (otherChildExpansionsState == CbsNode.ExpansionState.DEFERRED)
                         throw new Exception("Unexpected: Expansion of both children deffered, but this is a vertex conflict so that means the targets for the two agents are equal, which is illegal");
 
-                if (debug)
-                    Debug.WriteLine("Skipping " + agentSide + " child for now");
+                Debug.WriteLine($"Skipping {agentSide} child for now");
                 if (doLeftChild)
                     node.agentAExpansion = CbsNode.ExpansionState.DEFERRED;
 	            else
@@ -1748,8 +1711,7 @@ namespace CPF_experiment
             else if (expansionsState != CbsNode.ExpansionState.EXPANDED)
             // Agent expansion already skipped in the past or not forcing it from its goal - finally generate the child:
             {
-                if (debug)
-                    Debug.WriteLine("Generating " + agentSide +" child");
+                Debug.WriteLine($"Generating {agentSide} child");
 
                 if (doLeftChild)
                     node.agentAExpansion = CbsNode.ExpansionState.EXPANDED;
@@ -1791,12 +1753,12 @@ namespace CPF_experiment
 
                     if (child.totalCost < node.totalCost && groupSize == 1) // Catch the error early
                     {
-                        child.Print();
+                        child.DebugPrint();
                         Debug.WriteLine("Child plan: (cost {0})", child.allSingleAgentCosts[conflictingAgentIndex]);
                         child.allSingleAgentPlans[conflictingAgentIndex].PrintPlan();
                         Debug.WriteLine("Parent plan: (cost {0})", node.allSingleAgentCosts[conflictingAgentIndex]);
                         node.allSingleAgentPlans[conflictingAgentIndex].PrintPlan();
-                        Debug.Assert(false, "Single agent node with lower cost than parent! " + child.totalCost + " < " + node.totalCost);
+                        Debug.Assert(false, $"Single agent node with lower cost than parent! {child.totalCost} < {node.totalCost}");
                     }
 
                     return child;
@@ -1805,14 +1767,12 @@ namespace CPF_experiment
                 {
                     this.closedListHits++;
                     closedListHitChildCost = this.closedList[child].totalCost;
-                    if (debug)
-                        Debug.WriteLine("Child already in closed list!");
+                    Debug.WriteLine("Child already in closed list!");
                 }
             }
             else
             {
-                if (debug)
-                    Debug.WriteLine("Child already generated before");
+                Debug.WriteLine("Child already generated before");
             }
 
             return null;
@@ -1820,8 +1780,7 @@ namespace CPF_experiment
 
         protected bool AdoptConditionally(CbsNode node, CbsNode adoptionCandidate, ushort nodeOrigH)
         {
-            if (debug)
-                Debug.WriteLine("Considering adoption of node hash: " + adoptionCandidate.GetHashCode() + ".");
+            Debug.WriteLine($"Considering adoption of node hash: {adoptionCandidate.GetHashCode()}.");
 
             if (adoptionCandidate.totalCost == node.totalCost && // No need to branch :)
                 adoptionCandidate.CompareToIgnoreH(node, true) == -1
@@ -1832,16 +1791,12 @@ namespace CPF_experiment
                 node.AdoptSolutionOf(adoptionCandidate);
                 node.h = nodeOrigH; // Cancel partial expansion h boost
 
-                if (debug)
-                {
-                    Debug.WriteLine("Child has same cost as parent and a better solution - child solution adopted by parent! (other generated children and partial expansions cancelled)");
-                    Debug.WriteLine("Node new details:");
-                    node.Print();
-                }
+                Debug.WriteLine("Child has same cost as parent and a better solution - child solution adopted by parent! (other generated children and partial expansions cancelled)");
+                Debug.WriteLine("Node new details:");
+                node.DebugPrint();
                 return true;
             }
-            if (debug)
-                Debug.WriteLine("Did not adopt.");
+            Debug.WriteLine("Did not adopt.");
             return false;
         }
 

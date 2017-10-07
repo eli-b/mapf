@@ -56,7 +56,7 @@ namespace CPF_experiment
 
         public override string ToString()
         {
-            return "DynamicRationalLazyOpenList/" + this.expensive;
+            return $"DynamicRationalLazyOpenList/{this.expensive}";
         }
 
         bool runOracle = true;
@@ -300,16 +300,16 @@ namespace CPF_experiment
         {
             base.OutputStatisticsHeader(output);
 
-            output.Write(this.ToString() + " Skips");
+            output.Write($"{this} Skips");
             output.Write(Run.RESULTS_DELIMITER);
-            output.Write(this.ToString() + " Average Texpand (ms)");
+            output.Write($"{this} Average Texpand (ms)");
             output.Write(Run.RESULTS_DELIMITER);
 
             for (int i = 0; i < NUM_CAPS; ++i)
             {
-                output.Write(this.ToString() + " Ph(2**" + i + " microseconds)");
+                output.Write($"{this} Ph(2**{i} microseconds)");
                 output.Write(Run.RESULTS_DELIMITER);
-                output.Write(this.ToString() + " 2**" + i + " microseconds cap uses)");
+                output.Write($"{this} 2**{i} microseconds cap uses)");
                 output.Write(Run.RESULTS_DELIMITER);
             }
 

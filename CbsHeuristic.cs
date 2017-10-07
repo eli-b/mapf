@@ -148,9 +148,10 @@ namespace CPF_experiment
                                         // and a no solution failure may theoretically be possible too.
                 return this.cbs.GetHeuristic().h(s);
 
-            Debug.Assert(this.cbs.totalCost >= s.g, "CBS total cost " + this.cbs.totalCost + " is smaller than starting problem's initial cost " + s.g + "."); // = is allowed since even though this isn't a goal node (otherwise this function won't be called),
-                                                                                                                                                               // a non-goal node can have h==0 if a minimum depth is specified, and all agents have reached their
-                                                                                                                                                               // goal in this node, but the depth isn't large enough.
+            Debug.Assert(this.cbs.totalCost >= s.g,
+                         $"CBS total cost {this.cbs.totalCost} is smaller than starting problem's initial cost {s.g}."); // = is allowed since even though this isn't a goal node (otherwise this function won't be called),
+                                                                                                                         // a non-goal node can have h==0 if a minimum depth is specified, and all agents have reached their
+                                                                                                                         // goal in this node, but the depth isn't large enough.
 
             uint cbsEstimate = (uint)(this.cbs.totalCost - s.g);
             // Discounting the moves the agents did before we started solving
@@ -195,7 +196,7 @@ namespace CPF_experiment
 
         public override string ToString()
         {
-            return "CBSH(" + this.reportSolution + " " + this.minAboveSic + ")";
+            return $"CBSH({this.reportSolution} {this.minAboveSic})";
         }
 
         public virtual void OutputStatisticsHeader(TextWriter output)
@@ -374,7 +375,7 @@ namespace CPF_experiment
 
         public override string ToString()
         {
-            return "DynamicLazyCBSH(" + this.cbs + ")";
+            return $"DynamicLazyCBSH({this.cbs})";
         }
     }
 }

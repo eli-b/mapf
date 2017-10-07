@@ -38,11 +38,11 @@ namespace CPF_experiment
             ProblemInstance instance;
             try
             {
-                instance = ProblemInstance.Import(Directory.GetCurrentDirectory() + "\\Instances\\" + fileName);
+                instance = ProblemInstance.Import($"{Directory.GetCurrentDirectory()}\\Instances\\{fileName}");
             }
             catch (Exception e)
             {
-                Console.WriteLine(String.Format("Skipping bad problem instance {0}. Error: {1}", fileName, e.Message));
+                Console.WriteLine($"Skipping bad problem instance {fileName}. Error: {e.Message}");
                 return;
             }
 
@@ -72,7 +72,7 @@ namespace CPF_experiment
 
             bool continueFromLastRun = false; 
             string[] LastProblemDetails = null;
-            string currentProblemFileName = Directory.GetCurrentDirectory() + "\\Instances\\current problem-" + Process.GetCurrentProcess().ProcessName;
+            string currentProblemFileName = $"{Directory.GetCurrentDirectory()}\\Instances\\current problem-{Process.GetCurrentProcess().ProcessName}";
             if (File.Exists(currentProblemFileName)) //if we're continuing running from last time
             {
                 var lastProblemFile = new StreamReader(currentProblemFileName);
@@ -115,17 +115,17 @@ namespace CPF_experiment
                             if (runner.outOfTimeCounters.Length != 0 &&
                                 runner.outOfTimeCounters.Sum() == runner.outOfTimeCounters.Length * Constants.MAX_FAIL_COUNT) // All algs should be skipped
                                 break;
-                            instanceName = "Instance-" + gridSizes[gs] + "-" + obstaclesProbs[obs] + "-" + agentListSizes[ag] + "-" + i;
+                            instanceName = $"Instance-{gridSizes[gs]}-{obstaclesProbs[obs]}-{agentListSizes[ag]}-{i}";
                             try
                             {
-                                instance = ProblemInstance.Import(Directory.GetCurrentDirectory() + "\\Instances\\" + instanceName);
+                                instance = ProblemInstance.Import($"{Directory.GetCurrentDirectory()}\\Instances\\{instanceName}");
                                 instance.instanceId = i;
                             }
                             catch (Exception importException)
                             {
                                 if (onlyReadInstances)
                                 {
-                                    Console.WriteLine("File " + instanceName + "  dosen't exist");
+                                    Console.WriteLine($"File {instanceName}  dosen't exist");
                                     return;
                                 }
 
@@ -144,7 +144,7 @@ namespace CPF_experiment
                             lastProblemFile.Write("{0},{1},{2},{3}", gs, obs, ag, i);
                             for (int j = 0; j < runner.outOfTimeCounters.Length; j++)
                             {
-                                lastProblemFile.Write("," + runner.outOfTimeCounters[j]);
+                                lastProblemFile.Write($",{runner.outOfTimeCounters[j]}");
                             }
                             lastProblemFile.Close();
                         }
@@ -184,7 +184,7 @@ namespace CPF_experiment
             bool continueFromLastRun = false;
             string[] lineParts = null;
 
-            string currentProblemFileName = Directory.GetCurrentDirectory() + "\\Instances\\current problem-" + Process.GetCurrentProcess().ProcessName;
+            string currentProblemFileName = $"{Directory.GetCurrentDirectory()}\\Instances\\current problem-{Process.GetCurrentProcess().ProcessName}";
             if (File.Exists(currentProblemFileName)) //if we're continuing running from last time
             {
                 TextReader input = new StreamReader(currentProblemFileName);
@@ -218,16 +218,16 @@ namespace CPF_experiment
                         if (runner.outOfTimeCounters.Sum() == runner.outOfTimeCounters.Length * 20) // All algs should be skipped
                             break;
                         string mapFileName = mapFileNames[map];
-                        instanceName = Path.GetFileNameWithoutExtension(mapFileName) + "-" + agentListSizes[ag] + "-" + i;
+                        instanceName = $"{Path.GetFileNameWithoutExtension(mapFileName)}-{agentListSizes[ag]}-{i}";
                         try
                         {
-                            instance = ProblemInstance.Import(Directory.GetCurrentDirectory() + "\\Instances\\" + instanceName);
+                            instance = ProblemInstance.Import($"{Directory.GetCurrentDirectory()}\\Instances\\{instanceName}");
                         }
                         catch (Exception importException)
                         {
                             if (onlyReadInstances)
                             {
-                                Console.WriteLine("File " + instanceName + "  dosen't exist");
+                                Console.WriteLine($"File {instanceName}  dosen't exist");
                                 return;
                             }
 
@@ -245,7 +245,7 @@ namespace CPF_experiment
                         output.Write("{0},{1},{2}", ag, i, map);
                         for (int j = 0; j < runner.outOfTimeCounters.Length; j++)
                         {
-                            output.Write("," + runner.outOfTimeCounters[j]);
+                            output.Write($",{runner.outOfTimeCounters[j]}");
                         }
                         output.Close();
                     }
