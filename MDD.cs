@@ -430,9 +430,9 @@ namespace CPF_experiment
             this.coexistingNodesFromOtherMdds[mddNum] = coexistingNodes;
         }
         
-        public void setMyNode(LinkedListNode<MDDNode> me)
+        public void setMyNode(LinkedListNode<MDDNode> node)
         {
-            myNode = me;
+            this.myNode = node;
         }
         
         public int getVertexIndex()
