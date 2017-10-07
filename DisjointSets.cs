@@ -70,8 +70,8 @@ namespace CPF_experiment
                     var newItem = new DisjointSetItem();
                     entriesToItems[entry] = newItem;
                     // .parent already points to itself as needed
-                    newItem.rank = item.rank; // Since all items in a set not point directly to the set's rep,
-                                              // the set's rank would have been 1 regardless of its size had it
+                    newItem.rank = item.rank; // Since all items in a set do not point directly to the set's rep,
+                                              // the set's rank would have been 1 regardless of its size, had it
                                               // been created by calls to Union. We prefer to remember the original rank.
                     otherRepsToNewReps[item] = newItem;
                 }
@@ -128,6 +128,19 @@ namespace CPF_experiment
                 repsToSets[rep].Add(entry);
             }
             return repsToSets.Values;
+        }
+
+        public int GetNumOfSets()
+        {
+            int count = 0;
+            foreach (var entryAndSetItem in entriesToItems)
+            {
+                var entry = entryAndSetItem.Key;
+                var item = entryAndSetItem.Value;
+                if (item.parent == item)
+                    count += 1;
+            }
+            return count;
         }
 
         public override string ToString()
@@ -213,6 +226,7 @@ namespace CPF_experiment
                 yRoot.parent = xRoot;
             else
             {
+                // Arbitrarily choose x to be the root of the union
                 yRoot.parent = xRoot;
                 xRoot.rank = xRoot.rank + 1;
                 if (xRoot.rank > maxRank)
