@@ -1022,7 +1022,7 @@ namespace CPF_experiment
         public void StartOracle()
         {
             this.watch.Stop();
-            // NOTE: This allows the algorithm with the oracle solve harder problems without timing out, getting
+            // NOTE: This allows the algorithm with the oracle to solve harder problems without timing out, getting
             // a higher average timeout than running without the oracle, which isn't what we want.
             // We need to start another counter when the oracle runs and when the run successfully finishes
             // substract its count
