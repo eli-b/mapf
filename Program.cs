@@ -80,7 +80,9 @@ namespace CPF_experiment
                 lastProblemFile.Close();
                 continueFromLastRun = true;
             }
-            
+
+            string allocation = Process.GetCurrentProcess().ProcessName.Substring(1);  // When executable names are of the form "g###"
+
             for (int gs = 0; gs < gridSizes.Length; gs++)
             {
                 for (int obs = 0; obs < obstaclesProbs.Length; obs++)
@@ -92,7 +94,6 @@ namespace CPF_experiment
                             continue;
                         for (int i = 0; i < instances; i++)
                         {
-                            string allocation = Process.GetCurrentProcess().ProcessName.Substring(1);
                             //if (i % 33 != Convert.ToInt32(allocation)) // grids!
                             //    continue;
 
@@ -325,27 +326,27 @@ namespace CPF_experiment
 
             int instances = 99;
 
-            bool runGrids = false;
-            bool runDragonAge = true;
+            bool runGrids = true;
+            bool runDragonAge = false;
             bool runMazesWidth1 = false;
             bool runSpecific = false;
 
             if (runGrids == true)
             {
-                int[] gridSizes = new int[] { 8, };
+                //int[] gridSizes = new int[] { 8, };
                 //int[] agentListSizes = new int[] { 2, 3, 4 };
                 
                 //int[] gridSizes = new int[] { 6, };
-                int[] agentListSizes = new int[] { /*2,*/ 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32 };
+                //int[] agentListSizes = new int[] { /*2,*/ 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32 };
                 // Note that success rate drops almost to zero for EPEA* and A*+OD/SIC on 40 agents.
             
-                //int[] gridSizes = new int[] { 32, };
-                //int[] agentListSizes = new int[] { /*5, 10, 15, 20, 25, 30, 35,*/ 40, /*45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100, 105, 110, 115, 120, 125, 130, 135, 140, 145, 150*/ };
-                //int[] agentListSizes = new int[] { 10, 20, 30, 40, 50, 60 };
+                int[] gridSizes = new int[] { 20, };
+                //int[] agentListSizes = new int[] { 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, /*60, 65, 70, 75, 80, 85, 90, 95, 100, 105, 110, 115, 120, 125, 130, 135, 140, 145, 150*/ };
+                int[] agentListSizes = new int[] { 40, 60, 80, 100 };
 
                 //int[] obstaclesPercents = new int[] { 20, };
                 //int[] obstaclesPercents = new int[] { /*0, 5, 10, 15, 20, 25, 30, 35, */20, 30, 40};
-                int[] obstaclesPercents = new int[] { 0, /*5, 10,*/ /*15,*/ /*20, 25, 30, 35, 20, 30, 40*/ };
+                int[] obstaclesPercents = new int[] { /*0, 5, 10,*/ 15, /*20, 25, 30, 35, 20, 30, 40*/ };
                 me.RunExperimentSet(gridSizes, agentListSizes, obstaclesPercents, instances);
             }
             else if (runDragonAge == true)
