@@ -224,6 +224,21 @@ namespace CPF_experiment
             }
         }
 
+        public override string ToString()
+        {
+            string s = "";
+            foreach (List<Move> locationsAtTime in this.locationsAtTimes)
+            {
+                s += "";
+                foreach (Move aMove in locationsAtTime)
+                {
+                    s += $"{aMove}|";
+                }
+                s += "\n";
+            }
+            return s;
+        }
+
         public HashSet<TimedMove> AddPlanToHashSet(HashSet<TimedMove> addTo, int until)
         {
             for (int i = 1; i <= until; i++)
@@ -421,13 +436,11 @@ namespace CPF_experiment
         /// Prints the plan to the Console. 
         /// This is used for debugging purposes.
         /// </summary>
-        public void PrintPlan()
+        public void DebugPrint()
         {
             for (int time = 0; time < this.locationAtTimes.Count; time++)
             {
-                Console.Write("|");
-                Console.Write(this.GetLocationAt(time).ToString() + "|");
-                Console.WriteLine();
+                Debug.WriteLine($"|{this.GetLocationAt(time)}|");
             }
         }
 
@@ -436,7 +449,7 @@ namespace CPF_experiment
             string s = "";
             for (int time = 0; time < this.locationAtTimes.Count; time++)
             {
-                s += "|" + this.GetLocationAt(time).ToString() + "|\n";
+                s += $"|{this.GetLocationAt(time)}|\n";
             }
             return s;
         }

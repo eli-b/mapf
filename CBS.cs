@@ -1767,9 +1767,9 @@ namespace CPF_experiment
                     {
                         child.DebugPrint();
                         Debug.WriteLine("Child plan: (cost {0})", child.allSingleAgentCosts[conflictingAgentIndex]);
-                        child.allSingleAgentPlans[conflictingAgentIndex].PrintPlan();
+                        child.allSingleAgentPlans[conflictingAgentIndex].DebugPrint();
                         Debug.WriteLine("Parent plan: (cost {0})", node.allSingleAgentCosts[conflictingAgentIndex]);
-                        node.allSingleAgentPlans[conflictingAgentIndex].PrintPlan();
+                        node.allSingleAgentPlans[conflictingAgentIndex].DebugPrint();
                         Debug.Assert(false, $"Single agent node with lower cost than parent! {child.totalCost} < {node.totalCost}");
                     }
 

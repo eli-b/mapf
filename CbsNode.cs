@@ -603,7 +603,7 @@ namespace CPF_experiment
             }
             var plan = this.CalculateJointPlan();
             if (plan.GetSize() < 200)
-                plan.PrintPlan();
+                Debug.WriteLine(plan);
             else
                 Debug.WriteLine("Plan is too long to print");
             Debug.WriteLine("");
