@@ -259,38 +259,38 @@ namespace CPF_experiment
             return mddNum;
         }
 
-        public void printMDD()
+        public void DebugPrint()
         {
-            Console.WriteLine($"MDD for agent {this.agentNum}, {this.levels.Length} steps, cost {this.cost}:");
+            Debug.WriteLine($"MDD for agent {this.agentNum}, {this.levels.Length} steps, cost {this.cost}:");
             for (int j = 0; j < levels.Count(); j++)
             {
-                Console.WriteLine($"Level {j}, {levels[j].Count} nodes:");
+                Debug.WriteLine($"Level {j}, {levels[j].Count} nodes:");
                 foreach (MDDNode node in levels[j])
                 {
-                    Console.Write($"Node {node}");
-                    Console.Write(" children: ");
+                    Debug.Write($"Node {node}");
+                    Debug.Write(" children: ");
                     foreach (MDDNode child in node.children)
                     {
-                        Console.Write($"{child}, ");
+                        Debug.Write($"{child}, ");
                     }
-                    Console.Write(" parents: ");
+                    Debug.Write(" parents: ");
                     foreach (MDDNode parent in node.parents)
                     {
-                        Console.Write($"{parent}, ");
+                        Debug.Write($"{parent}, ");
                     }
-                    Console.Write(" coexist: ");
+                    Debug.Write(" coexist: ");
                     int i = 0;
                     foreach (HashSet<MDDNode> coexistingNodesFromOtherMdds in node.coexistingNodesFromOtherMdds)
                     {
-                        Console.Write($" for agents - {i++}");
+                        Debug.Write($" for agents - {i++}");
                         foreach (MDDNode coexistingNode in coexistingNodesFromOtherMdds)
                         {
-                            Console.Write($"{coexistingNode}) ");
+                            Debug.Write($"{coexistingNode}) ");
                         }
                     }
                 }
             }
-            Console.WriteLine("------");
+            Debug.WriteLine("------");
         }
 
     }
