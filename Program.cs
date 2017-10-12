@@ -83,14 +83,14 @@ namespace CPF_experiment
 
             string allocation = Process.GetCurrentProcess().ProcessName.Substring(1);  // When executable names are of the form "g###"
 
-            for (int gs = 0; gs < gridSizes.Length; gs++)
+            for (int gridSizeIndex = 0; gridSizeIndex < gridSizes.Length; gridSizeIndex++)
             {
-                for (int obs = 0; obs < obstaclesProbs.Length; obs++)
+                for (int obstaclePercentageIndex = 0; obstaclePercentageIndex < obstaclesProbs.Length; obstaclePercentageIndex++)
                 {
                     runner.ResetOutOfTimeCounters();
-                    for (int ag = 0; ag < agentListSizes.Length; ag++)
+                    for (int numOfAgentsIndex = 0; numOfAgentsIndex < agentListSizes.Length; numOfAgentsIndex++)
                     {
-                        if (gridSizes[gs] * gridSizes[gs] * (1 - obstaclesProbs[obs] / 100) < agentListSizes[ag]) // Probably not enough room for all agents
+                        if (gridSizes[gridSizeIndex] * gridSizes[gridSizeIndex] * (1 - obstaclesProbs[obstaclePercentageIndex] / 100) < agentListSizes[numOfAgentsIndex]) // Probably not enough room for all agents
                             continue;
                         for (int i = 0; i < instances; i++)
                         {
@@ -102,9 +102,9 @@ namespace CPF_experiment
 
                             if (continueFromLastRun)  //set the latest problem
                             {
-                                gs = int.Parse(LastProblemDetails[0]);
-                                obs = int.Parse(LastProblemDetails[1]);
-                                ag = int.Parse(LastProblemDetails[2]);
+                                gridSizeIndex = int.Parse(LastProblemDetails[0]);
+                                obstaclePercentageIndex = int.Parse(LastProblemDetails[1]);
+                                numOfAgentsIndex = int.Parse(LastProblemDetails[2]);
                                 i = int.Parse(LastProblemDetails[3]);
                                 for (int j = 4; j < LastProblemDetails.Length; j++)
                                 {
@@ -116,7 +116,7 @@ namespace CPF_experiment
                             if (runner.outOfTimeCounters.Length != 0 &&
                                 runner.outOfTimeCounters.Sum() == runner.outOfTimeCounters.Length * Constants.MAX_FAIL_COUNT) // All algs should be skipped
                                 break;
-                            instanceName = $"Instance-{gridSizes[gs]}-{obstaclesProbs[obs]}-{agentListSizes[ag]}-{i}";
+                            instanceName = $"Instance-{gridSizes[gridSizeIndex]}-{obstaclesProbs[obstaclePercentageIndex]}-{agentListSizes[numOfAgentsIndex]}-{i}";
                             try
                             {
                                 instance = ProblemInstance.Import($"{Directory.GetCurrentDirectory()}\\Instances\\{instanceName}");
@@ -130,7 +130,7 @@ namespace CPF_experiment
                                     return;
                                 }
 
-                                instance = runner.GenerateProblemInstance(gridSizes[gs], agentListSizes[ag], obstaclesProbs[obs] * gridSizes[gs] * gridSizes[gs] / 100);
+                                instance = runner.GenerateProblemInstance(gridSizes[gridSizeIndex], agentListSizes[numOfAgentsIndex], obstaclesProbs[obstaclePercentageIndex] * gridSizes[gridSizeIndex] * gridSizes[gridSizeIndex] / 100);
                                 instance.ComputeSingleAgentShortestPaths(); // REMOVE FOR GENERATOR
                                 instance.instanceId = i;
                                 instance.Export(instanceName);
@@ -191,7 +191,7 @@ namespace CPF_experiment
                                     }
                                 }
                             }
-                            lastProblemFile.Write("{0},{1},{2},{3}", gs, obs, ag, i);
+                            lastProblemFile.Write("{0},{1},{2},{3}", gridSizeIndex, obstaclePercentageIndex, numOfAgentsIndex, i);
                             for (int j = 0; j < runner.outOfTimeCounters.Length; j++)
                             {
                                 lastProblemFile.Write($",{runner.outOfTimeCounters[j]}");
