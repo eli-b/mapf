@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 
 namespace CPF_experiment
@@ -8,6 +9,7 @@ namespace CPF_experiment
     // <summary>
     // This class represents a union of HashSets.
     // </summary>
+    [DebuggerDisplay("count =  {Count}")]
     [Serializable]
     public class HashSet_U<T> : ICollection<T>
     {
