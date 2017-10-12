@@ -1472,7 +1472,8 @@ namespace CPF_experiment
                 else
                 { 
                     // This wasn't a cardinal conflict
-                    Debug.Assert(node.conflict.mddPredictedCardinal == false, "MDD predicted this would be a cardinal conflict but it isn't");
+                    Debug.Assert(children.Count == 0 ||  // A timeout probably occured
+                                 node.conflict.mddPredictedCardinal == false, "MDD predicted this would be a cardinal conflict but it isn't");
                 }
 
                 if (children.Any(child => child.GoalTest() && child.totalCost == node.totalCost)) // Admissable goal found (and adoption isn't enabled, otherwise the goal would have been adopted above)
