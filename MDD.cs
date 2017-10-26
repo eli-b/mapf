@@ -13,6 +13,7 @@ namespace CPF_experiment
         public LinkedList<MDDNode>[] levels;
         private int agentNum;
         private int mddNum;
+        private int numOfAgents;
         /// <summary>
         /// Just for printing the node
         /// </summary>
@@ -47,10 +48,10 @@ namespace CPF_experiment
             this.problem = instance;
             this.mddNum = mddNum;
             this.agentNum = agentNum;
+            this.numOfAgents = numOfAgents;
             this.cost = cost;
             this.levels = new LinkedList<MDDNode>[numOfLevels + 1];
             this.supportPruning = supportPruning;
-
             if (ignoreConstraints == false && instance.parameters.ContainsKey(CBS_LocalConflicts.CONSTRAINTS) &&
                     ((HashSet_U<CbsConstraint>)instance.parameters[CBS_LocalConflicts.CONSTRAINTS]).Count != 0)
             {
@@ -82,13 +83,13 @@ namespace CPF_experiment
             {
                 levels[i] = new LinkedList<MDDNode>();
             }
-            MDDNode root = new MDDNode(new TimedMove(start_pos, 0) , numOfAgents, this, supportPruning); // Root
+            MDDNode root = new MDDNode(new TimedMove(start_pos, 0), numOfAgents, this, supportPruning); // Root
             LinkedListNode<MDDNode> llNode = new LinkedListNode<MDDNode>(root);
             root.setMyNode(llNode);
             llNode.Value.startOrGoal = true;
             levels[0].AddFirst(llNode);
 
-            for (int i = 0; i < numOfLevels ; i++) // For each level, populate the _next_ level
+            for (int i = 0; i < numOfLevels; i++) // For each level, populate the _next_ level
             {
                 int heuristicBound = cost - i - 1; // We want g+h <= cost, so h <= cost-g. -1 because it's the bound of the _children_.
                 if (heuristicBound < 0)
@@ -131,12 +132,96 @@ namespace CPF_experiment
             {
                 remove.delete();
             }
-            
+
             // Make sure the goal was reached - imperfect heuristics, constraints or illegal moves can cause this to be false.
             if (levels[numOfLevels].Count == 0) // No possible route to goal was found
                 levels = null;
         }
+        public MDD() { }
+        public MDD generateMDDWithoutNewConstraintNode(CbsConstraint newConstraint)
+        {
+            //if (this.levels == null || this.levels.Count() == 0 || this.levels[0].Count == 0)
+            //    return null;
+            MDD newMDD = new MDD();
+            newMDD.problem = this.problem;
+            newMDD.mddNum = this.mddNum;
+            newMDD.agentNum = this.agentNum;
+            newMDD.numOfAgents = this.numOfAgents;
+            newMDD.cost = this.cost;
+            newMDD.supportPruning = this.supportPruning;
+            newMDD.queryConstraint = this.queryConstraint; // not sure
+            newMDD.constraints = this.constraints; // not sure
+            newMDD.mustConstraints = this.mustConstraints; // not sure
+            int numOfLevels = this.levels.Count() - 1;
+            newMDD.levels = new LinkedList<MDDNode>[numOfLevels + 1];
+            for (int i = 0; i <= numOfLevels; i++)
+            {
+                newMDD.levels[i] = new LinkedList<MDDNode>();
+            }
+            MDDNode root = new MDDNode(this.levels[0].ElementAt(0).move, newMDD.numOfAgents, newMDD, newMDD.supportPruning); // Root
+            LinkedListNode<MDDNode> llNode = new LinkedListNode<MDDNode>(root);
+            root.setMyNode(llNode);
+            llNode.Value.startOrGoal = true;
+            newMDD.levels[0].AddFirst(root);
+            for (int i = 0; i < numOfLevels; i++) // For each level, populate the _next_ level
+            {
+                // Go over each MDDNode in this level
+                LinkedListNode<MDDNode> node = newMDD.levels[i].First;
+                foreach (MDDNode otherMddNode in this.levels[i]) // Since we're not deleting nodes in this method, we can use the simpler iteration method :)
+                {
+                    foreach (MDDNode otherChild in otherMddNode.children)
+                    {
+                        TimedMove move = new TimedMove(otherChild.move);
+                        MDDNode toAdd = new MDDNode(move, newMDD.numOfAgents, newMDD, newMDD.supportPruning);
+                        llNode = new LinkedListNode<MDDNode>(toAdd);
+                        toAdd.setMyNode(llNode);
+                        newMDD.levels[i + 1].AddLast(llNode);
+                        node.Value.addChild(toAdd); // forward edge
+                        toAdd.addParent(node.Value); // backward edge
+                    }
+                    node = node.Next;
+                }
+            }
 
+            foreach (MDDNode goal in newMDD.levels[numOfLevels]) // The goal may be reached in more than one direction
+            {
+                goal.startOrGoal = true;
+            }
+
+            // remove constraint nodes
+            var toDelete = new List<MDDNode>();
+            if (newConstraint.GetDirection() == Move.Direction.NO_DIRECTION) // a vertex conflict
+            {
+                foreach (MDDNode node in newMDD.levels[newConstraint.time])
+                {
+                    if (node.move.x == newConstraint.move.x && node.move.y == newConstraint.move.y)
+                        toDelete.Add(node);
+                }
+            }
+            else  // an edge conflict
+            {
+                foreach (MDDNode node in newMDD.levels[newConstraint.time])
+                {
+                    if (node.move.Equals(newConstraint.move))
+                    {
+                        toDelete.Add(node);
+                        break;
+                    }
+                }
+            }
+
+            // Remove all deleted nodes from the LinkedList levels
+            foreach (MDDNode remove in toDelete)
+            {
+                remove.delete();
+            }
+            for (int i = 0; i < newMDD.levels.Count(); i++)
+            {
+                if (newMDD.levels[i].Count == 0)
+                    return null;
+            }
+            return newMDD;
+        }
         /// <summary>
         /// Just an optimization
         /// </summary>
@@ -151,7 +236,7 @@ namespace CPF_experiment
         /// <returns>A list of relevant MDD nodes</returns>
         private List<MDDNode> GetAllChildren(MDDNode father, int heuristicBound, int numOfAgents)
         {
-            var children = new List<MDDNode>(); 
+            var children = new List<MDDNode>();
             foreach (TimedMove move in father.move.GetNextMoves())
             {
                 if (this.problem.IsValid(move) &&
@@ -293,8 +378,24 @@ namespace CPF_experiment
             Debug.WriteLine("------");
         }
 
+        public Dictionary<int, bool> getCardinality()
+        {
+            Dictionary<int, bool> cardinality = new Dictionary<int, bool>(); //int: time; bool: true for all conflicts, false only for edge conflicts.
+            for (int i = 0; i < this.levels.Count(); i++)
+            {
+                Move firstNode = levels[i].First.Value.move.GetMoveWithoutDirection();
+                if (this.levels[i].Count == 1)
+                {
+                    cardinality.Add(i, true);
+                }
+                else if (this.levels[i].All<MDDNode>(node => node.move.Equals(firstNode)))
+                {
+                    cardinality.Add(i, false);
+                }
+            }
+            return cardinality;
+        }
     }
-
     [DebuggerDisplay("{move}")]
     public class MDDNode
     {
@@ -482,4 +583,5 @@ namespace CPF_experiment
         //    return ans - 1;
         //}
     }
+
 }

@@ -313,7 +313,7 @@ namespace CPF_experiment
             Program.RESULTS_FILE_NAME = Process.GetCurrentProcess().ProcessName + ".csv";
             if (System.Diagnostics.Debugger.IsAttached)
             {
-                Constants.MAX_TIME = int.MaxValue;
+                Constants.MAX_TIME = 300000;
                 Debug.WriteLine("Debugger attached - running without a timeout!!");
             }
 
@@ -324,7 +324,7 @@ namespace CPF_experiment
 
             Program.onlyReadInstances = false;
 
-            int instances = 99;
+            int instances = 100;
 
             bool runGrids = true;
             bool runDragonAge = false;
@@ -340,13 +340,13 @@ namespace CPF_experiment
                 //int[] agentListSizes = new int[] { /*2,*/ 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32 };
                 // Note that success rate drops almost to zero for EPEA* and A*+OD/SIC on 40 agents.
             
-                int[] gridSizes = new int[] { 20, };
-                //int[] agentListSizes = new int[] { 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, /*60, 65, 70, 75, 80, 85, 90, 95, 100, 105, 110, 115, 120, 125, 130, 135, 140, 145, 150*/ };
-                int[] agentListSizes = new int[] { 40, 60, 80, 100 };
+                int[] gridSizes = new int[] { 8};
+                int[] agentListSizes = new int[] { 15, 20/*, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100, 105, 110, 115, 120, 125, 130, 135, 140, 145, 150*/ };
+                // int[] agentListSizes = new int[] { 40, 60, 80, 100 };
 
                 //int[] obstaclesPercents = new int[] { 20, };
                 //int[] obstaclesPercents = new int[] { /*0, 5, 10, 15, 20, 25, 30, 35, */20, 30, 40};
-                int[] obstaclesPercents = new int[] { /*0, 5, 10,*/ 15, /*20, 25, 30, 35, 20, 30, 40*/ };
+                int[] obstaclesPercents = new int[] { 10, 15, 20, 25, 30};
                 me.RunExperimentSet(gridSizes, agentListSizes, obstaclesPercents, instances);
             }
             else if (runDragonAge == true)

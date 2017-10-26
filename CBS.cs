@@ -105,6 +105,7 @@ namespace CPF_experiment
         public BypassStrategy bypassStrategy;
         public bool doMalte;
         public ConflictChoice conflictChoice;
+        public HValueStrategy hValueStrategy;
         public bool tieBreakForMoreConflictsOnly;
         public bool useMddH;
         /// <summary>
@@ -117,6 +118,7 @@ namespace CPF_experiment
             FIRST = 0,
             MOST_CONFLICTING_SMALLEST_AGENTS,
             CARDINAL_MDD,
+            FIRST_CARDINAL_MDD,
             CARDINAL_LOOKAHEAD,
             EXHAUSTIVE_CARDINAL_GREEDY,
             EXHAUSTIVE_CARDINAL_LAZY
@@ -127,12 +129,18 @@ namespace CPF_experiment
             FIRST_FIT_LOOKAHEAD,
             BEST_FIT_LOOKAHEAD
         }
+        public enum HValueStrategy : byte
+        {
+            NONE = 0,
+            GREEDY,
+            ACCURATE
+        }
         private bool mergeCausesRestart;
 
 
         public CBS_LocalConflicts(ICbsSolver singleAgentSolver, ICbsSolver generalSolver, int mergeThreshold = -1,
                                   bool doShuffle = false, BypassStrategy bypassStrategy = BypassStrategy.NONE, bool doMalte = false,
-                                  ConflictChoice conflictChoice = ConflictChoice.FIRST,
+                                  ConflictChoice conflictChoice = ConflictChoice.FIRST, HValueStrategy hValueStrategy = HValueStrategy.NONE,
                                   bool justbreakForConflicts = false, bool useMddHeuristic = false,
                                   int lookaheadMaxExpansions = int.MaxValue, bool mergeCausesRestart = false)
         {
@@ -145,6 +153,7 @@ namespace CPF_experiment
             this.bypassStrategy = bypassStrategy;
             this.doMalte = doMalte;
             this.conflictChoice = conflictChoice;
+            this.hValueStrategy = hValueStrategy;
             if (Constants.costFunction != Constants.CostFunction.SUM_OF_COSTS)
             {
                 Debug.Assert(conflictChoice != ConflictChoice.CARDINAL_MDD &&
@@ -290,7 +299,11 @@ namespace CPF_experiment
             if (this.mergeCausesRestart == true && mergeThreshold != -1)
                 variants += " with merge&restart";
 
-            if (mergeThreshold == -1)
+            if(this.hValueStrategy == HValueStrategy.ACCURATE)
+                return $"HCBS/{lowLevelSolvers}{variants}";
+            else if (this.hValueStrategy == HValueStrategy.GREEDY)
+                return $"Greedy HCBS/{lowLevelSolvers}{variants}";
+            else if (mergeThreshold == -1)
                 return $"CBS/{lowLevelSolvers}{variants}";
             return $"MA-CBS-Local-{mergeThreshold}/{lowLevelSolvers}{variants}";
         }
@@ -329,7 +342,7 @@ namespace CPF_experiment
             output.Write(Run.RESULTS_DELIMITER);
             output.Write(this.ToString() + " Generated (HL)");
             output.Write(Run.RESULTS_DELIMITER);
-            output.Write(this.ToString() + " Closed List Hits (HL)");
+/*            output.Write(this.ToString() + " Closed List Hits (HL)");
             output.Write(Run.RESULTS_DELIMITER);
             output.Write(this.ToString() + " Partial Expansions (HL)");
             output.Write(Run.RESULTS_DELIMITER);
@@ -350,46 +363,46 @@ namespace CPF_experiment
             output.Write(this.ToString() + " Semi-Cardinal Conflict Splits (HL)");
             output.Write(Run.RESULTS_DELIMITER);
             output.Write(this.ToString() + " Non-Cardinal Conflict Splits (HL)");
-            output.Write(Run.RESULTS_DELIMITER);
+            output.Write(Run.RESULTS_DELIMITER);*/
             output.Write(this.ToString() + " MDDs Built (HL)");
             output.Write(Run.RESULTS_DELIMITER);
-            output.Write(this.ToString() + " Nodes Pushed Back (HL)");
+/*            output.Write(this.ToString() + " Nodes Pushed Back (HL)");
             output.Write(Run.RESULTS_DELIMITER);
             output.Write(this.ToString() + " Restarts (HL)");
             output.Write(Run.RESULTS_DELIMITER);
             output.Write(this.ToString() + " Max Group Size (HL)");
-            output.Write(Run.RESULTS_DELIMITER);
+            output.Write(Run.RESULTS_DELIMITER);*/
 
-            this.solver.OutputStatisticsHeader(output);
+/*            this.solver.OutputStatisticsHeader(output);
             if (Object.ReferenceEquals(this.singleAgentSolver, this.solver) == false)
                 this.singleAgentSolver.OutputStatisticsHeader(output);
 
-            this.openList.OutputStatisticsHeader(output);
+            this.openList.OutputStatisticsHeader(output);*/
         }
 
         public virtual void OutputStatistics(TextWriter output)
         {
             Console.WriteLine("Total Expanded Nodes (High-Level): {0}", this.GetHighLevelExpanded());
             Console.WriteLine("Total Generated Nodes (High-Level): {0}", this.GetHighLevelGenerated());
-            Console.WriteLine("Closed List Hits (High-Level): {0}", this.closedListHits);
-            Console.WriteLine("Partial Expansions (High-Level): {0}", this.partialExpansions);
-            Console.WriteLine("Adoptions (High-Level): {0}", this.bypasses);
-            Console.WriteLine("Pruning successes (High-Level): {0}", this.pruningSuccesses);
-            Console.WriteLine("Pruning failures (High-Level): {0}", this.pruningFailures);
-            Console.WriteLine("Nodes expanded with goal cost (High-Level): {0}", this.nodesExpandedWithGoalCost);
-            Console.WriteLine("Look ahead nodes created (High-Level): {0}", this.lookAheadNodesCreated);
-            Console.WriteLine("Conflicts Bypassed With Adoption (High-Level): {0}", this.conflictsBypassed);
+//            Console.WriteLine("Closed List Hits (High-Level): {0}", this.closedListHits);
+//            Console.WriteLine("Partial Expansions (High-Level): {0}", this.partialExpansions);
+//            Console.WriteLine("Adoptions (High-Level): {0}", this.bypasses);
+//            Console.WriteLine("Pruning successes (High-Level): {0}", this.pruningSuccesses);
+//            Console.WriteLine("Pruning failures (High-Level): {0}", this.pruningFailures);
+//            Console.WriteLine("Nodes expanded with goal cost (High-Level): {0}", this.nodesExpandedWithGoalCost);
+//            Console.WriteLine("Look ahead nodes created (High-Level): {0}", this.lookAheadNodesCreated);
+//            Console.WriteLine("Conflicts Bypassed With Adoption (High-Level): {0}", this.conflictsBypassed);
             Console.WriteLine("Cardinal Conflicts Splits (High-Level): {0}", this.cardinalConflictSplits);
             Console.WriteLine("Semi-Cardinal Conflicts Splits (High-Level): {0}", this.semiCardinalConflictSplits);
             Console.WriteLine("Non-Cardinal Conflicts Splits (High-Level): {0}", this.nonCardinalConflictSplits);
             Console.WriteLine("MDDs Built (High-Level): {0}", this.mddsBuilt);
-            Console.WriteLine("Nodes Pushed Back (High-Level): {0}", this.nodesPushedBack);
-            Console.WriteLine("Restarts (High-Level): {0}", this.restarts);
-            Console.WriteLine("Max Group Size (High-Level): {0}", this.maxSizeGroup);
+//            Console.WriteLine("Nodes Pushed Back (High-Level): {0}", this.nodesPushedBack);
+//            Console.WriteLine("Restarts (High-Level): {0}", this.restarts);
+//            Console.WriteLine("Max Group Size (High-Level): {0}", this.maxSizeGroup);
 
             output.Write(this.highLevelExpanded + Run.RESULTS_DELIMITER);
             output.Write(this.highLevelGenerated + Run.RESULTS_DELIMITER);
-            output.Write(this.closedListHits + Run.RESULTS_DELIMITER);
+/*            output.Write(this.closedListHits + Run.RESULTS_DELIMITER);
             output.Write(this.partialExpansions + Run.RESULTS_DELIMITER);
             output.Write(this.bypasses + Run.RESULTS_DELIMITER);
             output.Write(this.pruningSuccesses + Run.RESULTS_DELIMITER);
@@ -399,17 +412,17 @@ namespace CPF_experiment
             output.Write(this.conflictsBypassed + Run.RESULTS_DELIMITER);
             output.Write(this.cardinalConflictSplits + Run.RESULTS_DELIMITER);
             output.Write(this.semiCardinalConflictSplits + Run.RESULTS_DELIMITER);
-            output.Write(this.nonCardinalConflictSplits + Run.RESULTS_DELIMITER);
+            output.Write(this.nonCardinalConflictSplits + Run.RESULTS_DELIMITER);*/
             output.Write(this.mddsBuilt + Run.RESULTS_DELIMITER);
-            output.Write(this.nodesPushedBack + Run.RESULTS_DELIMITER);
+/*            output.Write(this.nodesPushedBack + Run.RESULTS_DELIMITER);
             output.Write(this.restarts + Run.RESULTS_DELIMITER);
-            output.Write(this.maxSizeGroup + Run.RESULTS_DELIMITER);
+            output.Write(this.maxSizeGroup + Run.RESULTS_DELIMITER);*/
 
-            this.solver.OutputAccumulatedStatistics(output);
+/*            this.solver.OutputAccumulatedStatistics(output);
             if (Object.ReferenceEquals(this.singleAgentSolver, this.solver) == false)
                 this.singleAgentSolver.OutputAccumulatedStatistics(output);
 
-            this.openList.OutputStatistics(output);
+            this.openList.OutputStatistics(output);                                                             */
         }
 
         public virtual int NumStatsColumns
@@ -532,7 +545,7 @@ namespace CPF_experiment
             this.openList.OutputAccumulatedStatistics(output);
         }
 
-        public bool debug = false;
+        public bool debug = true;
         private bool equivalenceWasOn;
 
         /// <summary>
@@ -595,13 +608,18 @@ namespace CPF_experiment
                     return false;
                 }
                 var currentNode = (CbsNode)openList.Remove();
-
-                currentNode.ChooseConflict();
+                if (this.hValueStrategy == HValueStrategy.ACCURATE)
+                    currentNode.ComputeHWithMVC(); // conflict will be also chosen when computing h
+                else if (this.hValueStrategy == HValueStrategy.GREEDY)
+                    currentNode.ComputeHWithMM(); // conflict will be also chosen when computing h
+                else
+                    currentNode.ChooseConflict();
 
                 // A cardinal conflict may have been found, increasing the h of the node.
                 // Check if the node needs to be pushed back into the open list.
                 if (this.openList.Count != 0 &&
-                    currentNode.f > ((CbsNode)this.openList.Peek()).f)
+                    currentNode.CompareTo((CbsNode)this.openList.Peek()) == 1)
+//                    currentNode.f > ((CbsNode)this.openList.Peek()).f)
                 {
                     if (this.debug)
                         Debug.Print("Pushing back the node into the open list with an increased h.");
@@ -1080,7 +1098,7 @@ namespace CPF_experiment
                 else if (leftSameCost || rightSameCost)
                     this.semiCardinalConflictSplits++;
                 else
-                    this.cardinalConflictSplits++;
+                    this.cardinalConflictSplits++; 
             }
 
             return false;
@@ -1470,7 +1488,7 @@ namespace CPF_experiment
                     break; // Look no further
                 }
                 else
-                { 
+                {
                     // This wasn't a cardinal conflict
                     Debug.Assert(node.conflict.mddPredictedCardinal == false, "MDD predicted this would be a cardinal conflict but it isn't");
                 }
@@ -1532,7 +1550,8 @@ namespace CPF_experiment
                 int remainingParentH = parentH - (child.totalCost - parentCost);
                 if (child.h < remainingParentH)
                     child.h = (ushort)remainingParentH;
-
+                if (this.hValueStrategy == HValueStrategy.ACCURATE)
+                    child.h = (ushort)Math.Max(child.h, node.minimumVertexCover - 1);
                 if (child.totalCost <= this.maxCost)
                 {
                     this.highLevelGenerated++;
@@ -1855,10 +1874,10 @@ namespace CPF_experiment
 
         public CBS_GlobalConflicts(ICbsSolver singleAgentSolver, ICbsSolver generalSolver, int mergeThreshold = -1,
                                   bool doShuffle = false, BypassStrategy bypassStrategy = BypassStrategy.NONE, bool doMalte = false,
-                                  ConflictChoice conflictChoice = ConflictChoice.FIRST,
+                                  ConflictChoice conflictChoice = ConflictChoice.FIRST, HValueStrategy hValueStrategy = HValueStrategy.NONE,
                                   bool justbreakForConflicts = false, bool useMddHeuristic = false,
                                   int lookaheadMaxExpansions = int.MaxValue, bool mergeCausesRestart = false)
-            : base(singleAgentSolver, generalSolver, mergeThreshold, doShuffle, bypassStrategy, doMalte, conflictChoice,
+            : base(singleAgentSolver, generalSolver, mergeThreshold, doShuffle, bypassStrategy, doMalte, conflictChoice, hValueStrategy,
                    justbreakForConflicts, useMddHeuristic, lookaheadMaxExpansions, mergeCausesRestart)
         {
             //throw new NotImplementedException("Not supported until we decide how to count conflicts. Used to rely on the specific conflict chosen in each node.");

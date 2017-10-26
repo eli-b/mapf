@@ -7,11 +7,12 @@ using ExtensionMethods;
 
 namespace CPF_experiment
 {
-    [DebuggerDisplay("hash = {GetHashCode()}, f = {f}")]
+    [DebuggerDisplay("hash = {GetHashCode()}, g = {totalCost}, h = {h}")]
     public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem
     {
         public ushort totalCost;
         public ushort h;
+        public int minimumVertexCover;
         public SinglePlan[] allSingleAgentPlans;
         public int[] allSingleAgentCosts;
         /// <summary>
@@ -87,14 +88,16 @@ namespace CPF_experiment
         /// For tie-breaking
         /// </summary>
         public int totalConflictsBetweenInternalAgents;
-        public MDD[] mdds;
+        //public MDD[] mdds;
+        public Dictionary<int, bool>[] cardinality;
 
         public CbsNode(int numberOfAgents, ICbsSolver solver, ICbsSolver singleAgentSolver, CBS_LocalConflicts cbs, ushort[] agentsGroupAssignment = null)
         {
             this.cbs = cbs;
             allSingleAgentPlans = new SinglePlan[numberOfAgents];
             allSingleAgentCosts = new int[numberOfAgents];
-            mdds = new MDD[numberOfAgents];
+            //mdds = new MDD[numberOfAgents];
+            cardinality = new Dictionary<int, bool>[numberOfAgents];
             countsOfInternalAgentsThatConflict = new int[numberOfAgents];
             conflictCountsPerAgent = new Dictionary<int, int>[numberOfAgents]; // Populated after Solve()
             conflictTimesPerAgent = new Dictionary<int, List<int>>[numberOfAgents]; // Populated after Solve()
@@ -119,6 +122,7 @@ namespace CPF_experiment
             this.constraint = null;
             this.solver = solver;
             this.singleAgentSolver = singleAgentSolver;
+            this.minimumVertexCover = -1;
         }
 
         /// <summary>
@@ -131,8 +135,17 @@ namespace CPF_experiment
         {
             this.allSingleAgentPlans = parent.allSingleAgentPlans.ToArray<SinglePlan>();
             this.allSingleAgentCosts = parent.allSingleAgentCosts.ToArray<int>();
-            this.mdds = parent.mdds.ToArray<MDD>();
-            this.mdds[agentToReplan] = null; // This agent has a new constraint, its old MDD isn't relevant anymore.
+            //this.mdds = parent.mdds.ToArray<MDD>();
+            this.cardinality = parent.cardinality.ToArray<Dictionary<int, bool>>();
+            this.cardinality[agentToReplan] = null;
+            //this.mdds[agentToReplan] = null; // This agent has a new constraint, its old MDD isn't relevant anymore.
+            //if (this.mdds[agentToReplan] == null || parent.h > 0 || newConstraint.time >= this.mdds[agentToReplan].levels.Count())
+            //    this.mdds[agentToReplan] = null;
+            //else if (this.DoesAgentHaveNoOtherOption(agentToReplan, newConstraint))
+            //    this.mdds[agentToReplan] = null;
+            //else
+            //    this.mdds[agentToReplan] = this.mdds[agentToReplan].generateMDDWithoutNewConstraintNode(newConstraint);
+
             this.countsOfInternalAgentsThatConflict = parent.countsOfInternalAgentsThatConflict.ToArray<int>();
             this.conflictCountsPerAgent = new Dictionary<int, int>[parent.conflictCountsPerAgent.Length];
             for (int i = 0; i < this.conflictCountsPerAgent.Length; i++)
@@ -155,6 +168,7 @@ namespace CPF_experiment
             this.solver = parent.solver;
             this.singleAgentSolver = parent.singleAgentSolver;
             this.cbs = parent.cbs;
+            this.minimumVertexCover = -1;
         }
 
         /// <summary>
@@ -167,7 +181,8 @@ namespace CPF_experiment
         {
             this.allSingleAgentPlans = father.allSingleAgentPlans.ToArray<SinglePlan>();
             this.allSingleAgentCosts = father.allSingleAgentCosts.ToArray<int>();
-            this.mdds = father.mdds.ToArray<MDD>(); // No new constraint was added so all of the parent's MDDs are valid
+           // this.mdds = father.mdds.ToArray<MDD>(); // No new constraint was added so all of the parent's MDDs are valid
+            this.cardinality = father.cardinality.ToArray<Dictionary<int, bool>>();
             this.countsOfInternalAgentsThatConflict = father.countsOfInternalAgentsThatConflict.ToArray<int>();
             this.conflictCountsPerAgent = new Dictionary<int, int>[father.conflictCountsPerAgent.Length];
             for (int i = 0; i < this.conflictCountsPerAgent.Length; i++)
@@ -192,6 +207,7 @@ namespace CPF_experiment
             this.cbs = father.cbs;
             
             this.MergeGroups(mergeGroupA, mergeGroupB);
+            this.minimumVertexCover = -1;
         }
 
         public int f
@@ -770,7 +786,8 @@ namespace CPF_experiment
         public void ClearConflictChoiceData()
         {
             this.nextConflicts = null;
-            this.mdds = null;
+            //this.mdds = null;
+            this.cardinality = null;
         }
 
         /// <summary>
@@ -843,6 +860,10 @@ namespace CPF_experiment
                     Debug.Assert(false, "Non-goal node found no conflict");
                 }
                 this.conflict = this.nextConflicts.Current;
+            }
+            else if (this.cbs.conflictChoice == CBS_LocalConflicts.ConflictChoice.FIRST_CARDINAL_MDD)
+            {
+                this.ChooseFirstCardinalConflict();
             }
             else if (this.cbs.conflictChoice == CBS_LocalConflicts.ConflictChoice.CARDINAL_LOOKAHEAD)
             {
@@ -942,7 +963,233 @@ namespace CPF_experiment
             this.h = Math.Max(this.h, (ushort)disjointCardinallyConflictingAgents.GetNumOfSets());
             return this.GetConflictsCardinalFirstUsingMdd();
         }
+        /// <summary>
+        /// Compute h value with a maximum vertex cover solver
+        /// Assumes this.mergeThreshold == -1
+        /// </summary>
+        /// <returns></returns>
+        public void ComputeHWithMVC()
+        {
+            if (this.conflict != null)
+                return;
+            ConflictGraph CardinallyConflictingAgents = new ConflictGraph(this.allSingleAgentPlans.Length);
+            ISet<int>[] groups = this.GetGroups();
 
+            // Find a conflict by the way
+            bool haveCardinalConflict = false;
+            bool haveSemiCardinalConflict = false;
+            int initialTimeStep = this.cbs.GetProblemInstance().m_vAgents[0].lastMove.time;
+            foreach (var agentIndex in Enumerable.Range(0, this.allSingleAgentPlans.Length))
+            {
+                if (this.conflictTimesPerAgent[agentIndex].Count == 0)
+                    continue;  // Agent has no conflicts
+                this.buildMddForAgentWithItsCurrentCost(agentIndex);  // Does nothing if it's built already
+
+                foreach (int conflictingAgentNum in this.conflictTimesPerAgent[agentIndex].Keys)
+                {
+                    int conflictingAgentIndex = this.agentNumToIndex[conflictingAgentNum];
+                    if (conflictingAgentIndex < agentIndex) // check later
+                        continue;
+                    this.buildMddForAgentWithItsCurrentCost(conflictingAgentIndex);  // Does nothing if it's built already
+
+                    foreach (int conflictTime in this.conflictTimesPerAgent[agentIndex][conflictingAgentNum])
+                    {
+                        bool iNarrow = this.DoesAgentHaveNoOtherOption(agentIndex, conflictTime, conflictingAgentIndex, groups);
+                        bool jNarrow = this.DoesAgentHaveNoOtherOption(conflictingAgentIndex, conflictTime, agentIndex, groups);
+                        if (iNarrow && jNarrow) // Cardinal conflict
+                        {
+                            CardinallyConflictingAgents.Add(agentIndex, conflictingAgentIndex);
+                            if (!haveCardinalConflict) // this is the first cardinal conflict that we found
+                            {
+                                haveCardinalConflict = true;
+                                this.conflict = FindConflict(agentIndex, conflictingAgentIndex, conflictTime);
+                                this.conflict.mddPredictedCardinal = true;
+                            }
+                            else if (this.conflict.timeStep > conflictTime + initialTimeStep) // this cardinal conflict occurs earier than the former cardinal conflict
+                            {
+                                this.conflict = FindConflict(agentIndex, conflictingAgentIndex, conflictTime);
+                                this.conflict.mddPredictedCardinal = true;
+                            }
+                        }
+                        else if(iNarrow || jNarrow) // Semi-cardinal conflict
+                        {
+                            if(!haveCardinalConflict)
+                            {
+                                if (!haveSemiCardinalConflict) // this is the first semi-cardinal conflict that we found
+                                {
+                                    haveSemiCardinalConflict = true;
+                                    this.conflict = FindConflict(agentIndex, conflictingAgentIndex, conflictTime);
+                                }
+                                else if (this.conflict.timeStep > conflictTime + initialTimeStep) // this semi-cardinal conflict occurs earier than the former semi-cardinal conflict
+                                    this.conflict = FindConflict(agentIndex, conflictingAgentIndex, conflictTime);
+                            }
+                        }
+                        else // Non-cardinal conflict
+                        {
+                            if(!haveCardinalConflict && !haveSemiCardinalConflict)
+                            {
+                                if(this.conflict == null || this.conflict.timeStep > conflictTime + initialTimeStep)
+                                    this.conflict = FindConflict(agentIndex, conflictingAgentIndex, conflictTime);
+                            }
+                        }
+                    }
+                }
+            }
+            if (this.prev == null)
+                this.minimumVertexCover = CardinallyConflictingAgents.MaximumVertexCover();
+            else
+                this.minimumVertexCover = CardinallyConflictingAgents.MaximumVertexCover(this.prev.minimumVertexCover);
+            this.h = Math.Max(this.h, (ushort)this.minimumVertexCover);
+            return;
+        }
+        /// <summary>
+        /// Compute h value with a greedy maximal matching solver
+        /// Assumes this.mergeThreshold == -1
+        /// </summary>
+        /// <returns></returns>
+        public void ComputeHWithMM()
+        {
+            if (this.conflict != null)
+                return;
+            int MM = 0;
+            bool[] agentsChosen = new bool[this.allSingleAgentPlans.Length];
+            for (int i = 0; i < agentsChosen.Length; i++)
+                agentsChosen[i] = false;
+            ISet<int>[] groups = this.GetGroups();
+
+            // Find a conflict by the way
+            bool haveCardinalConflict = false;
+            bool haveSemiCardinalConflict = false;
+            int initialTimeStep = this.cbs.GetProblemInstance().m_vAgents[0].lastMove.time;
+            foreach (var agentIndex in Enumerable.Range(0, this.allSingleAgentPlans.Length))
+            {
+                if (this.conflictTimesPerAgent[agentIndex].Count == 0)
+                    continue;  // Agent has no conflicts
+                this.buildMddForAgentWithItsCurrentCost(agentIndex);  // Does nothing if it's built already
+
+                foreach (int conflictingAgentNum in this.conflictTimesPerAgent[agentIndex].Keys)
+                {
+                    int conflictingAgentIndex = this.agentNumToIndex[conflictingAgentNum];
+                    if (conflictingAgentIndex < agentIndex) // check later
+                        continue;
+                    this.buildMddForAgentWithItsCurrentCost(conflictingAgentIndex);  // Does nothing if it's built already
+
+                    foreach (int conflictTime in this.conflictTimesPerAgent[agentIndex][conflictingAgentNum])
+                    {
+                        bool iNarrow = this.DoesAgentHaveNoOtherOption(agentIndex, conflictTime, conflictingAgentIndex, groups);
+                        bool jNarrow = this.DoesAgentHaveNoOtherOption(conflictingAgentIndex, conflictTime, agentIndex, groups);
+                        if (iNarrow && jNarrow) // Cardinal conflict
+                        {
+                            if(!agentsChosen[agentIndex] && !agentsChosen[conflictingAgentIndex])
+                            {
+                                MM++;
+                                agentsChosen[agentIndex] = true;
+                                agentsChosen[conflictingAgentIndex] = true;
+                            }
+                            if (!haveCardinalConflict) // this is the first cardinal conflict that we found
+                            {
+                                haveCardinalConflict = true;
+                                this.conflict = FindConflict(agentIndex, conflictingAgentIndex, conflictTime);
+                                this.conflict.mddPredictedCardinal = true;
+                            }
+                            else if (this.conflict.timeStep > conflictTime + initialTimeStep) // this cardinal conflict occurs earier than the former cardinal conflict
+                            {
+                                this.conflict = FindConflict(agentIndex, conflictingAgentIndex, conflictTime);
+                                this.conflict.mddPredictedCardinal = true;
+                            }
+                         }
+                        else if (iNarrow || jNarrow) // Semi-cardinal conflict
+                        {
+                            if (!haveCardinalConflict)
+                            {
+                                if (!haveSemiCardinalConflict) // this is the first semi-cardinal conflict that we found
+                                {
+                                    haveSemiCardinalConflict = true;
+                                    this.conflict = FindConflict(agentIndex, conflictingAgentIndex, conflictTime);
+                                }
+                                else if (this.conflict.timeStep > conflictTime + initialTimeStep) // this semi-cardinal conflict occurs earier than the former semi-cardinal conflict
+                                    this.conflict = FindConflict(agentIndex, conflictingAgentIndex, conflictTime);
+                            }
+                        }
+                        else // Non-cardinal conflict
+                        {
+                            if (!haveCardinalConflict && !haveSemiCardinalConflict)
+                            {
+                                if (this.conflict == null || this.conflict.timeStep > conflictTime + initialTimeStep)
+                                    this.conflict = FindConflict(agentIndex, conflictingAgentIndex, conflictTime);
+                            }
+                        }
+                    }
+                }
+            }
+            this.h = Math.Max(this.h, (ushort)MM);
+        }
+
+        private void ChooseFirstCardinalConflict()
+        {
+            if (this.conflict != null)
+                return;
+            ISet<int>[] groups = this.GetGroups();
+
+            bool haveCardinalConflict = false;
+            bool haveSemiCardinalConflict = false;
+            int initialTimeStep = this.cbs.GetProblemInstance().m_vAgents[0].lastMove.time;
+            foreach (var agentIndex in Enumerable.Range(0, this.allSingleAgentPlans.Length))
+            {
+                if (this.conflictTimesPerAgent[agentIndex].Count == 0)
+                    continue;  // Agent has no conflicts
+                this.buildMddForAgentWithItsCurrentCost(agentIndex);  // Does nothing if it's built already
+
+                foreach (int conflictingAgentNum in this.conflictTimesPerAgent[agentIndex].Keys)
+                {
+                    int conflictingAgentIndex = this.agentNumToIndex[conflictingAgentNum];
+                    if (conflictingAgentIndex < agentIndex) // check later
+                        continue;
+                    this.buildMddForAgentWithItsCurrentCost(conflictingAgentIndex);  // Does nothing if it's built already
+
+                    foreach (int conflictTime in this.conflictTimesPerAgent[agentIndex][conflictingAgentNum])
+                    {
+                        bool iNarrow = this.DoesAgentHaveNoOtherOption(agentIndex, conflictTime, conflictingAgentIndex, groups);
+                        bool jNarrow = this.DoesAgentHaveNoOtherOption(conflictingAgentIndex, conflictTime, agentIndex, groups);
+                        if (iNarrow && jNarrow) // Cardinal conflict
+                        {
+                            if (!haveCardinalConflict) // this is the first cardinal conflict that we found
+                            {
+                                haveCardinalConflict = true;
+                                this.conflict = FindConflict(agentIndex, conflictingAgentIndex, conflictTime);
+                                this.conflict.mddPredictedCardinal = true;
+                            }
+                            else if (this.conflict.timeStep > conflictTime + initialTimeStep) // this cardinal conflict occurs earier than the former cardinal conflict
+                            {
+                                this.conflict = FindConflict(agentIndex, conflictingAgentIndex, conflictTime);
+                                this.conflict.mddPredictedCardinal = true;
+                            }
+                        }
+                        else if (iNarrow || jNarrow) // Semi-cardinal conflict
+                        {
+                            if (!haveCardinalConflict)
+                            {
+                                if (!haveSemiCardinalConflict) // this is the first semi-cardinal conflict that we found
+                                {
+                                    haveSemiCardinalConflict = true;
+                                    this.conflict = FindConflict(agentIndex, conflictingAgentIndex, conflictTime);
+                                }
+                                else if (this.conflict.timeStep > conflictTime + initialTimeStep) // this semi-cardinal conflict occurs earier than the former semi-cardinal conflict
+                                    this.conflict = FindConflict(agentIndex, conflictingAgentIndex, conflictTime);
+                            }
+                        }
+                        else // Non-cardinal conflict
+                        {
+                            if (!haveCardinalConflict && !haveSemiCardinalConflict)
+                            {
+                                if (this.conflict == null || this.conflict.timeStep > conflictTime + initialTimeStep)
+                                    this.conflict = FindConflict(agentIndex, conflictingAgentIndex, conflictTime);
+                            }
+                        }
+                    }
+                }
+            }
+        }
         /// <summary>
         /// Assumes this.mergeThreshold == -1
         /// </summary>
@@ -1049,15 +1296,17 @@ namespace CPF_experiment
                 while (AgentIndexesWaitingToCheckTheirConflictsForCardinality.Count != 0)  // Can't use foreach, we actually want to drain the queue
                 {
                     var i = AgentIndexesWaitingToCheckTheirConflictsForCardinality.Dequeue();
-                    bool hasMDD = this.mdds[i] != null;  // No need to check if its levels is null, we don't sync MDDs and we know there's a path with the current cost for the agent
+                    //bool hasMDD = this.mdds[i] != null;  // No need to check if its levels is null, we don't sync MDDs and we know there's a path with the current cost for the agent
+                    bool hasMDD = this.cardinality[i] != null;
                     bool canBuildMDD = groups[i].Count == 1;
 
                     foreach (int conflictingAgentNum in this.conflictTimesPerAgent[i].Keys)
                     {
                         int conflictingAgentIndex = this.agentNumToIndex[conflictingAgentNum];
-                        bool otherHasMDD = this.mdds[conflictingAgentIndex] != null;
-                        bool otherCanBuildMdd = groups[conflictingAgentIndex].Count == 1 && this.mdds[conflictingAgentIndex] == null;
-
+                        //bool otherHasMDD = this.mdds[conflictingAgentIndex] != null;
+                        bool otherHasMDD = this.cardinality[conflictingAgentIndex] != null;
+                        bool otherCanBuildMdd = groups[conflictingAgentIndex].Count == 1 && this.cardinality[conflictingAgentIndex] == null;
+                        //bool otherCanBuildMdd = groups[conflictingAgentIndex].Count == 1 && this.mdds[conflictingAgentIndex] == null;
                         if (allowAgentOrderFlip)
                         {
                             if ((conflictingAgentIndex < i) || (canBuildMDD == false && otherCanBuildMdd))
@@ -1355,7 +1604,7 @@ namespace CPF_experiment
 
         private bool buildMddForAgentWithItsCurrentCost(int agentIndex)
         {
-            if (this.mdds[agentIndex] == null)
+            if (this.cardinality[agentIndex] == null)
             {
                 Debug.WriteLine($"Building MDD for agent index {agentIndex}");
 
@@ -1396,11 +1645,12 @@ namespace CPF_experiment
                     }
                 }
 
-                this.mdds[agentIndex] =
+                //this.mdds[agentIndex] =
+                MDD mdd = 
                     new MDD(agentIndex, problem.m_vAgents[agentIndex].agent.agentNum,
                         problem.m_vAgents[agentIndex].GetMove(), this.allSingleAgentCosts[agentIndex],
                         depth, problem.GetNumOfAgents(), problem, false, false);
-
+                this.cardinality[agentIndex] = mdd.getCardinality();
                 constraints.Separate(newConstraints);
                 if (mustConstraints != null)
                     mustConstraints.Separate(newMustConstraints);
@@ -1564,6 +1814,11 @@ namespace CPF_experiment
         {
             this.allSingleAgentPlans = null;
             this.allSingleAgentCosts = null;
+            this.cardinality = null;
+            this.countsOfInternalAgentsThatConflict = null;
+            this.conflictCountsPerAgent = null;
+            this.conflictTimesPerAgent = null;
+            this.agentNumToIndex = null;
         }
 
         public int CompareTo(IBinaryHeapItem item)
@@ -1583,10 +1838,10 @@ namespace CPF_experiment
             // Tie breaking:
 
             // Prefer larger cost - higher h usually means more work needs to be done
-            if (this.totalCost > other.totalCost)
-                return -1;
-            if (this.totalCost < other.totalCost)
-                return 1;
+            //if (this.totalCost > other.totalCost)
+            //    return -1;
+            //if (this.totalCost < other.totalCost)
+            //    return 1;
 
             // Prefer less external conflicts, even over goal nodes, as goal nodes with less external conflicts are better.
             // External conflicts are also taken into account by the low level solver to prefer less conflicts between fewer agents.
@@ -2106,20 +2361,60 @@ namespace CPF_experiment
         /// <returns></returns>
         private bool DoesAgentHaveNoOtherOption(int agentIndex, int conflictTime, int conflictingAgentIndex, ISet<int>[] groups)
         {
-            bool stayingAtGoalConflict = conflictTime >= this.mdds[agentIndex].levels.Length;
-            if (stayingAtGoalConflict)  // Then it must be a vertex conflict, and the agent can't have another option at same cost
+            bool stayingAtGoalConflict = conflictTime >= this.cardinality[agentIndex].Keys.Last<int>();
+            if (stayingAtGoalConflict)
                 return true;
-            var conflict = FindConflict(agentIndex, conflictingAgentIndex, conflictTime, groups);
-            bool vertexConflict = conflict.vertex;
-            // If it's an edge conflict, and the MDD's width at the conflict time is 1,
-            // this agent's cost will increase if split on this conflict - it's at least a semi-cardinal conflict.
-            // If it's a vertex conflict, then even if the MDD's width at the conflict time is greater than 1,
-            // it might still be a semi-cardinal or cardinal conflict if all of the agent's MDD's nodes at this
-            // time move to the same vertex (from different directions)
-            Move moveOfFirstMddNodeInLevelWithoutDirection = this.mdds[agentIndex].levels[conflictTime].First.Value.move.GetMoveWithoutDirection();
-            return (vertexConflict == false && this.mdds[agentIndex].levels[conflictTime].Count == 1) ||
-                   (vertexConflict == true && this.mdds[agentIndex].levels[conflictTime].All<MDDNode>(node => node.move.Equals(moveOfFirstMddNodeInLevelWithoutDirection)));
+            else if (!this.cardinality[agentIndex].ContainsKey(conflictTime))
+                return false;
+            else if (cardinality[agentIndex][conflictTime])
+                return true;
+           else
+            {
+                var conflict = FindConflict(agentIndex, conflictingAgentIndex, conflictTime, groups);
+                bool vertexConflict = conflict.vertex;
+                if (vertexConflict)
+                    return true;
+                else
+                    return false;
+            }
+            //bool stayingAtGoalConflict = conflictTime >= this.mdds[agentIndex].levels.Length;
+            //if (stayingAtGoalConflict)  // Then it must be a vertex conflict, and the agent can't have another option at same cost
+            //    return true;
+            //var conflict = FindConflict(agentIndex, conflictingAgentIndex, conflictTime, groups);
+            //bool vertexConflict = conflict.vertex;
+            //// If it's an edge conflict, and the MDD's width at the conflict time is 1,
+            //// this agent's cost will increase if split on this conflict - it's at least a semi-cardinal conflict.
+            //// If it's a vertex conflict, then even if the MDD's width at the conflict time is greater than 1,
+            //// it might still be a semi-cardinal or cardinal conflict if all of the agent's MDD's nodes at this
+            //// time move to the same vertex (from different directions)
+            //Move moveOfFirstMddNodeInLevelWithoutDirection = this.mdds[agentIndex].levels[conflictTime].First.Value.move.GetMoveWithoutDirection();
+            //return (vertexConflict == false && this.mdds[agentIndex].levels[conflictTime].Count == 1) ||
+            //       (vertexConflict == true && this.mdds[agentIndex].levels[conflictTime].All<MDDNode>(node => node.move.Equals(moveOfFirstMddNodeInLevelWithoutDirection)));
         }
+        /// <summary>
+        /// Assumes agents conflict given time, and an MDD has been built for the agent
+        /// </summary>
+        /// <param name="agentIndex"></param>
+        /// <param name="conflictTime"></param>
+        /// <param name="conflictingAgentIndex"></param>
+        /// <param name="groups"></param>
+        /// <returns></returns>
+        //private bool DoesAgentHaveNoOtherOption(int agentIndex, CbsConstraint newConstraint)
+        //{
+        //    int constraintTime = newConstraint.GetTimeStep();
+        //    bool stayingAtGoalConflict = constraintTime >= this.mdds[agentIndex].levels.Length;
+        //    if (stayingAtGoalConflict)  // Then it must be a vertex conflict, and the agent can't have another option at same cost
+        //        return true;
+        //    bool vertexConflict = newConstraint.move.direction == Move.Direction.NO_DIRECTION;
+        //    // If it's an edge conflict, and the MDD's width at the conflict time is 1,
+        //    // this agent's cost will increase if split on this conflict - it's at least a semi-cardinal conflict.
+        //    // If it's a vertex conflict, then even if the MDD's width at the conflict time is greater than 1,
+        //    // it might still be a semi-cardinal or cardinal conflict if all of the agent's MDD's nodes at this
+        //    // time move to the same vertex (from different directions)
+        //    Move moveOfFirstMddNodeInLevelWithoutDirection = this.mdds[agentIndex].levels[constraintTime].First.Value.move.GetMoveWithoutDirection();
+        //    return (vertexConflict == false && this.mdds[agentIndex].levels[constraintTime].Count == 1) ||
+        //           (vertexConflict == true && this.mdds[agentIndex].levels[constraintTime].All<MDDNode>(node => node.move.Equals(moveOfFirstMddNodeInLevelWithoutDirection)));
+        //}
     }
 
     /// <summary>
