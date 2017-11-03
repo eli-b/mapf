@@ -160,40 +160,43 @@ namespace CPF_experiment
         /// <summary>
         /// Child from merge action constructor. FIXME: Code dup with previous constructor.
         /// </summary>
-        /// <param name="father"></param>
+        /// <param name="parent"></param>
         /// <param name="mergeGroupA"></param>
         /// <param name="mergeGroupB"></param>
-        public CbsNode(CbsNode father, int mergeGroupA, int mergeGroupB)
+        public CbsNode(CbsNode parent, int mergeGroupA, int mergeGroupB)
         {
-            this.allSingleAgentPlans = father.allSingleAgentPlans.ToArray<SinglePlan>();
-            this.allSingleAgentCosts = father.allSingleAgentCosts.ToArray<int>();
-            this.mdds = father.mdds.ToArray<MDD>(); // No new constraint was added so all of the parent's MDDs are valid
-            this.countsOfInternalAgentsThatConflict = father.countsOfInternalAgentsThatConflict.ToArray<int>();
-            this.conflictCountsPerAgent = new Dictionary<int, int>[father.conflictCountsPerAgent.Length];
+            this.allSingleAgentPlans = parent.allSingleAgentPlans.ToArray<SinglePlan>();
+            this.allSingleAgentCosts = parent.allSingleAgentCosts.ToArray<int>();
+            this.mdds = parent.mdds.ToArray<MDD>(); // No new constraint was added so all of the parent's MDDs are valid
+            this.countsOfInternalAgentsThatConflict = parent.countsOfInternalAgentsThatConflict.ToArray<int>();
+            this.conflictCountsPerAgent = new Dictionary<int, int>[parent.conflictCountsPerAgent.Length];
             for (int i = 0; i < this.conflictCountsPerAgent.Length; i++)
-                this.conflictCountsPerAgent[i] = new Dictionary<int, int>(father.conflictCountsPerAgent[i]); // Need a separate copy because unlike plans, the conflict counts for agents that aren't replanned do change.
-            this.conflictTimesPerAgent = new Dictionary<int, List<int>>[father.conflictTimesPerAgent.Length];
+                this.conflictCountsPerAgent[i] = new Dictionary<int, int>(parent.conflictCountsPerAgent[i]); // Need a separate copy because unlike plans, the conflict counts for agents that aren't replanned do change.
+            this.conflictTimesPerAgent = new Dictionary<int, List<int>>[parent.conflictTimesPerAgent.Length];
             for (int i = 0; i < this.conflictTimesPerAgent.Length; i++)
             {
                 this.conflictTimesPerAgent[i] = new Dictionary<int, List<int>>(); // Need a separate copy because unlike plans, the conflict counts for agents that aren't replanned do change.
-                foreach (var kvp in father.conflictTimesPerAgent[i])
+                foreach (var kvp in parent.conflictTimesPerAgent[i])
                     this.conflictTimesPerAgent[i][kvp.Key] = new List<int>(kvp.Value);
             }
-            this.agentsGroupAssignment = father.agentsGroupAssignment.ToArray<ushort>();
-            this.agentNumToIndex = father.agentNumToIndex;
-            this.prev = father;
+            this.agentsGroupAssignment = parent.agentsGroupAssignment.ToArray<ushort>();
+            this.agentNumToIndex = parent.agentNumToIndex;
+            this.prev = parent;
             this.constraint = null;
             this.depth = (ushort)(this.prev.depth + 1);
             this.agentAExpansion = ExpansionState.NOT_EXPANDED;
             this.agentBExpansion = ExpansionState.NOT_EXPANDED;
             this.replanSize = 1;
-            this.solver = father.solver;
-            this.singleAgentSolver = father.singleAgentSolver;
-            this.cbs = father.cbs;
+            this.solver = parent.solver;
+            this.singleAgentSolver = parent.singleAgentSolver;
+            this.cbs = parent.cbs;
             
             this.MergeGroups(mergeGroupA, mergeGroupB);
         }
 
+        /// <summary>
+        /// Total cost + heuristic estimate
+        /// </summary>
         public int f
         {
             get { return this.totalCost + this.h; }
