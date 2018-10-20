@@ -51,7 +51,6 @@ namespace CPF_experiment
 
         public uint m_nObstacles;
         public uint m_nLocations;
-        public UInt64[] m_vPermutations; // What are these?
         
         /// <summary>
         /// This field is used to identify an instance when running a set of experiments
@@ -84,7 +83,7 @@ namespace CPF_experiment
             // Notice selected agents may actually be a completely different set of agents.
             // Not copying instance id. This isn't the same problem.
             ProblemInstance subproblemInstance = new ProblemInstance(this.parameters);
-            subproblemInstance.Init(selectedAgents, this.m_vGrid, (int)this.m_nObstacles, (int)this.m_nLocations, this.m_vPermutations, this.m_vCardinality);
+            subproblemInstance.Init(selectedAgents, this.m_vGrid, (int)this.m_nObstacles, (int)this.m_nLocations, this.m_vCardinality);
             subproblemInstance.singleAgentOptimalCosts = this.singleAgentOptimalCosts; // Each subproblem knows every agent's single shortest paths so this.singleAgentOptimalCosts[agent_num] would easily work
             subproblemInstance.singleAgentOptimalMoves = this.singleAgentOptimalMoves;
             return subproblemInstance;
@@ -95,7 +94,11 @@ namespace CPF_experiment
         /// </summary>
         /// <param name="agentStartStates"></param>
         /// <param name="grid"></param>
-        public void Init(AgentState[] agentStartStates, bool[][] grid, int nObstacles=-1, int nLocations=-1, ulong[] permutations=null, int[,] cardinality=null)
+        /// <param name="nObstacles"></param>
+        /// <param name="nLocations"></param>
+        /// <param name="cardinality"></param>
+        public void Init(AgentState[] agentStartStates, bool[][] grid, int nObstacles=-1,
+                         int nLocations=-1, int[,] cardinality=null)
         {
             m_vAgents = agentStartStates;
             m_vGrid = grid;
@@ -110,11 +113,6 @@ namespace CPF_experiment
             else
                 m_nLocations = (uint)nLocations;
             
-            if (permutations == null)
-                PrecomputePermutations();
-            else
-                m_vPermutations = permutations;
-
             if (cardinality == null)
                 PrecomputeCardinality();
             else
@@ -297,20 +295,6 @@ namespace CPF_experiment
         }
 
         /// <summary>
-        /// Roni: I am not sure when should this be used. It doesn't initialize the grid, 
-        /// so I assume that this is meant to be used when a single problem instance object is used and 
-        /// modified during the search. This should be used with caution, as we are talking about references
-        /// (so if one will change m_vAgents, all the other references to that instance will also point to the same, changed, instance.
-        /// </summary>
-        /// <param name="ags"></param>
-        [Obsolete("Need to have some justification for using this. Currently I believe it will always cause bugs.")]
-        public void Init(AgentState[] ags)
-        {
-            m_vAgents = ags;
-            PrecomputePermutations();
-        }
-        
-        /// <summary>
         /// Imports a problem instance from a given file
         /// </summary>
         /// <param name="fileName"></param>
@@ -460,22 +444,6 @@ namespace CPF_experiment
         public Int32 GetCardinality(Move location)
         {
             return m_vCardinality[location.x, location.y];
-        }
-        
-        private void PrecomputePermutations()
-        {
-            m_vPermutations = new UInt64[m_vAgents.Length];
-            m_vPermutations[m_vPermutations.Length - 1] = 1;
-            for (int i = m_vPermutations.Length - 2; i >= 0; --i)
-                m_vPermutations[i] = m_vPermutations[i + 1] * ((UInt64)(m_nLocations - (i + 1)));
-            UInt64 m_nPermutations = 1;
-            uint nCurrentCounter = m_nLocations;
-            for (uint i = 0; i < m_vAgents.Length; ++i)
-            {
-                m_nPermutations *= nCurrentCounter;
-                --nCurrentCounter;
-            }
-            ++m_nPermutations;
         }
         
         private void PrecomputeCardinality()
