@@ -6,3 +6,4 @@ bin/Release/*
 obj/Release/*
 .svn-old/
 *.orig
+.vs/*
