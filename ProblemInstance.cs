@@ -25,6 +25,9 @@ namespace CPF_experiment
         /// </summary>
         public IDictionary<String, Object> parameters;
 
+        /// <summary>
+        /// Contains true at [x][y] if cell (x,y) is an obstacle
+        /// </summary>
         public bool[][] m_vGrid;
 
         /// <summary>
@@ -61,7 +64,8 @@ namespace CPF_experiment
         /// Enumerates all of the empty spots in the grid. The indices
         /// correspond directly to those used in the grid, where the major
         /// index corresponds to the x-axis and the minor index corresponds to
-        /// the y-axis.
+        /// the y-axis. If there are obstacles, it's more space-efficient to store
+        /// data for each non-empty spot.
         /// </summary>
         public Int32[,] m_vCardinality;
 
@@ -200,8 +204,7 @@ namespace CPF_experiment
         /// Returns the length of the shortest path between a given coordinate and the goal location of the given agent.
         /// </summary>
         /// <param name="agentNum"></param>
-        /// <param name="x"></param>
-        /// <param name="y"></param>
+        /// <param name="move"></param>
         /// <returns>The length of the shortest path from x,y to the goal of the agent.</returns>
         public int GetSingleAgentOptimalCost(int agentNum, Move move)
         {
@@ -211,7 +214,7 @@ namespace CPF_experiment
         /// <summary>
         /// Returns the length of the shortest path between a given agent's location and the goal of that agent.
         /// </summary>
-        /// <param name="agent"></param>
+        /// <param name="agentState"></param>
         /// <returns>The length of the shortest path between a given agent's location and the goal of that agent</returns>
         public int GetSingleAgentOptimalCost(AgentState agentState)
         {
@@ -221,7 +224,7 @@ namespace CPF_experiment
         /// <summary>
         /// Returns the optimal move towards the goal of the given agent. Move isn't necessarily unique.
         /// </summary>
-        /// <param name="agent"></param>
+        /// <param name="agentState"></param>
         /// <returns></returns>
         public Move GetSingleAgentOptimalMove(AgentState agentState)
         {
@@ -232,9 +235,12 @@ namespace CPF_experiment
         /// The returned plan wasn't constructed considering a CAT, so it's possible there's an alternative plan with the same cost and less collisions.
         /// </summary>
         /// <param name="agentState"></param>
+        /// <param name="conflictCountPerAgent"></param>
+        /// <param name="conflictTimesPerAgent"></param>
         /// <returns></returns>
         public SinglePlan GetSingleAgentOptimalPlan(AgentState agentState,
-                                                    out Dictionary<int, int> conflictCountPerAgent, out Dictionary<int, List<int>> conflictTimesPerAgent)
+                                                    out Dictionary<int, int> conflictCountPerAgent,
+                                                    out Dictionary<int, List<int>> conflictTimesPerAgent)
         {
             LinkedList<Move> moves = new LinkedList<Move>();
             int agentNum = agentState.agent.agentNum;
