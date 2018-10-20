@@ -11,7 +11,7 @@ namespace CPF_experiment
 
         /// <summary>
         /// The agents to extract from the state. Each value in this list is an
-        /// index into the Trevor_WorldState.allAgentsStates array. This is
+        /// index into the <see cref="WorldState"/>.allAgentsStates array. This is
         /// ignored while we are building the pattern database (because it is
         /// assumed that we are initialized by a root node that contains only
         /// the agents we are interested in), but is used during the search effort

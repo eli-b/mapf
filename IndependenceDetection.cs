@@ -516,7 +516,7 @@ namespace CPF_experiment
         /// Joins this and another group to a single group with all of the agents together.
         /// </summary>
         /// <param name="other"></param>
-        /// <returns>A new Trevor_Group object with the agents from both this and the other group</returns>
+        /// <returns>A new AgentsGroup object with the agents from both this and the other group</returns>
         public AgentsGroup Join(AgentsGroup other)
         {
             AgentState[] joinedAgentStates = new AgentState[allAgentsState.Length + other.allAgentsState.Length];

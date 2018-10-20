@@ -113,7 +113,7 @@ namespace CPF_experiment
 
         /// <summary>
         /// Creates a new state by extracting a subset of the agents from
-        /// the original Trevor_WorldState. We overload the constructor because
+        /// the original WorldState. We overload the constructor because
         /// while building our pattern database, we rewrite the problem and
         /// therefore need to make a deep copy of the state data structures so
         /// as to not overwrite the original problem. The ultimate solution
