@@ -7,36 +7,25 @@ using System.Linq;
 namespace CPF_experiment
 {
     /// <summary>
-    /// This class represents a union of Dictionaries.
+    /// This class represents a union of Dictionaries, which each map <typeparamref name="K"/>
+    /// to a List of <typeparamref name="V"/>.
+    /// It is similar to Python's collections.ChainMap, but 1) read-only, 2) a combined list of V
+    /// elements is returned instead of just the first match.
     /// </summary>
     [DebuggerDisplay("count =  {Count}")]
     [Serializable]
     public class Dictionary_U<K, V> : IReadOnlyDictionary<K, List<V>>
     {
         List<IReadOnlyDictionary<K, List<V>>> Data;
+
         public Dictionary_U()
         {
             this.Data = new List<IReadOnlyDictionary<K, List<V>>>();
         }
 
-        //public void Add(K value)
-        //{
-        //    throw new Exception("Illegal Operation");
-        //}
-
-        //public void CopyTo(K[] array, int arrayIndex)
-        //{
-        //    throw new Exception("Illegal Operation"); // Lazy...
-        //}
-
-        //public bool Remove(K item)
-        //{
-        //    throw new Exception("Illegal Operation");
-        //}
-
         IEnumerator IEnumerable.GetEnumerator()
         {
-            foreach (Dictionary<K, List<V>> dict in Data)
+            foreach (IReadOnlyDictionary<K, List<V>> dict in Data)
             {
                 foreach (KeyValuePair<K, List<V>> item in dict)
                 {
@@ -56,13 +45,11 @@ namespace CPF_experiment
             }
         }
 
-        /// Summary:
-        ///     Gets an enumerable collection that contains the keys in the read-only dictionary.
-        ///     Warning: May contain duplicates if multiple inner dicts have the same key.
-        ///
-        /// Returns:
-        ///     An enumerable collection that contains the keys in the read-only dictionary.
-        ///     
+        /// <summary>
+        /// Gets an enumerable collection that contains the keys in the read-only dictionary.
+        /// Warning: May contain duplicates if multiple inner dicts have the same key.
+        /// </summary>
+        /// <returns>An enumerable collection that contains the keys in the read-only dictionary.</returns>
         public IEnumerable<K> Keys
         {
             get
@@ -77,12 +64,12 @@ namespace CPF_experiment
             }
         }
 
-        //
-        // Summary:
-        //     Gets an enumerable collection that contains the values in the read-only dictionary.
-        //
-        // Returns:
-        //     An enumerable collection that contains the values in the read-only dictionary.
+        /// <summary>
+        /// Gets an enumerable collection that contains the values in the read-only dictionary.
+        /// </summary>
+        /// <returns>
+        /// An enumerable collection that contains the values in the read-only dictionary.
+        /// </returns>
         public IEnumerable<List<V>> Values
         {
             get
@@ -97,22 +84,13 @@ namespace CPF_experiment
             }
         }
 
-        // Summary:
-        //     Gets the element that has the specified key in the read-only dictionary.
-        //
-        // Parameters:
-        //   key:
-        //     The key to locate.
-        //
-        // Returns:
-        //     The element that has the specified key in the read-only dictionary.
-        //
-        // Exceptions:
-        //   System.ArgumentNullException:
-        //     key is null.
-        //
-        //   System.Collections.Generic.KeyNotFoundException:
-        //     The property is retrieved and key is not found.
+        /// <summary>
+        /// Gets a combined list of the values mapped to the specified key in the combined dictionaries.
+        /// </summary>
+        /// <param name="key">The key to locate.</param>
+        /// <returns>A combined list of the values mapped to the specified key in combined dictionaries.</returns>
+        /// <exception cref="System.ArgumentNullException">key is null.</exception>
+        /// <exception cref="System.Collections.Generic.KeyNotFoundException">key is not found.</exception>
         public List<V> this[K key]
         {
             get
@@ -131,6 +109,13 @@ namespace CPF_experiment
             }
         }
 
+        /// <summary>
+        /// Gets a combined list of values mapped to the specified key in the combined dictionaries, or null if none
+        /// are found.
+        /// </summary>
+        /// <param name="key"></param>
+        /// <param name="value"></param>
+        /// <returns></returns>
         public bool TryGetValue(K key, out List<V> value)
         {
             if (this.ContainsKey(key))
@@ -145,6 +130,11 @@ namespace CPF_experiment
             }
         }
 
+        /// <summary>
+        /// Returns whether the specified key exists in any of the combined dictionaries
+        /// </summary>
+        /// <param name="key">The key to look for</param>
+        /// <returns></returns>
         public bool ContainsKey(K key)
         {
             foreach (IReadOnlyDictionary<K, List<V>> item in Data)
@@ -156,22 +146,26 @@ namespace CPF_experiment
         }
 
         /// <summary>
-        /// Hardly used.
+        /// Remove all dictionaries from the union
         /// </summary>
         public void Clear()
         {
-            foreach (Dictionary<K, List<V>> item in Data)
-            {
-                item.Clear();
-            }
             Data.Clear();
         }
 
+        /// <summary>
+        /// Add a dictionary to the union
+        /// </summary>
+        /// <param name="other">the dictionary to add</param>
         public void Join(IReadOnlyDictionary<K, List<V>> other)
         {
             Data.Add(other);
         }
 
+        /// <summary>
+        /// Remove a dictionary from the union
+        /// </summary>
+        /// <param name="other">the dictionary to add</param>
         public void Separate(IReadOnlyDictionary<K, List<V>> other)
         {
             Data.Remove(other);
@@ -192,7 +186,7 @@ namespace CPF_experiment
         }
 
         /// <summary>
-        /// Gets the number of values in the Dictionary. 
+        /// Gets the number of keys in the Dictionary. 
         /// </summary>
         public int Count
         {
