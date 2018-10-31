@@ -140,6 +140,7 @@ namespace CPF_experiment
                 if (this.singlePlans.All<SinglePlan>(plan => plan.GetSize() - 1 >= this.minDepth))
                 {
                     if (this.singlePlans.Sum<SinglePlan>(plan => plan.GetCost()) >= this.minCost)
+                    // FIXME: support a makespan cost function!!!
                         return true;
                 }
             }
