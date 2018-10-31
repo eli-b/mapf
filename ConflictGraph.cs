@@ -44,7 +44,7 @@ namespace CPF_experiment
             }
         }
 
-        public int MinimumVertexCover(int prevMVC = MinVertexCover.NOT_SET)
+        public int MinimumVertexCover(int prevMVC = (int) MinVertexCover.NOT_SET)
         {
             if (numOfEdges < 2)
                 return numOfEdges;
@@ -63,7 +63,7 @@ namespace CPF_experiment
                 }
             }
 
-            if (prevMVC == MinVertexCover.NOT_SET) // root node of CBS tree
+            if (prevMVC == (int) MinVertexCover.NOT_SET) // root node of CBS tree
                 for (int i = 1; i < this.numOfNodes; i++)
                     if (KVertexCover(this, i))
                         return i;
