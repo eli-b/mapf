@@ -61,6 +61,8 @@ namespace CPF_experiment
 
         public override bool Equals(object obj)
         {
+            if (obj == null)
+                return false;
             if (this.time != ((TimedMove)obj).time)
                 return false;
 

@@ -537,6 +537,8 @@ namespace CPF_experiment
 
         public override bool Equals(object obj) // TODO: Implement GetHashCode()
         {
+            if (obj == null)
+                return false;
             AgentsGroup other = (AgentsGroup)obj;
             return allAgentsState.SequenceEqual<AgentState>(other.allAgentsState);
         }

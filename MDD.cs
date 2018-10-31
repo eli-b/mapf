@@ -484,6 +484,8 @@ namespace CPF_experiment
         /// <returns></returns>
         public override bool Equals(object obj)
         {
+            if (obj == null)
+                return false;
             MDDNode comp = (MDDNode)obj;
             return this.move.Equals(comp.move); //if there is a bug return the level compare
                                                 // Behavior change: used to not compare the direction

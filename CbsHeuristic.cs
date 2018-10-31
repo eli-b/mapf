@@ -312,12 +312,12 @@ namespace CPF_experiment
 
             if (this.nCalls != 0) // Stats are available
             {
-                accAverageExpandedHigh = this.cbs.GetAccumulatedExpanded() / this.nCalls;
-                accAverageGeneratedHigh = this.cbs.GetAccumulatedGenerated() / this.nCalls;
-                accAverageExpandedLow = this.cbs.GetLowLevelExpanded() / this.nCalls;
-                accAverageGeneratedLow = this.cbs.GetLowLevelGenerated() / this.nCalls;
+                accAverageExpandedHigh = (double)this.cbs.GetAccumulatedExpanded() / this.nCalls;
+                accAverageGeneratedHigh = (double)this.cbs.GetAccumulatedGenerated() / this.nCalls;
+                accAverageExpandedLow = (double)this.cbs.GetLowLevelExpanded() / this.nCalls;
+                accAverageGeneratedLow = (double)this.cbs.GetLowLevelGenerated() / this.nCalls;
                 accAverageRunTime = this.accTotalRuntime / this.accNCalls;
-                accAverageImprovement = this.accTotalImprovement / this.accNCalls;
+                accAverageImprovement = (double)this.accTotalImprovement / this.accNCalls;
             }
 
             Console.WriteLine("{0} Accumulated Average Expanded Nodes (High-Level): {1}", this, accAverageExpandedHigh);

@@ -25,6 +25,8 @@ namespace CPF_experiment
 
         public override bool Equals(object other_obj)
         {
+            if (other_obj == null)
+                return false;
             Agent other = (Agent)other_obj;
             return agentNum == other.agentNum && Goal.Equals(other.Goal);
         }

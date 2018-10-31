@@ -312,6 +312,8 @@ namespace CPF_experiment
         /// <returns></returns>
         public override bool Equals(object obj)
         {
+            if (obj == null)
+                return false;
             Move that = (Move) obj;
             return (this.x == that.x && this.y == that.y &&
                     ((this.direction == Direction.NO_DIRECTION) || (that.direction == Direction.NO_DIRECTION) || 

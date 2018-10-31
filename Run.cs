@@ -35,7 +35,7 @@ namespace CPF_experiment
         private double startTime;
 
         /// <summary>
-        /// This hold an open stream to the results file.
+        /// This holds an open stream to the results file.
         /// </summary>
         private TextWriter resultsWriter;
 
@@ -54,6 +54,7 @@ namespace CPF_experiment
             {
                 if (this.resultsWriter != null)
                 {
+                    this.resultsWriter.Close();
                     this.resultsWriter.Dispose();
                     this.resultsWriter = null;
                 }

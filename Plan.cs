@@ -337,8 +337,10 @@ namespace CPF_experiment
             }
         }
 
-        public override bool Equals(object obj) // TODO: Implement GetHashCode!
+        public override bool Equals(object obj) // FIXME: Implement GetHashCode!
         {
+            if (obj == null)
+                return false;
             SinglePlan other = (SinglePlan)obj;
             return this.agentNum == other.agentNum && this.locationAtTimes.SequenceEqual<Move>(other.locationAtTimes);
         }

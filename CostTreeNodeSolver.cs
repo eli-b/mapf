@@ -155,6 +155,8 @@ namespace CPF_experiment
 
         public override bool Equals(object obj)
         {
+            if (obj == null)
+                return false;
             CostTreeNode check = (CostTreeNode)obj;
             return this.costs.SequenceEqual<int>(check.costs);
         }

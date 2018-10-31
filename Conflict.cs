@@ -23,6 +23,8 @@ namespace CPF_experiment
         }
         public override bool Equals(object obj)
         {
+            if (obj == null)
+                return false;
             Conflict other = (Conflict)obj;
             if (this.group1.Equals(other.group1) && this.group2.Equals(other.group2))
                 return true; // Ignoring timeOfConflict, not ignoring order of groups.

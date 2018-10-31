@@ -212,6 +212,8 @@ namespace CPF_experiment
         /// <returns></returns>
         public override bool Equals(object obj)
         {
+            if (obj == null)
+                return false;
             MDDStep comp = (MDDStep)obj;
             return this.allSteps.SequenceEqual<MDDNode>(comp.allSteps);
         }

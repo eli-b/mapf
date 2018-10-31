@@ -20,13 +20,14 @@ namespace CPF_experiment
         /// </summary>
         public void SimpleRun()
         {
-            Run runner = new Run();
-            runner.OpenResultsFile(RESULTS_FILE_NAME);
-            runner.PrintResultsFileHeader();
-            ProblemInstance instance = runner.GenerateProblemInstance(10, 3, 10);
-            instance.Export("Test.instance");
-            runner.SolveGivenProblem(instance);            
-            runner.CloseResultsFile();
+            using (Run runner = new Run())
+            {
+                runner.OpenResultsFile(RESULTS_FILE_NAME);
+                runner.PrintResultsFileHeader();
+                ProblemInstance instance = runner.GenerateProblemInstance(10, 3, 10);
+                instance.Export("Test.instance");
+                runner.SolveGivenProblem(instance);
+            }
         }
 
         /// <summary>
@@ -47,12 +48,14 @@ namespace CPF_experiment
             }
 
             Run runner = new Run();
-            bool resultsFileExisted = File.Exists(RESULTS_FILE_NAME);
-            runner.OpenResultsFile(RESULTS_FILE_NAME);
-            if (resultsFileExisted == false)
-                runner.PrintResultsFileHeader();
-            runner.SolveGivenProblem(instance);
-            runner.CloseResultsFile();
+            using (runner)
+            {
+                bool resultsFileExisted = File.Exists(RESULTS_FILE_NAME);
+                runner.OpenResultsFile(RESULTS_FILE_NAME);
+                if (resultsFileExisted == false)
+                    runner.PrintResultsFileHeader();
+                runner.SolveGivenProblem(instance);
+            }
         }
 
         /// <summary>
@@ -63,89 +66,83 @@ namespace CPF_experiment
         {
             ProblemInstance instance;
             string instanceName;
-            Run runner = new Run();
-
-            bool resultsFileExisted = File.Exists(RESULTS_FILE_NAME);
-            runner.OpenResultsFile(RESULTS_FILE_NAME);
-            if (resultsFileExisted == false)
-                runner.PrintResultsFileHeader();
-
-            bool continueFromLastRun = false; 
-            string[] LastProblemDetails = null;
-            string currentProblemFileName = $"{Directory.GetCurrentDirectory()}\\Instances\\current problem-{Process.GetCurrentProcess().ProcessName}";
-            if (File.Exists(currentProblemFileName)) //if we're continuing running from last time
+            using (Run runner = new Run())
             {
-                var lastProblemFile = new StreamReader(currentProblemFileName);
-                LastProblemDetails = lastProblemFile.ReadLine().Split(',');  //get the last problem
-                lastProblemFile.Close();
-                continueFromLastRun = true;
-            }
+                bool resultsFileExisted = File.Exists(RESULTS_FILE_NAME);
+                runner.OpenResultsFile(RESULTS_FILE_NAME);
+                if (resultsFileExisted == false)
+                    runner.PrintResultsFileHeader();
 
-            string allocation = Process.GetCurrentProcess().ProcessName.Substring(1);  // When executable names are of the form "g###"
-
-            for (int gridSizeIndex = 0; gridSizeIndex < gridSizes.Length; gridSizeIndex++)
-            {
-                for (int obstaclePercentageIndex = 0; obstaclePercentageIndex < obstaclesProbs.Length; obstaclePercentageIndex++)
+                bool continueFromLastRun = false;
+                string[] LastProblemDetails = null;
+                string currentProblemFileName = $"{Directory.GetCurrentDirectory()}\\Instances\\current problem-{Process.GetCurrentProcess().ProcessName}";
+                if (File.Exists(currentProblemFileName)) //if we're continuing running from last time
                 {
-                    runner.ResetOutOfTimeCounters();
-                    for (int numOfAgentsIndex = 0; numOfAgentsIndex < agentListSizes.Length; numOfAgentsIndex++)
+                    var lastProblemFile = new StreamReader(currentProblemFileName);
+                    LastProblemDetails = lastProblemFile.ReadLine().Split(',');  //get the last problem
+                    lastProblemFile.Close();
+                    continueFromLastRun = true;
+                }
+
+                string allocation = Process.GetCurrentProcess().ProcessName.Substring(1);  // When executable names are of the form "g###"
+
+                for (int gridSizeIndex = 0; gridSizeIndex < gridSizes.Length; gridSizeIndex++)
+                {
+                    for (int obstaclePercentageIndex = 0; obstaclePercentageIndex < obstaclesProbs.Length; obstaclePercentageIndex++)
                     {
-                        if (gridSizes[gridSizeIndex] * gridSizes[gridSizeIndex] * (1 - obstaclesProbs[obstaclePercentageIndex] / 100) < agentListSizes[numOfAgentsIndex]) // Probably not enough room for all agents
-                            continue;
-                        for (int i = 0; i < instances; i++)
+                        runner.ResetOutOfTimeCounters();
+                        for (int numOfAgentsIndex = 0; numOfAgentsIndex < agentListSizes.Length; numOfAgentsIndex++)
                         {
-                            //if (i % 33 != Convert.ToInt32(allocation)) // grids!
-                            //    continue;
-
-                            //if (i % 5 != 0) // grids!
-                            //    continue;
-
-                            if (continueFromLastRun)  //set the latest problem
+                            if (gridSizes[gridSizeIndex] * gridSizes[gridSizeIndex] * (1 - obstaclesProbs[obstaclePercentageIndex] / 100) < agentListSizes[numOfAgentsIndex]) // Probably not enough room for all agents
+                                continue;
+                            for (int i = 0; i < instances; i++)
                             {
-                                gridSizeIndex = int.Parse(LastProblemDetails[0]);
-                                obstaclePercentageIndex = int.Parse(LastProblemDetails[1]);
-                                numOfAgentsIndex = int.Parse(LastProblemDetails[2]);
-                                i = int.Parse(LastProblemDetails[3]);
-                                for (int j = 4; j < LastProblemDetails.Length; j++)
+                                //if (i % 33 != Convert.ToInt32(allocation)) // grids!
+                                //    continue;
+
+                                //if (i % 5 != 0) // grids!
+                                //    continue;
+
+                                if (continueFromLastRun)  //set the latest problem
                                 {
-                                    runner.outOfTimeCounters[j - 4] = int.Parse(LastProblemDetails[j]);
+                                    gridSizeIndex = int.Parse(LastProblemDetails[0]);
+                                    obstaclePercentageIndex = int.Parse(LastProblemDetails[1]);
+                                    numOfAgentsIndex = int.Parse(LastProblemDetails[2]);
+                                    i = int.Parse(LastProblemDetails[3]);
+                                    for (int j = 4; j < LastProblemDetails.Length; j++)
+                                    {
+                                        runner.outOfTimeCounters[j - 4] = int.Parse(LastProblemDetails[j]);
+                                    }
+                                    continueFromLastRun = false;
+                                    continue; // "current problem" file describes last solved problem, no need to solve it again
                                 }
-                                continueFromLastRun = false;
-                                continue; // "current problem" file describes last solved problem, no need to solve it again
-                            }
-                            if (runner.outOfTimeCounters.Length != 0 &&
-                                runner.outOfTimeCounters.Sum() == runner.outOfTimeCounters.Length * Constants.MAX_FAIL_COUNT) // All algs should be skipped
-                                break;
-                            instanceName = $"Instance-{gridSizes[gridSizeIndex]}-{obstaclesProbs[obstaclePercentageIndex]}-{agentListSizes[numOfAgentsIndex]}-{i}";
-                            try
-                            {
-                                instance = ProblemInstance.Import($"{Directory.GetCurrentDirectory()}\\Instances\\{instanceName}");
-                                instance.instanceId = i;
-                            }
-                            catch (Exception importException)
-                            {
-                                if (onlyReadInstances)
-                                {
-                                    Console.WriteLine($"File {instanceName}  dosen't exist");
-                                    return;
-                                }
-
-                                instance = runner.GenerateProblemInstance(gridSizes[gridSizeIndex], agentListSizes[numOfAgentsIndex], obstaclesProbs[obstaclePercentageIndex] * gridSizes[gridSizeIndex] * gridSizes[gridSizeIndex] / 100);
-                                instance.ComputeSingleAgentShortestPaths(); // REMOVE FOR GENERATOR
-                                instance.instanceId = i;
-                                instance.Export(instanceName);
-                            }
-
-                            runner.SolveGivenProblem(instance);
-
-                            // Save the latest problem
-                            if (File.Exists(currentProblemFileName))
-                            {
+                                if (runner.outOfTimeCounters.Length != 0 &&
+                                    runner.outOfTimeCounters.Sum() == runner.outOfTimeCounters.Length * Constants.MAX_FAIL_COUNT) // All algs should be skipped
+                                    break;
+                                instanceName = $"Instance-{gridSizes[gridSizeIndex]}-{obstaclesProbs[obstaclePercentageIndex]}-{agentListSizes[numOfAgentsIndex]}-{i}";
                                 try
                                 {
-                                    File.Delete(currentProblemFileName);
+                                    instance = ProblemInstance.Import($"{Directory.GetCurrentDirectory()}\\Instances\\{instanceName}");
+                                    instance.instanceId = i;
                                 }
-                                catch (Exception)
+                                catch (Exception importException)
+                                {
+                                    if (onlyReadInstances)
+                                    {
+                                        Console.WriteLine($"File {instanceName}  dosen't exist");
+                                        return;
+                                    }
+
+                                    instance = runner.GenerateProblemInstance(gridSizes[gridSizeIndex], agentListSizes[numOfAgentsIndex], obstaclesProbs[obstaclePercentageIndex] * gridSizes[gridSizeIndex] * gridSizes[gridSizeIndex] / 100);
+                                    instance.ComputeSingleAgentShortestPaths(); // REMOVE FOR GENERATOR
+                                    instance.instanceId = i;
+                                    instance.Export(instanceName);
+                                }
+
+                                runner.SolveGivenProblem(instance);
+
+                                // Save the latest problem
+                                if (File.Exists(currentProblemFileName))
                                 {
                                     try
                                     {
@@ -153,7 +150,6 @@ namespace CPF_experiment
                                     }
                                     catch (Exception)
                                     {
-
                                         try
                                         {
                                             File.Delete(currentProblemFileName);
@@ -161,19 +157,20 @@ namespace CPF_experiment
                                         catch (Exception)
                                         {
 
-                                            throw;
+                                            try
+                                            {
+                                                File.Delete(currentProblemFileName);
+                                            }
+                                            catch (Exception)
+                                            {
+
+                                                throw;
+                                            }
                                         }
                                     }
+
                                 }
-                                
-                            }
-                            StreamWriter lastProblemFile;
-                            try
-                            {
-                                lastProblemFile = new StreamWriter(currentProblemFileName);
-                            }
-                            catch (Exception)
-                            {
+                                StreamWriter lastProblemFile;
                                 try
                                 {
                                     lastProblemFile = new StreamWriter(currentProblemFileName);
@@ -186,22 +183,28 @@ namespace CPF_experiment
                                     }
                                     catch (Exception)
                                     {
+                                        try
+                                        {
+                                            lastProblemFile = new StreamWriter(currentProblemFileName);
+                                        }
+                                        catch (Exception)
+                                        {
 
-                                        throw;
+                                            throw;
+                                        }
                                     }
                                 }
+                                lastProblemFile.Write("{0},{1},{2},{3}", gridSizeIndex, obstaclePercentageIndex, numOfAgentsIndex, i);
+                                for (int j = 0; j < runner.outOfTimeCounters.Length; j++)
+                                {
+                                    lastProblemFile.Write($",{runner.outOfTimeCounters[j]}");
+                                }
+                                lastProblemFile.Close();
                             }
-                            lastProblemFile.Write("{0},{1},{2},{3}", gridSizeIndex, obstaclePercentageIndex, numOfAgentsIndex, i);
-                            for (int j = 0; j < runner.outOfTimeCounters.Length; j++)
-                            {
-                                lastProblemFile.Write($",{runner.outOfTimeCounters[j]}");
-                            }
-                            lastProblemFile.Close();
                         }
                     }
                 }
             }
-            runner.CloseResultsFile();                    
         }
 
         protected static readonly string[] daoMapFilenames = { "dao_maps\\den520d.map", "dao_maps\\ost003d.map", "dao_maps\\brc202d.map"};
@@ -218,90 +221,90 @@ namespace CPF_experiment
         {
             ProblemInstance instance;
             string instanceName;
-            Run runner = new Run();
-
-            bool resultsFileExisted = File.Exists(RESULTS_FILE_NAME);
-            runner.OpenResultsFile(RESULTS_FILE_NAME);
-            if (resultsFileExisted == false)
-                runner.PrintResultsFileHeader();
-            // FIXME: Code dup with RunExperimentSet
-
-            TextWriter output;
-            int[] agentListSizes = {5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100};
-            //int[] agentListSizes = { 60, 65, 70, 75, 80, 85, 90, 95, 100 };
-            //int[] agentListSizes = { 100 };
-
-            bool continueFromLastRun = false;
-            string[] lineParts = null;
-
-            string currentProblemFileName = $"{Directory.GetCurrentDirectory()}\\Instances\\current problem-{Process.GetCurrentProcess().ProcessName}";
-            if (File.Exists(currentProblemFileName)) //if we're continuing running from last time
+            using (Run runner = new Run())
             {
-                TextReader input = new StreamReader(currentProblemFileName);
-                lineParts = input.ReadLine().Split(',');  //get the last problem
-                input.Close();
-                continueFromLastRun = true;
-            }
+                bool resultsFileExisted = File.Exists(RESULTS_FILE_NAME);
+                runner.OpenResultsFile(RESULTS_FILE_NAME);
+                if (resultsFileExisted == false)
+                    runner.PrintResultsFileHeader();
+                // FIXME: Code dup with RunExperimentSet
 
-            for (int ag = 0; ag < agentListSizes.Length; ag++)
-            {
-                for (int i = 0; i < numInstances; i++)
+                TextWriter output;
+                int[] agentListSizes = { 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100 };
+                //int[] agentListSizes = { 60, 65, 70, 75, 80, 85, 90, 95, 100 };
+                //int[] agentListSizes = { 100 };
+
+                bool continueFromLastRun = false;
+                string[] lineParts = null;
+
+                string currentProblemFileName = $"{Directory.GetCurrentDirectory()}\\Instances\\current problem-{Process.GetCurrentProcess().ProcessName}";
+                if (File.Exists(currentProblemFileName)) //if we're continuing running from last time
                 {
-                    //string name = Process.GetCurrentProcess().ProcessName.Substring(1);
-                    //if (i % 33 != Convert.ToInt32(name)) // DAO!
-                    //    continue;
+                    TextReader input = new StreamReader(currentProblemFileName);
+                    lineParts = input.ReadLine().Split(',');  //get the last problem
+                    input.Close();
+                    continueFromLastRun = true;
+                }
 
-                    for (int map = 0; map < mapFileNames.Length; map++)
+                for (int ag = 0; ag < agentListSizes.Length; ag++)
+                {
+                    for (int i = 0; i < numInstances; i++)
                     {
-                        if (continueFromLastRun) // Set the latest problem
+                        //string name = Process.GetCurrentProcess().ProcessName.Substring(1);
+                        //if (i % 33 != Convert.ToInt32(name)) // DAO!
+                        //    continue;
+
+                        for (int map = 0; map < mapFileNames.Length; map++)
                         {
-                            ag = int.Parse(lineParts[0]);
-                            i = int.Parse(lineParts[1]);
-                            map = int.Parse(lineParts[2]);
-                            for (int j = 3; j < lineParts.Length && j-3 < runner.outOfTimeCounters.Length; j++)
+                            if (continueFromLastRun) // Set the latest problem
                             {
-                                runner.outOfTimeCounters[j - 3] = int.Parse(lineParts[j]);
+                                ag = int.Parse(lineParts[0]);
+                                i = int.Parse(lineParts[1]);
+                                map = int.Parse(lineParts[2]);
+                                for (int j = 3; j < lineParts.Length && j - 3 < runner.outOfTimeCounters.Length; j++)
+                                {
+                                    runner.outOfTimeCounters[j - 3] = int.Parse(lineParts[j]);
+                                }
+                                continueFromLastRun = false;
+                                continue;
                             }
-                            continueFromLastRun = false;
-                            continue;
-                        }
-                        if (runner.outOfTimeCounters.Sum() == runner.outOfTimeCounters.Length * 20) // All algs should be skipped
-                            break;
-                        string mapFileName = mapFileNames[map];
-                        instanceName = $"{Path.GetFileNameWithoutExtension(mapFileName)}-{agentListSizes[ag]}-{i}";
-                        try
-                        {
-                            instance = ProblemInstance.Import($"{Directory.GetCurrentDirectory()}\\Instances\\{instanceName}");
-                        }
-                        catch (Exception importException)
-                        {
-                            if (onlyReadInstances)
+                            if (runner.outOfTimeCounters.Sum() == runner.outOfTimeCounters.Length * 20) // All algs should be skipped
+                                break;
+                            string mapFileName = mapFileNames[map];
+                            instanceName = $"{Path.GetFileNameWithoutExtension(mapFileName)}-{agentListSizes[ag]}-{i}";
+                            try
                             {
-                                Console.WriteLine($"File {instanceName}  dosen't exist");
-                                return;
+                                instance = ProblemInstance.Import($"{Directory.GetCurrentDirectory()}\\Instances\\{instanceName}");
+                            }
+                            catch (Exception importException)
+                            {
+                                if (onlyReadInstances)
+                                {
+                                    Console.WriteLine($"File {instanceName}  dosen't exist");
+                                    return;
+                                }
+
+                                instance = runner.GenerateDragonAgeProblemInstance(mapFileName, agentListSizes[ag]);
+                                instance.ComputeSingleAgentShortestPaths(); // Consider just importing the generated problem after exporting it to remove the duplication of this line from Import()
+                                instance.instanceId = i;
+                                instance.Export(instanceName);
                             }
 
-                            instance = runner.GenerateDragonAgeProblemInstance(mapFileName, agentListSizes[ag]);
-                            instance.ComputeSingleAgentShortestPaths(); // Consider just importing the generated problem after exporting it to remove the duplication of this line from Import()
-                            instance.instanceId = i;
-                            instance.Export(instanceName);
-                        }
+                            runner.SolveGivenProblem(instance);
 
-                        runner.SolveGivenProblem(instance);
-
-                        //save the latest problem
-                        File.Delete(currentProblemFileName);
-                        output = new StreamWriter(currentProblemFileName);
-                        output.Write("{0},{1},{2}", ag, i, map);
-                        for (int j = 0; j < runner.outOfTimeCounters.Length; j++)
-                        {
-                            output.Write($",{runner.outOfTimeCounters[j]}");
+                            //save the latest problem
+                            File.Delete(currentProblemFileName);
+                            output = new StreamWriter(currentProblemFileName);
+                            output.Write("{0},{1},{2}", ag, i, map);
+                            for (int j = 0; j < runner.outOfTimeCounters.Length; j++)
+                            {
+                                output.Write($",{runner.outOfTimeCounters[j]}");
+                            }
+                            output.Close();
                         }
-                        output.Close();
                     }
                 }
             }
-            runner.CloseResultsFile();
         }
 
         /// <summary>

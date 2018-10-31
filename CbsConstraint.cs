@@ -74,6 +74,8 @@ namespace CPF_experiment
         /// <returns></returns>
         public override bool Equals(object obj)
         {
+            if (obj == null)
+                return false;
             CbsConstraint other = (CbsConstraint)obj;
             if (this.agentNum != other.agentNum)
                 return false;
