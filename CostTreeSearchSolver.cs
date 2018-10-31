@@ -7,7 +7,7 @@ using System.IO;
 namespace CPF_experiment
 {
     /// <summary>
-    /// This class solves an instance of the MAPF problem using the cost tree search algorithm.
+    /// This class solves an instance of the MAPF problem using the increasing costs tree search algorithm.
     /// </summary>
     class CostTreeSearchSolver : ICbsSolver
     {

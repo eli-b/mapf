@@ -254,13 +254,13 @@ namespace CPF_experiment
             solvers.Add(new CBS_GlobalConflicts(astar, epea, mergeThreshold: -1, doShuffle: false,
                 bypassStrategy: CBS_LocalConflicts.BypassStrategy.NONE,
                 doMalte: false, conflictChoice: CBS_LocalConflicts.ConflictChoice.FIRST,
-                justbreakForConflicts: false, useMddHeuristic: false, lookaheadMaxExpansions: 1,
+                disableTieBreakingByMinOpsEstimate: false, useMddPruningHeuristic: false, lookaheadMaxExpansions: 1,
                 mergeCausesRestart: false)); // CBS/EPEA*
             //soldier: 
             solvers.Add(new CBS_GlobalConflicts(astar, epea, mergeThreshold: -1, doShuffle: false,
                 bypassStrategy: CBS_LocalConflicts.BypassStrategy.FIRST_FIT_LOOKAHEAD,
                 doMalte: false, conflictChoice: CBS_LocalConflicts.ConflictChoice.CARDINAL_MDD,
-                justbreakForConflicts: false, useMddHeuristic: false, lookaheadMaxExpansions: 1,
+                disableTieBreakingByMinOpsEstimate: false, useMddPruningHeuristic: false, lookaheadMaxExpansions: 1,
                 mergeCausesRestart: false)); // CBS/EPEA* + cardinal + BP1
             //solvers.Add(new CBS_GlobalConflicts(astar, epea, 2, false, CBS_LocalConflicts.BypassStrategy.FIRST_FIT_LOOKAHEAD,
             //    false, CBS_LocalConflicts.ConflictChoice.CARDINAL_MDD, false, false, 1, true)); // MA-CBS(2)/EPEA* + cardinal + BP1 + restart
@@ -323,12 +323,12 @@ namespace CPF_experiment
             solvers.Add(new CBS_GlobalConflicts(astar, epea, mergeThreshold: -1, doShuffle: false,
                 bypassStrategy: CBS_LocalConflicts.BypassStrategy.FIRST_FIT_LOOKAHEAD,
                 doMalte: false, conflictChoice: CBS_LocalConflicts.ConflictChoice.EXHAUSTIVE_CARDINAL_GREEDY,
-                justbreakForConflicts: false, useMddHeuristic: false, lookaheadMaxExpansions: 1,
+                disableTieBreakingByMinOpsEstimate: false, useMddPruningHeuristic: false, lookaheadMaxExpansions: 1,
                 mergeCausesRestart: false)); // CBS/EPEA* + exhaustive cardinal greedy + BP1
             solvers.Add(new CBS_GlobalConflicts(astar, epea, mergeThreshold: -1, doShuffle: false,
                 bypassStrategy: CBS_LocalConflicts.BypassStrategy.FIRST_FIT_LOOKAHEAD,
                 doMalte: false, conflictChoice: CBS_LocalConflicts.ConflictChoice.EXHAUSTIVE_CARDINAL_LAZY,
-                justbreakForConflicts: false, useMddHeuristic: false, lookaheadMaxExpansions: 1,
+                disableTieBreakingByMinOpsEstimate: false, useMddPruningHeuristic: false, lookaheadMaxExpansions: 1,
                 mergeCausesRestart: false)); // CBS/EPEA* + exhaustive cardinal lazy + BP1
 
             /*

@@ -666,7 +666,7 @@ namespace CPF_experiment
         /// </summary>
         protected void CalcMinOpsToSolve()
         {
-            if (this.cbs.tieBreakForMoreConflictsOnly == false)
+            if (this.cbs.disableTieBreakingByMinOpsEstimate == false)
             {
                 var vertexCover = new HashSet<int>();
 
@@ -717,7 +717,7 @@ namespace CPF_experiment
                             // a list of the sizes of the different groups, not the size of each agent's group
 
                             foreach (int groupSize in groupSizes.Values)
-                                maxMerges -= (int)Math.Ceiling(Math.Log(groupSize, 2)); // A group of size 1 has had zero merges, a group of size 2 has had 1, larger groups have had at least log2 their size merges.
+                                maxMerges -= (int)Math.Ceiling(Math.Log(groupSize, 2)); // A group of size 1 has had zero merges, a group of size 2 has had 1, larger groups have had at least ceil(log2) their size merges.
 
                             int maxMergeSavings = Math.Min(maxPotentialMergeSavings, maxMerges);
 
@@ -729,7 +729,7 @@ namespace CPF_experiment
                             this.minOpsToSolve = (int)Math.Ceiling(((double)minReplansToSolve) / 2);
                     }
                     else
-                        this.minOpsToSolve = (int)Math.Ceiling(((double)minReplansToSolve) / 2); // TODO: We could look and the global table and maybe deduce something, but I'm not interested in that right now.
+                        this.minOpsToSolve = (int)Math.Ceiling(((double)minReplansToSolve) / 2); // TODO: We could look at the global table and maybe deduce something, but I'm not interested in that right now.
                 }
                 else
                     this.minOpsToSolve = (int)minReplansToSolve;
@@ -1658,8 +1658,9 @@ namespace CPF_experiment
                 }
 
                 var mdd = new MDD(agentIndex, problem.m_vAgents[agentIndex].agent.agentNum,
-                        problem.m_vAgents[agentIndex].GetMove(), this.allSingleAgentCosts[agentIndex],
-                        depth, problem.GetNumOfAgents(), problem, false, false);
+                    problem.m_vAgents[agentIndex].GetMove(), this.allSingleAgentCosts[agentIndex],
+                    depth, problem.GetNumOfAgents(), problem,
+                    ignoreConstraints: false, supportPruning: false);
                 this.mddNarrownessValues[agentIndex] = mdd.getLevelNarrownessValues();
                 constraints.Separate(newConstraints);
                 if (mustConstraints != null)
@@ -1799,6 +1800,8 @@ namespace CPF_experiment
         /// <returns></returns>
         public override bool Equals(object obj) 
         {
+            if (obj == null)
+                return false;
             CbsNode other = (CbsNode)obj;
 
             if (this.agentsGroupAssignment.SequenceEqual<ushort>(other.agentsGroupAssignment) == false)
@@ -1875,7 +1878,7 @@ namespace CPF_experiment
             // Prefer nodes which would possibly require less work.
             // Remember replans and merges don't necessarily enlarge the total cost, so the number of operations needed to solve
             // sadly can't be added to the node's total cost.
-            if (this.cbs.tieBreakForMoreConflictsOnly == false)
+            if (this.cbs.disableTieBreakingByMinOpsEstimate == false)
             {
                 if (this.minOpsToSolve < other.minOpsToSolve)
                     return -1;

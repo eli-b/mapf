@@ -106,12 +106,12 @@ namespace CPF_experiment
         public BypassStrategy bypassStrategy;
         public bool doMalte;
         public ConflictChoice conflictChoice;
-        public bool tieBreakForMoreConflictsOnly;
-        public bool useMddH;
+        public bool disableTieBreakingByMinOpsEstimate;
+        public bool useMddPruningHeuristic;
         /// <summary>
         /// Maps CostTreeNode objects to whether there's a solution with the current costs
         /// </summary>
-        public Dictionary<CostTreeNode, bool> costTreeMDDResults;
+        public Dictionary<CostTreeNode, ushort> costTreeMDDResults;
         public int lookaheadMaxExpansions;
         public enum ConflictChoice : byte
         {
@@ -144,8 +144,8 @@ namespace CPF_experiment
                                   bool doMalte = false,
                                   ConflictChoice conflictChoice = ConflictChoice.FIRST,
                                   HValueStrategy hValueStrategy = HValueStrategy.NONE,
-                                  bool justbreakForConflicts = false,
-                                  bool useMddHeuristic = false,
+                                  bool disableTieBreakingByMinOpsEstimate = false,
+                                  bool useMddPruningHeuristic = false,
                                   int lookaheadMaxExpansions = int.MaxValue,
                                   bool mergeCausesRestart = false)
         {
@@ -170,14 +170,16 @@ namespace CPF_experiment
                     "Before this strategy is enabled we need to add a consideration of whether the agent whose cost will " +
                     "increase has the highest cost in the solution first");
             }
-            this.tieBreakForMoreConflictsOnly = justbreakForConflicts;
-            this.useMddH = useMddHeuristic;
+            this.disableTieBreakingByMinOpsEstimate = disableTieBreakingByMinOpsEstimate;
+            this.useMddPruningHeuristic = useMddPruningHeuristic;
+            // TODO: Make it into a standalone heuristic. That way different heuristics can be combined
+            //       with a MaxHeuristic class and the CBS code would be cleaner.
             this.lookaheadMaxExpansions = lookaheadMaxExpansions;
             this.mergeCausesRestart = mergeCausesRestart;
 
-            if (useMddHeuristic)
+            if (useMddPruningHeuristic)
             {
-                this.costTreeMDDResults = new Dictionary<CostTreeNode, bool>();
+                this.costTreeMDDResults = new Dictionary<CostTreeNode, ushort>();
             }
         }
         
@@ -299,10 +301,10 @@ namespace CPF_experiment
             else if (this.conflictChoice == ConflictChoice.EXHAUSTIVE_CARDINAL_LAZY)
                 variants += " choosing cardinal conflicts using MDD and using lazy disjoint heuristic";
 
-            if (this.tieBreakForMoreConflictsOnly == true)
+            if (this.disableTieBreakingByMinOpsEstimate == true)
                 variants += " without smart tie breaking";
-            if (this.useMddH == true)
-                variants += " with MDD heuristic";
+            if (this.useMddPruningHeuristic == true)
+                variants += " with MDD pruning heuristic";
             if (this.mergeCausesRestart == true && mergeThreshold != -1)
                 variants += " with merge&restart";
 
@@ -649,15 +651,15 @@ namespace CPF_experiment
                 currentNode.DebugPrint();
 
                 // Lazy MDD stage
-                if (this.useMddH)
+                if (this.useMddPruningHeuristic)
                 {
                     if (currentNode.h == 0 && // Otherwise the node's h was already computed. It may have been computed if h is zero, but then the lookup will find the h quickly. This is just a minor optimization.
                         this.openList.Count != 0 && // Otherwise there's no need to pay for delaying expansion
                         currentNode.f == ((CbsNode)this.openList.Peek()).f) // We can only add 1 to the h so a push back can only happen if the F of the next node is equal to the current one's before starting.
                     // TODO: Generalize DynamicLazyOpenList to fit CBS instead of this logic duplication
                     {
-                        bool solvable = this.MDDHeuristic(currentNode);
-                        if (solvable)
+                        ushort lowerBound = this.MddPruningHeuristic(currentNode);
+                        if (lowerBound == 0)
                         {
                             if (this.debug)
                                 Debug.Print("MDD thinks this node may be solvable with its current costs");
@@ -671,7 +673,7 @@ namespace CPF_experiment
                                 //Debug.Print("Using MDD's least conflicting configuration.");
                                 // NOT IMPLEMENTED BUT POSSIBLE.
                             }
-                            currentNode.h = 1;
+                            currentNode.h = Math.Max(currentNode.h, lowerBound);
                             var next = (CbsNode)this.openList.Peek();
                             if (currentNode.CompareTo(next) == 1) // Must be true - they were equal before we enlarged the h.
                             {
@@ -690,11 +692,11 @@ namespace CPF_experiment
                     else
                     {
                         if (currentNode.h != 0)
-                            Debug.Print("Not building an MDD on this node, h was already computed on it");
+                            Debug.Print("Not building MDDs for this node, h was already computed on it");
                         else if (this.openList.Count == 0)
-                            Debug.Print("Not building an MDD on this node, it's the only one in the open list");
+                            Debug.Print("Not building MDDs for this node, it's the only one in the open list");
                         else
-                            Debug.Print("Not building an MDD on this node, we can't raise its h enough to push it back");
+                            Debug.Print("Not building MDDs for this node, we can't raise its h enough to push it back");
                     }
                 }
 
@@ -1586,14 +1588,24 @@ namespace CPF_experiment
         }
 
         /// <summary>
-        /// Returns whether the node is solvable with the current costs. If unsure, returns true;
+        /// Returns 0 if the node is solvable with the current costs, 1 otherwise. If unsure, returns 0;
         /// Currently avoiding building a k-agent MDD.
+        /// TODO: This became largely irrelevant after we've discovered cardinal conflicts, but
+        /// now that we're always building all MDDs, it might be worth it to try to sync the MDDs
+        /// for nodes with no cardinal conflicts. We might find they're still unsolvable
+        /// with the current costs because of "cardinally conflicting groups".
         /// </summary>
         /// <param name="node"></param>
-        /// <returns>Whether MDD after pruning believes that the node's configuration of costs is solvable.</returns>
-        protected bool MDDHeuristic(CbsNode node)
+        /// <returns>
+        /// If after syncing and pruning the MDDs at the current costs for the two conflicting agents
+        /// the whole MDD was pruned, indicating these agents can't be solved at the current cost,
+        /// returns 1. Else returns 0
+        /// </returns>
+        protected ushort MddPruningHeuristic(CbsNode node)
         {
             var costsNode = new CostTreeNode(node.allSingleAgentCosts);
+            // TODO: The costs node isn't neeeded. Just store the agent indexes and their costs
+            //       as a tuple. This would also resolve the following TODO.
             if (this.costTreeMDDResults.ContainsKey(costsNode)) // TODO: What if it was computed on a different pair of agents and returned 0? We could try again then.
             {
                 return this.costTreeMDDResults[costsNode];
@@ -1601,17 +1613,19 @@ namespace CPF_experiment
 
             if (node.GoalTest())
             {
-                this.costTreeMDDResults.Add(costsNode, true);
-                return true;
+                this.costTreeMDDResults.Add(costsNode, 0);
+                return 0;
             }
 
             if (node.GetGroupSize(node.conflict.agentAIndex) > 1 || node.GetGroupSize(node.conflict.agentBIndex) > 1)
             {
-                return true; // Without saving the result, as it's just a cop-out
+                return 0; // Without saving the result, as it's just a cop-out
             }
 
             int maxCost = Math.Max(node.allSingleAgentCosts[node.conflict.agentAIndex],
                                    node.allSingleAgentCosts[node.conflict.agentBIndex]);
+            // Building MDDs for the conflicting agents. We can't keep them because we're
+            // destructively syncing them later (the first one, at least).
             var mddA = new MDD(node.conflict.agentAIndex, this.instance.m_vAgents[node.conflict.agentAIndex].agent.agentNum,
                                 this.instance.m_vAgents[node.conflict.agentAIndex].lastMove,
                                 costsNode.costs[node.conflict.agentAIndex], maxCost,
@@ -1624,15 +1638,15 @@ namespace CPF_experiment
             MDD.PruningDone ans = mddA.SyncMDDs(mddB, checkTriples: false);
             if (ans == MDD.PruningDone.EVERYTHING)
             {
-                this.costTreeMDDResults.Add(costsNode, false);
+                this.costTreeMDDResults.Add(costsNode, 1);
                 this.pruningSuccesses++;
-                return false;
+                return 1;
             }
             else
             {
-                this.costTreeMDDResults.Add(costsNode, true);
+                this.costTreeMDDResults.Add(costsNode, 0);
                 this.pruningFailures++;
-                return true;
+                return 0;
             }
         }
 
@@ -1889,13 +1903,13 @@ namespace CPF_experiment
                                    bool doMalte = false,
                                    ConflictChoice conflictChoice = ConflictChoice.FIRST,
                                    HValueStrategy hValueStrategy = HValueStrategy.NONE,
-                                   bool justbreakForConflicts = false,
-                                   bool useMddHeuristic = false,
+                                   bool disableTieBreakingByMinOpsEstimate = false,
+                                   bool useMddPruningHeuristic = false,
                                    int lookaheadMaxExpansions = int.MaxValue,
                                    bool mergeCausesRestart = false)
             : base(singleAgentSolver, generalSolver, mergeThreshold, doShuffle,
                    bypassStrategy, doMalte, conflictChoice, hValueStrategy,
-                   justbreakForConflicts, useMddHeuristic, lookaheadMaxExpansions,
+                   disableTieBreakingByMinOpsEstimate, useMddPruningHeuristic, lookaheadMaxExpansions,
                    mergeCausesRestart)
         {
             //throw new NotImplementedException("Not supported until we decide how to count conflicts. Used to rely on the specific conflict chosen in each node.");
