@@ -92,6 +92,7 @@
     <Compile Include="CbsHeuristic.cs" />
     <Compile Include="CBS_IDA.cs" />
     <Compile Include="CbsConflict.cs" />
+    <Compile Include="ConflictGraph.cs" />
     <Compile Include="DisjointSets.cs" />
     <Compile Include="MyExtensions.cs" />
     <Compile Include="ConflictAvoidanceTable.cs" />

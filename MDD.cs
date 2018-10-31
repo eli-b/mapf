@@ -13,6 +13,7 @@ namespace CPF_experiment
         public LinkedList<MDDNode>[] levels;
         private int agentNum;
         private int mddNum;
+        private int numOfAgents;
         /// <summary>
         /// Just for printing the node
         /// </summary>
@@ -47,10 +48,10 @@ namespace CPF_experiment
             this.problem = instance;
             this.mddNum = mddNum;
             this.agentNum = agentNum;
+            this.numOfAgents = numOfAgents;
             this.cost = cost;
             this.levels = new LinkedList<MDDNode>[numOfLevels + 1];
             this.supportPruning = supportPruning;
-
             if (ignoreConstraints == false && instance.parameters.ContainsKey(CBS_LocalConflicts.CONSTRAINTS) &&
                     ((HashSet_U<CbsConstraint>)instance.parameters[CBS_LocalConflicts.CONSTRAINTS]).Count != 0)
             {
@@ -82,13 +83,13 @@ namespace CPF_experiment
             {
                 levels[i] = new LinkedList<MDDNode>();
             }
-            MDDNode root = new MDDNode(new TimedMove(start_pos, 0) , numOfAgents, this, supportPruning); // Root
+            MDDNode root = new MDDNode(new TimedMove(start_pos, 0), numOfAgents, this, supportPruning); // Root
             LinkedListNode<MDDNode> llNode = new LinkedListNode<MDDNode>(root);
             root.setMyNode(llNode);
             llNode.Value.startOrGoal = true;
             levels[0].AddFirst(llNode);
 
-            for (int i = 0; i < numOfLevels ; i++) // For each level, populate the _next_ level
+            for (int i = 0; i < numOfLevels; i++) // For each level, populate the _next_ level
             {
                 int heuristicBound = cost - i - 1; // We want g+h <= cost, so h <= cost-g. -1 because it's the bound of the _children_.
                 if (heuristicBound < 0)
@@ -293,6 +294,30 @@ namespace CPF_experiment
             Debug.WriteLine("------");
         }
 
+        public enum LevelNarrowness
+        {
+            WIDTH_1,
+            ONE_LOCATION_MULTIPLE_DIRECTIONS,
+            NOT_NARROW  // Implied, not put in the level narrowness dictionary to save space
+        }
+
+        public Dictionary<int, LevelNarrowness> getLevelNarrownessValues()
+        {
+            var narrownessValues = new Dictionary<int, LevelNarrowness>();
+            for (int i = 0; i < this.levels.Count(); i++)
+            {
+                Move firstNode = levels[i].First.Value.move.GetMoveWithoutDirection();
+                if (this.levels[i].Count == 1)
+                {
+                    narrownessValues.Add(i, LevelNarrowness.WIDTH_1);
+                }
+                else if (this.levels[i].All<MDDNode>(node => node.move.Equals(firstNode)))
+                {
+                    narrownessValues.Add(i, LevelNarrowness.ONE_LOCATION_MULTIPLE_DIRECTIONS);
+                }
+            }
+            return narrownessValues;
+        }
     }
 
     [DebuggerDisplay("{move}")]

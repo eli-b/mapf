@@ -101,6 +101,7 @@ namespace CPF_experiment
         /// Used to know when to clear problem parameters.
         /// </summary>
         public bool topMost;
+        public HValueStrategy hValueStrategy;
         public bool doShuffle;
         public BypassStrategy bypassStrategy;
         public bool doMalte;
@@ -117,6 +118,7 @@ namespace CPF_experiment
             FIRST = 0,
             MOST_CONFLICTING_SMALLEST_AGENTS,
             CARDINAL_MDD,
+            FIRST_CARDINAL_MDD,
             CARDINAL_LOOKAHEAD,
             EXHAUSTIVE_CARDINAL_GREEDY,
             EXHAUSTIVE_CARDINAL_LAZY
@@ -127,14 +129,25 @@ namespace CPF_experiment
             FIRST_FIT_LOOKAHEAD,
             BEST_FIT_LOOKAHEAD
         }
+        public enum HValueStrategy : byte
+        {
+            NONE = 0,
+            GREEDY,
+            ACCURATE
+        }
         private bool mergeCausesRestart;
 
-
-        public CBS_LocalConflicts(ICbsSolver singleAgentSolver, ICbsSolver generalSolver, int mergeThreshold = -1,
-                                  bool doShuffle = false, BypassStrategy bypassStrategy = BypassStrategy.NONE, bool doMalte = false,
+        public CBS_LocalConflicts(ICbsSolver singleAgentSolver, ICbsSolver generalSolver,
+                                  int mergeThreshold = -1,
+                                  bool doShuffle = false,
+                                  BypassStrategy bypassStrategy = BypassStrategy.NONE,
+                                  bool doMalte = false,
                                   ConflictChoice conflictChoice = ConflictChoice.FIRST,
-                                  bool justbreakForConflicts = false, bool useMddHeuristic = false,
-                                  int lookaheadMaxExpansions = int.MaxValue, bool mergeCausesRestart = false)
+                                  HValueStrategy hValueStrategy = HValueStrategy.NONE,
+                                  bool justbreakForConflicts = false,
+                                  bool useMddHeuristic = false,
+                                  int lookaheadMaxExpansions = int.MaxValue,
+                                  bool mergeCausesRestart = false)
         {
             this.closedList = new Dictionary<CbsNode, CbsNode>();
             this.openList = new OpenList(this);
@@ -145,9 +158,12 @@ namespace CPF_experiment
             this.bypassStrategy = bypassStrategy;
             this.doMalte = doMalte;
             this.conflictChoice = conflictChoice;
+            this.hValueStrategy = hValueStrategy;
             if (Constants.costFunction != Constants.CostFunction.SUM_OF_COSTS)
             {
                 Debug.Assert(conflictChoice != ConflictChoice.CARDINAL_MDD &&
+                             conflictChoice != ConflictChoice.CARDINAL_LOOKAHEAD &&  // TODO: Might be OK. Need to look at it.
+                             conflictChoice != ConflictChoice.FIRST_CARDINAL_MDD &&
                              conflictChoice != ConflictChoice.EXHAUSTIVE_CARDINAL_GREEDY &&
                              conflictChoice != ConflictChoice.EXHAUSTIVE_CARDINAL_LAZY,
                     "Under makespan, increasing the cost for a single agent might not increase the cost for the solution." +
@@ -290,6 +306,10 @@ namespace CPF_experiment
             if (this.mergeCausesRestart == true && mergeThreshold != -1)
                 variants += " with merge&restart";
 
+            if (this.hValueStrategy == HValueStrategy.ACCURATE)
+                return $"CBSH/{lowLevelSolvers}{variants}";
+            if (this.hValueStrategy == HValueStrategy.GREEDY)
+                return $"Greedy CBSH/{lowLevelSolvers}{variants}";
             if (mergeThreshold == -1)
                 return $"CBS/{lowLevelSolvers}{variants}";
             return $"MA-CBS-Local-{mergeThreshold}/{lowLevelSolvers}{variants}";
@@ -595,8 +615,15 @@ namespace CPF_experiment
                     return false;
                 }
                 var currentNode = (CbsNode)openList.Remove();
-
-                currentNode.ChooseConflict();
+                if (this.hValueStrategy == HValueStrategy.ACCURATE)
+                    currentNode.ComputeHWithMVC(); // conflict will be also chosen when computing h
+                else if (this.hValueStrategy == HValueStrategy.GREEDY)
+                    currentNode.ComputeHWithMM(); // conflict will be also chosen when computing h
+                else
+                    currentNode.ChooseConflict();
+                // TODO: The way this is written, HValueStrategy is actually a conflict choice strategy.
+                //       Consider merging functionalities to reflect this. This would remove a lot of
+                //       code duplication.
 
                 // A cardinal conflict may have been found, increasing the h of the node.
                 // Check if the node needs to be pushed back into the open list.
@@ -1470,7 +1497,7 @@ namespace CPF_experiment
                     break; // Look no further
                 }
                 else
-                { 
+                {
                     // This wasn't a cardinal conflict
                     Debug.Assert(children.Count == 0 ||  // A timeout probably occured
                                  node.conflict.mddPredictedCardinal == false, "MDD predicted this would be a cardinal conflict but it isn't");
@@ -1533,7 +1560,8 @@ namespace CPF_experiment
                 int remainingParentH = parentH - (child.totalCost - parentCost);
                 if (child.h < remainingParentH)
                     child.h = (ushort)remainingParentH;
-
+                if (this.hValueStrategy == HValueStrategy.ACCURATE)
+                    child.h = (ushort)Math.Max(child.h, node.minimumVertexCover - 1);  // -1 because we've just resolved a cardinal conflict, if there was one
                 if (child.totalCost <= this.maxCost)
                 {
                     this.highLevelGenerated++;
@@ -1701,7 +1729,7 @@ namespace CPF_experiment
                 Debug.WriteLine($"Skipping {agentSide} child for now");
                 if (doLeftChild)
                     node.agentAExpansion = CbsNode.ExpansionState.DEFERRED;
-	            else
+                else
                     node.agentBExpansion = CbsNode.ExpansionState.DEFERRED;
                 // Add the minimal delta in the child's cost:
                 // since we're banning the goal at conflict.timeStep, it must at least do conflict.timeStep+1 steps
@@ -1854,13 +1882,21 @@ namespace CPF_experiment
     {
         public int[][] globalConflictsCounter;
 
-        public CBS_GlobalConflicts(ICbsSolver singleAgentSolver, ICbsSolver generalSolver, int mergeThreshold = -1,
-                                  bool doShuffle = false, BypassStrategy bypassStrategy = BypassStrategy.NONE, bool doMalte = false,
-                                  ConflictChoice conflictChoice = ConflictChoice.FIRST,
-                                  bool justbreakForConflicts = false, bool useMddHeuristic = false,
-                                  int lookaheadMaxExpansions = int.MaxValue, bool mergeCausesRestart = false)
-            : base(singleAgentSolver, generalSolver, mergeThreshold, doShuffle, bypassStrategy, doMalte, conflictChoice,
-                   justbreakForConflicts, useMddHeuristic, lookaheadMaxExpansions, mergeCausesRestart)
+        public CBS_GlobalConflicts(ICbsSolver singleAgentSolver, ICbsSolver generalSolver,
+                                   int mergeThreshold = -1,
+                                   bool doShuffle = false,
+                                   BypassStrategy bypassStrategy = BypassStrategy.NONE,
+                                   bool doMalte = false,
+                                   ConflictChoice conflictChoice = ConflictChoice.FIRST,
+                                   HValueStrategy hValueStrategy = HValueStrategy.NONE,
+                                   bool justbreakForConflicts = false,
+                                   bool useMddHeuristic = false,
+                                   int lookaheadMaxExpansions = int.MaxValue,
+                                   bool mergeCausesRestart = false)
+            : base(singleAgentSolver, generalSolver, mergeThreshold, doShuffle,
+                   bypassStrategy, doMalte, conflictChoice, hValueStrategy,
+                   justbreakForConflicts, useMddHeuristic, lookaheadMaxExpansions,
+                   mergeCausesRestart)
         {
             //throw new NotImplementedException("Not supported until we decide how to count conflicts. Used to rely on the specific conflict chosen in each node.");
         }
