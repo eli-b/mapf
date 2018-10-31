@@ -11,7 +11,7 @@ namespace CPF_experiment
     // </summary>
     [DebuggerDisplay("count =  {Count}")]
     [Serializable]
-    public class HashSet_U<T> : ICollection<T>
+    public class HashSet_U<T> : ICollection<T>  // No IReadOnlySet in C# :(
     {
         List<HashSet<T>> Data;
         public HashSet_U()
@@ -75,6 +75,7 @@ namespace CPF_experiment
             {
                 item.Clear();
             }
+            // FIXME: We claim below it's read-only. 
             Data.Clear();
         }
 
