@@ -242,7 +242,6 @@ namespace CPF_experiment
         /// <summary>
         /// Solves the instance that was set by a call to Setup()
         /// </summary>
-        /// <param name="runner"></param>
         /// <returns></returns>
         public virtual bool Solve()
         {

@@ -36,7 +36,11 @@ namespace CPF_experiment
         /// Create a state with the given state for every agent.
         /// </summary>
         /// <param name="allAgentsState"></param>
-        public WorldStateForPartialExpansion(AgentState[] allAgentsState, int minDepth = -1, int minCost = -1): base(allAgentsState, minDepth, minCost)
+        /// <param name="minDepth"></param>
+        /// <param name="minCost"></param>
+        public WorldStateForPartialExpansion(AgentState[] allAgentsState, int minDepth = -1,
+                                             int minCost = -1):
+            base(allAgentsState, minDepth, minCost)
         {
             this.alreadyExpanded = false;
             this.maxDeltaF = 0;
@@ -103,6 +107,7 @@ namespace CPF_experiment
         /// Implicitly uses the SIC heuristic.
         /// </summary>
         /// <param name="problem">For GetSingleAgentOptimalCost</param>
+        /// <param name="isValid"></param>
         /// <returns></returns>
         public void calcSingleAgentDeltaFs(ProblemInstance problem, ValidityChecker isValid)
         {

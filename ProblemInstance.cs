@@ -471,8 +471,7 @@ namespace CPF_experiment
         /// NOT checking the direction. A Move could be declared valid even if it came to an edge tile from outside the grid!
         /// NOT checking if the move is illegal
         /// </summary>
-        /// <param name="x"></param>
-        /// <param name="y"></param>
+        /// <param name="aMove"></param>
         /// <returns>True if the given location is a valid grid location with no obstacles</returns>
         public bool IsValid(Move aMove)
         {

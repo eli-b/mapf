@@ -237,9 +237,9 @@ namespace CPF_experiment
         /// TODO: When diagonal moves are allowed, need to also check for diagonal collisions, e.g., (0,0)->(1,1) and (0,1)->(1,0) and such.
         /// No rush, though. We don't currently work with diagonal moves.
         /// </summary>
-        /// <param name="x"></param>
-        /// <param name="y"></param>
-        /// <param name="direction"></param>
+        /// <param name="other_x"></param>
+        /// <param name="other_y"></param>
+        /// <param name="other_direction"></param>
         /// <returns></returns>
         public bool IsColliding(int other_x, int other_y, Direction other_direction)
         {

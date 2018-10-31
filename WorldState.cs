@@ -69,6 +69,8 @@ namespace CPF_experiment
         /// Create a state with the given state for every agent.
         /// </summary>
         /// <param name="allAgentsState"></param>
+        /// <param name="minDepth"></param>
+        /// <param name="minCost"></param>
         public WorldState(AgentState[] allAgentsState, int minDepth = -1, int minCost = -1)
         {
             this.allAgentsState = allAgentsState.ToArray<AgentState>();
@@ -241,7 +243,7 @@ namespace CPF_experiment
         /// Set the optimal cost from the start to the goal through this node for every agent
         /// 
         /// </summary>
-        /// <param name="cost"></param>
+        /// <param name="costs"></param>
         public void SetSingleCosts(int[] costs)
         {
             this.goalSingleCosts = costs;

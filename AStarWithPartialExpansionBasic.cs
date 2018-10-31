@@ -74,7 +74,6 @@ namespace CPF_experiment
         /// Adds nodes of target F only
         /// </summary>
         /// <param name="currentNode"></param>
-        /// <param name="parentNode"></param>
         /// <returns></returns>
         protected override bool ProcessGeneratedNode(WorldState currentNode)
         {

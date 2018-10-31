@@ -41,7 +41,9 @@ namespace CPF_experiment
         /// The minimum increment by which to beat SIC's estimate, if possible.
         /// Larger values would cause each call to the heuristic to take longer, but make it return better estimates.
         /// </param>
-        public CbsHeuristic(CBS_LocalConflicts cbs, Run runner, bool reportSolution = false, int minAboveSic = 1, bool validate = false)
+        /// <param name="validate"></param>
+        public CbsHeuristic(CBS_LocalConflicts cbs, Run runner, bool reportSolution = false,
+                            int minAboveSic = 1, bool validate = false)
         {
             this.cbs = cbs;
             this.runner = runner;
@@ -366,6 +368,8 @@ namespace CPF_experiment
         /// <param name="s"></param>
         /// <param name="targetH"></param>
         /// <param name="effectiveBranchingFactor"></param>
+        /// <param name="millisCap"></param>
+        /// <param name="resume"></param>
         /// <returns></returns>
         public uint h(WorldState s, int targetH, float effectiveBranchingFactor, int millisCap, bool resume)
         {

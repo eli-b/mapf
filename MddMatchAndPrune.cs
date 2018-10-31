@@ -80,6 +80,7 @@ namespace CPF_experiment
         /// expands a given node
         /// </summary>
         /// <param name="toExpand"></param>
+        /// <param name="allChildren"></param>
         private void Expand(MddMatchAndPruneState toExpand, successorIterator allChildren)
         {
             allChildren.initialize(toExpand);

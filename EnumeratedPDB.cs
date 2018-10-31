@@ -200,7 +200,7 @@ namespace CPF_experiment
             {
                 for (ulong n = 0; n < c.m_nNodes; ++n)
                 {
-                    /**
+                    /*
                      * Get the next node, generate its children and write the
                      * children to the next queue file. I had previously
                      * thought that since we are doing an uninformed breadth-

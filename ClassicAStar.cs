@@ -54,9 +54,9 @@ namespace CPF_experiment
         protected List<CbsConflict> mstarBackPropagationConflictList;
         protected Run runner;
         protected Plan solution;
-        /// <summary>
-        /// For CBS/A*
-        /// </summary>
+        //// <summary>
+        //// For CBS/A*
+        //// </summary>
         //protected int minDepth;
 
         /// <summary>
@@ -757,8 +757,15 @@ namespace CPF_experiment
         /// This method is here instead of in ProblemInstance to enable algorithmic tweaks.
         /// </summary>
         /// <param name="possibleMove">The move to check if possible</param>
+        /// <param name="currentMoves"></param>
+        /// <param name="makespan"></param>
+        /// <param name="agentIndex"></param>
+        /// <param name="fromNode"></param>
+        /// <param name="intermediateMode"></param>
         /// <returns>true, if the move is possible.</returns>
-        protected virtual bool IsValid(TimedMove possibleMove, IReadOnlyDictionary<TimedMove, int> currentMoves, int makespan, int agentIndex, WorldState fromNode, WorldState intermediateMode)
+        protected virtual bool IsValid(TimedMove possibleMove,
+                                       IReadOnlyDictionary<TimedMove, int> currentMoves, int makespan,
+                                       int agentIndex, WorldState fromNode, WorldState intermediateMode)
         {
             int agentNum = fromNode.allAgentsState[agentIndex].agent.agentNum;
 

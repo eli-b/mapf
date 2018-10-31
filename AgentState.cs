@@ -145,7 +145,6 @@ namespace CPF_experiment
         /// When equivalence over different times is necessary,
         /// uses this.agent and last position only, ignoring direction and time.
         /// </summary>
-        /// <param name="obj"></param>
         /// <returns></returns>
         public override int GetHashCode()
         {

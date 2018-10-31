@@ -21,6 +21,7 @@ namespace CPF_experiment
         /// Determines how many additive pattern databases to build and divides
         /// the agents among them, possibly leaving some agents out.
         /// </summary>
+        /// <param name="pi">the problem instance to use</param>
         /// <param name="s">The root of the search tree. This is also expected
         /// to have context parameters such as agents' goal states.</param>
         public void build(ProblemInstance pi, WorldState s)

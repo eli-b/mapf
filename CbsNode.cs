@@ -217,7 +217,7 @@ namespace CPF_experiment
         /// Since this method is only called for the root of the constraint tree, every agent is in its own group.
         /// </summary>
         /// <param name="depthToReplan"></param>
-        /// <returns></returns>
+        /// <returns>Whether solving was successful. Solving fails if a timeout occurs.</returns>
         public bool Solve(int depthToReplan)
         {
             this.totalCost = 0;
@@ -353,6 +353,7 @@ namespace CPF_experiment
         /// <param name="depthToReplan">CBS's minDepth param. !@# Should be called minTimeStep?</param>
         /// <param name="subGroup">If given, assume CAT is already populated and use this subGroup</param>
         /// <param name="maxPlanSize">If given, use it instead of computing it</param>
+        /// <param name="minCost"></param>
         /// <returns></returns>
         public bool Replan(int agentForReplan, int depthToReplan, List<AgentState> subGroup = null,
                            int maxPlanSize = -1, int minCost = -1)
@@ -1533,6 +1534,7 @@ namespace CPF_experiment
         /// <param name="aConflictingGroupMemberIndex"></param>
         /// <param name="bConflictingGroupMemberIndex"></param>
         /// <param name="time"></param>
+        /// <param name="groups"></param>
         /// <returns></returns>
         private CbsConflict FindConflict(int aConflictingGroupMemberIndex, int bConflictingGroupMemberIndex, int time,
                                          ISet<int>[] groups = null)
@@ -1558,6 +1560,7 @@ namespace CPF_experiment
         /// <param name="time"></param>
         /// <param name="a"></param>
         /// <param name="b"></param>
+        /// <param name="groups"></param>
         /// <returns></returns>
         private void FindConflicting(int aConflictingGroupMemberIndex, int bConflictingGroupMemberIndex,
                                      int time, out int a, out int b,
@@ -2263,6 +2266,7 @@ namespace CPF_experiment
         /// </summary>
         /// <param name="agentForReplan"></param>
         /// <param name="depthToReplan"></param>
+        /// <param name="minCost"></param>
         /// <returns></returns>
         public bool Replan3b(int agentForReplan, int depthToReplan, int minCost = -1)
         {

@@ -107,7 +107,7 @@ namespace CPF_experiment
         /// <summary>
         /// Assumes entry is already in the DisjointSets data structure
         /// </summary>
-        /// <param name="item"></param>
+        /// <param name="entry"></param>
         /// <returns></returns>
         public bool IsSingle(T entry)
         {
@@ -205,8 +205,8 @@ namespace CPF_experiment
         /// Doesn't assume x, y already in the data structure.
         /// Returns whether they were really only united now.
         /// </summary>
-        /// <param name="a"></param>
-        /// <param name="b"></param>
+        /// <param name="entryA"></param>
+        /// <param name="entryB"></param>
         /// <returns></returns>
         public bool Union(T entryA, T entryB)
         {

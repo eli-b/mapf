@@ -49,7 +49,7 @@ namespace CPF_experiment
         /// Automatically calls Setup with the given costsNode
         /// </summary>
         /// <param name="problem"></param>
-        /// <param name="costsNode">TODO: Maybe just pass the array of costs here?</param>
+        /// <param name="costNode">TODO: Maybe just pass the array of costs here?</param>
         /// <param name="runner"></param>
         public CostTreeNodeSolver(ProblemInstance problem, CostTreeNode costNode, Run runner) // Make sure agent numbers are in the correct order
             : this(problem, runner)
