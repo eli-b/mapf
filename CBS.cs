@@ -1583,6 +1583,7 @@ namespace CPF_experiment
             }
             else // We try to split according to cardinal conflicts
             {
+                Debug.Assert(bypassStrategy != BypassStrategy.BEST_FIT_LOOKAHEAD, "For simplicity, BP2 is not supported when choosing cardinal conflicts");
                 this.IcbsExpand(node);
             }
         }
