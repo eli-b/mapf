@@ -6,6 +6,7 @@ using System.IO;
 namespace CPF_experiment
 {
     /// <summary>
+    /// Runs a bounded CBS to get an lower estimate of the cost from a given A* node to the goal.
     /// TODO: This class can actually be generalized to SolverHeuristic and be used as a brute-force estimator.
     ///       The only CBS things in it are the targetCost, the Debug.Assert that the root costs exactly like SIC's
     ///       estimate, and the statistics.
