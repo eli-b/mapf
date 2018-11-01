@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -107,12 +107,21 @@ namespace CPF_experiment
 
             // Preparing the heuristics:
             heuristics = new List<IHeuristicCalculator>();
-            var sic = new SumIndividualCosts();
-            heuristics.Add(sic);
-            var astar = new ClassicAStar(sic);
+            IHeuristicCalculator simple = null;
+            if (Constants.costFunction == Constants.CostFunction.SUM_OF_COSTS)
+            {
+                simple = new SumIndividualCosts();
+            }
+            else if (Constants.costFunction == Constants.CostFunction.MAKESPAN ||
+                Constants.costFunction == Constants.CostFunction.MAKESPAN_THEN_SUM_OF_COSTS)
+            {
+                simple = new MaxIndividualCosts();
+            }
+            heuristics.Add(simple);
+            var astar = new ClassicAStar(simple);
             var cbs = new CBS_LocalConflicts(astar, astar, -1);
-            var astar_with_od = new AStarWithOD(sic);
-            var epea = new AStarWithPartialExpansion(sic);
+            var astar_with_od = new AStarWithOD(simple);
+            var epea = new AStarWithPartialExpansion(simple);
             var macbsLocal5Epea = new CBS_LocalConflicts(astar, epea, 5);
             var macbsLocal50Epea = new CBS_LocalConflicts(astar, epea, 50);
             //var cbsHeuristicNoSolve1 = new CbsHeuristic(cbs, this, false, 1);
@@ -127,7 +136,7 @@ namespace CPF_experiment
             //var cbsHeuristicSolve4 = new CbsHeuristic(cbs, this, true, 4);
             //var cbsHeuristicSolve5 = new CbsHeuristic(cbs, this, true, 5);
             //var cbsHeuristicSolve6 = new CbsHeuristic(cbs, this, true, 6);
-            //var sicOrCbsh6 = new RandomChoiceOfHeuristic(cbsHeuristicSolve6, sic, 1.0 / 5);
+            //var sicOrCbsh6 = new RandomChoiceOfHeuristic(cbsHeuristicSolve6, simple, 1.0 / 5);
             
             //var dynamicLazyCbsh = new DyanamicLazyCbsh(cbs, this, true);
             //heuristics.Add(dynamicLazyCbsh);
@@ -143,78 +152,103 @@ namespace CPF_experiment
 
             // Preparing the solvers:
             solvers = new List<ISolver>();
-            /*
-            solvers.Add(new CBS_GlobalConflicts(astar, epea, -1, false, false, false, true, false, false, false)); // CBS/EPEA*
-            solvers.Add(new CBS_GlobalConflicts(astar, epea, -1, false, true, false, true, false, false, true, 1)); // CBS/EPEA* with first-fit adoption 1 expansions max
-            //solvers.Add(new CBS_GlobalConflicts(astar, epea, -1, false, true, false, true, false, false, true, 256)); // CBS/EPEA* with first-fit adoption 256 expansions max
-            solvers.Add(new CBS_GlobalConflicts(astar, epea, -1, false, true, false, true, false, false, true, int.MaxValue)); // CBS/EPEA* with first-fit adoption infinity expansions max
-            */
+            //solvers.Add(astar);
+
+            //solvers.Add(new CBS_GlobalConflicts(astar, epea)); // CBS/EPEA*
+            //solvers.Add(new CBS_GlobalConflicts(
+            //    astar, epea, bypassStrategy: CBS_LocalConflicts.BypassStrategy.FIRST_FIT_LOOKAHEAD,
+            //    lookaheadMaxExpansions: 1)); // CBS/EPEA* with first-fit adoption 1 expansions max
+            //solvers.Add(new CBS_GlobalConflicts(astar, epea,
+            //            bypassStrategy: CBS_LocalConflicts.BypassStrategy.FIRST_FIT_LOOKAHEAD,
+            //            lookaheadMaxExpansions: 256)); // CBS/EPEA* with first-fit adoption 256 expansions max
+            //solvers.Add(new CBS_GlobalConflicts(
+            //    astar, epea, bypassStrategy: CBS_LocalConflicts.BypassStrategy.FIRST_FIT_LOOKAHEAD,
+            //    lookaheadMaxExpansions: int.MaxValue)); // CBS/EPEA* with first-fit adoption infinity expansions max
+
             // B is actually set according to the map in a hack elsewhere
 
             //IJCAI:
 
-            //soldier: solvers.Add(new CBS_LocalConflicts(astar, epea, -1, false, CBS_LocalConflicts.BypassStrategy.NONE, false,
-            //soldier:             CBS_LocalConflicts.ConflictChoice.MOST_CONFLICTING, false, false)); // CBS/EPEA*
+            //soldier: solvers.Add(new CBS_LocalConflicts(
+            //     astar, epea conflictChoice: CBS_LocalConflicts.ConflictChoice.MOST_CONFLICTING)); // CBS/EPEA* + choosing most conflicting agent's conflict
             //solvers.Add(new IndependenceDetection(singleAgentSolver: astar,
-            //    new CBS_GlobalConflicts(singleAgentSolver: astar, generalSolver: epea, mergeThreshold: -1,
-            //    do_shuffle: false, bypassStrategy: CBS_LocalConflicts.BypassStrategy.NONE,
-            //    doMalte: false, CBS_LocalConflicts.ConflictChoice.MOST_CONFLICTING,
-            //    justBreakForConflicts: false, useMddHeusitic: false, mergeCausesRestart: false), sic)); // CBS/EPEA* + choosing most conflicting agent's conflict + ID
-            //soldier: solvers.Add(new CBS_LocalConflicts(astar, epea, -1, false, CBS_LocalConflicts.BypassStrategy.NONE, false,
-            //soldier:     CBS_LocalConflicts.ConflictChoice.CARDINAL_MDD, false, false)); // CBS/EPEA* Cardinal using MDDs
-            //solvers.Add(new CBS_LocalConflicts(astar, epea, -1, false, CBS_LocalConflicts.BypassStrategy.NONE, false,
-            //    CBS_LocalConflicts.ConflictChoice.CARDINAL_LOOKAHEAD, false, false)); // CBS/EPEA* Cardinal not using MDDs
+            //    new CBS_GlobalConflicts(
+            //        singleAgentSolver: astar, generalSolver: epea,
+            //        conflictChoice: CBS_LocalConflicts.ConflictChoice.MOST_CONFLICTING), simple)); // CBS/EPEA* + choosing most conflicting agent's conflict + ID
+            //soldier: solvers.Add(new CBS_LocalConflicts(astar, epea,
+            //    conflictChoice: CBS_LocalConflicts.ConflictChoice.CARDINAL_MDD)); // CBS/EPEA* Cardinal using MDDs
+            //solvers.Add(new CBS_LocalConflicts(astar, epea,
+            //    conflictChoice: CBS_LocalConflicts.ConflictChoice.CARDINAL_LOOKAHEAD)); // CBS/EPEA* Cardinal not using MDDs
 
             //soldier: 
-            //solvers.Add(new CBS_GlobalConflicts(astar, epea, 2, false, CBS_LocalConflicts.BypassStrategy.NONE, false,
-            //    CBS_LocalConflicts.ConflictChoice.FIRST, false, false, int.MaxValue, false)); // MA-CBS(2)/EPEA*
-            //solvers.Add(new CBS_GlobalConflicts(astar, epea, 4, false, CBS_LocalConflicts.BypassStrategy.NONE, false,
-            //    CBS_LocalConflicts.ConflictChoice.FIRST, false, false, int.MaxValue, false)); // MA-CBS(4)/EPEA*
-            //solvers.Add(new CBS_GlobalConflicts(astar, epea, 8, false, CBS_LocalConflicts.BypassStrategy.NONE, false,
-            //    CBS_LocalConflicts.ConflictChoice.FIRST, false, false, int.MaxValue, false)); // MA-CBS(8)/EPEA*
-            //solvers.Add(new CBS_GlobalConflicts(astar, epea, 16, false, CBS_LocalConflicts.BypassStrategy.NONE, false,
-            //    CBS_LocalConflicts.ConflictChoice.FIRST, false, false, int.MaxValue, false)); // MA-CBS(16)/EPEA*
-            //solvers.Add(new CBS_GlobalConflicts(astar, epea, 32, false, CBS_LocalConflicts.BypassStrategy.NONE, false,
-            //    CBS_LocalConflicts.ConflictChoice.FIRST, false, false, int.MaxValue, false)); // MA-CBS(32)/EPEA*
-            //solvers.Add(new CBS_GlobalConflicts(astar, epea, 64, false, CBS_LocalConflicts.BypassStrategy.NONE, false,
-            //    CBS_LocalConflicts.ConflictChoice.FIRST, false, false, int.MaxValue, false)); // MA-CBS(32)/EPEA*
-            //solvers.Add(new CBS_GlobalConflicts(astar, epea, 50, false, CBS_LocalConflicts.BypassStrategy.NONE, false,
-            //    CBS_LocalConflicts.ConflictChoice.FIRST, false, false, int.MaxValue, false)); // MA-CBS(50)/EPEA*
-            //solvers.Add(new CBS_GlobalConflicts(astar, epea, 128, false, CBS_LocalConflicts.BypassStrategy.NONE, false,
-            //    CBS_LocalConflicts.ConflictChoice.FIRST, false, false, int.MaxValue, false)); // MA-CBS(128)/EPEA*
-            //solvers.Add(new CBS_GlobalConflicts(astar, epea, 256, false, CBS_LocalConflicts.BypassStrategy.NONE, false,
-            //    CBS_LocalConflicts.ConflictChoice.FIRST, false, false, int.MaxValue, false)); // MA-CBS(256)/EPEA*
+            //solvers.Add(new CBS_GlobalConflicts(astar, epea, 2)); // MA-CBS(2)/EPEA*
+            //solvers.Add(new CBS_GlobalConflicts(astar, epea, 4)); // MA-CBS(4)/EPEA*
+            //solvers.Add(new CBS_GlobalConflicts(astar, epea, 8)); // MA-CBS(8)/EPEA*
+            //solvers.Add(new CBS_GlobalConflicts(astar, epea, 16)); // MA-CBS(16)/EPEA*
+            //solvers.Add(new CBS_GlobalConflicts(astar, epea, 32)); // MA-CBS(32)/EPEA*
+            //solvers.Add(new CBS_GlobalConflicts(astar, epea, 64)); // MA-CBS(64)/EPEA*
+            //solvers.Add(new CBS_GlobalConflicts(astar, epea, 50)); // MA-CBS(50)/EPEA*
+            //solvers.Add(new CBS_GlobalConflicts(astar, epea, 128)); // MA-CBS(128)/EPEA*
+            //solvers.Add(new CBS_GlobalConflicts(astar, epea, 256)); // MA-CBS(256)/EPEA*
 
+            //solvers.Add(new IndependenceDetection(astar,
+            //    new CBS_GlobalConflicts(astar, epea, 5), simple)); // MA-CBS(5)/EPEA* + ID.
+            //solvers.Add(new IndependenceDetection(astar,
+            //    new CBS_GlobalConflicts(astar, epea, 10), simple)); // MA-CBS(10)/EPEA* + ID.
+            //solvers.Add(new IndependenceDetection(astar,
+            //    new CBS_GlobalConflicts(astar, epea, 25), simple)); // MA-CBS(25)/EPEA* + ID.
+            //solvers.Add(new IndependenceDetection(astar,
+            //    new CBS_GlobalConflicts(astar, epea, 100), simple)); // MA-CBS(100)/EPEA* + ID.
+            //solvers.Add(new IndependenceDetection(astar,
+            //    new CBS_GlobalConflicts(astar, epea, 150), simple)); // MA-CBS(150)/EPEA* + ID.
+            //solvers.Add(new IndependenceDetection(astar,
+            //    new CBS_GlobalConflicts(astar, epea, 200), simple)); // MA-CBS(200)/EPEA* + ID.
+            //solvers.Add(new IndependenceDetection(astar,
+            //    new CBS_GlobalConflicts(astar, epea, 300), simple)); // MA-CBS(300)/EPEA* + ID.
+            //solvers.Add(new IndependenceDetection(astar,
+            //    new CBS_GlobalConflicts(astar, epea, 500), simple)); // MA-CBS(500)/EPEA* + ID.
 
-            //solvers.Add(new IndependenceDetection(astar, new CBS_GlobalConflicts(
-            //    astar, epea, 5, false, CBS_LocalConflicts.BypassStrategy.NONE, false,
-            //    CBS_LocalConflicts.ConflictChoice.FIRST, false, false, int.MaxValue, false), sic)); // MA-CBS(5)/EPEA* + ID.
-            //solvers.Add(new IndependenceDetection(astar, new CBS_GlobalConflicts(
-            //    astar, epea, 10, false, CBS_LocalConflicts.BypassStrategy.NONE, false,
-            //    CBS_LocalConflicts.ConflictChoice.FIRST, false, false, int.MaxValue, false), sic)); // MA-CBS(10)/EPEA* + ID.
-            //solvers.Add(new IndependenceDetection(astar, new CBS_GlobalConflicts(
-            //    astar, epea, 25, false, CBS_LocalConflicts.BypassStrategy.NONE, false,
-            //    CBS_LocalConflicts.ConflictChoice.FIRST, false, false, int.MaxValue, false), sic)); // MA-CBS(25)/EPEA* + ID.
-            //solvers.Add(new IndependenceDetection(astar, new CBS_GlobalConflicts(
-            //    astar, epea, 100, false, CBS_LocalConflicts.BypassStrategy.NONE, false,
-            //    CBS_LocalConflicts.ConflictChoice.FIRST, false, false, int.MaxValue, false), sic)); // MA-CBS(100)/EPEA* + ID.
-            //solvers.Add(new IndependenceDetection(astar, new CBS_GlobalConflicts(
-            //    astar, epea, 150, false, CBS_LocalConflicts.BypassStrategy.NONE, false,
-            //    CBS_LocalConflicts.ConflictChoice.FIRST, false, false, int.MaxValue, false), sic)); // MA-CBS(100)/EPEA* + ID.
-            //solvers.Add(new IndependenceDetection(astar, new CBS_GlobalConflicts(
-            //    astar, epea, 200, false, CBS_LocalConflicts.BypassStrategy.NONE, false,
-            //    CBS_LocalConflicts.ConflictChoice.FIRST, false, false, int.MaxValue, false), sic)); // MA-CBS(100)/EPEA* + ID.
-            //solvers.Add(new IndependenceDetection(astar, new CBS_GlobalConflicts(
-            //    astar, epea, 300, false, CBS_LocalConflicts.BypassStrategy.NONE, false,
-            //    CBS_LocalConflicts.ConflictChoice.FIRST, false, false, int.MaxValue, false), sic)); // MA-CBS(100)/EPEA* + ID.
-            //solvers.Add(new IndependenceDetection(astar, new CBS_GlobalConflicts(
-            //    astar, epea, 500, false, CBS_LocalConflicts.BypassStrategy.NONE, false,
-            //    CBS_LocalConflicts.ConflictChoice.FIRST, false, false, int.MaxValue, false), sic)); // MA-CBS(100)/EPEA* + ID.
+            //solvers.Add(new IndependenceDetection(astar,
+            //    new CBS_GlobalConflicts(astar, epea, 5, mergeCausesRestart: true),
+            //    simple)); // MA-CBS(5)/EPEA* + ID + restart
+
+            //solvers.Add(new CBS_GlobalConflicts(astar, epea, 5,
+            //    conflictChoice: CBS_LocalConflicts.ConflictChoice.MOST_CONFLICTING)); // MA-CBS(5)/EPEA* + choosing most conflicting agent's conflict
+            //solvers.Add(new CBS_LocalConflicts(astar, epea, 5,
+            //    conflictChoice: CBS_LocalConflicts.ConflictChoice.CARDINAL_MDD)); // MA-CBS(5)/EPEA* Cardinal using MDDs
+            //solvers.Add(new CBS_LocalConflicts(astar, epea, 5,
+            //    conflictChoice: CBS_LocalConflicts.ConflictChoice.CARDINAL_LOOKAHEAD)); // MA-CBS(5)/EPEA* Cardinal not using MDDs
+
+            //soldier: solvers.Add(new CBS_LocalConflicts(astar, epea, 5, mergeCausesRestart: true)); // MA-CBS(5)/EPEA* + restart
+            //solvers.Add(new CBS_LocalConflicts(astar, epea, 64, mergeCausesRestart: true)); // MA-CBS(64)/EPEA* + restart
+
+            //soldier: solvers.Add(new CBS_LocalConflicts(astar, epea,
+            //    bypassStrategy: CBS_LocalConflicts.BypassStrategy.FIRST_FIT_LOOKAHEAD,
+            //    lookaheadMaxExpansions: 1)); // CBS/EPEA* + BP1
+            //soldier:solvers.Add(new CBS_GlobalConflicts(astar, epea,
+            //    bypassStrategy: CBS_LocalConflicts.BypassStrategy.FIRST_FIT_LOOKAHEAD,
+            //    conflictChoice: CBS_LocalConflicts.ConflictChoice.CARDINAL_MDD,
+            //    lookaheadMaxExpansions: 1)); // CBS/EPEA* + CARDINAL + BP1
+
+            //solvers.Add(new CBS_GlobalConflicts(astar, epea, 
+            //    bypassStrategy: CBS_LocalConflicts.BypassStrategy.FIRST_FIT_LOOKAHEAD,
+            //    conflictChoice: CBS_LocalConflicts.ConflictChoice.CARDINAL_MDD,
+            //    lookaheadMaxExpansions: 1)); // CBS + CARDINAL (lookahead) + BP1
+
+            //solvers.Add(new IndependenceDetection(astar, new CBS_GlobalConflicts(astar, epea,
+            //    bypassStrategy: CBS_LocalConflicts.BypassStrategy.FIRST_FIT_LOOKAHEAD,
+            //    conflictChoice: CBS_LocalConflicts.ConflictChoice.CARDINAL_MDD,
+            //    lookaheadMaxExpansions: 1), simple)); // CBS + CARDINAL + BP1 + ID
+
+            //solvers.Add(new CBS_GlobalConflicts(astar, epea,
+            //    bypassStrategy: CBS_LocalConflicts.BypassStrategy.FIRST_FIT_LOOKAHEAD,
+            //    conflictChoice: CBS_LocalConflicts.ConflictChoice.CARDINAL_LOOKAHEAD,
+            //    lookaheadMaxExpansions: 1)); // CBS/EPEA* Cardinal not using MDDs + BP1
 
             //solvers.Add(new IndependenceDetection(astar, new CBS_GlobalConflicts(
             //        astar, epea, 5, false, CBS_LocalConflicts.BypassStrategy.NONE, false,
             //        CBS_LocalConflicts.ConflictChoice.FIRST, false, false, int.MaxValue, true),
-            //    sic)); // MA-CBS(B)/EPEA* + ID + restart
+            //    simple)); // MA-CBS(B)/EPEA* + ID + restart
 
             //solvers.Add(new CBS_GlobalConflicts(astar, epea, 5, false, CBS_LocalConflicts.BypassStrategy.NONE, false,
             //    CBS_LocalConflicts.ConflictChoice.MOST_CONFLICTING, false, false, int.MaxValue, false)); // MA-CBS(5)/EPEA*
@@ -223,148 +257,179 @@ namespace CPF_experiment
             //solvers.Add(new CBS_LocalConflicts(astar, epea, 5, false, CBS_LocalConflicts.BypassStrategy.NONE, false,
             //    CBS_LocalConflicts.ConflictChoice.CARDINAL_LOOKAHEAD, false, false)); // MA-CBS(5)/EPEA* Cardinal not using MDDs
 
-            //soldier: solvers.Add(new CBS_LocalConflicts(astar, epea, 5, false, CBS_LocalConflicts.BypassStrategy.NONE, false,
-            //    CBS_LocalConflicts.ConflictChoice.FIRST, false, false, int.MaxValue, true)); // MA-CBS(5)/EPEA* + restart
-            //solvers.Add(new CBS_LocalConflicts(astar, epea, 64, false, CBS_LocalConflicts.BypassStrategy.NONE, false,
-            //            CBS_LocalConflicts.ConflictChoice.FIRST, false, false, int.MaxValue, true)); // MA-CBS(64)/EPEA* + restart
+            //solvers.Add(new CBS_GlobalConflicts(astar, epea)); // CBS/EPEA* 
+            solvers.Add(new CBS_GlobalConflicts(astar, epea,
+                conflictChoice: CBS_LocalConflicts.ConflictChoice.FIRST_CARDINAL_MDD,
+                hValueStrategy: CBS_LocalConflicts.HValueStrategy.NONE)); // CBS/EPEA* + first cardinal
+            //solvers.Add(new CBS_GlobalConflicts(astar, epea,
+            //    conflictChoice: CBS_LocalConflicts.ConflictChoice.FIRST_CARDINAL_MDD,
+            //    hValueStrategy: CBS_LocalConflicts.HValueStrategy.GREEDY)); // CBS/EPEA* + greedy h + cardinal
+            solvers.Add(new CBS_GlobalConflicts(astar, epea,
+                conflictChoice: CBS_LocalConflicts.ConflictChoice.FIRST_CARDINAL_MDD,
+                hValueStrategy: CBS_LocalConflicts.HValueStrategy.ACCURATE)); // CBS/EPEA* + h + cardinal
+            //solvers.Add(new CBS_GlobalConflicts(astar, epea, 2,
+            //    bypassStrategy: CBS_LocalConflicts.BypassStrategy.FIRST_FIT_LOOKAHEAD,
+            //    conflictChoice: CBS_LocalConflicts.ConflictChoice.CARDINAL_MDD,
+            //    lookaheadMaxExpansions: 1, mergeCausesRestart: true)); // MA-CBS(2)/EPEA* + cardinal + BP1 + restart
+            //solvers.Add(new CBS_GlobalConflicts(astar, epea, 4,
+            //    bypassStrategy: CBS_LocalConflicts.BypassStrategy.FIRST_FIT_LOOKAHEAD,
+            //    conflictChoice: CBS_LocalConflicts.ConflictChoice.CARDINAL_MDD,
+            //    lookaheadMaxExpansions: 1, mergeCausesRestart: true)); // MA-CBS(4)/EPEA* + cardinal + BP1 + restart
+            //solvers.Add(new CBS_GlobalConflicts(astar, epea, 5,
+            //    bypassStrategy: CBS_LocalConflicts.BypassStrategy.FIRST_FIT_LOOKAHEAD,
+            //    conflictChoice: CBS_LocalConflicts.ConflictChoice.CARDINAL_MDD,
+            //    lookaheadMaxExpansions: 1, mergeCausesRestart: true)); // MA-CBS(5)/EPEA* + cardinal + BP1 + restart
+            //solvers.Add(new CBS_GlobalConflicts(astar, epea, 8,
+            //    bypassStrategy: CBS_LocalConflicts.BypassStrategy.FIRST_FIT_LOOKAHEAD,
+            //    conflictChoice: CBS_LocalConflicts.ConflictChoice.CARDINAL_MDD,
+            //    lookaheadMaxExpansions: 1, mergeCausesRestart: true)); // MA-CBS(8)/EPEA* + cardinal + BP1 + restart
+            //solvers.Add(new CBS_GlobalConflicts(astar, epea, 16,
+            //    bypassStrategy: CBS_LocalConflicts.BypassStrategy.FIRST_FIT_LOOKAHEAD,
+            //    conflictChoice: CBS_LocalConflicts.ConflictChoice.CARDINAL_MDD,
+            //    lookaheadMaxExpansions: 1, mergeCausesRestart: true)); // MA-CBS(16)/EPEA* + cardinal + BP1 + restart
+            //solvers.Add(new CBS_GlobalConflicts(astar, epea, 25,
+            //    bypassStrategy: CBS_LocalConflicts.BypassStrategy.FIRST_FIT_LOOKAHEAD,
+            //    conflictChoice: CBS_LocalConflicts.ConflictChoice.CARDINAL_MDD,
+            //    lookaheadMaxExpansions: 1, mergeCausesRestart: true)); // MA-CBS(25)/EPEA* + cardinal + BP1 + restart, AKA ICBS(25)
+            //solvers.Add(new CBS_GlobalConflicts(astar, epea, 32,
+            //    bypassStrategy: CBS_LocalConflicts.BypassStrategy.FIRST_FIT_LOOKAHEAD,
+            //    conflictChoice: CBS_LocalConflicts.ConflictChoice.CARDINAL_MDD,
+            //    lookaheadMaxExpansions: 1, mergeCausesRestart: true)); // MA-CBS(32)/EPEA* + cardinal + BP1 + restart
+            //solvers.Add(new CBS_GlobalConflicts(astar, epea, 50,
+            //    bypassStrategy: CBS_LocalConflicts.BypassStrategy.FIRST_FIT_LOOKAHEAD,
+            //    conflictChoice: CBS_LocalConflicts.ConflictChoice.CARDINAL_MDD,
+            //    lookaheadMaxExpansions: 1, mergeCausesRestart: true)); // MA-CBS(50)/EPEA* + cardinal + BP1 + restart
+            //solvers.Add(new CBS_GlobalConflicts(astar, epea, 64,
+            //    bypassStrategy: CBS_LocalConflicts.BypassStrategy.FIRST_FIT_LOOKAHEAD,
+            //    conflictChoice: CBS_LocalConflicts.ConflictChoice.CARDINAL_MDD,
+            //    lookaheadMaxExpansions: 1, mergeCausesRestart: true)); // MA-CBS(64)/EPEA* + cardinal + BP1 + restart
+            //solvers.Add(new CBS_GlobalConflicts(astar, epea, 128,
+            //    bypassStrategy: CBS_LocalConflicts.BypassStrategy.FIRST_FIT_LOOKAHEAD,
+            //    conflictChoice: CBS_LocalConflicts.ConflictChoice.CARDINAL_MDD,
+            //    lookaheadMaxExpansions: 1, mergeCausesRestart: true)); // MA-CBS(128)/EPEA* + cardinal + BP1 + restart
+            //solvers.Add(new CBS_GlobalConflicts(astar, epea, 256,
+            //    bypassStrategy: CBS_LocalConflicts.BypassStrategy.FIRST_FIT_LOOKAHEAD,
+            //    conflictChoice: CBS_LocalConflicts.ConflictChoice.CARDINAL_MDD,
+            //    lookaheadMaxExpansions: 1, mergeCausesRestart: true)); // MA-CBS(256)/EPEA* + cardinal + BP1 + restart
+            //solvers.Add(new CBS_GlobalConflicts(astar, epea, 512,
+            //    bypassStrategy: CBS_LocalConflicts.BypassStrategy.FIRST_FIT_LOOKAHEAD,
+            //    conflictChoice: CBS_LocalConflicts.ConflictChoice.CARDINAL_MDD,
+            //    lookaheadMaxExpansions: 1, mergeCausesRestart: true)); // MA-CBS(512)/EPEA* + cardinal + BP1 + restart
+            //solvers.Add(new CBS_GlobalConflicts(astar, epea, 1024,
+            //    bypassStrategy: CBS_LocalConflicts.BypassStrategy.FIRST_FIT_LOOKAHEAD,
+            //    conflictChoice: CBS_LocalConflicts.ConflictChoice.CARDINAL_MDD,
+            //    lookaheadMaxExpansions: 1, mergeCausesRestart: true)); // MA-CBS(1024)/EPEA* + cardinal + BP1 + restart
 
-            //soldier: solvers.Add(new CBS_LocalConflicts(astar, epea, -1, false, CBS_LocalConflicts.BypassStrategy.FIRST_FIT_LOOKAHEAD,
-            //soldier:     false, CBS_LocalConflicts.ConflictChoice.FIRST, false, false, 1)); // CBS/EPEA* + BP1
-            //soldier:solvers.Add(new CBS_GlobalConflicts(astar, epea, -1, false, CBS_LocalConflicts.BypassStrategy.FIRST_FIT_LOOKAHEAD,
-            //soldier:            false, CBS_LocalConflicts.ConflictChoice.CARDINAL_MDD, false, false, 1)); // CBS/EPEA* + CARDINAL + BP1
+            //solvers.Add(new IndependenceDetection(astar, new CBS_GlobalConflicts(astar, epea, 5
+            //    bypassStrategy: CBS_LocalConflicts.BypassStrategy.FIRST_FIT_LOOKAHEAD,
+            //    conflictChoice: CBS_LocalConflicts.ConflictChoice.CARDINAL_MDD, 
+            //    lookaheadMaxExpansions: 1, mergeCausesRestart: true), simple)); // MA-CBS(5)/EPEA* + cardinal + BP1 + restart + ID
+            //solvers.Add(new IndependenceDetection(astar, new CBS_GlobalConflicts(astar, epea, 10, 
+            //    bypassStrategy: CBS_LocalConflicts.BypassStrategy.FIRST_FIT_LOOKAHEAD,
+            //    conflictChoice: CBS_LocalConflicts.ConflictChoice.CARDINAL_MDD, 
+            //    lookaheadMaxExpansions: 1, mergeCausesRestart: true), simple)); // MA-CBS(10)/EPEA* + cardinal + BP1 + restart + ID
+            //solvers.Add(new IndependenceDetection(astar, new CBS_GlobalConflicts(astar, epea, 25,
+            //    bypassStrategy: CBS_LocalConflicts.BypassStrategy.FIRST_FIT_LOOKAHEAD,
+            //    conflictChoice: CBS_LocalConflicts.ConflictChoice.CARDINAL_MDD,
+            //    lookaheadMaxExpansions: 1, mergeCausesRestart: true), simple)); // MA-CBS(25)/EPEA* + cardinal + BP1 + restart + ID
+            //solvers.Add(new IndependenceDetection(astar, new CBS_GlobalConflicts(astar, epea, 100,
+            //    bypassStrategy: CBS_LocalConflicts.BypassStrategy.FIRST_FIT_LOOKAHEAD,
+            //    conflictChoice: CBS_LocalConflicts.ConflictChoice.CARDINAL_MDD, 
+            //    lookaheadMaxExpansions: 1, mergeCausesRestart: true), simple)); // MA-CBS(100)/EPEA* + cardinal + BP1 + restart + ID
+            //solvers.Add(new IndependenceDetection(astar, new CBS_GlobalConflicts(astar, epea, 150,
+            //    bypassStrategy: CBS_LocalConflicts.BypassStrategy.FIRST_FIT_LOOKAHEAD,
+            //    conflictChoice: CBS_LocalConflicts.ConflictChoice.CARDINAL_MDD,
+            //    lookaheadMaxExpansions: 1, mergeCausesRestart: true), simple)); // MA-CBS(100)/EPEA* + cardinal + BP1 + restart + ID
+            //solvers.Add(new IndependenceDetection(astar, new CBS_GlobalConflicts(astar, epea, 200,
+            //    bypassStrategy: CBS_LocalConflicts.BypassStrategy.FIRST_FIT_LOOKAHEAD,
+            //    conflictChoice: CBS_LocalConflicts.ConflictChoice.CARDINAL_MDD,
+            //    lookaheadMaxExpansions: 1, mergeCausesRestart: true), simple)); // MA-CBS(100)/EPEA* + cardinal + BP1 + restart + ID
+            //solvers.Add(new IndependenceDetection(astar, new CBS_GlobalConflicts(astar, epea, 300,
+            //    bypassStrategy: CBS_LocalConflicts.BypassStrategy.FIRST_FIT_LOOKAHEAD,
+            //    conflictChoice: CBS_LocalConflicts.ConflictChoice.CARDINAL_MDD,
+            //    lookaheadMaxExpansions: 1, mergeCausesRestart: true), simple)); // MA-CBS(100)/EPEA* + cardinal + BP1 + restart + ID
+            //solvers.Add(new IndependenceDetection(astar, new CBS_GlobalConflicts(astar, epea, 500,
+            //    bypassStrategy: CBS_LocalConflicts.BypassStrategy.FIRST_FIT_LOOKAHEAD,
+            //    conflictChoice: CBS_LocalConflicts.ConflictChoice.CARDINAL_MDD,
+            //    lookaheadMaxExpansions: 1, mergeCausesRestart: true), simple)); // MA-CBS(500)/EPEA* + cardinal + BP1 + restart + ID
 
-            //solvers.Add(new CBS_GlobalConflicts(astar, epea, -1, false, CBS_LocalConflicts.BypassStrategy.FIRST_FIT_LOOKAHEAD,
-            //    false, CBS_LocalConflicts.ConflictChoice.CARDINAL_MDD, false, false, 1, false)); // CBS + CARDINAL (lookahead) + BP1
+            //solvers.Add(new CBS_LocalConflicts(astar, epea, 5, 
+            //    bypassStrategy: CBS_LocalConflicts.BypassStrategy.FIRST_FIT_LOOKAHEAD,
+            //    conflictChoice: CBS_LocalConflicts.ConflictChoice.CARDINAL_MDD,
+            //    lookaheadMaxExpansions: 1, mergeCausesRestart: true)); // MA-CBS(5)/EPEA* Cardinal using MDDs + BP1 + restart
 
+            //solvers.Add(new CBS_GlobalConflicts(astar, epea, 5, 
+            //    bypassStrategy: CBS_LocalConflicts.BypassStrategy.FIRST_FIT_LOOKAHEAD,
+            //    lookaheadMaxExpansions: int.MaxValue)); // MA-CBS(5)/EPEA* with first-fit adoption infinity expansions max
+            //solvers.Add(new IndependenceDetection(astar, new CBS_GlobalConflicts(astar, epea, 5, 
+            //    bypassStrategy: CBS_LocalConflicts.BypassStrategy.FIRST_FIT_LOOKAHEAD,
+            //    lookaheadMaxExpansions: 1), simple)); // MA-CBS(5)/EPEA* with first-fit adoption 1 expansions max + ID
+            //solvers.Add(new CBS_GlobalConflicts(astar, epea, 5,
+            //    bypassStrategy: CBS_LocalConflicts.BypassStrategy.FIRST_FIT_LOOKAHEAD,
+            //    lookaheadMaxExpansions: 256)); // MA-CBS(5)/EPEA* with first-fit adoption 256 expansions max
+            //solvers.Add(new IndependenceDetection(astar, new CBS_GlobalConflicts(astar, epea, 5,
+            //    bypassStrategy: CBS_LocalConflicts.BypassStrategy.FIRST_FIT_LOOKAHEAD,
+            //    lookaheadMaxExpansions: int.MaxValue), simple)); // MA-CBS(5)/EPEA* with first-fit adoption infinity expansions max + ID
 
-            //solvers.Add(new IndependenceDetection(astar, new CBS_GlobalConflicts(astar, epea, -1, false,
-            //    CBS_LocalConflicts.BypassStrategy.FIRST_FIT_LOOKAHEAD,
-            //    false, CBS_LocalConflicts.ConflictChoice.CARDINAL_MDD, false, false, 1, false), sic)); // CBS + CARDINAL + BP1 + ID
-
-            //solvers.Add(new CBS_GlobalConflicts(astar, epea, -1, false, CBS_LocalConflicts.BypassStrategy.FIRST_FIT_LOOKAHEAD,
-            //    false, CBS_LocalConflicts.ConflictChoice.CARDINAL_LOOKAHEAD, false, false, 1)); // CBS/EPEA* Cardinal not using MDDs + BP1
-
-            //solvers.Add(new CBS_LocalConflicts(astar, epea, 5, false, CBS_LocalConflicts.BypassStrategy.FIRST_FIT_LOOKAHEAD,
-            //    false, CBS_LocalConflicts.ConflictChoice.MOST_CONFLICTING, false, false, 1)); // MA-CBS(B)/EPEA* + BP1
-            //solvers.Add(new CBS_LocalConflicts(astar, epea, 5, false, CBS_LocalConflicts.BypassStrategy.FIRST_FIT_LOOKAHEAD,
-            //    false, CBS_LocalConflicts.ConflictChoice.CARDINAL_MDD, false, false, 1)); // MA-CBS(B)/EPEA* Cardinal using MDDs + BP1
-            //solvers.Add(new CBS_LocalConflicts(astar, epea, 5, false, CBS_LocalConflicts.BypassStrategy.FIRST_FIT_LOOKAHEAD,
-            //    false, CBS_LocalConflicts.ConflictChoice.CARDINAL_LOOKAHEAD, false, false, 1)); // MA-CBS(B)/EPEA* Cardinal not using MDDs + BP1
-
-            solvers.Add(new CBS_GlobalConflicts(astar, epea, mergeThreshold: -1, doShuffle: false,
-                bypassStrategy: CBS_LocalConflicts.BypassStrategy.NONE,
-                doMalte: false, conflictChoice: CBS_LocalConflicts.ConflictChoice.FIRST,
-                disableTieBreakingByMinOpsEstimate: false, useMddPruningHeuristic: false, lookaheadMaxExpansions: 1,
-                mergeCausesRestart: false)); // CBS/EPEA*
-            //soldier: 
-            solvers.Add(new CBS_GlobalConflicts(astar, epea, mergeThreshold: -1, doShuffle: false,
+            //solvers.Add(epea); // EPEA*
+            //solvers.Add(new CostTreeSearchSolverOldMatching(3)); // ICTS
+            //solvers.Add(new IndependenceDetection(astar, epea, simple)); // EPEA* + ID
+            //solvers.Add(new IndependenceDetection(astar, new CostTreeSearchSolverOldMatching(3), simple)); // ICTS + ID
+            solvers.Add(new CBS_GlobalConflicts(astar, epea,
                 bypassStrategy: CBS_LocalConflicts.BypassStrategy.FIRST_FIT_LOOKAHEAD,
-                doMalte: false, conflictChoice: CBS_LocalConflicts.ConflictChoice.CARDINAL_MDD,
-                disableTieBreakingByMinOpsEstimate: false, useMddPruningHeuristic: false, lookaheadMaxExpansions: 1,
-                mergeCausesRestart: false)); // CBS/EPEA* + cardinal + BP1
-            //solvers.Add(new CBS_GlobalConflicts(astar, epea, 2, false, CBS_LocalConflicts.BypassStrategy.FIRST_FIT_LOOKAHEAD,
-            //    false, CBS_LocalConflicts.ConflictChoice.CARDINAL_MDD, false, false, 1, true)); // MA-CBS(2)/EPEA* + cardinal + BP1 + restart
-            //solvers.Add(new CBS_GlobalConflicts(astar, epea, 4, false, CBS_LocalConflicts.BypassStrategy.FIRST_FIT_LOOKAHEAD,
-            //    false, CBS_LocalConflicts.ConflictChoice.CARDINAL_MDD, false, false, 1, true)); // MA-CBS(4)/EPEA* + cardinal + BP1 + restart
-            //solvers.Add(new CBS_GlobalConflicts(astar, epea, 5, false, CBS_LocalConflicts.BypassStrategy.FIRST_FIT_LOOKAHEAD,
-            //    false, CBS_LocalConflicts.ConflictChoice.CARDINAL_MDD, false, false, 1, true)); // MA-CBS(5)/EPEA* + cardinal + BP1 + restart
-            //solvers.Add(new CBS_GlobalConflicts(astar, epea, 8, false, CBS_LocalConflicts.BypassStrategy.FIRST_FIT_LOOKAHEAD,
-            //    false, CBS_LocalConflicts.ConflictChoice.CARDINAL_MDD, false, false, 1, true)); // MA-CBS(8)/EPEA* + cardinal + BP1 + restart
-            //solvers.Add(new CBS_GlobalConflicts(astar, epea, 16, false, CBS_LocalConflicts.BypassStrategy.FIRST_FIT_LOOKAHEAD,
-            //    false, CBS_LocalConflicts.ConflictChoice.CARDINAL_MDD, false, false, 1, true)); // MA-CBS(16)/EPEA* + cardinal + BP1 + restart
-            //solvers.Add(new CBS_GlobalConflicts(astar, epea, 25, false, CBS_LocalConflicts.BypassStrategy.FIRST_FIT_LOOKAHEAD,
-            //    false, CBS_LocalConflicts.ConflictChoice.CARDINAL_MDD, false, false, 1, true)); // MA-CBS(25)/EPEA* + cardinal + BP1 + restart, AKA ICBS(25)
-            //solvers.Add(new CBS_GlobalConflicts(astar, epea, 32, false, CBS_LocalConflicts.BypassStrategy.FIRST_FIT_LOOKAHEAD,
-            //    false, CBS_LocalConflicts.ConflictChoice.CARDINAL_MDD, false, false, 1, true)); // MA-CBS(32)/EPEA* + cardinal + BP1 + restart
-            //solvers.Add(new CBS_GlobalConflicts(astar, epea, 50, false, CBS_LocalConflicts.BypassStrategy.FIRST_FIT_LOOKAHEAD,
-            //    false, CBS_LocalConflicts.ConflictChoice.CARDINAL_MDD, false, false, 1, true)); // MA-CBS(50)/EPEA* + cardinal + BP1 + restart
-            //solvers.Add(new CBS_GlobalConflicts(astar, epea, 64, false, CBS_LocalConflicts.BypassStrategy.FIRST_FIT_LOOKAHEAD,
-            //    false, CBS_LocalConflicts.ConflictChoice.CARDINAL_MDD, false, false, 1, true)); // MA-CBS(64)/EPEA* + cardinal + BP1 + restart
-            //solvers.Add(new CBS_GlobalConflicts(astar, epea, 128, false, CBS_LocalConflicts.BypassStrategy.FIRST_FIT_LOOKAHEAD,
-            //    false, CBS_LocalConflicts.ConflictChoice.CARDINAL_MDD, false, false, 1, true)); // MA-CBS(128)/EPEA* + cardinal + BP1 + restart
-            //solvers.Add(new CBS_GlobalConflicts(astar, epea, 256, false, CBS_LocalConflicts.BypassStrategy.FIRST_FIT_LOOKAHEAD,
-            //    false, CBS_LocalConflicts.ConflictChoice.CARDINAL_MDD, false, false, 1, true)); // MA-CBS(256)/EPEA* + cardinal + BP1 + restart
-            //solvers.Add(new CBS_GlobalConflicts(astar, epea, 512, false, CBS_LocalConflicts.BypassStrategy.FIRST_FIT_LOOKAHEAD,
-            //    false, CBS_LocalConflicts.ConflictChoice.CARDINAL_MDD, false, false, 1, true)); // MA-CBS(512)/EPEA* + cardinal + BP1 + restart
-            //solvers.Add(new CBS_GlobalConflicts(astar, epea, 1024, false, CBS_LocalConflicts.BypassStrategy.FIRST_FIT_LOOKAHEAD,
-            //    false, CBS_LocalConflicts.ConflictChoice.CARDINAL_MDD, false, false, 1, true)); // MA-CBS(1024)/EPEA* + cardinal + BP1 + restart
-
-
-            //solvers.Add(new IndependenceDetection(astar, new CBS_GlobalConflicts(astar, epea, 5, false, CBS_LocalConflicts.BypassStrategy.FIRST_FIT_LOOKAHEAD,
-            //    false, CBS_LocalConflicts.ConflictChoice.CARDINAL_MDD, false, false, 1, true), sic)); // MA-CBS(5)/EPEA* + cardinal + BP1 + restart + ID
-            //solvers.Add(new IndependenceDetection(astar, new CBS_GlobalConflicts(astar, epea, 10, false, CBS_LocalConflicts.BypassStrategy.FIRST_FIT_LOOKAHEAD,
-            //    false, CBS_LocalConflicts.ConflictChoice.CARDINAL_MDD, false, false, 1, true), sic)); // MA-CBS(10)/EPEA* + cardinal + BP1 + restart + ID
-            //solvers.Add(new IndependenceDetection(astar, new CBS_GlobalConflicts(astar, epea, 25, false, CBS_LocalConflicts.BypassStrategy.FIRST_FIT_LOOKAHEAD,
-            //    false, CBS_LocalConflicts.ConflictChoice.CARDINAL_MDD, false, false, 1, true), sic)); // MA-CBS(25)/EPEA* + cardinal + BP1 + restart + ID
-            //solvers.Add(new IndependenceDetection(astar, new CBS_GlobalConflicts(astar, epea, 100, false, CBS_LocalConflicts.BypassStrategy.FIRST_FIT_LOOKAHEAD,
-            //    false, CBS_LocalConflicts.ConflictChoice.CARDINAL_MDD, false, false, 1, true), sic)); // MA-CBS(100)/EPEA* + cardinal + BP1 + restart + ID
-            //solvers.Add(new IndependenceDetection(astar, new CBS_GlobalConflicts(astar, epea, 150, false, CBS_LocalConflicts.BypassStrategy.FIRST_FIT_LOOKAHEAD,
-            //    false, CBS_LocalConflicts.ConflictChoice.CARDINAL_MDD, false, false, 1, true), sic)); // MA-CBS(100)/EPEA* + cardinal + BP1 + restart + ID
-            //solvers.Add(new IndependenceDetection(astar, new CBS_GlobalConflicts(astar, epea, 200, false, CBS_LocalConflicts.BypassStrategy.FIRST_FIT_LOOKAHEAD,
-            //    false, CBS_LocalConflicts.ConflictChoice.CARDINAL_MDD, false, false, 1, true), sic)); // MA-CBS(100)/EPEA* + cardinal + BP1 + restart + ID
-            //solvers.Add(new IndependenceDetection(astar, new CBS_GlobalConflicts(astar, epea, 300, false, CBS_LocalConflicts.BypassStrategy.FIRST_FIT_LOOKAHEAD,
-            //    false, CBS_LocalConflicts.ConflictChoice.CARDINAL_MDD, false, false, 1, true), sic)); // MA-CBS(100)/EPEA* + cardinal + BP1 + restart + ID
-            //solvers.Add(new IndependenceDetection(astar, new CBS_GlobalConflicts(astar, epea, 500, false, CBS_LocalConflicts.BypassStrategy.FIRST_FIT_LOOKAHEAD,
-            //    false, CBS_LocalConflicts.ConflictChoice.CARDINAL_MDD, false, false, 1, true), sic)); // MA-CBS(100)/EPEA* + cardinal + BP1 + restart + ID
-
-
-            //solvers.Add(new CBS_LocalConflicts(astar, epea, 5, false, CBS_LocalConflicts.BypassStrategy.FIRST_FIT_LOOKAHEAD,
-            //    false, CBS_LocalConflicts.ConflictChoice.CARDINAL_MDD, false, false, 1, true)); // MA-CBS(B)/EPEA* Cardinal using MDDs + BP1 + restart
-
-            //solvers.Add(new CBS_GlobalConflicts(astar, epea, 5, false, true, false, CBS_LocalConflicts.ConflictChoice.MOST_CONFLICTING, false, false, true, int.MaxValue)); // MA-CBS/EPEA* with first-fit adoption infinity expansions max
-            //solvers.Add(new IndependenceDetection(astar, new CBS_GlobalConflicts(astar, epea, 5, false, true, false, true, false, false, true, 1), sic)); // MA-CBS/EPEA* with first-fit adoption 1 expansions max + ID
-            //solvers.Add(new CBS_GlobalConflicts(astar, epea, 5, false, true, false, true, false, false, true, 256)); // MA-CBS/EPEA* with first-fit adoption 256 expansions max
-            //solvers.Add(new IndependenceDetection(astar, new CBS_GlobalConflicts(astar, epea, 5, false, true, false, true, false, false, true, int.MaxValue), sic)); // MA-CBS/EPEA* with first-fit adoption infinity expansions max + ID
-
-            //soldier: solvers.Add(epea); // EPEA*
-            //soldier: solvers.Add(new CostTreeSearchSolverOldMatching(3)); // ICTS
-            //solvers.Add(new IndependenceDetection(astar, epea, sic)); // EPEA* + ID
-            //solvers.Add(new IndependenceDetection(astar, new CostTreeSearchSolverOldMatching(3), sic)); // ICTS + ID
-            solvers.Add(new CBS_GlobalConflicts(astar, epea, mergeThreshold: -1, doShuffle: false,
+                conflictChoice: CBS_LocalConflicts.ConflictChoice.EXHAUSTIVE_CARDINAL_GREEDY,
+                hValueStrategy: CBS_LocalConflicts.HValueStrategy.ACCURATE,
+                lookaheadMaxExpansions: 1)); // CBS/EPEA* + exhaustive cardinal greedy + BP1
+            solvers.Add(new CBS_GlobalConflicts(astar, epea,
                 bypassStrategy: CBS_LocalConflicts.BypassStrategy.FIRST_FIT_LOOKAHEAD,
-                doMalte: false, conflictChoice: CBS_LocalConflicts.ConflictChoice.EXHAUSTIVE_CARDINAL_GREEDY,
-                disableTieBreakingByMinOpsEstimate: false, useMddPruningHeuristic: false, lookaheadMaxExpansions: 1,
-                mergeCausesRestart: false)); // CBS/EPEA* + exhaustive cardinal greedy + BP1
-            solvers.Add(new CBS_GlobalConflicts(astar, epea, mergeThreshold: -1, doShuffle: false,
-                bypassStrategy: CBS_LocalConflicts.BypassStrategy.FIRST_FIT_LOOKAHEAD,
-                doMalte: false, conflictChoice: CBS_LocalConflicts.ConflictChoice.EXHAUSTIVE_CARDINAL_LAZY,
-                disableTieBreakingByMinOpsEstimate: false, useMddPruningHeuristic: false, lookaheadMaxExpansions: 1,
-                mergeCausesRestart: false)); // CBS/EPEA* + exhaustive cardinal lazy + BP1
+                conflictChoice: CBS_LocalConflicts.ConflictChoice.EXHAUSTIVE_CARDINAL_LAZY,
+                lookaheadMaxExpansions: 1)); // CBS/EPEA* + exhaustive cardinal lazy + BP1
 
             /*
-            solvers.Add(new CBS_LocalConflicts(astar, epea, 5, false, false, false, true, false, false, false)); // MACBS(5)/EPEA* - Works and is very fast so is a good choice for cost validation
-            solvers.Add(new CBS_LocalConflicts(astar, epea, 5, false, true, false, true, false, false, true, 1)); // MACBS(5)/EPEA* + adoption immediately
-            solvers.Add(new CBS_LocalConflicts(astar, epea, 5, false, true, false, true, false, false, true, int.MaxValue)); // MACBS(5)/EPEA* + adoption immediately infinite expansions
-            solvers.Add(new CBS_LocalConflicts(astar, epea, 5, false, true, false, true, false, false, true, 2)); // MACBS(5)/EPEA* + adoption immediately 2 expansions
-            solvers.Add(new CBS_LocalConflicts(astar, epea, 5, false, true, false, true, false, false, true, 4)); // MACBS(5)/EPEA* + adoption immediately 4 expansions
-            solvers.Add(new CBS_LocalConflicts(astar, epea, 5, false, true, false, true, false, false, true, 8)); // MACBS(5)/EPEA* + adoption immediately 8 expansions
-            solvers.Add(new CBS_LocalConflicts(astar, epea, 5, false, true, false, true, false, false, true, 16)); // MACBS(5)/EPEA* + adoption immediately 16 expansions
-            solvers.Add(new CBS_LocalConflicts(astar, epea, 5, false, true, false, true, false, false, true, 32)); // MACBS(5)/EPEA* + adoption immediately 32 expansions
-            solvers.Add(new CBS_LocalConflicts(astar, epea, 5, false, true, false, true, false, false, true, 64)); // MACBS(5)/EPEA* + adoption immediately 64 expansions
-            solvers.Add(new CBS_LocalConflicts(astar, epea, 5, false, true, false, true, false, false, true, 128)); // MACBS(5)/EPEA* + adoption immediately
-            solvers.Add(new CBS_LocalConflicts(astar, epea, 5, false, true, false, true, false, false, true, 256)); // MACBS(5)/EPEA* + adoption immediately
-            solvers.Add(new CBS_LocalConflicts(astar, epea, 5, false, true, false, true, false, false, true, int.MaxValue)); // MACBS(5)/EPEA* + adoption immediately infinite expansions
+            solvers.Add(new CBS_LocalConflicts(astar, epea, 5)); // MACBS(5)/EPEA* - Works and is very fast so is a good choice for cost validation
+            solvers.Add(new CBS_LocalConflicts(astar, epea, 5, 
+                bypassStrategy: CBS_LocalConflicts.BypassStrategy.FIRST_FIT_LOOKAHEAD,
+                lookaheadMaxExpansions: 1)); // MACBS(5)/EPEA* + adoption immediately
+            solvers.Add(new CBS_LocalConflicts(astar, epea, 5, 
+                bypassStrategy: CBS_LocalConflicts.BypassStrategy.FIRST_FIT_LOOKAHEAD,
+                lookaheadMaxExpansions: int.MaxValue)); // MACBS(5)/EPEA* + adoption immediately infinite expansions
+            solvers.Add(new CBS_LocalConflicts(astar, epea, 5, 
+                bypassStrategy: CBS_LocalConflicts.BypassStrategy.FIRST_FIT_LOOKAHEAD,
+                lookaheadMaxExpansions: 2)); // MACBS(5)/EPEA* + adoption immediately 2 expansions
+            solvers.Add(new CBS_LocalConflicts(astar, epea, 5, 
+                bypassStrategy: CBS_LocalConflicts.BypassStrategy.FIRST_FIT_LOOKAHEAD,
+                lookaheadMaxExpansions: 4)); // MACBS(5)/EPEA* + adoption immediately 4 expansions
+            solvers.Add(new CBS_LocalConflicts(astar, epea, 5, 
+                bypassStrategy: CBS_LocalConflicts.BypassStrategy.FIRST_FIT_LOOKAHEAD,
+                lookaheadMaxExpansions: 8)); // MACBS(5)/EPEA* + adoption immediately 8 expansions
+            solvers.Add(new CBS_LocalConflicts(astar, epea, 5, 
+                bypassStrategy: CBS_LocalConflicts.BypassStrategy.FIRST_FIT_LOOKAHEAD,
+                lookaheadMaxExpansions: 16)); // MACBS(5)/EPEA* + adoption immediately 16 expansions
+            solvers.Add(new CBS_LocalConflicts(astar, epea, 5, 
+                bypassStrategy: CBS_LocalConflicts.BypassStrategy.FIRST_FIT_LOOKAHEAD,
+                lookaheadMaxExpansions: 32)); // MACBS(5)/EPEA* + adoption immediately 32 expansions
+            solvers.Add(new CBS_LocalConflicts(astar, epea, 5, 
+                bypassStrategy: CBS_LocalConflicts.BypassStrategy.FIRST_FIT_LOOKAHEAD,
+                lookaheadMaxExpansions: 64)); // MACBS(5)/EPEA* + adoption immediately 64 expansions
+            solvers.Add(new CBS_LocalConflicts(astar, epea, 5, 
+                bypassStrategy: CBS_LocalConflicts.BypassStrategy.FIRST_FIT_LOOKAHEAD,
+                lookaheadMaxExpansions: 128)); // MACBS(5)/EPEA* + adoption immediately 128 expansions
+            solvers.Add(new CBS_LocalConflicts(astar, epea, 5, 
+                bypassStrategy: CBS_LocalConflicts.BypassStrategy.FIRST_FIT_LOOKAHEAD,
+                lookaheadMaxExpansions: 256)); // MACBS(5)/EPEA* + adoption immediately 256 expansions
             */
+
             
-            //solvers.Add(new CBS_LocalConflicts(astar, epea, 5, false, true, false, true, false, false, false)); // MACBS(5)/EPEA* + infinite lookahead adoption
-            //solvers.Add(new CBS_LocalConflicts(astar, epea, 5, false, true, false, true, false, false, false, 4)); // MACBS(5)/EPEA* + 4 lookahead adoption
-            //solvers.Add(new CBS_LocalConflicts(astar, epea, 5, false, true, false, true, false, false, false, 8)); // MACBS(5)/EPEA* + 8 lookahead adoption
-            //solvers.Add(new CBS_LocalConflicts(astar, epea, 5, false, true, false, true, false, false, false, 16)); // MACBS(5)/EPEA* + 16 lookahead adoption
-            //solvers.Add(new CBS_LocalConflicts(astar, epea, 5, false, true, false, true, false, false, false, 32)); // MACBS(5)/EPEA* + 32 lookahead adoption
-            //solvers.Add(new CBS_LocalConflicts(astar, epea, 5, false, true, false, true, false, false, false, 64)); // MACBS(5)/EPEA* + 64 lookahead adoption
-            
-            //solvers.Add(new CBS_LocalConflicts(astar, epea, -1, false, false, false, truesllslss, false, false, false)); // CBS/EPEA*
-            //solvers.Add(new CBS_LocalConflicts(astar, epea, -1, false, true, false, true, false, false)); // CBS+adoption
-            //solvers.Add(new CBS_LocalConflicts(astar, epea, -1, true, false, false, true, false, false)); // CBS+shuffle
-            //solvers.Add(new CBS_LocalConflicts(astar, epea, -1, false, true, false, true, false, true)); // CBS+MDD+adoption
-            //solvers.Add(new CBS_LocalConflicts(astar, epea, -1, true, false, false, true, false, true)); // CBS+MDD+shuffle
-            //solvers.Add(new CBS_LocalConflicts(astar, epea, 5, false, false, false, true, true)); // Simply tie break for more conflicts
-            //solvers.Add(new CBS_LocalConflicts(astar, epea, 5, false, false, false, false)); // MACBS(5) Find first conflict
-            //solvers.Add(new CBS_LocalConflicts(astar, epea, -1, false, false, false, false, false, false)); // CBS Find first conflict
-            //solvers.Add(new CBS_LocalConflicts(astar, epea, -1)); // Works and is very fast so is a good choice for cost validation
-            //solvers.Add(new CBS_LocalConflicts(astar, epea, -1, true, false, false)); // shuffle
-            //solvers.Add(new CBS_LocalConflicts(astar, epea, -1, false, true, false)); // Adoption
-            //solvers.Add(new CBS_LocalConflicts(astar, epea, -1, false, false, true)); // Malte
+            //solvers.Add(new CBS_LocalConflicts(astar, epea, doShuffle: true)); // CBS + shuffle
+            //solvers.Add(new CBS_LocalConflicts(astar, epea,
+            //    bypassStrategy: CBS_LocalConflicts.BypassStrategy.FIRST_FIT_LOOKAHEAD,
+            //    lookaheadMaxExpansions: 1,
+            //    useMddHeuristic: true)); // CBS + MDD Pruning heuristic + adoption
+            //solvers.Add(new CBS_LocalConflicts(astar, epea,
+            //    doShuffle: true,
+            //    useMddHeuristic: true)); // CBS+MDD+shuffle
+            //solvers.Add(new CBS_LocalConflicts(astar, epea, 5, justbreakForConflicts: true)); // MA-CBS(5) + Simply tie break for more conflicts
+            //solvers.Add(new CBS_LocalConflicts(astar, epea, doMalte: true)); // CBS + Malte
             /*
             //solvers.Add(new CBS_LocalConflicts(epea, epea, -1));
             //solvers.Add(new CBS_GlobalConflicts(epea, epea, -1)); // Should be identical since no merging is done.
@@ -404,18 +469,17 @@ namespace CPF_experiment
             //solvers.Add(new CBS_LocalConflicts(astar_with_od, astar_with_od, 500));
             //solvers.Add(new CBS_GlobalConflicts(astar_with_od, astar_with_od, 500));
             */
-            //solvers.Add(new ClassicAStar(sic, true)); // Works
-            //solvers.Add(new ClassicAStar(sic, true, false)); // rM*! Works
-            //solvers.Add(new ClassicAStar(sic, true, true)); // rM* shuffle! Works
-            //solvers.Add(new ClassicAStar(cbsHeuristic)); // Works
-            //solvers.Add(new AStarWithOD(sic));  // Works
-            //solvers.Add(new AStarWithOD(sic, true, false)); // rM*+OD!
-            //solvers.Add(new AStarWithOD(sic, true, true)); // rM*+OD shuffle!
-            //solvers.Add(new AStarWithPartialExpansionBasic(sic)); // Works
+                        //solvers.Add(new ClassicAStar(simple, mStar: true)); // rM*! Works
+            //solvers.Add(new ClassicAStar(simple, mStar: true, mStarShuffle: true)); // rM* shuffle! Works
+            //solvers.Add(new ClassicAStar(cbsHeuristic)); // A* with cbsHeuristic
+            //solvers.Add(new AStarWithOD(simple));  // A* + OD
+            //solvers.Add(new AStarWithOD(simple, mStar: true)); // rM*+OD!
+            //solvers.Add(new AStarWithOD(simple, mStar: true, mStar: true)); // rM*+OD shuffle!
+            //solvers.Add(new AStarWithPartialExpansionBasic(simple)); // Works
             //solvers.Add(new AStarWithPartialExpansionBasic(cbsHeuristic));
-            //soldier: solvers.Add(new AStarWithPartialExpansion(sic)); // Works.
-            //solvers.Add(new AStarWithPartialExpansion(sic, true, false)); // EPErM*
-            //solvers.Add(new AStarWithPartialExpansion(sic, true, true)); // EPErM* shuffle
+            //soldier: solvers.Add(new AStarWithPartialExpansion(simple)); // Works.
+            //solvers.Add(new AStarWithPartialExpansion(simple, true, false)); // EPErM*
+            //solvers.Add(new AStarWithPartialExpansion(simple, true, true)); // EPErM* shuffle
             //soldier: solvers.Add(new CBS_LocalConflicts(astar, epea, 0)); // EPEA*+(S)ID
 
             //solvers.Add(new ClassicAStar(cbsHeuristicSolve1));
@@ -431,7 +495,7 @@ namespace CPF_experiment
             //solvers.Add(new ClassicAStar(cbsHeuristicNoSolve5));
             //solvers.Add(new ClassicAStar(cbsHeuristicNoSolve6));
             //solvers.Add(new ClassicAStar(sicOrCbsh6));
-            
+
             //solvers.Add(new AStarWithOD(cbsHeuristicSolve1));
             //solvers.Add(new AStarWithOD(cbsHeuristicSolve2));
             //solvers.Add(new AStarWithOD(cbsHeuristicSolve3));
@@ -448,19 +512,19 @@ namespace CPF_experiment
 
             ClassicAStar solver;
             // dynamic not rational lazy A*+OD/CBS/A*/SIC:
-            //solver = new AStarWithOD(sic);
+            //solver = new AStarWithOD(simple);
             //var dynamicLazyOpenList1 = new DynamicLazyOpenList(solver, dynamicLazyCbsh, this);
             //solver.openList = dynamicLazyOpenList1;
             //solvers.Add(solver);
 
             // dynamic rational lazy A*+OD/CBS/A*/SIC:
-            //solver = new AStarWithOD(sic);
+            //solver = new AStarWithOD(simple);
             //var dynamicRationalLazyOpenList1 = new DynamicRationalLazyOpenList(solver, dynamicLazyCbsh, this);
             //solver.openList = dynamicRationalLazyOpenList1;
             //solvers.Add(solver);
 
             // dynamic rational lazy MA-CBS-local-5/A*+OD/MA-CBS-local-5/EPEA*/SIC:
-            //solver = new AStarWithOD(sic);
+            //solver = new AStarWithOD(simple);
             //var dynamicRationalLazyOpenList3 = new DynamicRationalLazyOpenList(solver, dynamicLazyMacbsLocal5EpeaH, this);
             //solver.openList = dynamicRationalLazyOpenList3;
             //solvers.Add(new CBS_LocalConflicts(astar, solver, 5));
@@ -480,13 +544,13 @@ namespace CPF_experiment
             //solvers.Add(new AStarWithPartialExpansion(sicOrCbsh6));
 
             // dynamic not rational lazy EPEA*/CBS/A*/SIC:
-            //solver = new AStarWithPartialExpansion(sic);
+            //solver = new AStarWithPartialExpansion(simple);
             //var dynamicLazyOpenList2 = new DynamicLazyOpenList(solver, dynamicLazyCbsh, this);
             //solver.openList = dynamicLazyOpenList2;
             //solvers.Add(solver);
 
             // dynamic rational lazy EPEA*/CBS/A*/SIC:
-            //solver = new AStarWithPartialExpansion(sic);
+            //solver = new AStarWithPartialExpansion(simple);
             //var dynamicRationalLazyOpenList2 = new DynamicRationalLazyOpenList(solver, dynamicLazyCbsh, this);
             //solver.openList = dynamicRationalLazyOpenList2;
             //solvers.Add(solver);
@@ -494,13 +558,13 @@ namespace CPF_experiment
             /*
              * soldiers:
             // MA-CBS-local-5 / dynamic rational lazy EPEA* / MA-CBS-local-50 / EPEA* / SIC:
-            solver = new AStarWithPartialExpansion(sic);
+            solver = new AStarWithPartialExpansion(simple);
             var dynamicRationalLazyOpenList4 = new DynamicRationalLazyOpenList(solver, dynamicLazyMacbsLocal50EpeaH, this);
             solver.openList = dynamicRationalLazyOpenList4;
             solvers.Add(new CBS_LocalConflicts(astar, solver, 5));
 
             // dynamic rational lazy EPEA* / MA-CBS-local-5 / EPEA* / SIC + (S)ID:
-            solver = new AStarWithPartialExpansion(sic);
+            solver = new AStarWithPartialExpansion(simple);
             var dynamicRationalLazyOpenList6 = new DynamicRationalLazyOpenList(solver, dynamicLazyMacbsLocal5EpeaH, this);
             solver.openList = dynamicRationalLazyOpenList6;
             solvers.Add(new CBS_LocalConflicts(astar, solver, 0));
@@ -509,7 +573,7 @@ namespace CPF_experiment
             /*
             //soldier: but can't handle 50 agents
             // dynamic rational lazy EPEA* / MA-CBS-local-5 / EPEA* / SIC:
-            solver = new AStarWithPartialExpansion(sic);
+            solver = new AStarWithPartialExpansion(simple);
             var dynamicRationalLazyOpenList8 = new DynamicRationalLazyOpenList(solver, dynamicLazyMacbsLocal5EpeaH, this);
             solver.openList = dynamicRationalLazyOpenList8;
             solvers.Add(solver);
@@ -672,98 +736,100 @@ namespace CPF_experiment
         public ProblemInstance GenerateDragonAgeProblemInstance(string mapFileName, int agentsNum)
         {
             Debug.WriteLine($"Generating instance with {agentsNum} agents");
-            TextReader input = new StreamReader(mapFileName);
-            string[] lineParts;
-            string line;
-
-            line = input.ReadLine();
-            Debug.Assert(line.StartsWith("type octile"));
-
-            // Read grid dimensions
-            line = input.ReadLine();
-            lineParts = line.Split(' ');
-            Debug.Assert(lineParts[0].StartsWith("height"));
-            int maxX = int.Parse(lineParts[1]);
-            line = input.ReadLine();
-            lineParts = line.Split(' ');
-            Debug.Assert(lineParts[0].StartsWith("width"));
-            int maxY = int.Parse(lineParts[1]);
-            line = input.ReadLine();
-            Debug.Assert(line.StartsWith("map"));
-            bool[][] grid = new bool[maxX][];
-            char cell;
-            for (int i = 0; i < maxX; i++)
+            using (TextReader input = new StreamReader(mapFileName))
             {
-                grid[i] = new bool[maxY];
+                string[] lineParts;
+                string line;
+
                 line = input.ReadLine();
-                for (int j = 0; j < maxY; j++)
+                Debug.Assert(line.StartsWith("type octile"));
+
+                // Read grid dimensions
+                line = input.ReadLine();
+                lineParts = line.Split(' ');
+                Debug.Assert(lineParts[0].StartsWith("height"));
+                int maxX = int.Parse(lineParts[1]);
+                line = input.ReadLine();
+                lineParts = line.Split(' ');
+                Debug.Assert(lineParts[0].StartsWith("width"));
+                int maxY = int.Parse(lineParts[1]);
+                line = input.ReadLine();
+                Debug.Assert(line.StartsWith("map"));
+                bool[][] grid = new bool[maxX][];
+                char cell;
+                for (int i = 0; i < maxX; i++)
                 {
-                    cell = line.ElementAt(j);
-                    if (cell == '@' || cell == 'O' || cell == 'T' || cell == 'W' /* Water isn't traversable from land */)
-                        grid[i][j] = true;
-                    else
-                        grid[i][j] = false;
+                    grid[i] = new bool[maxY];
+                    line = input.ReadLine();
+                    for (int j = 0; j < maxY; j++)
+                    {
+                        cell = line.ElementAt(j);
+                        if (cell == '@' || cell == 'O' || cell == 'T' || cell == 'W' /* Water isn't traversable from land */)
+                            grid[i][j] = true;
+                        else
+                            grid[i][j] = false;
+                    }
                 }
-            }
 
-            int x;
-            int y;
-            Agent[] agentGoals = new Agent[agentsNum];
-            AgentState[] agentStates = new AgentState[agentsNum];
-            bool[][] goals = new bool[maxX][];
+                int x;
+                int y;
+                Agent[] agentGoals = new Agent[agentsNum];
+                AgentState[] agentStates = new AgentState[agentsNum];
+                bool[][] goals = new bool[maxX][];
 
-            for (int i = 0; i < maxX; i++)
-                goals[i] = new bool[maxY];
+                for (int i = 0; i < maxX; i++)
+                    goals[i] = new bool[maxY];
 
-            // Choose random valid unclaimed goal locations
-            for (int i = 0; i < agentsNum; i++)
-            {
-                x = rand.Next(maxX);
-                y = rand.Next(maxY);
-                if (goals[x][y] || grid[x][y])
-                    i--;
-                else
-                {
-                    goals[x][y] = true;
-                    agentGoals[i] = new Agent(x, y, i);
-                }
-            }
-
-            // Select random start/goal locations for every agent by performing a random walk
-            for (int i = 0; i < agentsNum; i++)
-            {
-                agentStates[i] = new AgentState(agentGoals[i].Goal.x, agentGoals[i].Goal.y, agentGoals[i]);
-            }
-
-            ProblemInstance problem = new ProblemInstance();
-            problem.parameters[ProblemInstance.GRID_NAME_KEY] = Path.GetFileNameWithoutExtension(mapFileName);
-            problem.Init(agentStates, grid);
-
-            for (int j = 0; j < RANDOM_WALK_STEPS; j++)
-            {
+                // Choose random valid unclaimed goal locations
                 for (int i = 0; i < agentsNum; i++)
                 {
-                    goals[agentStates[i].lastMove.x][agentStates[i].lastMove.y] = false; // We're going to move the goal somewhere else
-                    // Move in a random legal direction:
-                    while (true)
+                    x = rand.Next(maxX);
+                    y = rand.Next(maxY);
+                    if (goals[x][y] || grid[x][y])
+                        i--;
+                    else
                     {
-                        Move.Direction op = (Move.Direction)rand.Next(0, 5); // TODO: fixme
-                        agentStates[i].lastMove.Update(op);
-                        if (problem.IsValid(agentStates[i].lastMove) &&
-                            !goals[agentStates[i].lastMove.x][agentStates[i].lastMove.y]) // This spot isn't another agent's goal
-                            break;
-                        else
-                            agentStates[i].lastMove.setOppositeMove(); // Rollback
+                        goals[x][y] = true;
+                        agentGoals[i] = new Agent(x, y, i);
                     }
-                    goals[agentStates[i].lastMove.x][agentStates[i].lastMove.y] = true; // Claim agent's new goal
                 }
+
+                // Select random start/goal locations for every agent by performing a random walk
+                for (int i = 0; i < agentsNum; i++)
+                {
+                    agentStates[i] = new AgentState(agentGoals[i].Goal.x, agentGoals[i].Goal.y, agentGoals[i]);
+                }
+
+                ProblemInstance problem = new ProblemInstance();
+                problem.parameters[ProblemInstance.GRID_NAME_KEY] = Path.GetFileNameWithoutExtension(mapFileName);
+                problem.Init(agentStates, grid);
+
+                for (int j = 0; j < RANDOM_WALK_STEPS; j++)
+                {
+                    for (int i = 0; i < agentsNum; i++)
+                    {
+                        goals[agentStates[i].lastMove.x][agentStates[i].lastMove.y] = false; // We're going to move the goal somewhere else
+                                                                                             // Move in a random legal direction:
+                        while (true)
+                        {
+                            Move.Direction op = (Move.Direction)rand.Next(0, 5); // TODO: fixme
+                            agentStates[i].lastMove.Update(op);
+                            if (problem.IsValid(agentStates[i].lastMove) &&
+                                !goals[agentStates[i].lastMove.x][agentStates[i].lastMove.y]) // This spot isn't another agent's goal
+                                break;
+                            else
+                                agentStates[i].lastMove.setOppositeMove(); // Rollback
+                        }
+                        goals[agentStates[i].lastMove.x][agentStates[i].lastMove.y] = true; // Claim agent's new goal
+                    }
+                }
+
+                // Zero the agents' timesteps
+                foreach (AgentState agentStart in agentStates)
+                    agentStart.lastMove.time = 0;
+
+                return problem;
             }
-
-            // Zero the agents' timesteps
-            foreach (AgentState agentStart in agentStates)
-                agentStart.lastMove.time = 0;
-
-            return problem;
         }
 
         /// <summary>
