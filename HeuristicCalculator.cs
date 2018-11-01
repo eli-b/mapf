@@ -10,7 +10,7 @@ namespace CPF_experiment
         uint h(WorldState s);
 
         /// <summary>
-        /// Initializes the pattern databasea by storing references to the
+        /// Initializes the pattern database by storing references to the
         /// problem instance and also the subset of agents that the pattern
         /// database pertains to.
         /// </summary>
