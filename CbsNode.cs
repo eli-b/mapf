@@ -483,7 +483,7 @@ namespace CPF_experiment
                 // Update conflictCountsPerAgent and conflictTimes for all agents
                 int representativeAgentNum = subGroup[0].agent.agentNum;
                 for (int i = 0; i < this.conflictCountsPerAgent.Length; i++)
-			    {
+                {
                     int agentNum = problem.m_vAgents[i].agent.agentNum;
                     if (perAgent.ContainsKey(agentNum))
                     {
@@ -495,7 +495,7 @@ namespace CPF_experiment
                         this.conflictCountsPerAgent[i].Remove(representativeAgentNum);
                         this.conflictTimesPerAgent[i].Remove(representativeAgentNum);
                     }
-			    }
+                }
 
                 this.CountConflicts();
                 this.CalcMinOpsToSolve();
@@ -583,9 +583,9 @@ namespace CPF_experiment
                 {
                     Debug.Write($"Agent {problem.m_vAgents[j].agent.agentNum} conflict counts: ");
                     foreach (var pair in this.conflictCountsPerAgent[j])
-	                {
+                    {
                         Debug.Write($"{pair.Key}:{pair.Value} ");
-	                }
+                    }
                     Debug.WriteLine("");
 
                 }
@@ -606,14 +606,14 @@ namespace CPF_experiment
             if (this.cbs.GetType() == typeof(CBS_GlobalConflicts) && this.cbs.mergeThreshold != -1)
             {
                 for (int i = 0; i < ((CBS_GlobalConflicts)this.cbs).globalConflictsCounter.Length; i++)
-			    {
+                {
                     Debug.Write($"Agent {i} global historic conflict counts: ");
                     for (int j = 0; j < i; j++)
                     {
                         Debug.Write($"a{j}:{((CBS_GlobalConflicts)this.cbs).globalConflictsCounter[i][j]} ");
                     }
                     Debug.WriteLine("");
-			    }
+                }
             }
             var plan = this.CalculateJointPlan();
             if (plan.GetSize() < 200)
@@ -736,6 +736,12 @@ namespace CPF_experiment
             }
         }
 
+        /// <summary>
+        /// Populates the totalInternalAgentsThatConflict, totalConflictsBetweenInternalAgents,
+        /// totalConflictsWithExternalAgents, and countsOfInternalAgentsThatConflict counters
+        /// from the conflictCountsPerAgent values that are created while solving or replanning.
+        /// Those counters are used for tie-breaking.
+        /// </summary>
         protected void CountConflicts()
         {
             var externalConflictingAgentNums = new HashSet<int>();
@@ -870,7 +876,8 @@ namespace CPF_experiment
             else if (this.cbs.conflictChoice == CBS_LocalConflicts.ConflictChoice.CARDINAL_LOOKAHEAD)
             {
                 this.nextConflicts = this.GetConflictsNoOrder().GetEnumerator();
-                bool hasConflict = this.nextConflicts.MoveNext(); // This node isn't a goal node so this is expected to return true - a conflict should be found
+                bool hasConflict = this.nextConflicts.MoveNext(); // This node isn't a goal node so this is expected to return true -
+                                                                  // a conflict should be found
                 if (hasConflict == false)
                 {
                     this.DebugPrint();
@@ -890,7 +897,8 @@ namespace CPF_experiment
             }
             else if (this.cbs.conflictChoice == CBS_LocalConflicts.ConflictChoice.EXHAUSTIVE_CARDINAL_LAZY) {
                 this.nextConflicts = this.GetConflictsExhaustivelySearchingForCardinalsLazily().GetEnumerator();
-                bool hasConflict = this.nextConflicts.MoveNext(); // This node isn't a goal node so this is expected to return true - a conflict should be found
+                bool hasConflict = this.nextConflicts.MoveNext(); // This node isn't a goal node so this is expected to return true - 
+                                                                  // a conflict should be found
                 if (hasConflict == false)
                 {
                     this.DebugPrint();
@@ -928,7 +936,10 @@ namespace CPF_experiment
         }
 
         /// <summary>
-        /// Assumes this.mergeThreshold == -1
+        /// Assumes this.mergeThreshold == -1.
+        /// Builds MDDs for all agents.
+        /// Also computes h, using the sub-optimal heuristic of the number of disjoint sets of
+        /// cardinally conflicting agents.
         /// </summary>
         /// <returns></returns>
         private IEnumerable<CbsConflict> GetConflictsExhaustivelySearchingForCardinalsGreedily()
@@ -1916,6 +1927,8 @@ namespace CPF_experiment
             // Prefer nodes with conflicts between smaller groups of agents (irrelevant for goal nodes)
             // This requires that the conflict be chosen already, but we defer choosing the conflict to when
             // it comes *out* of OPEN, as choosing the conflict may be expensive.
+            // TODO: enable this when both nodes have a chosen conflict. Nodes can be re-entered
+            // into OPEN.
             //if (this.largerConflictingGroupSize < other.largerConflictingGroupSize)
             //    return -1;
             //if (this.largerConflictingGroupSize > other.largerConflictingGroupSize)
@@ -2017,7 +2030,7 @@ namespace CPF_experiment
         /// <returns>Whether to merge.</returns>
         public bool ShouldMerge(int mergeThreshold)
         {
-            int countConflicts = 1; // The agentA and agentB conflict in this node.
+            int conflictsCount = 1; // The agentA and agentB conflict in this node.
             ISet<int> firstGroup = this.GetGroup(this.conflict.agentAIndex);
             ISet<int> secondGroup = this.GetGroup(this.conflict.agentBIndex);
 
@@ -2028,11 +2041,11 @@ namespace CPF_experiment
                 a = current.conflict.agentAIndex;
                 b = current.conflict.agentBIndex;
                 if ((firstGroup.Contains(a) && secondGroup.Contains(b)) || (firstGroup.Contains(b) && secondGroup.Contains(a)))
-                    countConflicts++;
+                    conflictsCount++;
                 current = current.prev;
             }
 
-            return countConflicts > mergeThreshold;
+            return conflictsCount > mergeThreshold;
         }
 
         /// <summary>
@@ -2155,7 +2168,7 @@ namespace CPF_experiment
 
             ISet<int>[] res = new HashSet<int>[this.agentsGroupAssignment.Length];
             for (int i = 0; i < res.Length; i++)
-			    res[i] = repsToGroups[this.agentsGroupAssignment[i]];
+                res[i] = repsToGroups[this.agentsGroupAssignment[i]];
 
             return res;
         }
@@ -2310,8 +2323,6 @@ namespace CPF_experiment
             constraints.Join(newConstraints);
             mustConstraints.Join(newMustConstraints);
 
-            //constraints.Print();
-
             relevantSolver.Setup(subProblem, depthToReplan, this.cbs.runner, minCost);
             bool solved = relevantSolver.Solve();
 
@@ -2366,7 +2377,7 @@ namespace CPF_experiment
         }
 
         /// <summary>
-        /// Assumes agents conflict given time, and an MDD has been built for the agent
+        /// Assumes agents conflict at the given time, and an MDD has been built for the agent
         /// </summary>
         /// <param name="agentIndex"></param>
         /// <param name="conflictTime"></param>

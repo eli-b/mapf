@@ -75,11 +75,6 @@ namespace CPF_experiment
             this.doMstarShuffle = mStarShuffle;
         }
 
-        //public virtual void Setup(ProblemInstance problemInstance, int minDepth, Run runner)
-        //{
-        //    this.Setup(problemInstance, minDepth, runner, -1);
-        //}
-
         /// <summary>
         /// Setup the relevant data structures for a run.
         /// </summary>
@@ -926,7 +921,7 @@ namespace CPF_experiment
                             this.mstarBackPropagationConflictList.Add(conflict);
                         }
                     }
-	            }
+                }
             }
             else
             {

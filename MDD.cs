@@ -43,7 +43,9 @@ namespace CPF_experiment
         /// <param name="numOfAgents"></param>
         /// <param name="instance"></param>
         /// <param name="ignoreConstraints"></param>
-        public MDD(int mddNum, int agentNum, Move start_pos, int cost, int numOfLevels, int numOfAgents, ProblemInstance instance, bool ignoreConstraints = false, bool supportPruning = true)
+        /// <param name="supportPruning"></param>
+        public MDD(int mddNum, int agentNum, Move start_pos, int cost, int numOfLevels, int numOfAgents,
+                   ProblemInstance instance, bool ignoreConstraints = false, bool supportPruning = true)
         {
             this.problem = instance;
             this.mddNum = mddNum;
@@ -132,7 +134,7 @@ namespace CPF_experiment
             {
                 remove.delete();
             }
-            
+
             // Make sure the goal was reached - imperfect heuristics, constraints or illegal moves can cause this to be false.
             if (levels[numOfLevels].Count == 0) // No possible route to goal was found
                 levels = null;
@@ -146,14 +148,14 @@ namespace CPF_experiment
         /// <summary>
         /// Returns all the children of a given MDD node that have a heuristic estimate that is not larger than the given heuristic bound.
         /// </summary>
-        /// <param name="mdd"></param>
+        /// <param name="parent"></param>
         /// <param name="heuristicBound">The heuristic estimate of the returned children must be lower than or equal to the bound</param>
         /// <param name="numOfAgents">The number of agents in the MDD node</param>
         /// <returns>A list of relevant MDD nodes</returns>
-        private List<MDDNode> GetAllChildren(MDDNode father, int heuristicBound, int numOfAgents)
+        private List<MDDNode> GetAllChildren(MDDNode parent, int heuristicBound, int numOfAgents)
         {
-            var children = new List<MDDNode>(); 
-            foreach (TimedMove move in father.move.GetNextMoves())
+            var children = new List<MDDNode>();
+            foreach (TimedMove move in parent.move.GetNextMoves())
             {
                 if (this.problem.IsValid(move) &&
                     this.problem.GetSingleAgentOptimalCost(this.agentNum, move) <= heuristicBound) // Only nodes that can reach the goal in the given cost according to the heuristic.
@@ -495,18 +497,5 @@ namespace CPF_experiment
         {
             return coexistingNodesFromOtherMdds[otherAgent].Count;
         }
-        
-        ///// <summary>
-        ///// TODO: This doesn't seem... correct. Also, there's a similar static method in class Move
-        ///// </summary>
-        ///// <param name="other"></param>
-        ///// <returns></returns>
-        //public int getDirection(MDDNode other)
-        //{
-        //    int ans = 0;
-        //    ans += this.move.x - other.move.x + 1;
-        //    ans += 2 * (this.move.y - other.move.y + 1);
-        //    return ans - 1;
-        //}
     }
 }
