@@ -663,7 +663,6 @@ namespace CPF_experiment
                         {
                             if (this.debug)
                                 Debug.Print("MDD thinks this node may be solvable with its current costs");
-                            currentNode.h = 0; // Just for consistancy
                         }
                         else
                         {
