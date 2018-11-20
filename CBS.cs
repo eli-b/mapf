@@ -30,7 +30,7 @@ namespace CPF_experiment
         protected ProblemInstance instance;
         public OpenList openList;
         /// <summary>
-        /// Might as well be a HashSet. We don't need to retrive from it.
+        /// Might as well be a HashSet. We don't need to retrieve from it.
         /// </summary>
         public Dictionary<CbsNode, CbsNode> closedList;
         protected int highLevelExpanded;
