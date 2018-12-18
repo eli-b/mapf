@@ -109,18 +109,18 @@ namespace CPF_experiment
 
             // Store parameters used by IndependenceDetection's Independence Detection algorithm
             if (problemInstance.parameters.ContainsKey(IndependenceDetection.MAXIMUM_COST_KEY))
-                this.maxCost = (int)(problemInstance.parameters[IndependenceDetection.MAXIMUM_COST_KEY]);
+                this.maxCost = (int)problemInstance.parameters[IndependenceDetection.MAXIMUM_COST_KEY];
             else
                 this.maxCost = -1;
 
             if (problemInstance.parameters.ContainsKey(IndependenceDetection.CONFLICT_AVOIDANCE))
             {
-                ID_CAT = ((Dictionary<TimedMove, List<int>>)problemInstance.parameters[IndependenceDetection.CONFLICT_AVOIDANCE]);
+                ID_CAT = (Dictionary<TimedMove, List<int>>)problemInstance.parameters[IndependenceDetection.CONFLICT_AVOIDANCE];
             }
 
             if (problemInstance.parameters.ContainsKey(CBS_LocalConflicts.CAT))
             {
-                CBS_CAT = ((Dictionary<TimedMove, List<int>>)problemInstance.parameters[CBS_LocalConflicts.CAT]);
+                CBS_CAT = (Dictionary<TimedMove, List<int>>)problemInstance.parameters[CBS_LocalConflicts.CAT];
             }
         }
 
@@ -346,7 +346,7 @@ namespace CPF_experiment
                 if (maxCost != -1)
                 {
                     //if we are above the given solution return no solution found
-                    if (sumSubGroupA + sumSubGroupB > maxCost)
+                    if (sumSubGroupA + sumSubGroupB > maxCost)  // TODO: For makespan, using Max of the group "sums"
                         return (this.minCAViolations != int.MaxValue);
                     //if we are below the given solution no need to do goal test just expand node
                     if (sumSubGroupA + sumSubGroupB < maxCost)
@@ -358,7 +358,7 @@ namespace CPF_experiment
                 }
 
                 // Reuse optimal solutions to previously solved subproblems
-                // Eli: Does this actually happen?
+                // Eli: Does this actually happen? Add a statistic
                 if (sumSubGroupA >= costA && sumSubGroupB >= costB)
                 {
                     nodeSolver.Setup(costTreeNode, syncSize);
