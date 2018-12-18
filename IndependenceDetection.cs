@@ -1,12 +1,8 @@
 ﻿using System;
 using System.Linq;
 using System.Collections.Generic;
-using System.Collections;
 using System.IO;
 using System.Diagnostics;
-
-//using MongoDB.Bson;
-//using MongoDB.Driver;
 
 namespace CPF_experiment
 {
@@ -19,7 +15,7 @@ namespace CPF_experiment
         // The key of the conflict avoidance table
         public static string CONFLICT_AVOIDANCE = "ID-ConflictAvoidance";
 
-        protected LinkedList<AgentsGroup> allGroups;
+        protected LinkedList<IndependenceDetectionAgentsGroup> allGroups;
         protected ProblemInstance instance;
         protected int expanded;
         protected int generated;
@@ -44,7 +40,6 @@ namespace CPF_experiment
         private int solutionDepth;
         private Dictionary<TimedMove, List<int>> conflictAvoidance;
         private int maxSolutionCostFound;
-        private string name;
 
         public IndependenceDetection(IHeuristicCalculator heuristic)
             : this(new ClassicAStar(heuristic), new AStarWithOD(heuristic), heuristic) { }
@@ -72,11 +67,14 @@ namespace CPF_experiment
             this.ClearStatistics();
             //this.accMaxGroupSize = 1;
             this.conflictAvoidance = new Dictionary<TimedMove, List<int>>();
-            this.allConflicts = new HashSet<Conflict>();
-            this.allGroups = new LinkedList<AgentsGroup>();
+            this.allConflicts = new HashSet<IndependenceDetectionConflict>();
+            this.allGroups = new LinkedList<IndependenceDetectionAgentsGroup>();
             // Initialize the agent group collection with a group for every agent
             foreach (AgentState agentStartState in instance.m_vAgents)
-                this.allGroups.AddLast(new AgentsGroup(this.instance, new AgentState[1] { agentStartState }, this.singleAgentSolver, this.groupSolver));
+                this.allGroups.AddLast(
+                    new IndependenceDetectionAgentsGroup(
+                        this.instance, new AgentState[1] { agentStartState },
+                        this.singleAgentSolver, this.groupSolver));
         }
 
         public void SetHeuristic(IHeuristicCalculator heuristic)
@@ -97,10 +95,10 @@ namespace CPF_experiment
         /// </summary>
         public Plan CalculateJointPlan() 
         {
-            AgentsGroup[] sortedGroups = this.allGroups.ToArray<AgentsGroup>();
-            Array.Sort<AgentsGroup>(sortedGroups,
+            IndependenceDetectionAgentsGroup[] sortedGroups = this.allGroups.ToArray();
+            Array.Sort(sortedGroups,
                 (x, y) => x.allAgentsState[0].agent.agentNum.CompareTo(y.allAgentsState[0].agent.agentNum));
-            IEnumerable<Plan> plans = sortedGroups.Select<AgentsGroup, Plan>(group => group.GetPlan());
+            IEnumerable<Plan> plans = sortedGroups.Select(group => group.GetPlan());
             return new Plan(plans);
         }
 
@@ -139,7 +137,7 @@ namespace CPF_experiment
             this.maxGroupSize = 0;
             this.solutionDepth = 0;
             this.minGroupSize = this.instance.m_vAgents.Length;
-            foreach (AgentsGroup group in this.allGroups)
+            foreach (var group in this.allGroups)
             {
                 this.solutionDepth += group.depthOfSolution;
                 if (group.allAgentsState.Length > this.maxGroupSize)
@@ -213,7 +211,7 @@ namespace CPF_experiment
             this.solutionDepth = 0;
             this.maxGroupSize = 0;
             this.minGroupSize = int.MaxValue;
-            foreach (AgentsGroup group in this.allGroups)
+            foreach (var group in this.allGroups)
             {
                 this.solutionDepth += group.depthOfSolution;
                 if (group.allAgentsState.Length > this.maxGroupSize)
@@ -228,30 +226,30 @@ namespace CPF_experiment
         /// If there are conflicting plans - return the conflicting groups.
         /// </summary>
         /// <returns>A conflict object with data about the found conflict, or null if no conflict exists</returns>
-        public Conflict FindConflictingGroups()
+        public IndependenceDetectionConflict FindConflictingGroups()
         {
             if (this.allGroups.Count == 1) return null;
             
             // Find the longest plan among all the groups
-            int maxPlanSize = this.allGroups.Select<AgentsGroup, int>(group => group.GetPlan().GetSize()).Max();
+            int maxPlanSize = this.allGroups.Select(group => group.GetPlan().GetSize()).Max();
 
             // Check in every time step that the plans do not collide
             for(int time = 1 ; time < maxPlanSize ; time++) // Assuming no conflicts exist in time zero.
             {
                 int i1 = -1;
                 // Check all pairs of groups for a conflict at the given time step
-                foreach (AgentsGroup group1 in this.allGroups)
+                foreach (var group1 in this.allGroups)
                 {
                     i1++;
                     Plan group1Plan = group1.GetPlan();
                     int i2 = -1;
-                    foreach (AgentsGroup group2 in this.allGroups)
+                    foreach (var group2 in this.allGroups)
                     {
                         i2++;
                         Plan group2Plan = group2.GetPlan();
                         if (i1 < i2 &&
                             group1Plan.IsColliding(time, group2Plan))
-                            return new Conflict(group1, group2, time);
+                            return new IndependenceDetectionConflict(group1, group2, time);
                     }
                 }
             }
@@ -267,13 +265,13 @@ namespace CPF_experiment
         {
             while (true)
             {
-                Conflict conflict = FindConflictingGroups();
+                IndependenceDetectionConflict conflict = FindConflictingGroups();
                 // If there are no conflicts - can finish the run
                 if (conflict == null)
                     break;
                 allGroups.Remove(conflict.group1);
                 allGroups.Remove(conflict.group2);
-                AgentsGroup compositeGroup = this.JoinGroups(conflict);
+                IndependenceDetectionAgentsGroup compositeGroup = this.JoinGroups(conflict);
                 
                 // Solve composite group with A*
                 bool solved = compositeGroup.Solve(runner);
@@ -300,7 +298,7 @@ namespace CPF_experiment
         {
             while (true)
             {
-                Conflict conflict = FindConflictingGroups();
+                IndependenceDetectionConflict conflict = FindConflictingGroups();
                 // If there are no conflicts - can finish the run
                 if (conflict == null)
                     break;
@@ -341,7 +339,7 @@ namespace CPF_experiment
                 conflict.group2.removeGroupFromCAT(conflictAvoidance);
                 if (this.debug)
                     Debug.WriteLine("Merging " + conflict);
-                AgentsGroup compositeGroup = this.JoinGroups(conflict);
+                IndependenceDetectionAgentsGroup compositeGroup = this.JoinGroups(conflict);
 
                 compositeGroup.instance.parameters[CONFLICT_AVOIDANCE] = conflictAvoidance;
 
@@ -375,7 +373,7 @@ namespace CPF_experiment
         /// </summary>
         /// <param name="conflict">An object that describes the conflict</param>
         /// <returns>The composite group of agents</returns>
-        protected virtual AgentsGroup JoinGroups(Conflict conflict)
+        protected virtual IndependenceDetectionAgentsGroup JoinGroups(IndependenceDetectionConflict conflict)
         {
             return conflict.group1.Join(conflict.group2);
         }
@@ -390,7 +388,7 @@ namespace CPF_experiment
             // Solve the single agent problems independently
             this.maxSolutionCostFound = 0;
 
-            foreach (AgentsGroup group in this.allGroups)
+            foreach (var group in this.allGroups)
             {
                 group.instance.parameters[CONFLICT_AVOIDANCE] = this.conflictAvoidance;
                 solved = group.Solve(runner);
@@ -418,7 +416,7 @@ namespace CPF_experiment
             if (solved == true)
             {
                 // Store solution details
-                this.totalCost = this.allGroups.Select<AgentsGroup, int>(group => group.solutionCost).Sum();
+                this.totalCost = this.allGroups.Select(group => group.solutionCost).Sum();
                 this.plan = this.CalculateJointPlan();
             }
             else
@@ -455,7 +453,7 @@ namespace CPF_experiment
     /// <summary>
     /// This class represents a group of agents that need to be solved together.
     /// </summary>
-    class AgentsGroup
+    class IndependenceDetectionAgentsGroup
     {
         public AgentState[] allAgentsState;
         public int solutionCost;
@@ -468,7 +466,7 @@ namespace CPF_experiment
         private ISolver groupSolver;
         private Plan plan;
         
-        public AgentsGroup(ProblemInstance instance, AgentState[] allAgentsState, ISolver singleAgentSolver, ISolver groupSolver)
+        public IndependenceDetectionAgentsGroup(ProblemInstance instance, AgentState[] allAgentsState, ISolver singleAgentSolver, ISolver groupSolver)
         {
             this.allAgentsState = allAgentsState;
             this.instance = instance.Subproblem(allAgentsState);
@@ -517,14 +515,14 @@ namespace CPF_experiment
         /// </summary>
         /// <param name="other"></param>
         /// <returns>A new AgentsGroup object with the agents from both this and the other group</returns>
-        public AgentsGroup Join(AgentsGroup other)
+        public IndependenceDetectionAgentsGroup Join(IndependenceDetectionAgentsGroup other)
         {
             AgentState[] joinedAgentStates = new AgentState[allAgentsState.Length + other.allAgentsState.Length];
             this.allAgentsState.CopyTo(joinedAgentStates, 0);
             other.allAgentsState.CopyTo(joinedAgentStates, this.allAgentsState.Length);
             Array.Sort<AgentState>(joinedAgentStates, (x, y) => x.agent.agentNum.CompareTo(y.agent.agentNum));
 
-            return new AgentsGroup(this.instance, joinedAgentStates, this.singleAgentSolver, this.groupSolver);
+            return new IndependenceDetectionAgentsGroup(this.instance, joinedAgentStates, this.singleAgentSolver, this.groupSolver);
         }
 
         /// <summary>
@@ -535,12 +533,24 @@ namespace CPF_experiment
             return this.allAgentsState.Length;
         }
 
-        public override bool Equals(object obj) // TODO: Implement GetHashCode()
+        public override bool Equals(object obj)
         {
             if (obj == null)
                 return false;
-            AgentsGroup other = (AgentsGroup)obj;
-            return allAgentsState.SequenceEqual<AgentState>(other.allAgentsState);
+            IndependenceDetectionAgentsGroup other = (IndependenceDetectionAgentsGroup)obj;
+            return allAgentsState.SequenceEqual(other.allAgentsState);
+        }
+
+        public override int GetHashCode()
+        {
+            int ret = 0;
+            int i = 0;
+            foreach (var agentState in allAgentsState)
+            {
+                ret += Constants.PRIMES_FOR_HASHING[i % 10] * agentState.GetHashCode();
+                i++;
+            }
+            return ret;
         }
 
         /// <summary>
@@ -584,7 +594,7 @@ namespace CPF_experiment
                     TimedMove timedMove = new TimedMove(move, i);
                     if (CAT.ContainsKey(timedMove) == false)
                         CAT.Add(timedMove, new List<int>(this.allAgentsState.Length));
-                    CAT[timedMove].AddRange(this.allAgentsState.Select<AgentState, int>(state => state.agent.agentNum));
+                    CAT[timedMove].AddRange(this.allAgentsState.Select(state => state.agent.agentNum));
                 }
             }
         }

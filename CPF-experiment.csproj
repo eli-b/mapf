@@ -107,7 +107,7 @@
     <Compile Include="CostTreeSearch.cs" />
     <Compile Include="BinaryHeap.cs" />
     <Compile Include="AdditivePDBs.cs" />
-    <Compile Include="Conflict.cs" />
+    <Compile Include="IndependenceDetectionConflict.cs" />
     <Compile Include="CbsNode.cs" />
     <Compile Include="CbsConstraint.cs" />
     <Compile Include="MDD.cs" />

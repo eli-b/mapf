@@ -105,7 +105,7 @@ namespace CPF_experiment
                 {
                     if (sicEstimate == -1)
                         sicEstimate = (int) SumIndividualCosts.h(s, this.instance);
-                    Debug.Assert(((CbsNode)this.cbs.openList.Peek()).totalCost - s.g == (int)sicEstimate,
+                    Debug.Assert(((CbsNode)this.cbs.openList.Peek()).g - s.g == (int)sicEstimate,
                                     "Total cost of CBS root not same as SIC + g");
                     // Notice we're substracting s.g, not sAsProblemInstance.g.
                     // Must constraints we put may have forced some moves,
@@ -133,7 +133,7 @@ namespace CPF_experiment
                 // We're always going to find a proper goal since we respected the node's minDepth
                 s.SetSolution(this.cbs.GetSinglePlans());
                 s.SetGoalCost(this.cbs.totalCost); // We have to do it explicitly.
-                // We can't just change the node's g to g + cbs.totalCost and its h to zero
+                // We can't just change the node's g to g + cbs.g and its h to zero
                 // because approaches like BPMX or maximazing PDBs might "fix" the h back.
                 // So instead h is bumped to its maximum value when this method returns.
                 s.SetSingleCosts(this.cbs.GetSingleCosts());

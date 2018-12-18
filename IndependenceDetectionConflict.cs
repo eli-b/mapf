@@ -2,12 +2,13 @@
 namespace CPF_experiment
 {
     /// <summary>
-    /// This class represents a conflict between two groups of agents in Standley's Indepedence Detection algorithm and in ICTS.
+    /// This class represents a conflict between two groups of agents in Trevor Standley's
+    /// Indepedence Detection algorithm.
     /// </summary>
-    class Conflict
+    class IndependenceDetectionConflict
     {
-        public AgentsGroup group1;
-        public AgentsGroup group2;
+        public IndependenceDetectionAgentsGroup group1;
+        public IndependenceDetectionAgentsGroup group2;
         public int timeOfConflict;
 
         public override string ToString()
@@ -15,7 +16,7 @@ namespace CPF_experiment
             return "conflict in time " + timeOfConflict + " between " + group1 + " and " + group2;
         }
 
-        public Conflict(AgentsGroup group1, AgentsGroup group2, int time)
+        public IndependenceDetectionConflict(IndependenceDetectionAgentsGroup group1, IndependenceDetectionAgentsGroup group2, int time)
         {
             this.group1 = group1;
             this.group2 = group2;
@@ -25,7 +26,7 @@ namespace CPF_experiment
         {
             if (obj == null)
                 return false;
-            Conflict other = (Conflict)obj;
+            IndependenceDetectionConflict other = (IndependenceDetectionConflict)obj;
             if (this.group1.Equals(other.group1) && this.group2.Equals(other.group2))
                 return true; // Ignoring timeOfConflict, not ignoring order of groups.
             return false;
