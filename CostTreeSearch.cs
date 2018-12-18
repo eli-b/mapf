@@ -74,10 +74,10 @@ namespace CPF_experiment
 
     //}
 
-    //class CostTreeSearchRepatedMatch : CostTreeSearch
+    //class CostTreeSearchRepeatedMatch : CostTreeSearch
     //{
     //    int sycSize;
-    //    public CostTreeSearchRepatedMatch(int sycSize, HeuristicCalculator heuristic)
+    //    public CostTreeSearchRepeatedMatch(int sycSize, HeuristicCalculator heuristic)
     //        : base(new CostTreeSearchSolverRepeatedMatch(sycSize), heuristic) { this.sycSize = sycSize; }
 
     //    public override string GetName() { return "ICTS " + sycSize + "RE+ID "; }

@@ -590,10 +590,10 @@ namespace CPF_experiment
             //solvers.Add(new CostTreeSearchNoPruning());
             //solvers.Add(new CostTreeSearchKMatch(2));
             //solvers.Add(new CostTreeSearchOldMatching(2));
-            //solvers.Add(new CostTreeSearchRepatedMatch(2));
+            //solvers.Add(new CostTreeSearchRepeatedMatch(2));
             //solvers.Add(new CostTreeSearchKMatch(3));
             //solvers.Add(new CostTreeSearchOldMatching(3));
-            //solvers.Add(new CostTreeSearchRepatedMatch(3));
+            //solvers.Add(new CostTreeSearchRepeatedMatch(3));
 
             //solvers.Add(new IndependenceDetection(new AStarWithPartialExpansion()));
             //solvers.Add(new IndependenceDetection(new CBS_GlobalConflicts(new AStarWithPartialExpansion(), 1, 1)));

@@ -132,7 +132,7 @@ namespace CPF_experiment
             {
                 // We're always going to find a proper goal since we respected the node's minDepth
                 s.SetSolution(this.cbs.GetSinglePlans());
-                s.SetGoalCost(this.cbs.totalCost); // We have to do it explicitly.
+                s.SetGoalCost(this.cbs.solutionCost); // We have to do it explicitly.
                 // We can't just change the node's g to g + cbs.g and its h to zero
                 // because approaches like BPMX or maximazing PDBs might "fix" the h back.
                 // So instead h is bumped to its maximum value when this method returns.
@@ -147,16 +147,16 @@ namespace CPF_experiment
             this.cbs.AccumulateStatistics();
             this.cbs.ClearStatistics();
 
-            if (this.cbs.totalCost < 0) // A timeout is legitimately possible if very little time was left to begin with,
+            if (this.cbs.solutionCost < 0) // A timeout is legitimately possible if very little time was left to begin with,
                                         // and a no solution failure may theoretically be possible too.
                 return SumIndividualCosts.h(s, this.instance);
 
-            Debug.Assert(this.cbs.totalCost >= s.g,
-                         $"CBS total cost {this.cbs.totalCost} is smaller than starting problem's initial cost {s.g}."); // = is allowed since even though this isn't a goal node (otherwise this function won't be called),
+            Debug.Assert(this.cbs.solutionCost >= s.g,
+                         $"CBS total cost {this.cbs.solutionCost} is smaller than starting problem's initial cost {s.g}."); // = is allowed since even though this isn't a goal node (otherwise this function won't be called),
                                                                                                                          // a non-goal node can have h==0 if a minimum depth is specified, and all agents have reached their
                                                                                                                          // goal in this node, but the depth isn't large enough.
 
-            uint cbsEstimate = (uint)(this.cbs.totalCost - s.g);
+            uint cbsEstimate = (uint)(this.cbs.solutionCost - s.g);
             // Discounting the moves the agents did before we started solving
             // (This is easier than making a copy of each AgentState just to zero its lastMove.time)
 
@@ -174,7 +174,7 @@ namespace CPF_experiment
                 epeastarsic.Setup(sAsProblemInstance, s.makespan, runner);
                 bool epeastarsicSolved = epeastarsic.Solve();
                 if (epeastarsicSolved)
-                    Debug.Assert(epeastarsic.totalCost - s.g >= this.cbs.totalCost - s.g, "Inadmissable!!");
+                    Debug.Assert(epeastarsic.totalCost - s.g >= this.cbs.solutionCost - s.g, "Inadmissable!!");
             }
 
             return cbsEstimate;
