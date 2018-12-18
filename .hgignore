@@ -7,3 +7,4 @@ obj/Release/*
 .svn-old/
 *.orig
 .vs/*
+packages/*

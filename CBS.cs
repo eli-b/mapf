@@ -1004,18 +1004,17 @@ namespace CPF_experiment
         /// <param name="reinsertParent">If it was only partially expanded</param>
         /// <param name="adoptBy">If not given, adoption is done by expanded node</param>
         /// <returns>true if adopted - need to rerun this method, ignoring the returned children from this call, bacause adoption was performed</returns>
-        protected bool ExpandImpl(CbsNode node, bool adopt, out IList<CbsNode> children,
-                                  out bool reinsertParent, CbsNode adoptBy = null)
+        protected (bool adopted, IList<CbsNode> children, bool reinsertParent) ExpandImpl(
+            CbsNode node, bool adopt, CbsNode adoptBy = null)
         {
             CbsConflict conflict = node.GetConflict();
-            children = new List<CbsNode>();
+            var children = new List<CbsNode>();
+            CbsNode child;
+            int closedListHitChildCost;
             if (adoptBy == null)
                 adoptBy = node;
-            ushort adoptByH = adoptBy.h;
+            int adoptByH = adoptBy.h;
 
-            CbsNode child;
-            reinsertParent = false;
-            int closedListHitChildCost;
             bool leftSameCost = false; // To quiet the compiler
             bool rightSameCost = false;
 
@@ -1023,21 +1022,25 @@ namespace CPF_experiment
             {
                 if (this.mergeCausesRestart == false)
                 {
-                    child = this.MergeExpand(node, out closedListHitChildCost);
+                    (child, closedListHitChildCost) = this.MergeExpand(node);
                     if (child == null)
-                        return false; // A timeout occured, or the child was already in the closed list, or there were just too many constraints (happens with ID, which adds whole paths as constraints)
+                        return (adopted: false, children, reinsertParent: false); // A timeout occured,
+                                                                                  // or the child was already in the closed list,
+                                                                                  // or there were just too many constraints
+                                                                                  // (happens with ID, which adds whole paths as constraints)
                 }
                 else
                 {
                     // TODO: What if planning a path for the merged agents finds a path with the same
                     // cost as the sum of their current paths and no other conflicts exist
-                    child = new CbsNode(this.instance.m_vAgents.Length, this.solver, this.singleAgentSolver, this, node.agentsGroupAssignment);
-                    child.MergeGroups(node.agentsGroupAssignment[conflict.agentAIndex], node.agentsGroupAssignment[conflict.agentBIndex],
-                        false);
+                    child = new CbsNode(this.instance.m_vAgents.Length, this.solver,
+                                            this.singleAgentSolver, this, node.agentsGroupAssignment);
+                    child.MergeGroups(node.agentsGroupAssignment[conflict.agentAIndex],
+                        node.agentsGroupAssignment[conflict.agentBIndex], fixCounts: false);
                     this.maxSizeGroup = Math.Max(this.maxSizeGroup, child.GetGroupSize(conflict.agentAIndex));
                     bool solved = child.Solve(this.minDepth);
                     if (solved == false)
-                        return false;
+                        return (adopted: false, children, reinsertParent: false);
                     //if ((child.allSingleAgentCosts[child.agentsGroupAssignment[conflict.agentAIndex]] ==
                     //    node.allSingleAgentCosts[node.agentsGroupAssignment[conflict.agentAIndex]] +
                     //    node.allSingleAgentCosts[node.agentsGroupAssignment[conflict.agentBIndex]]) &&
@@ -1048,12 +1051,13 @@ namespace CPF_experiment
                 }
                 // No need to try to adopt the child - there's only one so we're not branching.
                 children.Add(child);
-                return false;
+                return (adopted: false, children, reinsertParent: false);
             }
 
+            bool reinsertParent = false;
+
             // Generate left child:
-            child = ConstraintExpand(node, doLeftChild: true,
-                                     closedListHitChildCost: out closedListHitChildCost);
+            (child, closedListHitChildCost) = ConstraintExpand(node, doLeftChild: true);
             if (child != null)
             {
                 if (child == node) // Expansion deferred
@@ -1063,7 +1067,7 @@ namespace CPF_experiment
                     // First fit adoption: Greedily adopt the first child that's better than the parent
                     if (adopt &&
                         AdoptConditionally(adoptBy, child, adoptByH))
-                        return true;
+                        return (adopted: true, children, reinsertParent);
                     children.Add(child);
                     leftSameCost = child.totalCost == node.totalCost;
                 }
@@ -1075,10 +1079,10 @@ namespace CPF_experiment
             }
 
             if (runner.ElapsedMilliseconds() > Constants.MAX_TIME)
-                return false;
+                return (adopted: false, children, reinsertParent);
 
             // Generate right child:
-            child = ConstraintExpand(node, false, out closedListHitChildCost);
+            (child, closedListHitChildCost) = ConstraintExpand(node, doLeftChild: false);
             if (child != null)
             {
                 if (child == node) // Expansion deferred
@@ -1088,7 +1092,7 @@ namespace CPF_experiment
                     // First fit adoption: Greedily adopt the first child that's better than the parent
                     if (adopt &&
                         AdoptConditionally(adoptBy, child, adoptByH))
-                        return true;
+                        return (adopted: true, children, reinsertParent);
                     children.Add(child);
                     rightSameCost = child.totalCost == node.totalCost;
                 }
@@ -1111,25 +1115,24 @@ namespace CPF_experiment
                     this.cardinalConflictSplits++;
             }
 
-            return false;
+            return (adopted: false, children, reinsertParent);
         }
-
-
+        
         private void ExpandIgnoringCardinalsButSupportingBP2(CbsNode node)
         {
-            ushort parentCost = node.totalCost;
-            ushort parentH = node.h;
-            IList<CbsNode> children = null; // To quiet the compiler
-            bool reinsertParent = false; // To quiet the compiler
-
+            int parentCost = node.totalCost;
+            int parentH = node.h;
+            IList<CbsNode> children = new List<CbsNode>(2);
+            bool reinsertParent = false;
+            bool adopted = false;
+             
             int origCardinalConflictSplits = this.cardinalConflictSplits;
             int origSemiCardinalConflictSplits = this.semiCardinalConflictSplits;
             int origNonCardinalConflictSplits = this.nonCardinalConflictSplits;
 
             if (this.bypassStrategy == BypassStrategy.NONE)
             {
-                this.ExpandImpl(node, adopt: false, children: out children,
-                                reinsertParent: out reinsertParent, adoptBy: null);
+                (adopted, children, reinsertParent) = this.ExpandImpl(node, adopt: false, adoptBy: null);
             }
             else if (this.bypassStrategy == BypassStrategy.FIRST_FIT_LOOKAHEAD || node.parentAlreadyLookedAheadOf) // Do bypass but don't look ahead
             {
@@ -1146,7 +1149,6 @@ namespace CPF_experiment
                         Debug.Print("Starting lookahead:");
                     IList<CbsNode> lookAheadChildren;
                     bool lookAheadReinsertParent;
-                    bool adopted = false;
                     int expansions = 0;
                     while (lookAheadOpenList.Count != 0)
                     {
@@ -1164,10 +1166,7 @@ namespace CPF_experiment
 
                         Debug.WriteLine($"Looking ahead from node hash: {lookAheadNode.GetHashCode()}.");
 
-                        adopted = this.ExpandImpl(lookAheadNode, adopt: true,
-                                                  children: out lookAheadChildren,
-                                                  reinsertParent: out lookAheadReinsertParent,
-                                                  adoptBy: node);
+                        (adopted, lookAheadChildren, lookAheadReinsertParent) = this.ExpandImpl(lookAheadNode, adopt: true, adoptBy: node);
                         expansions++;
 
                         if (adopted == true)
@@ -1287,7 +1286,7 @@ namespace CPF_experiment
 
                     Debug.WriteLine($"Looking ahead from node hash: {lookAheadNode.GetHashCode()}.");
 
-                    this.ExpandImpl(lookAheadNode, false, out lookAheadChildren, out lookAheadReinsertParent); // Ignoring return val since we're explicitly not allowing adoption
+                    (adopted, lookAheadChildren, lookAheadReinsertParent) = this.ExpandImpl(lookAheadNode, adopt: false);
 
                     if (lookAheadReinsertParent)
                         lookAheadSameCostNodesToReinsertWithHigherCost.Add(lookAheadNode);
@@ -1398,7 +1397,6 @@ namespace CPF_experiment
                 }
             }
 
-
             // Both children considered. None adopted. Add them to the open list, and re-insert the partially expanded parent too if necessary.
             if (reinsertParent)
                 this.openList.Add(node); // Re-insert node into open list with higher cost, don't re-increment global conflict counts
@@ -1435,10 +1433,11 @@ namespace CPF_experiment
         /// <param name="node"></param>
         private void IcbsExpand(CbsNode node)
         {
-            ushort parentCost = node.totalCost;
-            ushort parentH = node.h;
-            IList<CbsNode> children = null; // To quiet the compiler
-            bool reinsertParent = false; // To quiet the compiler
+            int parentCost = node.totalCost;
+            int parentH = node.h;
+            IList<CbsNode> children = new List<CbsNode>(2);
+            bool reinsertParent;
+            bool adopted = false;
 
             int origCardinalConflictSplits = this.cardinalConflictSplits;
             int origSemiCardinalConflictSplits = this.semiCardinalConflictSplits;
@@ -1452,9 +1451,8 @@ namespace CPF_experiment
             // Adoption and cardinal-lookahead cycle
             while (true)
             {
-                bool adopted = this.ExpandImpl(node, adopt: bypassStrategy != BypassStrategy.NONE,
-                                               children: out children, reinsertParent: out reinsertParent,
-                                               adoptBy: null);
+                (adopted, children, reinsertParent) = this.ExpandImpl(
+                    node, adopt: bypassStrategy != BypassStrategy.NONE, adoptBy: null);
 
                 if (this.mergeCausesRestart && (this.closedList.Count == 0)) // HACK: Means a restart was triggered
                     break;
@@ -1655,19 +1653,19 @@ namespace CPF_experiment
         /// <param name="node"></param>
         /// <param name="closedListHitChildCost"></param>
         /// <returns>null if planning the child's path failed, otherwise returns the new child</returns>
-        protected CbsNode MergeExpand(CbsNode node, out int closedListHitChildCost)
+        protected (CbsNode child, int closedListHitChildCost) MergeExpand(CbsNode node)
         {
             CbsConflict conflict = node.GetConflict();
-            closedListHitChildCost = -1;
+            int closedListHitChildCost = -1;
             
             CbsNode child = new CbsNode(node, node.agentsGroupAssignment[conflict.agentAIndex], node.agentsGroupAssignment[conflict.agentBIndex]);
-            if (closedList.ContainsKey(child) == false) // We may have already merged these agents in the parent
+            if (closedList.ContainsKey(child) == false) // We may have already merged these agents in another node
             {
                 Debug.WriteLine("Merging agents {0} and {1}", conflict.agentAIndex, conflict.agentBIndex);
                 bool success = child.Replan(conflict.agentAIndex, this.minDepth); // or agentBIndex. Doesn't matter - they're in the same group.
 
                 if (success == false) // A timeout probably occured
-                    return null;
+                    return (child: null, closedListHitChildCost);
 
                 Debug.WriteLine($"Child hash: {child.GetHashCode()}");
                 Debug.WriteLine($"Child cost: {child.totalCost}");
@@ -1676,17 +1674,17 @@ namespace CPF_experiment
 
                 this.maxSizeGroup = Math.Max(this.maxSizeGroup, child.replanSize);
 
-                return child;
+                return (child, closedListHitChildCost);
             }
             else
             {
                 closedListHits++;
                 closedListHitChildCost = closedList[child].totalCost;
             }
-            return null;
+            return (child: null, closedListHitChildCost);
         }
 
-        protected CbsNode ConstraintExpand(CbsNode node, bool doLeftChild, out int closedListHitChildCost)
+        protected (CbsNode child, int closedListHitChildCost) ConstraintExpand(CbsNode node, bool doLeftChild)
         {
             CbsConflict conflict = node.GetConflict();
             int conflictingAgentIndex = doLeftChild? conflict.agentAIndex : conflict.agentBIndex;
@@ -1695,7 +1693,6 @@ namespace CPF_experiment
             string agentSide = doLeftChild? "left" : "right";
             int planSize = node.allSingleAgentPlans[conflictingAgentIndex].GetSize();
             int groupSize = node.GetGroupSize(conflictingAgentIndex);
-            closedListHitChildCost = -1;
 
             if (Constants.costFunction == Constants.CostFunction.SUM_OF_COSTS && // Otherwise adding a constraint to an agent at a time step after
                                                                                  // it reaches its goal doesn't necessarily increase the cost,
@@ -1763,7 +1760,7 @@ namespace CPF_experiment
                     // This is just to make the line look correct without reading the complex if statement above.
                 }
                 this.partialExpansions++;
-                return node;
+                return (node, closedListHitChildCost: -1);
             }
             else if (expansionsState != CbsNode.ExpansionState.EXPANDED)
             // Agent expansion already skipped in the past or not forcing it from its goal - finally generate the child:
@@ -1797,7 +1794,7 @@ namespace CPF_experiment
                                                 null, -1, minCost); // The node takes the max between minDepth and the max time over all constraints.
 
                     if (success == false)
-                        return null; // A timeout probably occured
+                        return (null, closedListHitChildCost: -1); // A timeout probably occured
 
                     Debug.WriteLine($"Child hash: {child.GetHashCode()}");
                     Debug.WriteLine($"Child cost: {child.totalCost}");
@@ -1816,21 +1813,20 @@ namespace CPF_experiment
                         Debug.Assert(false, $"Single agent node with lower cost than parent! {child.totalCost} < {node.totalCost}");
                     }
 
-                    return child;
+                    return (child, closedListHitChildCost: -1);
                 }
                 else
                 {
                     this.closedListHits++;
-                    closedListHitChildCost = this.closedList[child].totalCost;
                     Debug.WriteLine("Child already in closed list!");
+                    return (child: null, closedListHitChildCost: this.closedList[child].totalCost);
                 }
             }
             else
             {
                 Debug.WriteLine("Child already generated before");
+                return (child: null, closedListHitChildCost: -1);
             }
-
-            return null;
         }
 
         protected bool AdoptConditionally(CbsNode node, CbsNode adoptionCandidate, ushort nodeOrigH)
