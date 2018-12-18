@@ -11,7 +11,7 @@ namespace CPF_experiment
     ///       The only CBS things in it are the targetCost, the Debug.Assert that the root costs exactly like SIC's
     ///       estimate, and the statistics.
     /// </summary>
-    class CbsHeuristic : IHeuristicCalculator
+    class CbsHeuristicForAStar : IHeuristicCalculator<WorldState>
     {
         protected CBS_LocalConflicts cbs;
         protected ProblemInstance instance;
@@ -43,7 +43,7 @@ namespace CPF_experiment
         /// Larger values would cause each call to the heuristic to take longer, but make it return better estimates.
         /// </param>
         /// <param name="validate"></param>
-        public CbsHeuristic(CBS_LocalConflicts cbs, Run runner, bool reportSolution = false,
+        public CbsHeuristicForAStar(CBS_LocalConflicts cbs, Run runner, bool reportSolution = false,
                             int minAboveSic = 1, bool validate = false)
         {
             this.cbs = cbs;
@@ -63,14 +63,14 @@ namespace CPF_experiment
         /// <returns></returns>
         public uint h(WorldState s)
         {
-            int sicEstimate = (int) SumIndividualCosts.h(s, this.instance);
-            if (sicEstimate == 0)
+            int sicEstimate = (int) SumIndividualCosts.h(s, this.instance);  // FIXME: Support the makespan variant. Every place where SumIndividualCosts appears needs to be fixed.
+            if (sicEstimate == 0)  // Only the goal has an estimate of zero
                 return 0;
             int targetCost = s.g + sicEstimate + this.minAboveSic; // Ariel's idea - using SIC directly here to calc the target
             // CBS gets an explicitly partially solved state - the agents' g may be greater than zero.
             // So the cost CBS is going to calc is not of this node but of the initial problem instance,
             // this is accounted for later too.
-            // (Notice node usually has a (possibly very wrong) h set already - copied from the parent)
+            // (Notice node usually has a (possibly too low) h set already - inherited from the parent)
             return this.h(s, targetCost, sicEstimate);
         }
 
@@ -96,7 +96,7 @@ namespace CPF_experiment
                 this.cbs.Clear();
                 sAsProblemInstance = s.ToProblemInstance(this.instance);
                 this.cbs.Setup(sAsProblemInstance,
-                               Math.Max(s.makespan,  // This forces must constraints to be upheld when dealing with A*+OD nodes,
+                               Math.Max(s.makespan,  // This forces must-constraints to be upheld when dealing with A*+OD nodes,
                                                      // at the cost of forcing every agent to move when a goal could be found earlier with all must constraints upheld.
                                         s.minDepth), // No point in finding shallower goal nodes
                                this.runner);
@@ -149,7 +149,7 @@ namespace CPF_experiment
 
             if (this.cbs.totalCost < 0) // A timeout is legitimately possible if very little time was left to begin with,
                                         // and a no solution failure may theoretically be possible too.
-                return this.cbs.GetHeuristic().h(s);
+                return SumIndividualCosts.h(s, this.instance);
 
             Debug.Assert(this.cbs.totalCost >= s.g,
                          $"CBS total cost {this.cbs.totalCost} is smaller than starting problem's initial cost {s.g}."); // = is allowed since even though this isn't a goal node (otherwise this function won't be called),
@@ -199,7 +199,7 @@ namespace CPF_experiment
 
         public override string ToString()
         {
-            return $"CBSH({this.reportSolution} {this.minAboveSic})";
+            return $"CBS Heutistic({this.reportSolution} {this.minAboveSic})";
         }
 
         public virtual void OutputStatisticsHeader(TextWriter output)
@@ -341,11 +341,16 @@ namespace CPF_experiment
             output.Write(this.accNodesSolved + Run.RESULTS_DELIMITER);
             output.Write(this.accNCalls + Run.RESULTS_DELIMITER);            
         }
+
+        public string GetName()
+        {
+            return this.ToString();
+        }
     }
 
-    class DyanamicLazyCbsh : CbsHeuristic, ILazyHeuristic
+    class DyanamicLazyCbsHeuristicForAStar : CbsHeuristicForAStar, IBoundedLazyHeuristic<WorldState>
     {
-        public DyanamicLazyCbsh(CBS_LocalConflicts cbs, Run runner, bool reportSolution = false, bool validate = false)
+        public DyanamicLazyCbsHeuristicForAStar(CBS_LocalConflicts cbs, Run runner, bool reportSolution = false, bool validate = false)
             : base(cbs, runner, reportSolution, -1, validate) {}
 
         /// <summary>
@@ -375,7 +380,7 @@ namespace CPF_experiment
         public uint h(WorldState s, int targetH, float effectiveBranchingFactor, int millisCap, bool resume)
         {
             // No need to check if SIC is zero because this heuristic is run after SIC was already computed, not instead of it.
-            return base.h(s, s.g + targetH, -1, int.MaxValue, millisCap, resume);
+            return this.h(s, s.g + targetH, -1, int.MaxValue, millisCap, resume);
         }
 
         public override string ToString()

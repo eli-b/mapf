@@ -89,7 +89,7 @@
     <Compile Include="AStarWithPartialExpansion.cs" />
     <Compile Include="AStarWithPartialExpansionBasic.cs" />
     <Compile Include="CBS.cs" />
-    <Compile Include="CbsHeuristic.cs" />
+    <Compile Include="CbsHeuristicForAStar.cs" />
     <Compile Include="CBS_IDA.cs" />
     <Compile Include="CbsConflict.cs" />
     <Compile Include="ConflictGraph.cs" />
