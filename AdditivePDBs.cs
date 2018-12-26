@@ -4,7 +4,7 @@ using System.IO;
 
 namespace CPF_experiment
 {
-    public class AdditivePDBs : IHeuristicCalculator
+    public class AdditivePDBs : IHeuristicCalculator<WorldState>
     {
         List<PDB> m_vPDBs; 
 
@@ -33,7 +33,7 @@ namespace CPF_experiment
              * with the first two, then the second two, etc.
              */
 
-            m_vPDBs = new List<PDB>();
+            PDBs = new List<PDB>();
             if (s.allAgentsState.Length > 1)
             {
                 for (uint i = 0; i < s.allAgentsState.Length - 1; i += 2)
@@ -67,7 +67,7 @@ namespace CPF_experiment
                     pdb.init(pi, vAgents);
                     pdb.build();
                     Debug.Write(".");
-                    m_vPDBs.Add(pdb);
+                    PDBs.Add(pdb);
                 }
             }
 
@@ -152,5 +152,15 @@ namespace CPF_experiment
         public void ClearAccumulatedStatistics() { }
         public void AccumulateStatistics() { }
         public void OutputAccumulatedStatistics(TextWriter output) { }
+
+        public override string ToString()
+        {
+            return this.GetName();
+        }
+
+        public string GetName()
+        {
+            return "Additive PDB";
+        }
     }
 }

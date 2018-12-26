@@ -6,7 +6,11 @@ using System.Diagnostics;
 
 namespace CPF_experiment
 {
-    class CBS_IDA : ISolver
+    /// <summary>
+    /// Is the CBS open list ever large enough to warrant this?
+    /// Consider foregoing this implementation. It needs maintainence anyway.
+    /// </summary>
+    class CBS_IDA : ISolver, IHeuristicSolver<CbsNode>
     {
         protected ProblemInstance instance;
         public int highLevelExpanded;
@@ -17,22 +21,24 @@ namespace CPF_experiment
         protected Plan solution;
         protected int maxCost;
         protected ICbsSolver solver;
-        protected ICbsSolver lowLevelSolver;
+        protected ICbsSolver singleAgentSolver;
         protected int mergeThreshold, nextF, fBound;
-        protected int minCost;
+        protected int minDepth;
         protected int maxThreshold;
         protected int maxSizeGroup;
-        protected IHeuristicCalculator heuristic;
+        protected IHeuristicCalculator<CbsNode> heuristic;
         int[][] globalConflictsCounter;
         CbsNode root;
         bool topMost;
 
-        public CBS_IDA(ICbsSolver solver, int maxThreshold = -1, int currentThreshold = -1)
+        public CBS_IDA(ICbsSolver singleAgentSolver, ICbsSolver generalSolver, int maxThreshold = -1,
+            int currentThreshold = -1, IHeuristicCalculator<CbsNode> heuristic = null)
         {
             this.mergeThreshold = currentThreshold;
-            this.solver = solver;
-            this.lowLevelSolver = solver;
+            this.solver = generalSolver;
+            this.singleAgentSolver = singleAgentSolver;
             this.maxThreshold = maxThreshold;
+            this.heuristic = heuristic;
             if (currentThreshold < maxThreshold)
             {
                 //this.solver = new CBS_GlobalConflicts(solver, maxThreshold, currentThreshold + 1);
@@ -88,13 +94,13 @@ namespace CPF_experiment
         {
             //Debug.WriteLine("Solving Sub-problem On Level - " + mergeThreshold);
 
-            if (root.Solve(minCost) == false)
+            if (root.Solve(minDepth) == false)
             {
                 AgentState.EquivalenceOverDifferentTimes = true;
                 return false;
             }
 
-            fBound = root.totalCost;
+            fBound = root.f;
 
             //fBound must be <= maxCost
             while (fBound < maxCost)
@@ -129,7 +135,7 @@ namespace CPF_experiment
             highLevelExpanded++;
             if (conflict == null)
             {
-                this.totalCost = node.totalCost;
+                this.totalCost = node.g;
                 this.goalNode = node;
                 this.solution = node.CalculateJointPlan();
                 this.Clear();
@@ -143,7 +149,7 @@ namespace CPF_experiment
                 stepLength = 1;
             bool ok1 = false, ok2 = false;
 
-            if (node.totalCost + conflict.timeStep + stepLength - node.PathLength(conflict.agentAIndex) <= fBound)
+            if (node.f + conflict.timeStep + stepLength - node.PathLength(conflict.agentAIndex) <= fBound)
             {
                 ok1 = true;
                 if (node.DoesMustConstraintAllow(con1))
@@ -151,21 +157,21 @@ namespace CPF_experiment
                     toAdd = new CbsNode(node, con1, conflict.agentAIndex);
                     toAdd.SetMustConstraint(con2);
 
-                    if (toAdd.Replan3b(conflict.agentAIndex, Math.Max(minCost, conflict.timeStep)))
+                    if (toAdd.Replan3b(conflict.agentAIndex, Math.Max(minDepth, conflict.timeStep)))
                     {
                         this.highLevelGenerated++;
-                        if (toAdd.totalCost <= fBound)
+                        if (toAdd.f <= fBound)
                         {
                             if (Expand(toAdd, toAdd.GetConflict()))
                                 return true;
                         }
-                        else if (toAdd.totalCost < nextF)
-                            nextF = toAdd.totalCost;
+                        else if (toAdd.f < nextF)
+                            nextF = toAdd.f;
                     }
                 }
             }
 
-            if (node.totalCost + conflict.timeStep + stepLength - node.PathLength(conflict.agentBIndex) <= fBound)
+            if (node.f + conflict.timeStep + stepLength - node.PathLength(conflict.agentBIndex) <= fBound)
             {
                 ok2 = true;
                 if (node.DoesMustConstraintAllow(con2))
@@ -173,16 +179,16 @@ namespace CPF_experiment
                     toAdd = new CbsNode(node, con2, conflict.agentBIndex);
                     toAdd.SetMustConstraint(con1);
 
-                    if (toAdd.Replan3b(conflict.agentBIndex, Math.Max(minCost, conflict.timeStep)))
+                    if (toAdd.Replan3b(conflict.agentBIndex, Math.Max(minDepth, conflict.timeStep)))
                     {
                         this.highLevelGenerated++;
-                        if (toAdd.totalCost <= fBound)
+                        if (toAdd.f <= fBound)
                         {
                             if (Expand(toAdd, toAdd.GetConflict()))
                                 return true;
                         }
-                        else if (toAdd.totalCost < nextF)
-                            nextF = toAdd.totalCost;
+                        else if (toAdd.f < nextF)
+                            nextF = toAdd.f;
                     }
                 }
             }
@@ -190,22 +196,22 @@ namespace CPF_experiment
             if (ok1 && ok2)
             {
                 toAdd = new CbsNode(node, con1, conflict.agentAIndex);
-                if (toAdd.Replan3b(conflict.agentAIndex, Math.Max(minCost, conflict.timeStep)))
+                if (toAdd.Replan3b(conflict.agentAIndex, Math.Max(minDepth, conflict.timeStep)))
                 {
-                    if (toAdd.totalCost <= fBound)
+                    if (toAdd.f <= fBound)
                     {
                         toAdd = new CbsNode(toAdd, con2, conflict.agentBIndex);
-                        if (toAdd.Replan(conflict.agentBIndex, Math.Max(minCost, conflict.timeStep)))
+                        if (toAdd.Replan(conflict.agentBIndex, Math.Max(minDepth, conflict.timeStep)))
                             // FIXME: Should this really use the regular Replan() or was this a typo?
                         {
                             this.highLevelGenerated++;
-                            if (toAdd.totalCost <= fBound)
+                            if (toAdd.f <= fBound)
                             {
                                 if (Expand(toAdd, toAdd.GetConflict()))
                                     return true;
                             }
-                            else if (toAdd.totalCost < nextF)
-                                nextF = toAdd.totalCost;
+                            else if (toAdd.f < nextF)
+                                nextF = toAdd.f;
                         }
                     }
                 }
@@ -275,16 +281,10 @@ namespace CPF_experiment
             else
                 this.topMost = false;
 
-            minCost = 0;
+            minDepth = 0;
         }
 
-        public void SetHeuristic(IHeuristicCalculator heuristic)
-        {
-            this.heuristic = heuristic;
-            this.solver.SetHeuristic(heuristic);
-        }
-
-        public IHeuristicCalculator GetHeuristic()
+        public IHeuristicCalculator<CbsNode> GetHeuristic()
         {
             return this.heuristic;
         }

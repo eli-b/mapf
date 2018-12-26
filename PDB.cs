@@ -5,7 +5,7 @@ using System.Collections.Generic;
 namespace CPF_experiment
 {
     [Serializable]
-    class PDB : IHeuristicCalculator
+    class PDB : IHeuristicCalculator<WorldState>
     {
         [NonSerialized] protected ProblemInstance m_Problem;
 
@@ -159,5 +159,10 @@ namespace CPF_experiment
         public virtual void ClearAccumulatedStatistics() { }
         public virtual void AccumulateStatistics() { }
         public virtual void OutputAccumulatedStatistics(TextWriter output) { }
+
+        public string GetName()
+        {
+            return "PDB";
+        }
     }
 }

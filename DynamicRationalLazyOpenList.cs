@@ -6,10 +6,10 @@ using System.Linq;
 
 namespace CPF_experiment
 {
-    public class DynamicRationalLazyOpenList : OpenList//<WorldState>US
+    public class DynamicRationalLazyOpenList : OpenList<WorldState>
     {
         protected Run runner;
-        public ILazyHeuristic expensive;
+        public IBoundedLazyHeuristic<WorldState> expensive;
         protected int lastF;
         protected int skips;
         protected int accSkips;
@@ -27,7 +27,7 @@ namespace CPF_experiment
         protected double accSumExpandTimes;
         protected int accNumExpands;
 
-        public DynamicRationalLazyOpenList(ISolver user, ILazyHeuristic expensive, Run runner)
+        public DynamicRationalLazyOpenList(ISolver user, IBoundedLazyHeuristic<WorldState> expensive, Run runner)
             : base(user)
         {
             this.expensive = expensive;
@@ -36,7 +36,12 @@ namespace CPF_experiment
             this.runner = runner;
         }
 
-        protected void ClearPrivateStatistics()
+        public override string GetName()
+        {
+            return $"Dynamic rational lazy open list with heuristic {this.expensive.GetName()}";
+        }
+
+        protected new void ClearPrivateStatistics()
         {
             this.lastF = -1;
 
@@ -46,7 +51,7 @@ namespace CPF_experiment
             this.capData = new double[DynamicRationalLazyOpenList.NUM_CAPS, 4];
         }
 
-        protected void ClearPrivateAccumulatedStatistics()
+        protected new void ClearPrivateAccumulatedStatistics()
         {
             this.accNumExpands = 0;
             this.accSumExpandTimes = 0;
@@ -59,9 +64,9 @@ namespace CPF_experiment
             return $"DynamicRationalLazyOpenList/{this.expensive}";
         }
 
-        bool runOracle = true;
+        //bool runOracle = true;
 
-        public override IBinaryHeapItem Remove()
+        public override WorldState Remove()
         {
             WorldState node;
 
@@ -74,7 +79,7 @@ namespace CPF_experiment
 
             if (base.Count == 1) // Can happen more than once with the same node if partial expansion pushes it back into the open list
             {
-                node = (WorldState)base.Remove();
+                node = base.Remove();
                 goto finish;
             }
 
@@ -83,12 +88,12 @@ namespace CPF_experiment
             const double binaryHeapTau = 0.073359375; // microseconds. From empirical experiments with this infra on my computer.
             double logN = Math.Log(this.heap.Count, 2); // Removals from and insertions to the queue cost practically zero.
             double t0 = binaryHeapTau * logN; // TODO: Measure this directly?
-            double overhead = 0.023 * ((WorldState)this.Peek()).allAgentsState.Length; // in milliseconds. Empirical lowest estimate. The cost of a zero-timeout CBSH run wasn't simply linear with the number of agents for some reason.
+            double overhead = 0.023 * this.Peek().allAgentsState.Length; // in milliseconds. Empirical lowest estimate. The cost of a zero-timeout CBSH run wasn't simply linear with the number of agents for some reason.
 
             while (true)
             {
                 WorldState next;
-                node = (WorldState)base.Remove();
+                node = base.Remove();
 
                 if (node.GoalTest() == true || // Can't improve the h of the goal
                     this.runner.ElapsedMilliseconds() > Constants.MAX_TIME) // No time to continue improving H.
@@ -110,37 +115,37 @@ namespace CPF_experiment
 
                 int selectedCapExponent = -1;
 
-                if (runOracle)
-                {
-                    this.runner.StartOracle();
-
-                    next = (WorldState)base.Peek();
-                    int targetH = next.g + next.h + 1 - node.g;
-
-                    Stopwatch watch = Stopwatch.StartNew();
-                    WorldStateForPartialExpansion nodeCopy = new WorldStateForPartialExpansion((WorldStateForPartialExpansion)node); // So the solution won't leak to the node when we try to solve it.
-                    double expensiveCallStartTime = watch.Elapsed.TotalMilliseconds;
-                    // Using a separate statistic for the oracle to keep the stats clean
-                    int expensiveEstimate = (int)((ILazyHeuristic)this.runner.heuristics[this.runner.heuristics.Count - 1]).h(
-                                                                                    nodeCopy, targetH, -1, int.MaxValue, false);
-                    double expensiveCallTotalTime = watch.Elapsed.TotalMilliseconds - expensiveCallStartTime;
-
-                    int lowestCapThatWouldHaveWorked = (int)Math.Ceiling(Math.Log(expensiveCallTotalTime * 1000, 2));
-                    //Console.WriteLine("Lowest cap that would have worked:{0}", (1<<lowestCapThatWouldHaveWorked)/1000.0);
-                    for (int j = 0; (j < lowestCapThatWouldHaveWorked) && (j < DynamicRationalLazyOpenList.NUM_CAPS); ++j)
-                    {
-                        this.capData[j, DynamicRationalLazyOpenList.FAILURE_IND] += 1;
-                        this.capData[j, DynamicRationalLazyOpenList.PH_IND] = 0; // Correct for this specific node.
-                                                                                 // All expanded nodes either have the oracle run on them or they don't, so this value won't leak to other nodes.
-                    }
-                    for (int j = lowestCapThatWouldHaveWorked; j < DynamicRationalLazyOpenList.NUM_CAPS; ++j)
-                    {
-                        this.capData[j, DynamicRationalLazyOpenList.SUCCESS_IND] = +1;
-                        this.capData[j, DynamicRationalLazyOpenList.PH_IND] = 1;
-                    }
-
-                    this.runner.StopOracle();
-                }
+                //if (runOracle)
+                //{
+                //    this.runner.StartOracle();
+                //
+                //    next = base.Peek();
+                //    int targetH = next.g + next.h + 1 - node.g;
+                //
+                //    Stopwatch watch = Stopwatch.StartNew();
+                //    WorldStateForPartialExpansion nodeCopy = new WorldStateForPartialExpansion((WorldStateForPartialExpansion)node); // So the solution won't leak to the node when we try to solve it.
+                //    double expensiveCallStartTime = watch.Elapsed.TotalMilliseconds;
+                //    // Using a separate statistic for the oracle to keep the stats clean
+                //    uint expensiveEstimate = ((IBoundedLazyHeuristic<IBinaryHeapItem>)this.runner.astar_heuristics[this.runner.astar_heuristics.Count - 1]).h(
+                //                                                                    nodeCopy, targetH, -1, int.MaxValue, false);
+                //    double expensiveCallTotalTime = watch.Elapsed.TotalMilliseconds - expensiveCallStartTime;
+                //
+                //    int lowestCapThatWouldHaveWorked = (int)Math.Ceiling(Math.Log(expensiveCallTotalTime * 1000, 2));
+                //    //Console.WriteLine("Lowest cap that would have worked:{0}", (1<<lowestCapThatWouldHaveWorked)/1000.0);
+                //    for (int j = 0; (j < lowestCapThatWouldHaveWorked) && (j < NUM_CAPS); ++j)
+                //    {
+                //        this.capData[j].failure += 1;
+                //        this.capData[j].ph = 0; // Correct for this specific node.
+                //                                                                 // All expanded nodes either have the oracle run on them or they don't, so this value won't leak to other nodes.
+                //    }
+                //    for (int j = lowestCapThatWouldHaveWorked; j < NUM_CAPS; ++j)
+                //    {
+                //        this.capData[j].success = +1;
+                //        this.capData[j].ph = 1;
+                //    }
+                //
+                //    this.runner.StopOracle();
+                //}
 
                 // DRLA* calculation (derived from Tolpin et al. RLA* formula):
                 double tExpand = (this.sumExpandTimes / this.numExpands) * 1000; // in microseconds
@@ -222,8 +227,8 @@ namespace CPF_experiment
                 bool success = false;
                 if (millisCap > overhead)  // Worth running the expensive heuristic
                 {
-                    next = (WorldState)base.Peek();
-                    int targetH = next.g + next.h + 1 - node.g;
+                    next = this.Peek();
+                    int targetH = node.GetTargetH(next.f + 1);
 
                     double expensiveCallStartTime = this.runner.ElapsedMilliseconds();
                     int expensiveEstimate = (int)this.expensive.h(node, targetH, -1, (int)(expensiveCallStartTime + millisCap), false);

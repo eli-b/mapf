@@ -6,17 +6,36 @@ using System.Diagnostics;
 
 namespace CPF_experiment
 {
-    public class DynamicLazyOpenList : OpenList//<WorldState>
+    /// <summary>
+    /// This open list invokes an expensive-to-compute heuristic on items before they're removed,
+    /// potentially pushing them back into itself if their F value increased above the next item in
+    /// the list.
+    /// The heuristic is given the "target value" - the minimum estimate that would cause an item to
+    /// be pushed back, and is allowed to stop once this estimate was reached.
+    /// </summary>
+    /// <typeparam name="Item"></typeparam>
+    public class DynamicLazyOpenList<Item> : OpenList<Item> where Item: IBinaryHeapItem, IHeuristicSearchNode
     {
-        public ILazyHeuristic expensive;
+        public ILazyHeuristic<Item> expensive;
         protected Run runner;
         protected int lastF;
+        protected int nodesPushedBack;
+        protected int accNodesPushedBack;
+        public bool debug;
 
-        public DynamicLazyOpenList(ISolver user, ILazyHeuristic expensive, Run runner)
+        public DynamicLazyOpenList(ISolver user, ILazyHeuristic<Item> expensive, Run runner)
             : base(user)
         {
             this.expensive = expensive;
             this.runner = runner;
+            this.ClearStatistics();
+            this.accNodesPushedBack = 0;
+            this.debug = false;
+        }
+
+        public override string GetName()
+        {
+            return $"Dynamic Lazy Open List with Heuristic {this.expensive.GetName()}";
         }
 
         public override string ToString()
@@ -24,72 +43,63 @@ namespace CPF_experiment
             return $"DynamicLazyOpenList/{this.expensive}";
         }
 
-        public override IBinaryHeapItem Remove()
+        public override Item Remove()
         {
-            WorldState node;
+            Item node;
             if (base.Count < 2)
             {
-                node = (WorldState)base.Remove(); // Throws if Count == 0
-                this.lastF = node.g + node.h;
+                // No need to run the expensive heuristic - it can't push back a node over another.
+                node = base.Remove(); // Throws if Count == 0
+                this.lastF = node.f;
                 return node;
             }
-
             // There are alternatives to the lowest cost node in the open list, try to postpone expansion of it:
-            float branchingFactor = ((float)this.user.GetGenerated() - 1) / this.user.GetExpanded();
-            if (this.user is ClassicAStar) // HACK!! Just until I copy this method to the interface and implement it everywhere.
-                branchingFactor = ((ClassicAStar)this.user).GetEffectiveBranchingFactor();
 
             while (true)
             {
-                node = (WorldState)base.Remove();
+                node = base.Remove();
 
                 if (node.GoalTest() == true || // Can't improve the h of the goal
+                    node.hBonus > 0 || // Already computed the expensive heuristic
                     this.runner.ElapsedMilliseconds() > Constants.MAX_TIME) // No time to continue improving H.
-                {
-                    if (node.g + node.h < this.lastF) // This can happen if the last removed node had many runs of the expensive heuristic, which this node didn't yet have.
-                    {
-                        int newH = this.lastF - node.g;
-                        node.hBonus += newH - node.h;
-                        node.h = newH; // Just so we don't throw an inconsistency exception
-                    }
                     break;
-                }
 
-                var next = (WorldState)base.Peek();
-                int targetH = next.g + next.h + 1 - node.g;
-                // No matter if we tried reaching the same targetH before.
-                // We can actually improve the estimate again if the search hit the node generation thershold last time.
-                // The only node we can't improve the estimate for is a (generalized) goal node, and that's handled earlier
-                int expensiveEstimate = (int)this.expensive.h(node, targetH, branchingFactor);
-                if (node.h < expensiveEstimate)
+                var next = base.Peek();
+                int targetH = node.GetTargetH(next.f + 1);  // Don't assume f = g + h (but do assume integer costs)
+                int expensiveEstimate = (int)this.expensive.h(node, targetH);
+                if (node.h < expensiveEstimate) // Node may have inherited a better estimate from its parent
                 {
                     node.hBonus += expensiveEstimate - node.h;
-                    node.h = expensiveEstimate; // Node may have inherited a better estimate from its parent
+                    node.h = expensiveEstimate;
                 }
                 
-                if (node.CompareTo(next) == 1 || // node is not the smallest F anymore - re-insert into open list
-                    node.g + node.h < lastF) // Never be inconsistent - don't return nodes with lower F than before. Try searching the node again.
+                if (node.CompareTo(next) == 1) // node is not the smallest F anymore - re-insert into open list
                 {
                     this.Add(node);
+                    this.nodesPushedBack++;
+                    if (this.debug)
+                        Debug.Print("Pushing back the node into the open list with an increased h.");
                 }
                 else
                 {
-                    //node.cbsState = null; // Not clearing all that memory because we might have to reopen the node.
-
                     // Node is still less than or equal to all items in the open list (and its h would look consistent to A*).
                     // This can be because of many reasons:
-                    // - The search ended because of a timeout
-                    // - The search ended because a goal was found (good!)
-                    // - The search ended because the CBS search was too costly
+                    // - The heuristic couldn't increase the node's estimate enough
+                    //    - Sometimes that's because a goal was found!
+                    // - Computing the heuristic ended because of a timeout
+                    // - Computing the heuristic ended because it was otherwise too costly
                     break;
                 }
             }
-            this.lastF = node.g + node.h;
+            this.lastF = node.f;
             return node;
         }
 
         public override void OutputStatisticsHeader(TextWriter output)
         {
+            output.Write(this.ToString() + " Nodes Pushed Back");
+            output.Write(Run.RESULTS_DELIMITER);
+
             base.OutputStatisticsHeader(output);
 
             this.expensive.OutputStatisticsHeader(output);
@@ -97,6 +107,10 @@ namespace CPF_experiment
 
         public override void OutputStatistics(TextWriter output)
         {
+            Console.WriteLine($"Nodes Pushed Back: {this.nodesPushedBack}");
+
+            output.Write(this.nodesPushedBack + Run.RESULTS_DELIMITER);
+
             base.OutputStatistics(output);
 
             this.expensive.OutputStatistics(output);
@@ -106,7 +120,7 @@ namespace CPF_experiment
         {
             get
             {
-                return base.NumStatsColumns + this.expensive.NumStatsColumns;
+                return base.NumStatsColumns + this.expensive.NumStatsColumns + 1;
             }
         }
 
@@ -115,6 +129,8 @@ namespace CPF_experiment
             base.ClearStatistics();
 
             this.expensive.ClearStatistics();
+
+            this.nodesPushedBack = 0;
         }
 
         public override void ClearAccumulatedStatistics()
@@ -122,6 +138,8 @@ namespace CPF_experiment
             base.ClearAccumulatedStatistics();
 
             this.expensive.ClearAccumulatedStatistics();
+
+            this.accNodesPushedBack = 0;
         }
 
         public override void AccumulateStatistics()
@@ -129,10 +147,16 @@ namespace CPF_experiment
             base.AccumulateStatistics();
 
             this.expensive.AccumulateStatistics();
+
+            this.accNodesPushedBack += this.nodesPushedBack;
         }
 
         public override void OutputAccumulatedStatistics(TextWriter output)
         {
+            Console.WriteLine($"{this} Accumulated Nodes Pushed Back: {this.accNodesPushedBack}");
+
+            output.Write(this.accNodesPushedBack + Run.RESULTS_DELIMITER);
+
             base.OutputAccumulatedStatistics(output);
 
             this.expensive.OutputAccumulatedStatistics(output);

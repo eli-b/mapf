@@ -10,7 +10,7 @@ namespace CPF_experiment
         protected int expandedFullStates;
         protected int accExpandedFullStates;
 
-        public AStarWithPartialExpansion(IHeuristicCalculator heuristic = null, bool mstar = false, bool mstarShuffle = false)
+        public AStarWithPartialExpansion(IHeuristicCalculator<WorldState> heuristic = null, bool mstar = false, bool mstarShuffle = false)
             : base(heuristic, mstar, mstarShuffle) { }
 
         override protected WorldState CreateSearchRoot(int minDepth = -1, int minCost = -1)
@@ -88,7 +88,7 @@ namespace CPF_experiment
                 node.remainingDeltaF = node.targetDeltaF; // Just for the following hasChildrenForCurrentDeltaF call.
             }
 
-            if (node.hasMoreChildren() && node.hasChildrenForCurrentDeltaF() && node.h + node.g + node.targetDeltaF <= this.maxCost)
+            if (node.hasMoreChildren() && node.hasChildrenForCurrentDeltaF() && node.h + node.g + node.targetDeltaF <= this.maxSolutionCost)
             {
                 // Increment H before re-insertion into open list
                 //int sicEstimate = (int)SumIndividualCosts.h(node, this.instance); // Re-compute even if the heuristic used is SIC since this may be a second expansion

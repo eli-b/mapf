@@ -4,10 +4,10 @@ using System.Collections.Generic;
 
 namespace CPF_experiment
 {
-    class RandomChoiceOfHeuristic : IHeuristicCalculator
+    class RandomChoiceOfHeuristic<State> : IHeuristicCalculator<State>
     {
-        protected IHeuristicCalculator first;
-        protected IHeuristicCalculator second;
+        protected IHeuristicCalculator<State> first;
+        protected IHeuristicCalculator<State> second;
         protected double p;
         protected Random rand;
 
@@ -18,7 +18,8 @@ namespace CPF_experiment
         /// <param name="second"></param>
         /// <param name="p"></param>
         /// <param name="seed"></param>
-        public RandomChoiceOfHeuristic(IHeuristicCalculator first, IHeuristicCalculator second, double p, int seed = 0)
+        public RandomChoiceOfHeuristic(IHeuristicCalculator<State> first,
+            IHeuristicCalculator<State> second, double p, int seed = 0)
         {
             this.first = first;
             this.second = second;
@@ -31,7 +32,12 @@ namespace CPF_experiment
             return "RandomChoiceOfHeuristic(" + this.p + ":" + this.first + " " + (1 - this.p) + ":" + this.second + ")";
         }
 
-        public uint h(WorldState s)
+        public string GetName()
+        {
+            return this.ToString();
+        }
+
+        public uint h(State s)
         {
             if (this.rand.NextDouble() < p)
                 return this.first.h(s);

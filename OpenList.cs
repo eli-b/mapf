@@ -10,12 +10,10 @@ namespace CPF_experiment
     /// Supporting O(1) insertion and removal of items that compare equal to the top of the heap.
     /// </summary>
     [DebuggerDisplay("Count = {Count}")]
-    public class OpenList : IAccumulatingStatisticsCsvWriter
+    public class OpenList<Item> : IAccumulatingStatisticsCsvWriter where Item : IBinaryHeapItem
     {
-        //protected IBinaryHeapItem lastRemovedItem;
-        protected Queue<IBinaryHeapItem> queue;
-        //protected LinkedList<IBinaryHeapItem> queue;
-        protected BinaryHeap heap;
+        protected Queue<Item> queue;
+        protected BinaryHeap<Item> heap;
         
         protected ISolver user;
         protected int quickInsertionCount;
@@ -26,8 +24,8 @@ namespace CPF_experiment
 
         public OpenList(ISolver user)
         {
-            this.heap = new BinaryHeap();
-            this.queue = new Queue<IBinaryHeapItem>();
+            this.heap = new BinaryHeap<Item>();
+            this.queue = new Queue<Item>();
 
             this.user = user;
             this.ClearPrivateStatistics();
@@ -39,7 +37,7 @@ namespace CPF_experiment
             get { return this.heap.Count + this.queue.Count; }
         }
 
-        public IBinaryHeapItem Peek()
+        public Item Peek()
         {
             if (this.queue.Count != 0)
                 return this.queue.Peek();
@@ -52,7 +50,7 @@ namespace CPF_experiment
             this.heap.Clear();
         }
 
-        public void Add(IBinaryHeapItem item)
+        public void Add(Item item)
         {
             if (this.queue.Count == 0)
             {
@@ -81,7 +79,7 @@ namespace CPF_experiment
                     {
                         while (this.queue.Count != 0)
                         {
-                            IBinaryHeapItem fromQueue = this.queue.Dequeue();
+                            Item fromQueue = this.queue.Dequeue();
                             this.heap.Add(fromQueue);
                             this.quickInsertionCount--;
                             this.quickInsertionsCancelled++;
@@ -104,13 +102,13 @@ namespace CPF_experiment
             //// incorrect results.
         }
 
-        public virtual IBinaryHeapItem Remove()
+        public virtual Item Remove()
         {
-            IBinaryHeapItem item;
+            Item item;
             if (this.queue.Count != 0)
             {
                 item = this.queue.Dequeue();
-                item.SetIndexInHeap(BinaryHeap.REMOVED_FROM_HEAP); // The heap assumes all items not in it have this index,
+                item.SetIndexInHeap(BinaryHeap<Item>.REMOVED_FROM_HEAP); // The heap assumes all items not in it have this index,
                                                                    // so we need to set it for when we search for this node
                                                                    // in the open list later.
             }
@@ -125,20 +123,20 @@ namespace CPF_experiment
         /// </summary>
         /// <param name="item"></param>
         /// <returns></returns>
-        public bool Remove(IBinaryHeapItem item)
+        public bool Remove(Item item)
         {
-            if (item.GetIndexInHeap() == BinaryHeap.REMOVED_FROM_HEAP) // Or from queue.
+            if (item.GetIndexInHeap() == BinaryHeap<Item>.REMOVED_FROM_HEAP) // Or from queue.
                 return false;
 
             bool removedFromQueue = false;
             // Remove from the queue if it's there, keeping the order in the queue.
             for (int i = 0; i < this.queue.Count; ++i )
             {
-                IBinaryHeapItem temp = this.queue.Dequeue();
+                Item temp = this.queue.Dequeue();
                 if (temp.Equals(item))
                 {
                     removedFromQueue = true;
-                    temp.SetIndexInHeap(BinaryHeap.REMOVED_FROM_HEAP);
+                    temp.SetIndexInHeap(BinaryHeap<Item>.REMOVED_FROM_HEAP);
                 }
                 else
                     this.queue.Enqueue(temp);
@@ -154,9 +152,9 @@ namespace CPF_experiment
         /// </summary>
         /// <param name="item"></param>
         /// <returns></returns>
-        public bool Contains(IBinaryHeapItem item)
+        public bool Contains(Item item)
         {
-            return item.GetIndexInHeap() != BinaryHeap.REMOVED_FROM_HEAP;
+            return item.GetIndexInHeap() != BinaryHeap<Item>.REMOVED_FROM_HEAP;
         }
 
         public virtual void OutputStatisticsHeader(TextWriter output)
@@ -222,6 +220,11 @@ namespace CPF_experiment
         }
 
         public override string ToString()
+        {
+            return this.GetName();
+        }
+
+        public virtual string GetName()
         {
             return "OpenList";
         }

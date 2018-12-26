@@ -9,18 +9,24 @@ namespace CPF_experiment
     /// <summary>
     /// This is an implementation of the classic A* algorithm for the MAPF problem.
     /// </summary>
-    public class ClassicAStar : ICbsSolver, IMStarSolver
+    public class ClassicAStar : ICbsSolver, IMStarSolver, IHeuristicSolver<WorldState>
     {
         protected ProblemInstance instance;
-        protected IHeuristicCalculator heuristic;
-        public OpenList openList;
+        protected IHeuristicCalculator<WorldState> heuristic;
+        public OpenList<WorldState> openList;
         public Dictionary<WorldState, WorldState> closedList;
+        /// <summary>
+        /// How much more expensive the solution was than the heuristic's initial estimate
+        /// </summary>
         protected int solutionDepth;
         protected Dictionary<int, int> conflictCounts;
         protected Dictionary<int, List<int>> conflictTimes;
         protected int expanded;
         protected int generated;
         protected int reopened;
+        /// <summary>
+        /// Note we can boost nodes that aren't eventually counted as generated (already in the closed list, too costly, ...)
+        /// </summary>
         protected int bpmxBoosts;
         protected int reopenedWithOldH;
         protected int noReopenHUpdates;
@@ -40,7 +46,7 @@ namespace CPF_experiment
         protected int accMstarShuffles;
         public int totalCost;
         public int numOfAgents;
-        protected int maxCost;
+        protected int maxSolutionCost;
         protected HashSet<TimedMove> illegalMoves;
         protected HashSet_U<CbsConstraint> constraints;
         /// <summary>
@@ -62,10 +68,10 @@ namespace CPF_experiment
         /// <summary>
         /// Default constructor.
         /// </summary>
-        public ClassicAStar(IHeuristicCalculator heuristic = null, bool mStar = false, bool mStarShuffle = false)
+        public ClassicAStar(IHeuristicCalculator<WorldState> heuristic = null, bool mStar = false, bool mStarShuffle = false)
         {
             this.closedList = new Dictionary<WorldState, WorldState>();
-            this.openList = new OpenList(this);
+            this.openList = new OpenList<WorldState>(this);
             this.heuristic = heuristic;
             
             this.queryConstraint = new CbsConstraint();
@@ -99,9 +105,9 @@ namespace CPF_experiment
 
             // Store parameters used by IndependenceDetection's Independence Detection algorithm
             if (problemInstance.parameters.ContainsKey(IndependenceDetection.MAXIMUM_COST_KEY))
-                this.maxCost = (int)(problemInstance.parameters[IndependenceDetection.MAXIMUM_COST_KEY]);
+                this.maxSolutionCost = (int)problemInstance.parameters[IndependenceDetection.MAXIMUM_COST_KEY];
             else
-                this.maxCost = int.MaxValue;
+                this.maxSolutionCost = int.MaxValue;
 
             if (problemInstance.parameters.ContainsKey(IndependenceDetection.ILLEGAL_MOVES_KEY) &&
                 ((HashSet<TimedMove>)problemInstance.parameters[IndependenceDetection.ILLEGAL_MOVES_KEY]).Count != 0)
@@ -157,12 +163,7 @@ namespace CPF_experiment
             this.illegalMoves = null;
         }
 
-        public void SetHeuristic(IHeuristicCalculator heuristic)
-        {
-            this.heuristic = heuristic;
-        }
-
-        public IHeuristicCalculator GetHeuristic()
+        public IHeuristicCalculator<WorldState> GetHeuristic()
         {
             return this.heuristic;
         }
@@ -180,7 +181,7 @@ namespace CPF_experiment
         public override string ToString()
         {
             string ret = $"{this.GetName()}/{this.heuristic}";
-            if (this.openList.GetType() != typeof(OpenList))
+            if (this.openList.GetType() != typeof(OpenList<WorldState>))
                 ret += $" with {this.openList}";
             return ret;
         }
@@ -376,7 +377,7 @@ namespace CPF_experiment
         /// <returns>True if solved</returns>
         public virtual bool Solve()
         {
-            int initialEstimate = ((WorldState)openList.Peek()).h; // g=0 initially
+            int initialEstimate = openList.Peek().h; // g=0 initially
 
             int lastF = -1;
             WorldState lastNode = null;
@@ -388,12 +389,19 @@ namespace CPF_experiment
                 {
                     totalCost = Constants.TIMEOUT_COST;
                     Console.WriteLine("Out of time");
-                    this.solutionDepth = ((WorldState)openList.Peek()).f - initialEstimate; // A minimum estimate
+                    this.solutionDepth = openList.Peek().g + openList.Peek().h - initialEstimate; // A minimum estimate, assuming h is admissable
                     this.Clear();
                     return false;
                 }
 
-                var currentNode = (WorldState)openList.Remove();
+                WorldState currentNode = openList.Remove();
+
+                if (currentNode.f > this.maxSolutionCost)  // A late heuristic application may have increased the node's cost
+                {
+                    continue;
+                    // This will exhaust the open list, assuming Fs of nodes chosen for expansions
+                    // are monotonically increasing.
+                }
 
                 if (debug)
                 {
@@ -426,13 +434,16 @@ namespace CPF_experiment
                 //}
 
                 if (this.mstar == false && // Backpropagation can cause the root to be re-expanded after many more expensive nodes were expanded.
-                    (Constants.costFunction == Constants.CostFunction.SUM_OF_COSTS || this.GetType() != typeof(AStarWithOD)))  // A*+OD on makespan can have final nodes with lower F than intermediate nodes because the move cost is
-                                                                                                                               // attributed to the first agent and its gains may show up in a later agent's h
+                    (Constants.costFunction == Constants.CostFunction.SUM_OF_COSTS || this.GetType() != typeof(AStarWithOD)) &&  // A*+OD on makespan can have final nodes with lower F than intermediate nodes because the move cost is
+                                                                                                                                 // attributed to the first agent and its gains may show up in a later agent's h
+                    (this.openList is DynamicLazyOpenList<WorldState>) == false && // Lazy application of the heuristic can cause decreasing F values.
+                    (this.openList is DynamicRationalLazyOpenList) == false        // Note _lazy_, not _late_. When the open list has just one node, application of the heuristic is lazily skipped altogether.
+                    )
                     Debug.Assert(currentNode.f >= lastF,
-                                 $"A* node with decreasing F: {currentNode.g + currentNode.h} < {lastF}.");
+                                 $"A* node with decreasing F: {currentNode.f} < {lastF}.");
                 else
                 {
-                    // Record the max F. Assert that the goal's F isn't smaller than it.
+                    // TODO: Record the max F. Assert that the goal's F isn't smaller than it.
                 }
                 lastF = currentNode.f;
                 lastNode = currentNode;
@@ -531,23 +542,25 @@ namespace CPF_experiment
                 currentNode.CalculateG();
                 currentNode.h = (int)this.heuristic.h(currentNode);
 
-                if (currentNode.g < currentNode.minCost)
+                // Boost h based on minGoalCost
+                if (currentNode.g < currentNode.minGoalCost)
                 {
-                    if (currentNode.h == 0)
+                    if (currentNode.h == 0)  // Agent is at the goal, only too early
                         currentNode.h = 2; // Otherwise waiting at goal would expand to waiting at the goal for the same too low cost,
                                            // which would expand to waiting at the goal, etc.
                                            // +2 because you need a step out of the goal and another step into it.
-                    currentNode.h = Math.Max(currentNode.h, currentNode.minCost - currentNode.g);
+                    currentNode.h = Math.Max(currentNode.h, currentNode.minGoalCost - currentNode.g);
+                    // TODO: Add a statistic for when the H was increased thanks to the minGoalCost
                 }
             }
 
-            // BPMX (Felner et al. 2005) stage:
+            // Path-Max stage:
             if ((this.heuristic.GetType() != typeof(SumIndividualCosts) &&
-                (this.heuristic.GetType() != typeof(MaxIndividualCosts))) || (this.openList.GetType() != typeof(OpenList)))
+                (this.heuristic.GetType() != typeof(MaxIndividualCosts))) || (this.openList.GetType() != typeof(OpenList<WorldState>)))  // double CHECK!
             // otherwise if we just use SIC and no lazy heuristic in addition to it,
-            // then our heuristic is consistent and BPMX isn't necessary
+            // then our heuristic is consistent and Path-Max isn't necessary
             {
-                // Reverse Path-Max
+                // Reverse Path-Max (operators are invertible) - BPMX (Felner et al. 2005)
                 WorldState parent = node;
                 int maxChildH = -1;
                 int deltaGOfChildWithMaxH = 0;
@@ -971,7 +984,7 @@ namespace CPF_experiment
         /// <returns></returns>
         protected virtual bool ProcessGeneratedNode(WorldState currentNode)
         {
-            if (currentNode.h + currentNode.g <= this.maxCost)
+            if (currentNode.f <= this.maxSolutionCost)
             // Assuming h is an admissable heuristic, no need to generate nodes that won't get us to the goal
             // within the budget
             {

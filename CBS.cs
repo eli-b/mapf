@@ -11,7 +11,7 @@ namespace CPF_experiment
     /// <summary>
     /// Merges agents if they conflict more times than the given threshold in the CT nodes from the root to the current CT nodes only.
     /// </summary>
-    public class CBS_LocalConflicts : ICbsSolver
+    public class CBS_LocalConflicts : ICbsSolver, IHeuristicSolver<CbsNode>
     {
         /// <summary>
         /// The key of the constraints list used for each CBS node
@@ -28,18 +28,17 @@ namespace CPF_experiment
         public static readonly string CAT = "CBS CAT";
 
         protected ProblemInstance instance;
-        public OpenList openList;
+        public OpenList<CbsNode> openList;
         /// <summary>
         /// Might as well be a HashSet. We don't need to retrieve from it.
         /// </summary>
         public Dictionary<CbsNode, CbsNode> closedList;
+        protected IHeuristicCalculator<CbsNode> heuristic;
         protected int highLevelExpanded;
         protected int highLevelGenerated;
         protected int closedListHits;
         protected int partialExpansions;
         protected int bypasses;
-        protected int pruningSuccesses;
-        protected int pruningFailures;
         protected int nodesExpandedWithGoalCost;
         protected int lookAheadNodesCreated;
         protected int conflictsBypassed;
@@ -47,16 +46,16 @@ namespace CPF_experiment
         protected int semiCardinalConflictSplits;
         protected int nonCardinalConflictSplits;
         public int mddsBuilt;
-        protected int nodesPushedBack;
         protected int restarts;
+        protected int pathMaxBoosts;
+        protected int reversePathMaxBoosts;
+        protected int pathMaxPlusBoosts;
         // TODO: Count shuffles
         protected int accHLExpanded;
         protected int accHLGenerated;
         protected int accClosedListHits;
         protected int accPartialExpansions;
         protected int accBypasses;
-        protected int accPruningSuccesses;
-        protected int accPruningFailures;
         protected int accNodesExpandedWithGoalCost;
         protected int accLookAheadNodesCreated;
         protected int accConflictsBypassed;
@@ -64,22 +63,46 @@ namespace CPF_experiment
         protected int accSemiCardinalConflictSplits;
         protected int accNonCardinalConflictSplits;
         protected int accMddsBuilt;
-        protected int accNodesPushedBack;
         protected int accRestarts;
+        protected int accPathMaxBoosts;
+        protected int accReversePathMaxBoosts;
+        protected int accPathMaxPlusBoosts;
 
-        public int totalCost;
+        public int solutionCost;
+        /// <summary>
+        /// The difference between the solution's cost and the f of the root node.
+        /// Notice root.g != 0 in CBS.
+        /// </summary>
         protected int solutionDepth;
         public Run runner;
         protected CbsNode goalNode;
         protected Plan solution;
         /// <summary>
-        /// Nodes with with a higher cost aren't generated
+        /// Nodes with a higher F aren't generated. As a result, goal nodes with a higher cost
+        /// won't be found.
         /// </summary>
-        protected int maxCost;
+        protected int maxSolutionCost;
         /// <summary>
-        /// Search is stopped when the minimum cost passes the target
+        /// Goal Nodes with with a lower cost aren't considered a goal. Used directly by CbsNode.
         /// </summary>
-        public int targetCost {set; get;}
+        public int minSolutionCost;
+        /// <summary>
+        /// Search is stopped when the minimum F in the open list reaches the target,
+        /// regardless of whether a goal node was found. Note maxSolutionCost stops the search when
+        /// the same F value is exhausted from the open list later.
+        /// </summary>
+        public int targetF {
+            get
+            {
+                return this.m_targetF;
+            }
+            set
+            {
+                this.maxSolutionCost = Math.Min(this.maxSolutionCost, value);  // No need to generate nodes with a higher F
+                this.m_targetF = value;
+            }
+        }
+        protected int m_targetF;
         /// <summary>
         /// Search is stopped when the low level generated nodes count exceeds the cap
         /// </summary>
@@ -91,37 +114,25 @@ namespace CPF_experiment
         protected ICbsSolver solver;
         protected ICbsSolver singleAgentSolver;
         public int mergeThreshold;
-        /// <summary>
-        /// TODO: Shouldn't this be called minTimeStep?
-        /// </summary>
-        protected int minDepth;
+        protected int minSolutionTimeStep;
         protected int maxSizeGroup;
         protected int accMaxSizeGroup;
         /// <summary>
         /// Used to know when to clear problem parameters.
         /// </summary>
         public bool topMost;
-        public HValueStrategy hValueStrategy;
         public bool doShuffle;
         public BypassStrategy bypassStrategy;
         public bool doMalte;
         public ConflictChoice conflictChoice;
         public bool disableTieBreakingByMinOpsEstimate;
-        public bool useMddPruningHeuristic;
-        /// <summary>
-        /// Maps CostTreeNode objects to whether there's a solution with the current costs
-        /// </summary>
-        public Dictionary<CostTreeNode, ushort> costTreeMDDResults;
         public int lookaheadMaxExpansions;
         public enum ConflictChoice : byte
         {
             FIRST = 0,
             MOST_CONFLICTING_SMALLEST_AGENTS,
             CARDINAL_MDD,
-            FIRST_CARDINAL_MDD,
             CARDINAL_LOOKAHEAD,
-            EXHAUSTIVE_CARDINAL_GREEDY,
-            EXHAUSTIVE_CARDINAL_LAZY
         }
         public enum BypassStrategy : byte
         {
@@ -129,28 +140,38 @@ namespace CPF_experiment
             FIRST_FIT_LOOKAHEAD,
             BEST_FIT_LOOKAHEAD
         }
-        public enum HValueStrategy : byte
-        {
-            NONE = 0,
-            GREEDY,
-            ACCURATE
-        }
         private bool mergeCausesRestart;
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="singleAgentSolver"></param>
+        /// <param name="generalSolver"></param>
+        /// <param name="mergeThreshold"></param>
+        /// <param name="doShuffle"></param>
+        /// <param name="bypassStrategy"></param>
+        /// <param name="doMalte"></param>
+        /// <param name="conflictChoice"></param>
+        /// <param name="heuristic"></param>
+        /// <param name="disableTieBreakingByMinOpsEstimate"></param>
+        /// <param name="lookaheadMaxExpansions"></param>
+        /// <param name="mergeCausesRestart"></param>
         public CBS_LocalConflicts(ICbsSolver singleAgentSolver, ICbsSolver generalSolver,
                                   int mergeThreshold = -1,
                                   bool doShuffle = false,
                                   BypassStrategy bypassStrategy = BypassStrategy.NONE,
                                   bool doMalte = false,
                                   ConflictChoice conflictChoice = ConflictChoice.FIRST,
-                                  HValueStrategy hValueStrategy = HValueStrategy.NONE,
-                                  bool disableTieBreakingByMinOpsEstimate = false,
-                                  bool useMddPruningHeuristic = false,
-                                  int lookaheadMaxExpansions = int.MaxValue,
+                                  ILazyHeuristic<CbsNode> heuristic = null,
+                                  bool disableTieBreakingByMinOpsEstimate = true,
+                                  int lookaheadMaxExpansions = 1,
                                   bool mergeCausesRestart = false)
         {
             this.closedList = new Dictionary<CbsNode, CbsNode>();
-            this.openList = new OpenList(this);
+            if (heuristic == null)
+                this.openList = new OpenList<CbsNode>(this);
+            else
+                this.openList = new DynamicLazyOpenList<CbsNode>(this, heuristic, runner);
             this.mergeThreshold = mergeThreshold;
             this.solver = generalSolver;
             this.singleAgentSolver = singleAgentSolver;
@@ -158,70 +179,69 @@ namespace CPF_experiment
             this.bypassStrategy = bypassStrategy;
             this.doMalte = doMalte;
             this.conflictChoice = conflictChoice;
-            this.hValueStrategy = hValueStrategy;
+            this.heuristic = heuristic;
             if (Constants.costFunction != Constants.CostFunction.SUM_OF_COSTS)
             {
                 Debug.Assert(conflictChoice != ConflictChoice.CARDINAL_MDD &&
-                             conflictChoice != ConflictChoice.CARDINAL_LOOKAHEAD &&  // TODO: Might be OK. Need to look at it.
-                             conflictChoice != ConflictChoice.FIRST_CARDINAL_MDD &&
-                             conflictChoice != ConflictChoice.EXHAUSTIVE_CARDINAL_GREEDY &&
-                             conflictChoice != ConflictChoice.EXHAUSTIVE_CARDINAL_LAZY,
+                             conflictChoice != ConflictChoice.CARDINAL_LOOKAHEAD,  // TODO: Might be OK. Need to look at it.
                     "Under makespan, increasing the cost for a single agent might not increase the cost for the solution." +
                     "Before this strategy is enabled we need to add a consideration of whether the agent whose cost will " +
                     "increase has the highest cost in the solution first");
             }
             this.disableTieBreakingByMinOpsEstimate = disableTieBreakingByMinOpsEstimate;
-            this.useMddPruningHeuristic = useMddPruningHeuristic;
-            // TODO: Make it into a standalone heuristic. That way different heuristics can be combined
-            //       with a MaxHeuristic class and the CBS code would be cleaner.
             this.lookaheadMaxExpansions = lookaheadMaxExpansions;
             this.mergeCausesRestart = mergeCausesRestart;
-
-            if (useMddPruningHeuristic)
-            {
-                this.costTreeMDDResults = new Dictionary<CostTreeNode, ushort>();
-            }
         }
         
         /// <summary>
         /// 
         /// </summary>
         /// <param name="problemInstance"></param>
-        /// <param name="minDepth"></param>
+        /// <param name="minSolutionTimeStep"></param>
         /// <param name="runner"></param>
-        /// <param name="minCost">Not taken into account</param>
-        public virtual void Setup(ProblemInstance problemInstance, int minDepth, Run runner, int minCost = -1)
+        /// <param name="minSolutionCost"></param>
+        public virtual void Setup(ProblemInstance problemInstance, int minSolutionTimeStep, Run runner,
+            int minSolutionCost = -1)
         {
             this.instance = problemInstance;
             this.runner = runner;
 
             this.ClearPrivateStatistics();
-            this.totalCost = 0;
+            this.solutionCost = 0;
             this.solutionDepth = -1;
-            this.targetCost = int.MaxValue;
             this.lowLevelGeneratedCap = int.MaxValue;
+            this.targetF = int.MaxValue;
             this.milliCap = int.MaxValue;
             this.goalNode = null;
             this.solution = null;
 
             if (problemInstance.parameters.ContainsKey(IndependenceDetection.MAXIMUM_COST_KEY))
-                this.maxCost = (int)(problemInstance.parameters[IndependenceDetection.MAXIMUM_COST_KEY]);
+                this.maxSolutionCost = (int)problemInstance.parameters[IndependenceDetection.MAXIMUM_COST_KEY];
             else
-                this.maxCost = int.MaxValue;
+                this.maxSolutionCost = int.MaxValue;
 
             this.topMost = this.SetGlobals();
 
-            this.minDepth = minDepth;
+            this.minSolutionTimeStep = minSolutionTimeStep;
+            this.minSolutionCost = minSolutionCost;
 
             CbsNode root = new CbsNode(instance.m_vAgents.Length, this.solver, this.singleAgentSolver, this); // Problem instance and various strategy data is all passed under 'this'.
             // Solve the root node
-            bool solved = root.Solve(minDepth);
-            
-            if (solved && root.totalCost <= this.maxCost)
+            bool solved = root.Solve(minSolutionTimeStep);
+
+            if (solved)
             {
-                this.openList.Add(root);
-                this.highLevelGenerated++;
-                this.closedList.Add(root, root);
+                //if (this.heuristic != null)
+                //    root.h = (int) this.heuristic.h(root);  // So that children inherit the built MDDs,
+                //                                            // and for a better initial estimate
+                // FIXME: Enable under a flag
+
+                if (root.f <= this.maxSolutionCost)
+                {
+                    this.openList.Add(root);
+                    this.highLevelGenerated++;
+                    this.closedList.Add(root, root);
+                }
             }
         }
 
@@ -230,14 +250,14 @@ namespace CPF_experiment
             this.Setup(problemInstance, 0, runner);
         }
 
-        public void SetHeuristic(IHeuristicCalculator heuristic)
+        public IHeuristicCalculator<CbsNode> GetHeuristic()
         {
-            this.solver.SetHeuristic(heuristic);
+            return this.heuristic;
         }
 
-        public IHeuristicCalculator GetHeuristic()
+        public ICbsSolver GetSolver()
         {
-            return this.solver.GetHeuristic();
+            return this.solver;
         }
 
         public Dictionary<int, int> GetExternalConflictCounts()
@@ -296,22 +316,21 @@ namespace CPF_experiment
                 variants += " choosing cardinal conflicts using MDD";
             else if (this.conflictChoice == ConflictChoice.CARDINAL_LOOKAHEAD)
                 variants += " choosing cardinal conflicts using lookahead";
-            else if (this.conflictChoice == ConflictChoice.EXHAUSTIVE_CARDINAL_GREEDY)
-                variants += " choosing cardinal conflicts using MDD and using greedy disjoint heuristic";
-            else if (this.conflictChoice == ConflictChoice.EXHAUSTIVE_CARDINAL_LAZY)
-                variants += " choosing cardinal conflicts using MDD and using lazy disjoint heuristic";
 
             if (this.disableTieBreakingByMinOpsEstimate == true)
                 variants += " without smart tie breaking";
-            if (this.useMddPruningHeuristic == true)
-                variants += " with MDD pruning heuristic";
+
             if (this.mergeCausesRestart == true && mergeThreshold != -1)
                 variants += " with merge&restart";
 
-            if (this.hValueStrategy == HValueStrategy.ACCURATE)
-                return $"CBSH/{lowLevelSolvers}{variants}";
-            if (this.hValueStrategy == HValueStrategy.GREEDY)
-                return $"Greedy CBSH/{lowLevelSolvers}{variants}";
+            if (this.heuristic != null)
+                variants += $" using heuristic {this.heuristic.GetName()}";
+
+            if (this.openList.GetType() != typeof(OpenList<CbsNode>))
+            {
+                variants += $" using open list {this.openList.GetName()}";
+            }
+
             if (mergeThreshold == -1)
                 return $"CBS/{lowLevelSolvers}{variants}";
             return $"MA-CBS-Local-{mergeThreshold}/{lowLevelSolvers}{variants}";
@@ -322,7 +341,7 @@ namespace CPF_experiment
             return GetName();
         }
 
-        public int GetSolutionCost() { return this.totalCost; }
+        public int GetSolutionCost() { return this.solutionCost; }
 
         protected void ClearPrivateStatistics()
         {
@@ -331,8 +350,6 @@ namespace CPF_experiment
             this.closedListHits = 0;
             this.partialExpansions = 0;
             this.bypasses = 0;
-            this.pruningSuccesses = 0;
-            this.pruningFailures = 0;
             this.nodesExpandedWithGoalCost = 0;
             this.lookAheadNodesCreated = 0;
             this.conflictsBypassed = 0;
@@ -340,8 +357,10 @@ namespace CPF_experiment
             this.semiCardinalConflictSplits = 0;
             this.nonCardinalConflictSplits = 0;
             this.mddsBuilt = 0;
-            this.nodesPushedBack = 0;
             this.restarts = 0;
+            this.pathMaxBoosts = 0;
+            this.reversePathMaxBoosts = 0;
+            this.pathMaxPlusBoosts = 0;
             this.maxSizeGroup = 1;
         }
 
@@ -357,10 +376,6 @@ namespace CPF_experiment
             output.Write(Run.RESULTS_DELIMITER);
             output.Write(this.ToString() + " Adoptions (HL)");
             output.Write(Run.RESULTS_DELIMITER);
-            output.Write(this.ToString() + " Pruning Successes (HL)");
-            output.Write(Run.RESULTS_DELIMITER);
-            output.Write(this.ToString() + " Pruning Failures (HL)");
-            output.Write(Run.RESULTS_DELIMITER);
             output.Write(this.ToString() + " Nodes Expanded With Goal Cost (HL)");
             output.Write(Run.RESULTS_DELIMITER);
             output.Write(this.ToString() + " Look Ahead Nodes Created (HL)");
@@ -375,9 +390,13 @@ namespace CPF_experiment
             output.Write(Run.RESULTS_DELIMITER);
             output.Write(this.ToString() + " MDDs Built (HL)");
             output.Write(Run.RESULTS_DELIMITER);
-            output.Write(this.ToString() + " Nodes Pushed Back (HL)");
-            output.Write(Run.RESULTS_DELIMITER);
             output.Write(this.ToString() + " Restarts (HL)");
+            output.Write(Run.RESULTS_DELIMITER);
+            output.Write(this.ToString() + " Path-Max Boosts (HL)");
+            output.Write(Run.RESULTS_DELIMITER);
+            output.Write(this.ToString() + " Reverse Path-Max Boosts (HL)");
+            output.Write(Run.RESULTS_DELIMITER);
+            output.Write(this.ToString() + " Path-Max Plus Boosts (HL)");
             output.Write(Run.RESULTS_DELIMITER);
             output.Write(this.ToString() + " Max Group Size (HL)");
             output.Write(Run.RESULTS_DELIMITER);
@@ -396,8 +415,6 @@ namespace CPF_experiment
             Console.WriteLine("Closed List Hits (High-Level): {0}", this.closedListHits);
             Console.WriteLine("Partial Expansions (High-Level): {0}", this.partialExpansions);
             Console.WriteLine("Adoptions (High-Level): {0}", this.bypasses);
-            Console.WriteLine("Pruning successes (High-Level): {0}", this.pruningSuccesses);
-            Console.WriteLine("Pruning failures (High-Level): {0}", this.pruningFailures);
             Console.WriteLine("Nodes expanded with goal cost (High-Level): {0}", this.nodesExpandedWithGoalCost);
             Console.WriteLine("Look ahead nodes created (High-Level): {0}", this.lookAheadNodesCreated);
             Console.WriteLine("Conflicts Bypassed With Adoption (High-Level): {0}", this.conflictsBypassed);
@@ -405,8 +422,10 @@ namespace CPF_experiment
             Console.WriteLine("Semi-Cardinal Conflicts Splits (High-Level): {0}", this.semiCardinalConflictSplits);
             Console.WriteLine("Non-Cardinal Conflicts Splits (High-Level): {0}", this.nonCardinalConflictSplits);
             Console.WriteLine("MDDs Built (High-Level): {0}", this.mddsBuilt);
-            Console.WriteLine("Nodes Pushed Back (High-Level): {0}", this.nodesPushedBack);
             Console.WriteLine("Restarts (High-Level): {0}", this.restarts);
+            Console.WriteLine("Path-Max Boosts (High-Level): {0}", this.pathMaxBoosts);
+            Console.WriteLine("Reverse Path-Max Boosts (High-Level): {0}", this.reversePathMaxBoosts);
+            Console.WriteLine("Path-Max Plus Boosts (High-Level): {0}", this.pathMaxPlusBoosts);
             Console.WriteLine("Max Group Size (High-Level): {0}", this.maxSizeGroup);
 
             output.Write(this.highLevelExpanded + Run.RESULTS_DELIMITER);
@@ -414,8 +433,6 @@ namespace CPF_experiment
             output.Write(this.closedListHits + Run.RESULTS_DELIMITER);
             output.Write(this.partialExpansions + Run.RESULTS_DELIMITER);
             output.Write(this.bypasses + Run.RESULTS_DELIMITER);
-            output.Write(this.pruningSuccesses + Run.RESULTS_DELIMITER);
-            output.Write(this.pruningFailures + Run.RESULTS_DELIMITER);
             output.Write(this.nodesExpandedWithGoalCost + Run.RESULTS_DELIMITER);
             output.Write(this.lookAheadNodesCreated + Run.RESULTS_DELIMITER);
             output.Write(this.conflictsBypassed + Run.RESULTS_DELIMITER);
@@ -423,8 +440,10 @@ namespace CPF_experiment
             output.Write(this.semiCardinalConflictSplits + Run.RESULTS_DELIMITER);
             output.Write(this.nonCardinalConflictSplits + Run.RESULTS_DELIMITER);
             output.Write(this.mddsBuilt + Run.RESULTS_DELIMITER);
-            output.Write(this.nodesPushedBack + Run.RESULTS_DELIMITER);
             output.Write(this.restarts + Run.RESULTS_DELIMITER);
+            output.Write(this.pathMaxBoosts + Run.RESULTS_DELIMITER);
+            output.Write(this.reversePathMaxBoosts + Run.RESULTS_DELIMITER);
+            output.Write(this.pathMaxPlusBoosts + Run.RESULTS_DELIMITER);
             output.Write(this.maxSizeGroup + Run.RESULTS_DELIMITER);
 
             this.solver.OutputAccumulatedStatistics(output);
@@ -464,8 +483,6 @@ namespace CPF_experiment
             this.accClosedListHits = 0;
             this.accPartialExpansions = 0;
             this.accBypasses = 0;
-            this.accPruningSuccesses = 0;
-            this.accPruningFailures = 0;
             this.accNodesExpandedWithGoalCost = 0;
             this.accLookAheadNodesCreated = 0;
             this.accConflictsBypassed = 0;
@@ -473,8 +490,10 @@ namespace CPF_experiment
             this.accSemiCardinalConflictSplits = 0;
             this.accNonCardinalConflictSplits = 0;
             this.accMddsBuilt = 0;
-            this.accNodesPushedBack = 0;
             this.accRestarts = 0;
+            this.accPathMaxBoosts = 0;
+            this.accReversePathMaxBoosts = 0;
+            this.accPathMaxPlusBoosts = 0;
             this.accMaxSizeGroup = 1;
 
             this.solver.ClearAccumulatedStatistics();
@@ -491,8 +510,6 @@ namespace CPF_experiment
             this.accClosedListHits += this.closedListHits;
             this.accPartialExpansions += this.partialExpansions;
             this.accBypasses += this.bypasses;
-            this.accPruningSuccesses += this.pruningSuccesses;
-            this.accPruningFailures += this.pruningFailures;
             this.accNodesExpandedWithGoalCost += this.nodesExpandedWithGoalCost;
             this.accLookAheadNodesCreated += this.lookAheadNodesCreated;
             this.accConflictsBypassed += this.conflictsBypassed;
@@ -500,8 +517,10 @@ namespace CPF_experiment
             this.accSemiCardinalConflictSplits += this.semiCardinalConflictSplits;
             this.accNonCardinalConflictSplits += this.nonCardinalConflictSplits;
             this.accMddsBuilt += this.mddsBuilt;
-            this.accNodesPushedBack += this.nodesPushedBack;
             this.accRestarts += this.restarts;
+            this.accPathMaxBoosts += this.pathMaxBoosts;
+            this.accReversePathMaxBoosts += this.reversePathMaxBoosts;
+            this.accPathMaxPlusBoosts += this.pathMaxPlusBoosts;
             this.accMaxSizeGroup = Math.Max(this.accMaxSizeGroup, this.maxSizeGroup);
 
             // this.solver statistics are accumulated every time it's used.
@@ -516,17 +535,17 @@ namespace CPF_experiment
             Console.WriteLine("{0} Accumulated Closed List Hits (High-Level): {1}", this, this.accClosedListHits);
             Console.WriteLine("{0} Accumulated Partial Expansions (High-Level): {1}", this, this.accPartialExpansions);
             Console.WriteLine("{0} Accumulated Adoptions (High-Level): {1}", this, this.accBypasses);
-            Console.WriteLine("{0} Accumulated Pruning Successes (High-Level): {1}", this, this.accPruningSuccesses);
-            Console.WriteLine("{0} Accumulated Pruning Failures (High-Level): {1}", this, this.accPruningFailures);
             Console.WriteLine("{0} Accumulated Nodes Expanded With Goal Cost (High-Level): {1}", this, this.accNodesExpandedWithGoalCost);
             Console.WriteLine("{0} Accumulated Look Ahead Nodes Created (High-Level): {1}", this, this.accNodesExpandedWithGoalCost);
             Console.WriteLine("{0} Accumulated Conflicts Bypassed With Adoption (High-Level): {1}", this, this.accConflictsBypassed);
-            Console.WriteLine("{0} Accumulated Cardinal Conflicts Splits (High-Level): {1}", this.accCardinalConflictSplits);
-            Console.WriteLine("{0} Accumulated Semi-Cardinal Conflicts Splits (High-Level): {1}", this.accSemiCardinalConflictSplits);
-            Console.WriteLine("{0} Accumulated Non-Cardinal Conflicts Splits (High-Level): {1}", this.accNonCardinalConflictSplits);
-            Console.WriteLine("{0} Accumulated MDDs Built (High-Level): {1}", this.accMddsBuilt);
-            Console.WriteLine("{0} Accumulated Nodes Pushed Back (High-Level): {1}", this.accNodesPushedBack);
-            Console.WriteLine("{0} Accumulated Restarts (High-Level): {1}", this.accRestarts);
+            Console.WriteLine("{0} Accumulated Cardinal Conflicts Splits (High-Level): {1}", this, this.accCardinalConflictSplits);
+            Console.WriteLine("{0} Accumulated Semi-Cardinal Conflicts Splits (High-Level): {1}", this, this.accSemiCardinalConflictSplits);
+            Console.WriteLine("{0} Accumulated Non-Cardinal Conflicts Splits (High-Level): {1}", this, this.accNonCardinalConflictSplits);
+            Console.WriteLine("{0} Accumulated MDDs Built (High-Level): {1}", this, this.accMddsBuilt);
+            Console.WriteLine("{0} Accumulated Restarts (High-Level): {1}", this, this.accRestarts);
+            Console.WriteLine("{0} Accumulated Path-Max Boosts (High-Level): {1}", this, this.accPathMaxBoosts);
+            Console.WriteLine("{0} Accumulated Reverse Path-Max Boosts (High-Level): {1}", this, this.accReversePathMaxBoosts);
+            Console.WriteLine("{0} Accumulated Path-Max Plus Boosts (High-Level): {1}", this, this.accPathMaxPlusBoosts);
             Console.WriteLine("{0} Max Group Size (High-Level): {1}", this, this.accMaxSizeGroup);
 
             output.Write(this.accHLExpanded + Run.RESULTS_DELIMITER);
@@ -534,8 +553,6 @@ namespace CPF_experiment
             output.Write(this.accClosedListHits + Run.RESULTS_DELIMITER);
             output.Write(this.accPartialExpansions + Run.RESULTS_DELIMITER);
             output.Write(this.accBypasses + Run.RESULTS_DELIMITER);
-            output.Write(this.accPruningSuccesses + Run.RESULTS_DELIMITER);
-            output.Write(this.accPruningFailures + Run.RESULTS_DELIMITER);
             output.Write(this.accNodesExpandedWithGoalCost + Run.RESULTS_DELIMITER);
             output.Write(this.accLookAheadNodesCreated + Run.RESULTS_DELIMITER);
             output.Write(this.accConflictsBypassed + Run.RESULTS_DELIMITER);
@@ -543,8 +560,10 @@ namespace CPF_experiment
             output.Write(this.accSemiCardinalConflictSplits + Run.RESULTS_DELIMITER);
             output.Write(this.accNonCardinalConflictSplits + Run.RESULTS_DELIMITER);
             output.Write(this.accMddsBuilt + Run.RESULTS_DELIMITER);
-            output.Write(this.accNodesPushedBack + Run.RESULTS_DELIMITER);
             output.Write(this.accRestarts + Run.RESULTS_DELIMITER);
+            output.Write(this.accPathMaxBoosts + Run.RESULTS_DELIMITER);
+            output.Write(this.accReversePathMaxBoosts + Run.RESULTS_DELIMITER);
+            output.Write(this.accPathMaxPlusBoosts + Run.RESULTS_DELIMITER);
             output.Write(this.accMaxSizeGroup + Run.RESULTS_DELIMITER);
 
             this.solver.OutputAccumulatedStatistics(output);
@@ -599,9 +618,9 @@ namespace CPF_experiment
 
             int initialEstimate = 0;
             if (openList.Count > 0)
-                initialEstimate = ((CbsNode)openList.Peek()).totalCost;
+                initialEstimate = openList.Peek().f;
 
-            int maxExpandedNodeCostPlusH = -1;
+            int maxExpandedNodeF = -1;
             int currentCost = -1;
 
             while (openList.Count > 0)
@@ -609,95 +628,37 @@ namespace CPF_experiment
                 // Check if max time has been exceeded
                 if (runner.ElapsedMilliseconds() > Constants.MAX_TIME)
                 {
-                    this.totalCost = Constants.TIMEOUT_COST;
+                    this.solutionCost = Constants.TIMEOUT_COST;
                     Console.WriteLine("Out of time");
-                    this.solutionDepth = ((CbsNode)openList.Peek()).totalCost - initialEstimate; // A minimum estimate
+                    this.solutionDepth = openList.Peek().f - initialEstimate; // A minimum estimate
                     this.Clear(); // Total search time exceeded - we're not going to resume this search.
                     this.CleanGlobals();
                     return false;
                 }
-                var currentNode = (CbsNode)openList.Remove();
-                if (this.hValueStrategy == HValueStrategy.ACCURATE)
-                    currentNode.ComputeHWithMVC(); // conflict will be also chosen when computing h
-                else if (this.hValueStrategy == HValueStrategy.GREEDY)
-                    currentNode.ComputeHWithMM(); // conflict will be also chosen when computing h
-                else
-                    currentNode.ChooseConflict();
-                // TODO: The way this is written, HValueStrategy is actually a conflict choice strategy.
-                //       Consider merging functionalities to reflect this. This would remove a lot of
-                //       code duplication.
 
-                // A cardinal conflict may have been found, increasing the h of the node.
-                // Check if the node needs to be pushed back into the open list.
-                if (this.openList.Count != 0 &&
-                    currentNode.f > ((CbsNode)this.openList.Peek()).f)
+                CbsNode currentNode = openList.Remove();
+
+                if (currentNode.f > this.maxSolutionCost)  // A late heuristic application may have increased the node's cost
                 {
-                    if (this.debug)
-                        Debug.Print("Pushing back the node into the open list with an increased h.");
-                    this.openList.Add(currentNode);
-                    this.nodesPushedBack++;
                     continue;
-                    // Notice that even though we may iterate over conflicts later,
-                    // even if there is a conflict that we can identify as cardinal,
-                    // then the first conflict chosen _will_ be cardinal, so this is
-                    // the only place we need to allow pushing nodes back.
-                    // We may discover cardinal conflicts in hindsight later, but there
-                    // would be no point in pushing their node back at that point,
-                    // as we would've already made the split by then.
+                    // Don't expand the node.
+                    // This will exhaust the open list, assuming Fs of nodes chosen for expansions
+                    // are monotonically increasing.
+                    // TODO: Pass maxSolutionCost to the DynamicLazyOpenList so it can inform the 
+                    //       heuristic not to try to improve its estimate to make the node's f more
+                    //       than 1 + maxSolutionCost
                 }
+
+
+                currentNode.ChooseConflict();
+
+                // Notice that even though we may discover cardinal conflicts in hindsight later,
+                // there would be no point in pushing their node back at that point,
+                // as we would've already made the split by then.
 
                 this.addToGlobalConflictCount(currentNode.GetConflict()); // TODO: Make CBS_GlobalConflicts use nodes that do this automatically after choosing a conflict
 
                 currentNode.DebugPrint();
-
-                // Lazy MDD stage
-                if (this.useMddPruningHeuristic)
-                {
-                    if (currentNode.h == 0 && // Otherwise the node's h was already computed. It may have been computed if h is zero, but then the lookup will find the h quickly. This is just a minor optimization.
-                        this.openList.Count != 0 && // Otherwise there's no need to pay for delaying expansion
-                        currentNode.f == ((CbsNode)this.openList.Peek()).f) // We can only add 1 to the h so a push back can only happen if the F of the next node is equal to the current one's before starting.
-                    // TODO: Generalize DynamicLazyOpenList to fit CBS instead of this logic duplication
-                    {
-                        ushort lowerBound = this.MddPruningHeuristic(currentNode);
-                        if (lowerBound == 0)
-                        {
-                            if (this.debug)
-                                Debug.Print("MDD thinks this node may be solvable with its current costs");
-                        }
-                        else
-                        {
-                            if (this.debug)
-                            {
-                                Debug.Print("MDD proved no solution exists for the node's configuration of costs.");
-                                //Debug.Print("Using MDD's least conflicting configuration.");
-                                // NOT IMPLEMENTED BUT POSSIBLE.
-                            }
-                            currentNode.h = Math.Max(currentNode.h, lowerBound);
-                            var next = (CbsNode)this.openList.Peek();
-                            if (currentNode.CompareTo(next) == 1) // Must be true - they were equal before we enlarged the h.
-                            {
-                                if (this.debug)
-                                    Debug.Print("Pushing back the node into the open list with an increased h.");
-                                this.openList.Add(currentNode);
-                                this.nodesPushedBack++;
-                                continue;
-                            }
-                            else
-                            {
-                                Debug.Print("MDD proved this node isn't solvable with its current costs, but the next node isn't smaller than the current node with its improved h, so we're not pushing it back.");
-                            }
-                        }
-                    }
-                    else
-                    {
-                        if (currentNode.h != 0)
-                            Debug.Print("Not building MDDs for this node, h was already computed on it");
-                        else if (this.openList.Count == 0)
-                            Debug.Print("Not building MDDs for this node, it's the only one in the open list");
-                        else
-                            Debug.Print("Not building MDDs for this node, we can't raise its h enough to push it back");
-                    }
-                }
 
                 // Shuffle stage:
                 if (this.doShuffle)
@@ -706,12 +667,12 @@ namespace CPF_experiment
                 }
 
                 // Update nodesExpandedWithGoalCost statistic
-                if (currentNode.totalCost > currentCost) // Needs to be here because the goal may have a cost unseen before
+                if (currentNode.g > currentCost) // Needs to be here because the goal may have a cost unseen before
                 {
-                    currentCost = currentNode.totalCost;
+                    currentCost = currentNode.g;
                     this.nodesExpandedWithGoalCost = 0;
                 }
-                else if (currentNode.totalCost == currentCost) // check needed because macbs node cost isn't exactly monotonous
+                else if (currentNode.g == currentCost) // check needed because macbs node cost isn't exactly monotonous
                 {
                     this.nodesExpandedWithGoalCost++;
                 }
@@ -719,10 +680,10 @@ namespace CPF_experiment
                 // Check if node is the goal
                 if (currentNode.GoalTest())
                 {
-                    Debug.Assert(currentNode.totalCost >= maxExpandedNodeCostPlusH,
-                                 $"CBS goal node found with lower cost than the max cost node ever expanded: {currentNode.totalCost} < {maxExpandedNodeCostPlusH}");
+                    Debug.Assert(currentNode.g >= maxExpandedNodeF,
+                                 $"CBS goal node found with lower cost than the max cost node ever expanded: {currentNode.g} < {maxExpandedNodeF}");
                     // This is subtle, but MA-CBS may expand nodes in a non non-decreasing order:
-                    // If a node with a non-optimal constraint is expanded and we decide to merge the agents,
+                    // If a non-optimal constraint is expanded upon and we decide to merge the agents,
                     // the resulting node can have a lower cost than before, since we ignore the non-optimal constraint
                     // because the conflict it addresses is between merged nodes.
                     // The resulting lower-cost node will have other constraints, that will raise the cost of its children back to at least its original cost,
@@ -737,8 +698,8 @@ namespace CPF_experiment
                     // 55 grid cells and 9 obstacles.
 
                     Debug.WriteLine("-----------------");
-                    this.totalCost = currentNode.totalCost;
-                    this.solutionDepth = this.totalCost - initialEstimate;
+                    this.solutionCost = currentNode.g;
+                    this.solutionDepth = this.solutionCost - initialEstimate;
                     this.goalNode = currentNode; // Saves the single agent plans and costs
                     // The joint plan is calculated on demand.
                     this.Clear(); // Goal found - we're not going to resume this search
@@ -746,29 +707,28 @@ namespace CPF_experiment
                     return true;
                 }
 
-                if (currentNode.totalCost >= this.targetCost || // Node is good enough
-                    //(this.targetCost != int.MaxValue &&
-                     //this.lowLevelGenerated > Math.Pow(Constants.NUM_ALLOWED_DIRECTIONS, this.instance.m_vAgents.Length))
-                    this.solver.GetAccumulatedGenerated() > this.lowLevelGeneratedCap || // Stop because this is taking too long.
-                                                                                         // We're looking at _generated_ low level nodes since that's an indication to the amount of work done,
-                                                                                         // while expanded nodes is an indication of the amount of good work done.
-                                                                                         // b**k is the maximum amount of nodes we'll generate if we expand this node with A*.
+                if (maxExpandedNodeF < currentNode.f)
+                {
+                    maxExpandedNodeF = currentNode.f;
+                    Debug.Print("New max F: {0}", maxExpandedNodeF);
+                }
+
+                // Check conditions that stop the search before a goal is found
+                if (currentNode.f >= this.targetF || // Node is good enough
+                    this.singleAgentSolver.GetAccumulatedGenerated() + this.solver.GetAccumulatedGenerated() > 
+                        this.lowLevelGeneratedCap || // Stop because this is taking too long.
+                                                     // We're looking at _generated_ low level nodes since that's an indication to the amount of work done,
+                                                     // while expanded nodes is an indication of the amount of good work done.
                     (this.milliCap != int.MaxValue && // (This check is much cheaper than the method call)
                      this.runner.ElapsedMilliseconds() > this.milliCap)) // Search is taking too long.
                 {
                     Debug.WriteLine("-----------------");
-                    this.totalCost = maxExpandedNodeCostPlusH; // This is the min possible cost so far.
+                    this.solutionCost = maxExpandedNodeF; // This is the min possible cost so far.
                     this.openList.Add(currentNode); // To be able to continue the search later
                     this.CleanGlobals();
                     return false;
                 }
 
-                if (maxExpandedNodeCostPlusH < currentNode.totalCost + currentNode.h)
-                {
-                    maxExpandedNodeCostPlusH = currentNode.totalCost + currentNode.h;
-                    Debug.Print("New max F: {0}", maxExpandedNodeCostPlusH);
-                }
-                
                 // Expand
                 bool wasUnexpandedNode = (currentNode.agentAExpansion == CbsNode.ExpansionState.NOT_EXPANDED &&
                                          currentNode.agentBExpansion == CbsNode.ExpansionState.NOT_EXPANDED);
@@ -781,7 +741,7 @@ namespace CPF_experiment
                     currentNode.Clear();
             }
 
-            this.totalCost = Constants.NO_SOLUTION_COST;
+            this.solutionCost = Constants.NO_SOLUTION_COST;
             this.Clear(); // unsolvable problem - we're not going to resume it
             this.CleanGlobals();
             return false;
@@ -810,7 +770,6 @@ namespace CPF_experiment
             while (currentNode.GoalTest() == false)
             {
                 CbsConflict conflict;
-                ISet<int> group;
                 int groupRepresentative;
                 int internalConflictCountBefore;
                 int externalConflictCountBefore;
@@ -853,10 +812,8 @@ namespace CPF_experiment
                     internalConflictCountBefore = currentNode.countsOfInternalAgentsThatConflict[groupRepresentative];
                     externalConflictCountBefore = currentNode.totalExternalAgentsThatConflict;
                     SinglePlan agentAPlanBefore = currentNode.allSingleAgentPlans[conflict.agentAIndex];
-                    int minCost = -1;
-                    //if (this.useMddHeuristic)
-                    //    minCost = currentNode.GetGroupCost(conflict.agentAIndex); // Conserve the cost. The MDD variant forces the cost to be higher than it must be according to the constraints only.
-                    success = currentNode.Replan(conflict.agentAIndex, this.minDepth, null, -1, minCost);
+                    success = currentNode.Replan(conflict.agentAIndex, this.minSolutionTimeStep);
+                    // TODO: Pass minPathCost correctly, also cap the path cost to the same value
                     if (success == false) // Usually means a timeout occured
                         break;
                     beforeLastReshuffledAgent = lastReshuffledAgent;
@@ -934,10 +891,8 @@ namespace CPF_experiment
                     groupRepresentative = currentNode.agentsGroupAssignment[conflict.agentBIndex];
                     internalConflictCountBefore = currentNode.countsOfInternalAgentsThatConflict[groupRepresentative];
                     externalConflictCountBefore = currentNode.totalExternalAgentsThatConflict;
-                    int minCost = -1;
-                    //if (this.useMddHeuristic)
-                    //    minCost = currentNode.GetGroupCost(conflict.agentBIndex); // Conserve the cost. The MDD variant forces the cost to be higher than it must be according to the constraints only.
-                    success = currentNode.Replan(conflict.agentBIndex, this.minDepth, null, -1, minCost);
+                    success = currentNode.Replan(conflict.agentBIndex, this.minSolutionTimeStep);
+                    // TODO: Pass minPathCost correctly, also cap the path cost to the same value
                     if (success == false) // Usually means a timeout occured
                         break;
                     beforeLastReshuffledAgent = lastReshuffledAgent;
@@ -1038,7 +993,7 @@ namespace CPF_experiment
                     child.MergeGroups(node.agentsGroupAssignment[conflict.agentAIndex],
                         node.agentsGroupAssignment[conflict.agentBIndex], fixCounts: false);
                     this.maxSizeGroup = Math.Max(this.maxSizeGroup, child.GetGroupSize(conflict.agentAIndex));
-                    bool solved = child.Solve(this.minDepth);
+                    bool solved = child.Solve(this.minSolutionTimeStep);
                     if (solved == false)
                         return (adopted: false, children, reinsertParent: false);
                     //if ((child.allSingleAgentCosts[child.agentsGroupAssignment[conflict.agentAIndex]] ==
@@ -1069,13 +1024,13 @@ namespace CPF_experiment
                         AdoptConditionally(adoptBy, child, adoptByH))
                         return (adopted: true, children, reinsertParent);
                     children.Add(child);
-                    leftSameCost = child.totalCost == node.totalCost;
+                    leftSameCost = child.g == node.g;
                 }
             }
             else  // A timeout occured, or the child was already in the closed list.
             {
                 if (closedListHitChildCost != -1)
-                    leftSameCost = closedListHitChildCost == node.totalCost;
+                    leftSameCost = closedListHitChildCost == node.g;
             }
 
             if (runner.ElapsedMilliseconds() > Constants.MAX_TIME)
@@ -1094,13 +1049,13 @@ namespace CPF_experiment
                         AdoptConditionally(adoptBy, child, adoptByH))
                         return (adopted: true, children, reinsertParent);
                     children.Add(child);
-                    rightSameCost = child.totalCost == node.totalCost;
+                    rightSameCost = child.g == node.g;
                 }
             }
             else  // A timeout occured, or the child was already in the closed list.
             {
                 if (closedListHitChildCost != -1)
-                    rightSameCost = closedListHitChildCost == node.totalCost;
+                    rightSameCost = closedListHitChildCost == node.g;
             }
 
             if (node.agentAExpansion == CbsNode.ExpansionState.DEFERRED || node.agentBExpansion == CbsNode.ExpansionState.DEFERRED)
@@ -1120,7 +1075,7 @@ namespace CPF_experiment
         
         private void ExpandIgnoringCardinalsButSupportingBP2(CbsNode node)
         {
-            int parentCost = node.totalCost;
+            int parentCost = node.g;
             int parentH = node.h;
             IList<CbsNode> children = new List<CbsNode>(2);
             bool reinsertParent = false;
@@ -1139,7 +1094,7 @@ namespace CPF_experiment
                 bool adoptionPerformedBefore = false;
                 while (true) // Until a node with a higher cost is found or a goal is found
                 {
-                    var lookAheadOpenList = new OpenList(this);
+                    var lookAheadOpenList = new OpenList<CbsNode>(this);
                     var lookAheadSameCostNodes = new HashSet<CbsNode>();
                     var lookAheadLargerCostNodes = new HashSet<CbsNode>();
                     var lookAheadSameCostNodesToReinsertWithHigherCost = new HashSet<CbsNode>();
@@ -1161,7 +1116,7 @@ namespace CPF_experiment
                         if (runner.ElapsedMilliseconds() > Constants.MAX_TIME)
                             return;
 
-                        CbsNode lookAheadNode = (CbsNode)lookAheadOpenList.Remove();
+                        CbsNode lookAheadNode = lookAheadOpenList.Remove();
                         lookAheadNode.ChooseConflict();
 
                         Debug.WriteLine($"Looking ahead from node hash: {lookAheadNode.GetHashCode()}.");
@@ -1185,7 +1140,7 @@ namespace CPF_experiment
                         {
                             this.lookAheadNodesCreated++;
                             this.closedList.Add(child, child); // Temporarily! Just so look ahead expansion can use this data
-                            if (child.totalCost == node.totalCost)
+                            if (child.g == node.g)
                             {
                                 lookAheadOpenList.Add(child);
                                 lookAheadSameCostNodes.Add(child);
@@ -1218,11 +1173,11 @@ namespace CPF_experiment
 
                         // We already expanded this whole subtree of same cost nodes (at least partially). Insert the frontier to the open list.
                         reinsertParent = false; // It may be reinserted as an element of the lookAheadSameCostNodesToReinsertWithHigherCost
-                        children = lookAheadLargerCostNodes.ToList<CbsNode>(); // Larger cost nodes aren't expanded so they're always on the frontier
+                        children = lookAheadLargerCostNodes.ToList(); // Larger cost nodes aren't expanded so they're always on the frontier
                         int unexpandedSameCostNodes = lookAheadOpenList.Count;
                         while (lookAheadOpenList.Count != 0)
                         {
-                            var child = (CbsNode)lookAheadOpenList.Remove();
+                            CbsNode child = lookAheadOpenList.Remove();
                             children.Add(child); // Unexapnded so it's also on the frontier
                             this.closedList.Remove(child); // Just so it'll be inserted into the open list at the end of the method
                         }
@@ -1259,7 +1214,7 @@ namespace CPF_experiment
             else // this.bypassStrategy == BypassStrategy.BEST_FIT_LOOKAHEAD and this set of costs not already done
             {
                 // FIXME: lookaheadMaxExpansions isn't respected correctly here. We actually limit the number of same-cost nodes generated, which is similar but not the same.
-                var lookAheadOpenList = new OpenList(this);
+                var lookAheadOpenList = new OpenList<CbsNode>(this);
                 var lookAheadSameCostNodes = new HashSet<CbsNode>();
                 var lookAheadLargerCostNodes = new HashSet<CbsNode>();
                 var lookAheadSameCostNodesToReinsertWithHigherCost = new HashSet<CbsNode>();
@@ -1278,7 +1233,7 @@ namespace CPF_experiment
                         break;
                     }
 
-                    CbsNode lookAheadNode = (CbsNode)lookAheadOpenList.Remove();
+                    CbsNode lookAheadNode = lookAheadOpenList.Remove();
                     lookAheadNode.ChooseConflict();
 
                     if (runner.ElapsedMilliseconds() > Constants.MAX_TIME)
@@ -1295,7 +1250,7 @@ namespace CPF_experiment
                     {
                         this.lookAheadNodesCreated++;
                         this.closedList.Add(child, child); // Temporarily! Just so look ahead expansion can use this data
-                        if (child.totalCost == node.totalCost)
+                        if (child.g == node.g)
                         {
                             if (child.GoalTest()) // Lookahead found an admissable solution!
                             {
@@ -1345,7 +1300,7 @@ namespace CPF_experiment
                         foreach (CbsNode lookAheadNode in lookAheadLargerCostNodes)
                             this.closedList.Remove(lookAheadNode);
 
-                        if (this.openList.Count != 0 && ((CbsNode)this.openList.Peek()).f < node.f)
+                        if (this.openList.Count != 0 && this.openList.Peek().f < node.f)
                         // This is a new unexpanded node, and we just raised its h, so we can push it back
                         // FIXME: More duplication of the push back logic
                         {
@@ -1369,11 +1324,11 @@ namespace CPF_experiment
                 {
                     // Adoption not performed, and we already expanded this whole subtree of same cost nodes (at least partially)
                     reinsertParent = false; // It may reinserted as an element of the children list
-                    children = lookAheadLargerCostNodes.ToList<CbsNode>();
+                    children = lookAheadLargerCostNodes.ToList();
                     int unexpandedSameCostNodes = lookAheadOpenList.Count;
                     while (lookAheadOpenList.Count != 0)
                     {
-                        var child = (CbsNode)lookAheadOpenList.Remove();
+                        CbsNode child = lookAheadOpenList.Remove();
                         children.Add(child);
                         this.closedList.Remove(child); // Just so it'll be inserted into the open list at the end of the method
                     }
@@ -1406,19 +1361,21 @@ namespace CPF_experiment
                 closedList.Add(child, child);
 
                 // Bequeath remainder of h from parent
-                int remainingParentH = parentH - (child.totalCost - parentCost);
+                int remainingParentH = parentH - (child.g - parentCost);
                 if (child.h < remainingParentH)
                     child.h = (ushort) remainingParentH;
 
                 if (this.bypassStrategy == BypassStrategy.BEST_FIT_LOOKAHEAD)
                 {
-                    if (child.totalCost == parentCost) // Total cost didn't increase (yet)
+                    if (child.g == parentCost) // Total cost didn't increase (yet)
                         child.parentAlreadyLookedAheadOf = true;
                     else
                         child.parentAlreadyLookedAheadOf = false;
                 }
 
-                if (child.totalCost <= this.maxCost)
+                if (child.f <= this.maxSolutionCost)
+                // Assuming h is an admissable heuristic, no need to generate nodes that won't get us
+                // to the goal within the budget
                 {
                     this.highLevelGenerated++;
                     openList.Add(child);
@@ -1433,7 +1390,7 @@ namespace CPF_experiment
         /// <param name="node"></param>
         private void IcbsExpand(CbsNode node)
         {
-            int parentCost = node.totalCost;
+            int parentCost = node.g;
             int parentH = node.h;
             IList<CbsNode> children = new List<CbsNode>(2);
             bool reinsertParent;
@@ -1484,7 +1441,7 @@ namespace CPF_experiment
                 }
 
                 if (
-                    children.All(child => child.totalCost > node.totalCost) && // All generated nodes have a higher cost
+                    children.All(child => child.g > node.g) && // All generated nodes have a higher cost
                     ((node.agentAExpansion == CbsNode.ExpansionState.EXPANDED && node.agentBExpansion == CbsNode.ExpansionState.EXPANDED) || // Both children generated by now (possibly one in the past and one deferred to now)
                     (node.agentAExpansion == CbsNode.ExpansionState.EXPANDED && node.agentBExpansion == CbsNode.ExpansionState.DEFERRED) || // One child still deferred, will surely have a higher cost (that's why it was deferred)
                     (node.agentAExpansion == CbsNode.ExpansionState.DEFERRED && node.agentBExpansion == CbsNode.ExpansionState.EXPANDED)) // One child still deferred, will surely have a higher cost (that's why it was deferred)
@@ -1502,7 +1459,7 @@ namespace CPF_experiment
                                  node.conflict.mddPredictedCardinal == false, "MDD predicted this would be a cardinal conflict but it isn't");
                 }
 
-                if (children.Any(child => child.GoalTest() && child.totalCost == node.totalCost)) // Admissable goal found (and adoption isn't enabled, otherwise the goal would have been adopted above)
+                if (children.Any(child => child.GoalTest() && child.g == node.g)) // Admissable goal found (and adoption isn't enabled, otherwise the goal would have been adopted above)
                 {
                     if (this.debug)
                         Debug.WriteLine("Admissable goal found! Inserting the generated children into OPEN.");
@@ -1551,17 +1508,44 @@ namespace CPF_experiment
                                                 // there could still be other conflicts, but they are known not to be cardinal.
             }
 
+            // Path-Max stage
+            // Reverse Path-Max (Mero, 1984) - operators aren't invertible, so we can only take min(h(Ci) + dist(P, Ci)) for h(P) (if it's higher)
+            int minChildSumHAndOperatorCost = int.MaxValue;
+            foreach (var child in children)
+            {
+                if (minChildSumHAndOperatorCost > child.h + (child.g - node.g))
+                {
+                    minChildSumHAndOperatorCost = child.h + (child.g - node.g);
+                }
+            }
+            if (node.h < minChildSumHAndOperatorCost)
+            {
+                node.hBonus += minChildSumHAndOperatorCost - node.h;
+                node.h = minChildSumHAndOperatorCost;
+                ++reversePathMaxBoosts;
+            }
+
+            // Forward Path-Max (Mero, 1984)
             foreach (var child in children)
             {
                 closedList.Add(child, child);
 
                 // Bequeath remainder of h from parent
-                int remainingParentH = parentH - (child.totalCost - parentCost);
+                int remainingParentH = parentH - (child.g - parentCost);
                 if (child.h < remainingParentH)
+                {
                     child.h = (ushort)remainingParentH;
-                if (this.hValueStrategy == HValueStrategy.ACCURATE)
-                    child.h = (ushort)Math.Max(child.h, node.minimumVertexCover - 1);  // -1 because we've just resolved a cardinal conflict, if there was one
-                if (child.totalCost <= this.maxCost)
+                    this.pathMaxBoosts++;
+                }
+                // "Path-Max Plus"
+                if (node.minimumVertexCover > 0 &&
+                    (this.conflictChoice == ConflictChoice.CARDINAL_MDD || this.conflictChoice == ConflictChoice.CARDINAL_LOOKAHEAD))
+                {
+                    child.h = (ushort)Math.Max(child.h, node.minimumVertexCover - 1);  // -1 because we've just resolved a cardinal conflict.
+                                                                                       // Even if the cost increased by more than 1 for the child, this is still our estimate, based on all the other conflicts
+                    this.pathMaxPlusBoosts++;
+                }
+                if (child.f <= this.maxSolutionCost)
                 {
                     this.highLevelGenerated++;
                     openList.Add(child);
@@ -1586,73 +1570,13 @@ namespace CPF_experiment
         }
 
         /// <summary>
-        /// Returns 0 if the node is solvable with the current costs, 1 otherwise. If unsure, returns 0;
-        /// Currently avoiding building a k-agent MDD.
-        /// TODO: This became largely irrelevant after we've discovered cardinal conflicts, but
-        /// now that we're always building all MDDs, it might be worth it to try to sync the MDDs
-        /// for nodes with no cardinal conflicts. We might find they're still unsolvable
-        /// with the current costs because of "cardinally conflicting groups".
         /// </summary>
         /// <param name="node"></param>
-        /// <returns>
-        /// If after syncing and pruning the MDDs at the current costs for the two conflicting agents
-        /// the whole MDD was pruned, indicating these agents can't be solved at the current cost,
-        /// returns 1. Else returns 0
+        /// <returns>A ValueTuple with:
+        /// child: null if planning the child's path failed or it was a closed list hit, otherwise - the new child
+        /// closedListHitChildCost: Used to tell if conflict is cardinal, semi-cardinal or
+        /// non-cardinal when the child is a closed list hit.
         /// </returns>
-        protected ushort MddPruningHeuristic(CbsNode node)
-        {
-            var costsNode = new CostTreeNode(node.allSingleAgentCosts);
-            // TODO: The costs node isn't neeeded. Just store the agent indexes and their costs
-            //       as a tuple. This would also resolve the following TODO.
-            if (this.costTreeMDDResults.ContainsKey(costsNode)) // TODO: What if it was computed on a different pair of agents and returned 0? We could try again then.
-            {
-                return this.costTreeMDDResults[costsNode];
-            }
-
-            if (node.GoalTest())
-            {
-                this.costTreeMDDResults.Add(costsNode, 0);
-                return 0;
-            }
-
-            if (node.GetGroupSize(node.conflict.agentAIndex) > 1 || node.GetGroupSize(node.conflict.agentBIndex) > 1)
-            {
-                return 0; // Without saving the result, as it's just a cop-out
-            }
-
-            int maxCost = Math.Max(node.allSingleAgentCosts[node.conflict.agentAIndex],
-                                   node.allSingleAgentCosts[node.conflict.agentBIndex]);
-            // Building MDDs for the conflicting agents. We can't keep them because we're
-            // destructively syncing them later (the first one, at least).
-            var mddA = new MDD(node.conflict.agentAIndex, this.instance.m_vAgents[node.conflict.agentAIndex].agent.agentNum,
-                                this.instance.m_vAgents[node.conflict.agentAIndex].lastMove,
-                                costsNode.costs[node.conflict.agentAIndex], maxCost,
-                                this.instance.GetNumOfAgents(), this.instance, ignoreConstraints: true);
-            var mddB = new MDD(node.conflict.agentBIndex, this.instance.m_vAgents[node.conflict.agentBIndex].agent.agentNum,
-                               this.instance.m_vAgents[node.conflict.agentBIndex].lastMove,
-                               costsNode.costs[node.conflict.agentBIndex], maxCost,
-                               this.instance.GetNumOfAgents(), this.instance, ignoreConstraints: true);
-            this.mddsBuilt += 2;
-            MDD.PruningDone ans = mddA.SyncMDDs(mddB, checkTriples: false);
-            if (ans == MDD.PruningDone.EVERYTHING)
-            {
-                this.costTreeMDDResults.Add(costsNode, 1);
-                this.pruningSuccesses++;
-                return 1;
-            }
-            else
-            {
-                this.costTreeMDDResults.Add(costsNode, 0);
-                this.pruningFailures++;
-                return 0;
-            }
-        }
-
-        /// <summary>
-        /// </summary>
-        /// <param name="node"></param>
-        /// <param name="closedListHitChildCost"></param>
-        /// <returns>null if planning the child's path failed, otherwise returns the new child</returns>
         protected (CbsNode child, int closedListHitChildCost) MergeExpand(CbsNode node)
         {
             CbsConflict conflict = node.GetConflict();
@@ -1662,13 +1586,14 @@ namespace CPF_experiment
             if (closedList.ContainsKey(child) == false) // We may have already merged these agents in another node
             {
                 Debug.WriteLine("Merging agents {0} and {1}", conflict.agentAIndex, conflict.agentBIndex);
-                bool success = child.Replan(conflict.agentAIndex, this.minDepth); // or agentBIndex. Doesn't matter - they're in the same group.
+                bool success = child.Replan(conflict.agentAIndex, this.minSolutionTimeStep); // or agentBIndex. Doesn't matter - they're in the same group.
+                // TODO: Set minCost to the sum of the agent costs
 
                 if (success == false) // A timeout probably occured
                     return (child: null, closedListHitChildCost);
 
                 Debug.WriteLine($"Child hash: {child.GetHashCode()}");
-                Debug.WriteLine($"Child cost: {child.totalCost}");
+                Debug.WriteLine($"Child cost: {child.g}");
                 Debug.WriteLine($"Child min ops to solve: {child.minOpsToSolve}");
                 Debug.WriteLine("");
 
@@ -1684,6 +1609,18 @@ namespace CPF_experiment
             return (child: null, closedListHitChildCost);
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="node"></param>
+        /// <param name="doLeftChild"></param>
+        /// <returns>
+        /// <returns>A ValueTuple with:
+        /// child: null if planning the child's path failed or it was a closed list hit, otherwise - the new child
+        /// closedListHitChildCost: Used to tell if conflict is cardinal, semi-cardinal or
+        /// non-cardinal when the child is a closed list hit.
+        /// </returns>
+        /// </returns>
         protected (CbsNode child, int closedListHitChildCost) ConstraintExpand(CbsNode node, bool doLeftChild)
         {
             CbsConflict conflict = node.GetConflict();
@@ -1787,30 +1724,30 @@ namespace CPF_experiment
 
                 if (closedList.ContainsKey(child) == false)
                 {
-                    int minCost = -1;
-                    //if (this.useMddHeuristic)
-                    //    minCost = node.GetGroupCost(conflictingAgentIndex) + 1;
-                    bool success = child.Replan(conflictingAgentIndex, this.minDepth,
-                                                null, -1, minCost); // The node takes the max between minDepth and the max time over all constraints.
+                    // TODO: Set minCost to the agent's old cost - adding a constraint can't lead to a
+                    //       cheaper path! If the constraint is on a "cardinal" part of the old path,
+                    //       set to the old cost + 1.
+                    bool success = child.Replan(conflictingAgentIndex, this.minSolutionTimeStep); // The node takes the max between
+                                                                                          // minTimeStep and the max time over all constraints.
 
                     if (success == false)
                         return (null, closedListHitChildCost: -1); // A timeout probably occured
 
                     Debug.WriteLine($"Child hash: {child.GetHashCode()}");
-                    Debug.WriteLine($"Child cost: {child.totalCost}");
+                    Debug.WriteLine($"Child cost: {child.g}");
                     Debug.WriteLine($"Child min ops to solve: {child.minOpsToSolve}");
                     Debug.WriteLine($"Child num of agents that conflict: {child.totalInternalAgentsThatConflict}");
                     Debug.WriteLine($"Child num of internal conflicts: {child.totalConflictsBetweenInternalAgents}");
                     Debug.WriteLine("");
 
-                    if (child.totalCost < node.totalCost && groupSize == 1) // Catch the error early
+                    if (child.g < node.g && groupSize == 1) // Catch the error early
                     {
                         child.DebugPrint();
                         Debug.WriteLine("Child plan: (cost {0})", child.allSingleAgentCosts[conflictingAgentIndex]);
                         child.allSingleAgentPlans[conflictingAgentIndex].DebugPrint();
                         Debug.WriteLine("Parent plan: (cost {0})", node.allSingleAgentCosts[conflictingAgentIndex]);
                         node.allSingleAgentPlans[conflictingAgentIndex].DebugPrint();
-                        Debug.Assert(false, $"Single agent node with lower cost than parent! {child.totalCost} < {node.totalCost}");
+                        Debug.Assert(false, $"Single agent node with lower cost than parent! {child.g} < {node.g}");
                     }
 
                     return (child, closedListHitChildCost: -1);
@@ -1819,7 +1756,11 @@ namespace CPF_experiment
                 {
                     this.closedListHits++;
                     Debug.WriteLine("Child already in closed list!");
-                    return (child: null, closedListHitChildCost: this.closedList[child].totalCost);
+                    // No need to check if we need to reopen - reopening is only necessary if F is lower,
+                    // but for the same constraints and group assignment we're going to have the same
+                    // g, and the h in the closed list can only be higher (if it was already expanded
+                    // and the open list's expensive heuristic was computed for it).
+                    return (child: null, closedListHitChildCost: this.closedList[child].g);
                 }
             }
             else
@@ -1829,11 +1770,11 @@ namespace CPF_experiment
             }
         }
 
-        protected bool AdoptConditionally(CbsNode node, CbsNode adoptionCandidate, ushort nodeOrigH)
+        protected bool AdoptConditionally(CbsNode node, CbsNode adoptionCandidate, int nodeOrigH)
         {
             Debug.WriteLine($"Considering adoption of node hash: {adoptionCandidate.GetHashCode()}.");
 
-            if (adoptionCandidate.totalCost == node.totalCost && // No need to branch :)
+            if (adoptionCandidate.g == node.g && // No need to branch :)
                 adoptionCandidate.CompareToIgnoreH(node, true) == -1
                )
             {
@@ -1898,14 +1839,13 @@ namespace CPF_experiment
                                    BypassStrategy bypassStrategy = BypassStrategy.NONE,
                                    bool doMalte = false,
                                    ConflictChoice conflictChoice = ConflictChoice.FIRST,
-                                   HValueStrategy hValueStrategy = HValueStrategy.NONE,
+                                   ILazyHeuristic<CbsNode> heuristic = null,
                                    bool disableTieBreakingByMinOpsEstimate = false,
-                                   bool useMddPruningHeuristic = false,
-                                   int lookaheadMaxExpansions = int.MaxValue,
+                                   int lookaheadMaxExpansions = 1,
                                    bool mergeCausesRestart = false)
             : base(singleAgentSolver, generalSolver, mergeThreshold, doShuffle,
-                   bypassStrategy, doMalte, conflictChoice, hValueStrategy,
-                   disableTieBreakingByMinOpsEstimate, useMddPruningHeuristic, lookaheadMaxExpansions,
+                   bypassStrategy, doMalte, conflictChoice, heuristic,
+                   disableTieBreakingByMinOpsEstimate, lookaheadMaxExpansions,
                    mergeCausesRestart)
         {
             //throw new NotImplementedException("Not supported until we decide how to count conflicts. Used to rely on the specific conflict chosen in each node.");

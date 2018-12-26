@@ -7,11 +7,17 @@ using ExtensionMethods;
 
 namespace CPF_experiment
 {
-    [DebuggerDisplay("hash = {GetHashCode()}, f = {f}, g = {totalCost}, h = {h}")]
-    public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem
+    [DebuggerDisplay("hash = {GetHashCode()}, f = {f}, g = {g}, h = {h}")]
+    public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristicSearchNode
     {
-        public ushort totalCost;
-        public ushort h;
+        public int g { set; get; }  // Value depends on Constants.costFunction and Constants.sumOfCostsVariant, Sum of agent makespans until they reach their goal
+        public int h { get; set; }
+        public int hBonus { get; set; }
+        /// <summary>
+        /// The size of the minimum vertex cover of the node's cardinal conflict graph.
+        /// Needs to be saved separately from h to allow speeding up the computation of the heuristic
+        /// of the children.
+        /// </summary>
         public int minimumVertexCover;
         public SinglePlan[] allSingleAgentPlans;
         public int[] allSingleAgentCosts;
@@ -73,7 +79,7 @@ namespace CPF_experiment
         //public ProblemInstance problem;
         protected ICbsSolver solver;
         protected ICbsSolver singleAgentSolver;
-        protected CBS_LocalConflicts cbs;
+        public CBS_LocalConflicts cbs;
         public Dictionary<int, int> agentNumToIndex;
         public bool parentAlreadyLookedAheadOf;
         /// <summary>
@@ -209,8 +215,10 @@ namespace CPF_experiment
         /// </summary>
         public int f
         {
-            get { return this.totalCost + this.h; }
+            get { return this.g + this.h; }
         }
+
+        public int GetTargetH(int f) => f - g;
 
         /// <summary>
         /// Solves the entire node - finds a plan for every agent group.
@@ -220,7 +228,7 @@ namespace CPF_experiment
         /// <returns>Whether solving was successful. Solving fails if a timeout occurs.</returns>
         public bool Solve(int depthToReplan)
         {
-            this.totalCost = 0;
+            this.g = 0;
             ProblemInstance problem = this.cbs.GetProblemInstance();
             var internalCAT = new ConflictAvoidanceTable();
             HashSet<CbsConstraint> newConstraints = this.GetConstraints(); // Probably empty as this is probably the root of the CT.
@@ -287,12 +295,12 @@ namespace CPF_experiment
                     allSingleAgentCosts[i] = problem.m_vAgents[i].g + problem.GetSingleAgentOptimalCost(problem.m_vAgents[i]);
                     if (Constants.costFunction == Constants.CostFunction.SUM_OF_COSTS)
                     {
-                        totalCost += (ushort)allSingleAgentCosts[i];
+                        g += (ushort)allSingleAgentCosts[i];
                     }
                     else if (Constants.costFunction == Constants.CostFunction.MAKESPAN ||
                         Constants.costFunction == Constants.CostFunction.MAKESPAN_THEN_SUM_OF_COSTS)
                     {
-                        totalCost = Math.Max(totalCost, (ushort)allSingleAgentCosts[i]);
+                        g = Math.Max(g, (ushort)allSingleAgentCosts[i]);
                     }
 
                     this.UpdateAtGoalConflictCounts(i, maxPlanSize, CAT);
@@ -350,13 +358,16 @@ namespace CPF_experiment
         /// Replan for a given agent (when constraints for that agent have changed).
         /// </summary>
         /// <param name="agentForReplan"></param>
-        /// <param name="depthToReplan">CBS's minDepth param. !@# Should be called minTimeStep?</param>
+        /// <param name="minPathTimeStep"></param>
         /// <param name="subGroup">If given, assume CAT is already populated and use this subGroup</param>
-        /// <param name="maxPlanSize">If given, use it instead of computing it</param>
-        /// <param name="minCost"></param>
-        /// <returns></returns>
-        public bool Replan(int agentForReplan, int depthToReplan, List<AgentState> subGroup = null,
-                           int maxPlanSize = -1, int minCost = -1)
+        /// <param name="maxPlanSizeOfOtherAgents">
+        /// Internal optimization parameter indicating the max timestep to check for in-goal conflicts.
+        /// If given, the value is used instead of computing it.
+        /// </param>
+        /// <param name="minPathCost"></param>
+        /// <returns>Whether a path was successfully found</returns>
+        public bool Replan(int agentForReplan, int minPathTimeStep, List<AgentState> subGroup = null,
+                           int maxPlanSizeOfOtherAgents = -1, int minPathCost = -1)
         {
             ProblemInstance problem = this.cbs.GetProblemInstance();
             Dictionary_U<TimedMove, int> CAT = (Dictionary_U<TimedMove, int>)problem.parameters[CBS_LocalConflicts.CAT];
@@ -372,7 +383,7 @@ namespace CPF_experiment
                 // and add the plans of all other agents to CAT
                 internalCAT = new ConflictAvoidanceTable();
                 subGroup = new List<AgentState>();
-                maxPlanSize = this.allSingleAgentPlans.Max<SinglePlan>(plan => plan.GetSize());
+                maxPlanSizeOfOtherAgents = this.allSingleAgentPlans.Max<SinglePlan>(plan => plan.GetSize());
                 for (int i = 0; i < agentsGroupAssignment.Length; i++)
                 {
                     if (this.agentsGroupAssignment[i] == groupNum)
@@ -411,7 +422,7 @@ namespace CPF_experiment
             if (myConstraints.Count<CbsConstraint>() != 0)
             {
                 int maxConstraintTimeStep = myConstraints.Max<CbsConstraint>(constraint => constraint.time);
-                depthToReplan = Math.Max(depthToReplan, maxConstraintTimeStep); // Give all constraints a chance to affect the plan
+                minPathTimeStep = Math.Max(minPathTimeStep, maxConstraintTimeStep); // Give all constraints a chance to affect the plan
             }
             if (mustConstraints != null)
             {
@@ -419,11 +430,11 @@ namespace CPF_experiment
                 if (myMustConstraints.Count<CbsConstraint>() != 0)
                 {
                     int maxMustConstraintTimeStep = myMustConstraints.Max<CbsConstraint>(constraint => constraint.time);
-                    depthToReplan = Math.Max(depthToReplan, maxMustConstraintTimeStep); // Give all must constraints a chance to affect the plan
+                    minPathTimeStep = Math.Max(minPathTimeStep, maxMustConstraintTimeStep); // Give all must constraints a chance to affect the plan
                 }
             }
            
-            relevantSolver.Setup(subProblem, depthToReplan, this.cbs.runner, minCost);
+            relevantSolver.Setup(subProblem, minPathTimeStep, this.cbs.runner, minPathCost);
             bool solved = relevantSolver.Solve();
 
             relevantSolver.AccumulateStatistics();
@@ -475,7 +486,7 @@ namespace CPF_experiment
             foreach (var agentNumAndAgentNum in subGroupAgentNums)
             {
                 int i = this.agentNumToIndex[agentNumAndAgentNum.Key];
-                this.UpdateAtGoalConflictCounts(i, maxPlanSize, CAT);
+                this.UpdateAtGoalConflictCounts(i, maxPlanSizeOfOtherAgents, CAT);
             }
 
             if (underSolve == false)
@@ -506,17 +517,19 @@ namespace CPF_experiment
             if (mustConstraints != null)
                 mustConstraints.Separate(newMustConstraints);
 
-            // Calc totalCost
+            // Calc g
             if (Constants.costFunction == Constants.CostFunction.SUM_OF_COSTS)
             {
-                this.totalCost = (ushort)Math.Max(this.allSingleAgentCosts.Sum(), this.totalCost); // Conserve totalCost from partial
-                                                                                                   // expansion if it's higher (only happens when shuffling a partially expanded node)
+                this.g = (ushort)Math.Max(this.allSingleAgentCosts.Sum(), this.g); // Conserve g from partial 
+                                                                                   // expansion if it's higher
+                                                                                   // (only happens when shuffling a partially expanded node)
             }
             else if (Constants.costFunction == Constants.CostFunction.MAKESPAN ||
                 Constants.costFunction == Constants.CostFunction.MAKESPAN_THEN_SUM_OF_COSTS)
             {
-                this.totalCost = (ushort)Math.Max(this.allSingleAgentCosts.Max(), this.totalCost); // Conserve totalCost from partial
-                                                                                                   // expansion if it's higher (only happens when shuffling a partially expanded node)
+                this.g = (ushort)Math.Max(this.allSingleAgentCosts.Max(), this.g); // Conserve g from partial
+                                                                                   // expansion if it's higher
+                                                                                   // (only happens when shuffling a partially expanded node)
             }
 
             this.isGoal = this.countsOfInternalAgentsThatConflict.All(i => i == 0);
@@ -529,7 +542,7 @@ namespace CPF_experiment
             Debug.WriteLine("");
             Debug.WriteLine("");
             Debug.WriteLine($"Node hash: {this.GetHashCode()}");
-            Debug.WriteLine($"Total cost so far: {this.totalCost}");
+            Debug.WriteLine($"Total cost so far: {this.g}");
             Debug.WriteLine($"h: {this.h}");
             Debug.WriteLine($"Min estimated ops needed: {this.minOpsToSolve}");
             Debug.WriteLine($"Expansion state: {this.agentAExpansion}, {this.agentBExpansion}");
@@ -839,22 +852,17 @@ namespace CPF_experiment
 
             if (this.cbs.conflictChoice == CBS_LocalConflicts.ConflictChoice.FIRST)
             {
-                int groupRepA = -1;
-                int groupRepB = -1;
-                int time = int.MaxValue;
-                ChooseFirstConflict(out groupRepA, out groupRepB, out time);
-                this.conflict = FindConflict(groupRepA, groupRepB, time);
+                this.ChooseFirstConflict();
             }
             else if (this.cbs.conflictChoice == CBS_LocalConflicts.ConflictChoice.MOST_CONFLICTING_SMALLEST_AGENTS)
             {
-                int groupRepA = -1;
-                int groupRepB = -1;
-                int time = int.MaxValue;
-                ChooseConflictOfMostConflictingSmallestAgents(out groupRepA, out groupRepB, out time);
-                this.conflict = FindConflict(groupRepA, groupRepB, time);
+                this.ChooseConflictOfMostConflictingSmallestAgents();
             }
             else if (this.cbs.conflictChoice == CBS_LocalConflicts.ConflictChoice.CARDINAL_MDD)
             {
+                // Choose the first (in order of looking at them), earliest (in time), cardinal
+                // (if not found settle for semi-cardinal, then non-cardinal) conflict.
+                // Assumes this.mergeThreshold == -1.
                 this.nextConflicts = this.GetConflictsCardinalFirstUsingMdd().GetEnumerator();
                 bool hasConflict = this.nextConflicts.MoveNext(); // This node isn't a goal node so this is expected to return true -
                                                                   // a conflict should be found
@@ -864,14 +872,6 @@ namespace CPF_experiment
                     Debug.Assert(false, "Non-goal node found no conflict");
                 }
                 this.conflict = this.nextConflicts.Current;
-            }
-            else if (this.cbs.conflictChoice == CBS_LocalConflicts.ConflictChoice.FIRST_CARDINAL_MDD)
-            {
-                this.buildAllMDDsAndChooseCardinalConflict();
-                // TODO: 1) Split the above into two functions: one builds all MDDs, the other chooses the conflict.
-                //       2) Do the same for GetConflictsExhaustivelySearchingForCardinalsGreedily.
-                //       3) merge the second part of both, removing the suboptimal h from GetConflictsExhaustivelySearchingForCardinalsGreedily.
-                //       4) remove this choice option - its name isn't decriptive enough.
             }
             else if (this.cbs.conflictChoice == CBS_LocalConflicts.ConflictChoice.CARDINAL_LOOKAHEAD)
             {
@@ -884,30 +884,22 @@ namespace CPF_experiment
                     Debug.Assert(false, "Non-goal node found no conflict");
                 }
                 this.conflict = this.nextConflicts.Current;
-            }
-            else if (this.cbs.conflictChoice == CBS_LocalConflicts.ConflictChoice.EXHAUSTIVE_CARDINAL_GREEDY) {
-                this.nextConflicts = this.GetConflictsExhaustivelySearchingForCardinalsGreedily().GetEnumerator();
-                bool hasConflict = this.nextConflicts.MoveNext(); // This node isn't a goal node so this is expected to return true - a conflict should be found
-                if (hasConflict == false)
-                {
-                    this.DebugPrint();
-                    Debug.Assert(false, "Non-goal node found no conflict");
-                }
-                this.conflict = this.nextConflicts.Current;
-            }
-            else if (this.cbs.conflictChoice == CBS_LocalConflicts.ConflictChoice.EXHAUSTIVE_CARDINAL_LAZY) {
-                this.nextConflicts = this.GetConflictsExhaustivelySearchingForCardinalsLazily().GetEnumerator();
-                bool hasConflict = this.nextConflicts.MoveNext(); // This node isn't a goal node so this is expected to return true - 
-                                                                  // a conflict should be found
-                if (hasConflict == false)
-                {
-                    this.DebugPrint();
-                    Debug.Assert(false, "Non-goal node found no conflict");
-                }
-                this.conflict = this.nextConflicts.Current;
+                //FIXME: code dup with previous option
             }
             else
                 throw new Exception("Unknown conflict choosing method");
+        }
+
+        private void ChooseConflictOfMostConflictingSmallestAgents()
+        {
+            (int groupRepA, int groupRepB, int time) = GetDetailsOfConflictOfMostConflictingSmallestAgents();
+            this.conflict = FindConflict(groupRepA, groupRepB, time);
+        }
+
+        private void ChooseFirstConflict()
+        {
+            (int groupRepA, int groupRepB, int time) = GetFirstConflictDetails();
+            this.conflict = FindConflict(groupRepA, groupRepB, time);
         }
 
         /// <summary>
@@ -938,124 +930,19 @@ namespace CPF_experiment
         /// <summary>
         /// Assumes this.mergeThreshold == -1.
         /// Builds MDDs for all agents.
-        /// Also computes h, using the sub-optimal heuristic of the number of disjoint sets of
-        /// cardinally conflicting agents.
         /// </summary>
         /// <returns></returns>
         private IEnumerable<CbsConflict> GetConflictsExhaustivelySearchingForCardinalsGreedily()
         {
-            var disjointCardinallyConflictingAgents = new DisjointSets<int>();
-            ISet<int>[] groups = this.GetGroups();
-
-            foreach (var agentIndex in Enumerable.Range(0, this.allSingleAgentPlans.Length))
-            {
-                if (this.conflictTimesPerAgent[agentIndex].Count == 0)
-                    continue;  // Agent has no conflicts
-                this.buildMddForAgentWithItsCurrentCost(agentIndex);  // Does nothing if it's built already
-
-                foreach (int conflictingAgentNum in this.conflictTimesPerAgent[agentIndex].Keys)
-                {
-                    int conflictingAgentIndex = this.agentNumToIndex[conflictingAgentNum];
-                    this.buildMddForAgentWithItsCurrentCost(conflictingAgentIndex);  // Does nothing if it's built already
-
-                    foreach (int conflictTime in this.conflictTimesPerAgent[agentIndex][conflictingAgentNum])
-                    {
-                        bool iNarrow = this.DoesAgentHaveNoOtherOption(agentIndex, conflictTime, conflictingAgentIndex, groups);
-                        if (iNarrow)
-                        {
-                            bool otherNarrow = this.DoesAgentHaveNoOtherOption(conflictingAgentIndex, conflictTime, agentIndex, groups);
-                            if (otherNarrow)  // Both narrow!
-                            {
-                                disjointCardinallyConflictingAgents.Union(agentIndex, conflictingAgentIndex);
-                            }
-                        }
-                    }
-                }
-            }
-
-            this.h = Math.Max(this.h, (ushort)disjointCardinallyConflictingAgents.GetNumOfSets());
+            this.buildAllMDDs();
             return this.GetConflictsCardinalFirstUsingMdd();
         }
-        /// <summary>
-        /// Compute h value with a maximum vertex cover solver
-        /// Assumes this.mergeThreshold == -1
-        /// Also chooses the conflict to work on.
-        /// </summary>
-        /// <returns></returns>
+
         public void ComputeHWithMVC()
         {
             if (this.conflict != null)
-                return;
-            ConflictGraph CardinallyConflictingAgents = new ConflictGraph(this.allSingleAgentPlans.Length);
-            ISet<int>[] groups = this.GetGroups();
-
-            // Find a conflict by the way
-            bool haveCardinalConflict = false;
-            bool haveSemiCardinalConflict = false;
-            int initialTimeStep = this.cbs.GetProblemInstance().m_vAgents[0].lastMove.time;
-            foreach (var agentIndex in Enumerable.Range(0, this.allSingleAgentPlans.Length))
-            {
-                if (this.conflictTimesPerAgent[agentIndex].Count == 0)
-                    continue;  // Agent has no conflicts
-                this.buildMddForAgentWithItsCurrentCost(agentIndex);  // Does nothing if it's built already
-
-                foreach (int conflictingAgentNum in this.conflictTimesPerAgent[agentIndex].Keys)
-                {
-                    int conflictingAgentIndex = this.agentNumToIndex[conflictingAgentNum];
-                    if (conflictingAgentIndex < agentIndex) // check later
-                        continue;
-                    this.buildMddForAgentWithItsCurrentCost(conflictingAgentIndex);  // Does nothing if it's built already
-
-                    foreach (int conflictTime in this.conflictTimesPerAgent[agentIndex][conflictingAgentNum])
-                    {
-                        bool iNarrow = this.DoesAgentHaveNoOtherOption(agentIndex, conflictTime, conflictingAgentIndex, groups);
-                        bool jNarrow = this.DoesAgentHaveNoOtherOption(conflictingAgentIndex, conflictTime, agentIndex, groups);
-                        if (iNarrow && jNarrow) // Cardinal conflict
-                        {
-                            CardinallyConflictingAgents.Add(agentIndex, conflictingAgentIndex);
-                            if (!haveCardinalConflict) // this is the first cardinal conflict that we found
-                            {
-                                haveCardinalConflict = true;
-                                this.conflict = FindConflict(agentIndex, conflictingAgentIndex, conflictTime);
-                                this.conflict.mddPredictedCardinal = true;
-                            }
-                            else if (this.conflict.timeStep > conflictTime + initialTimeStep) // this cardinal conflict occurs earier than the former cardinal conflict
-                            {
-                                this.conflict = FindConflict(agentIndex, conflictingAgentIndex, conflictTime);
-                                this.conflict.mddPredictedCardinal = true;
-                            }
-                        }
-                        else if (iNarrow || jNarrow) // Semi-cardinal conflict
-                        {
-                            if (!haveCardinalConflict)
-                            {
-                                if (!haveSemiCardinalConflict) // this is the first semi-cardinal conflict that we found
-                                {
-                                    haveSemiCardinalConflict = true;
-                                    this.conflict = FindConflict(agentIndex, conflictingAgentIndex, conflictTime);
-                                }
-                                else if (this.conflict.timeStep > conflictTime + initialTimeStep) // this semi-cardinal conflict occurs earier than the former semi-cardinal conflict
-                                    this.conflict = FindConflict(agentIndex, conflictingAgentIndex, conflictTime);
-                            }
-                        }
-                        else // Non-cardinal conflict
-                        {
-                            if (!haveCardinalConflict && !haveSemiCardinalConflict)
-                            {
-                                if (this.conflict == null || this.conflict.timeStep > conflictTime + initialTimeStep)
-                                    this.conflict = FindConflict(agentIndex, conflictingAgentIndex, conflictTime);
-                            }
-                        }
-                    }
-                }
-            }
-            if (this.prev == null)
-                this.minimumVertexCover = CardinallyConflictingAgents.MinimumVertexCover();
-            else
-                this.minimumVertexCover = CardinallyConflictingAgents.MinimumVertexCover(this.prev.minimumVertexCover);
-            this.h = Math.Max(this.h,
-                              (ushort) this.minimumVertexCover);  // safe because a *computed* min vertex cover is never negative
-            return;
+                return;  // TAKE CARE OF THAT TOO. The heuristic doesn't choose a conflict now.
+            throw new NotImplementedException("CHOOSE THE CONFLICT TO WORK ON!");
         }
         
         /// <summary>
@@ -1142,74 +1029,13 @@ namespace CPF_experiment
             this.h = Math.Max(this.h, (ushort)MM);
         }
 
-        /// <summary>
-        /// Chooses the first (in order of looking at them), earliest (in time), cardinal
-        /// (if not found settle for semi-cardinal, then non-cardinal) conflict.
-        /// Assumes this.mergeThreshold == -1.
-        /// </summary>
-        private void buildAllMDDsAndChooseCardinalConflict()
+        public void buildAllMDDs()
         {
-            if (this.conflict != null)
-                return;
-            ISet<int>[] groups = this.GetGroups();
-
-            bool haveCardinalConflict = false;
-            bool haveSemiCardinalConflict = false;
-            int initialTimeStep = this.cbs.GetProblemInstance().m_vAgents[0].lastMove.time;
             foreach (var agentIndex in Enumerable.Range(0, this.allSingleAgentPlans.Length))
             {
                 if (this.conflictTimesPerAgent[agentIndex].Count == 0)
                     continue;  // Agent has no conflicts
                 this.buildMddForAgentWithItsCurrentCost(agentIndex);  // Does nothing if it's built already
-
-                foreach (int conflictingAgentNum in this.conflictTimesPerAgent[agentIndex].Keys)
-                {
-                    int conflictingAgentIndex = this.agentNumToIndex[conflictingAgentNum];
-                    if (conflictingAgentIndex < agentIndex) // check later
-                        continue;
-                    this.buildMddForAgentWithItsCurrentCost(conflictingAgentIndex);  // Does nothing if it's built already
-
-                    foreach (int conflictTime in this.conflictTimesPerAgent[agentIndex][conflictingAgentNum])
-                    {
-                        bool iNarrow = this.DoesAgentHaveNoOtherOption(agentIndex, conflictTime, conflictingAgentIndex, groups);
-                        bool jNarrow = this.DoesAgentHaveNoOtherOption(conflictingAgentIndex, conflictTime, agentIndex, groups);
-                        if (iNarrow && jNarrow) // Cardinal conflict
-                        {
-                            if (!haveCardinalConflict) // this is the first cardinal conflict that we found
-                            {
-                                haveCardinalConflict = true;
-                                this.conflict = FindConflict(agentIndex, conflictingAgentIndex, conflictTime);
-                                this.conflict.mddPredictedCardinal = true;
-                            }
-                            else if (this.conflict.timeStep > conflictTime + initialTimeStep) // this cardinal conflict occurs earier than the former cardinal conflict
-                            {
-                                this.conflict = FindConflict(agentIndex, conflictingAgentIndex, conflictTime);
-                                this.conflict.mddPredictedCardinal = true;
-                            }
-                        }
-                        else if (iNarrow || jNarrow) // Semi-cardinal conflict
-                        {
-                            if (!haveCardinalConflict)
-                            {
-                                if (!haveSemiCardinalConflict) // this is the first semi-cardinal conflict that we found
-                                {
-                                    haveSemiCardinalConflict = true;
-                                    this.conflict = FindConflict(agentIndex, conflictingAgentIndex, conflictTime);
-                                }
-                                else if (this.conflict.timeStep > conflictTime + initialTimeStep) // this semi-cardinal conflict occurs earier than the former semi-cardinal conflict
-                                    this.conflict = FindConflict(agentIndex, conflictingAgentIndex, conflictTime);
-                            }
-                        }
-                        else // Non-cardinal conflict
-                        {
-                            if (!haveCardinalConflict && !haveSemiCardinalConflict)
-                            {
-                                if (this.conflict == null || this.conflict.timeStep > conflictTime + initialTimeStep)
-                                    this.conflict = FindConflict(agentIndex, conflictingAgentIndex, conflictTime);
-                            }
-                        }
-                    }
-                }
             }
         }
 
@@ -1221,7 +1047,6 @@ namespace CPF_experiment
         /// <returns></returns>
         private IEnumerable<CbsConflict> GetConflictsExhaustivelySearchingForCardinalsLazily()
         {
-            var disjointCardinallyConflictingAgents = new DisjointSets<int>();
             ISet<int>[] groups = this.GetGroups();
 
             foreach (var agentIndex in Enumerable.Range(0, this.allSingleAgentPlans.Length))
@@ -1243,9 +1068,6 @@ namespace CPF_experiment
                             bool otherNarrow = this.DoesAgentHaveNoOtherOption(conflictingAgentIndex, conflictTime, agentIndex, groups);
                             if (otherNarrow)  // Both narrow!
                             {
-                                disjointCardinallyConflictingAgents.Union(agentIndex, conflictingAgentIndex);
-                                if (this.h < disjointCardinallyConflictingAgents.GetNumOfSets())
-                                    this.h = (ushort)disjointCardinallyConflictingAgents.GetNumOfSets();
                                 CbsConflict cardinal = FindConflict(agentIndex, conflictingAgentIndex, conflictTime);
                                 cardinal.mddPredictedCardinal = true;
                                 // No need to set this.nextConflictCouldBeCardinal to true. Thie conflict is cardinal so the solver has not reason to cycle conflicts.
@@ -1308,7 +1130,7 @@ namespace CPF_experiment
             // can have an MDD built and the one with the lower can't, a pair of conflicting agents is entered in reverse.
 
             bool allowAgentOrderFlip = true; // Needed when rechecking agents to signal that we shouldn't 
-                                              // rely on the other end to check a conflict
+                                             // rely on the other end to check a conflict
 
             // Incrementally scan conflicts and build MDDs
             while (true)
@@ -1547,8 +1369,8 @@ namespace CPF_experiment
         /// <param name="time"></param>
         /// <param name="groups"></param>
         /// <returns></returns>
-        private CbsConflict FindConflict(int aConflictingGroupMemberIndex, int bConflictingGroupMemberIndex, int time,
-                                         ISet<int>[] groups = null)
+        private CbsConflict FindConflict(int aConflictingGroupMemberIndex,
+            int bConflictingGroupMemberIndex, int time, ISet<int>[] groups = null)
         {
             int specificConflictingAgentA, specificConflictingAgentB;
             this.FindConflicting(aConflictingGroupMemberIndex, bConflictingGroupMemberIndex, time,
@@ -1625,7 +1447,12 @@ namespace CPF_experiment
             throw new Exception("Conflict not found");
         }
 
-        private bool buildMddForAgentWithItsCurrentCost(int agentIndex)
+        /// <summary>
+        /// Builds an MDD for the specified agent with its current cost
+        /// </summary>
+        /// <param name="agentIndex"></param>
+        /// <returns>Whether an MDD was built</returns>
+        public bool buildMddForAgentWithItsCurrentCost(int agentIndex)
         {
             if (this.mddNarrownessValues[agentIndex] == null)
             {
@@ -1685,11 +1512,11 @@ namespace CPF_experiment
                 return false;
         }
 
-        private void ChooseFirstConflict(out int groupRepA, out int groupRepB, out int time)
+        private (int groupRepA, int groupRepB, int time) GetFirstConflictDetails()
         {
-            groupRepA = -1; // To quiet the compiler
-            groupRepB = -1; // To quiet the compiler
-            time = int.MaxValue;
+            int groupRepA = -1; // To quiet the compiler
+            int groupRepB = -1; // To quiet the compiler
+            int time = int.MaxValue;
             for (int i = 0; i < this.conflictTimesPerAgent.Length; i++)
             {
                 foreach (var otherAgentNumAndConflictTimes in this.conflictTimesPerAgent[i])
@@ -1702,6 +1529,7 @@ namespace CPF_experiment
                     }
                 }
             }
+            return (groupRepA, groupRepB, time);
         }
 
         /// <summary>
@@ -1717,8 +1545,11 @@ namespace CPF_experiment
         /// TODO: Prefer conflicts where one of the conflicting agents is at their goal, to reduce the danger of task blow-up
         /// by enabling partial expansion. On the other hand, partial expansion is only possible in basic CBS.
         /// </summary>
-        private void ChooseConflictOfMostConflictingSmallestAgents(out int groupRepA, out int groupRepB, out int time)
+        private (int groupRepA, int groupRepB, int time) GetDetailsOfConflictOfMostConflictingSmallestAgents()
         {
+            int groupRepA = -1; // To quiet the compiler
+            int groupRepB = -1; // To quiet the compiler
+            int time = int.MaxValue;
             Func<int, double> formula = i => this.countsOfInternalAgentsThatConflict[i] / ((double)(1 << (this.GetGroupSize(i) - 1)));
 
             int chosenAgentIndex = Enumerable.Range(0, this.allSingleAgentPlans.Length).MaxByKeyFunc(formula);
@@ -1736,6 +1567,7 @@ namespace CPF_experiment
             ProblemInstance problem = this.cbs.GetProblemInstance();
             time = this.conflictTimesPerAgent[chosenAgentIndex] // Yes, the index of the first and the num of the second
                                                  [problem.m_vAgents[chosenConflictingAgentIndex].agent.agentNum][0];
+            return (groupRepA, groupRepB, time);
         }
 
         public CbsConflict GetConflict()
@@ -1752,7 +1584,7 @@ namespace CPF_experiment
         /// <param name="child"></param>
         public void AdoptSolutionOf(CbsNode child)
         {
-            Debug.Assert(this.totalCost == child.totalCost, "Tried to adopt node of a different cost");
+            Debug.Assert(this.g == child.g, "Tried to adopt node of a different cost");
             this.agentAExpansion = CbsNode.ExpansionState.NOT_EXPANDED;
             this.agentBExpansion = CbsNode.ExpansionState.NOT_EXPANDED;
             this.allSingleAgentCosts = child.allSingleAgentCosts;
@@ -1862,9 +1694,9 @@ namespace CPF_experiment
             // Tie breaking:
 
             // Prefer larger cost - higher h usually means more work needs to be done
-            if (this.totalCost > other.totalCost)
+            if (this.g > other.g)
                 return -1;
-            if (this.totalCost < other.totalCost)
+            if (this.g < other.g)
                 return 1;
 
             // Prefer less external conflicts, even over goal nodes, as goal nodes with less external conflicts are better.
@@ -2273,6 +2105,8 @@ namespace CPF_experiment
         private bool isGoal = false;
 
         public bool GoalTest() {
+            if (this.g < this.cbs.minSolutionCost)
+                return false;
             return isGoal;
         }
 
@@ -2282,9 +2116,9 @@ namespace CPF_experiment
         /// </summary>
         /// <param name="agentForReplan"></param>
         /// <param name="depthToReplan"></param>
-        /// <param name="minCost"></param>
-        /// <returns></returns>
-        public bool Replan3b(int agentForReplan, int depthToReplan, int minCost = -1)
+        /// <param name="minPathCost"></param>
+        /// <returns>Whether a path was successfully found</returns>
+        public bool Replan3b(int agentForReplan, int depthToReplan, int minPathCost = -1)
         {
             var internalCAT = new ConflictAvoidanceTable();
             HashSet<CbsConstraint> newConstraints = this.GetConstraints();
@@ -2323,7 +2157,7 @@ namespace CPF_experiment
             constraints.Join(newConstraints);
             mustConstraints.Join(newMustConstraints);
 
-            relevantSolver.Setup(subProblem, depthToReplan, this.cbs.runner, minCost);
+            relevantSolver.Setup(subProblem, depthToReplan, this.cbs.runner, minPathCost);
             bool solved = relevantSolver.Solve();
 
             relevantSolver.AccumulateStatistics();
@@ -2352,15 +2186,15 @@ namespace CPF_experiment
             }
             Debug.Assert(j == replanSize);
 
-            // Calc totalCost
+            // Calc g
             if (Constants.costFunction == Constants.CostFunction.SUM_OF_COSTS)
             {
-                this.totalCost = (ushort)this.allSingleAgentCosts.Sum();
+                this.g = (ushort)this.allSingleAgentCosts.Sum();
             }
             else if (Constants.costFunction == Constants.CostFunction.MAKESPAN ||
                 Constants.costFunction == Constants.CostFunction.MAKESPAN_THEN_SUM_OF_COSTS)
             {
-                this.totalCost = (ushort)this.allSingleAgentCosts.Max();
+                this.g = (ushort)this.allSingleAgentCosts.Max();
             }
 
             // PrintPlan();
@@ -2384,7 +2218,7 @@ namespace CPF_experiment
         /// <param name="conflictingAgentIndex"></param>
         /// <param name="groups"></param>
         /// <returns></returns>
-        private bool DoesAgentHaveNoOtherOption(int agentIndex, int conflictTime, int conflictingAgentIndex, ISet<int>[] groups)
+        public bool DoesAgentHaveNoOtherOption(int agentIndex, int conflictTime, int conflictingAgentIndex, ISet<int>[] groups)
         {
             bool stayingAtGoalConflict = conflictTime >= this.mddNarrownessValues[agentIndex].Keys.Last<int>();
             if (stayingAtGoalConflict)  // Then it must be a vertex conflict, and the agent can't have another option at same cost

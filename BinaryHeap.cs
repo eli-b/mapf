@@ -5,14 +5,14 @@ namespace CPF_experiment
     /// <summary>
     /// A binary heap, useful for sorting data and priority queues.
     /// </summary>
-    public class BinaryHeap
+    public class BinaryHeap<Item> where Item : IBinaryHeapItem
     {
         // Constants
         private const int DEFAULT_SIZE = 4;
         public const int REMOVED_FROM_HEAP = -1;
 
         // Fields
-        private IBinaryHeapItem[] _data;
+        private Item[] _data;
         private int _count = 0;
         private int _capacity = DEFAULT_SIZE;
         private bool _sorted;
@@ -23,7 +23,7 @@ namespace CPF_experiment
         /// </summary>
         public BinaryHeap()
         {
-            _data = new IBinaryHeapItem[DEFAULT_SIZE];
+            _data = new Item[DEFAULT_SIZE];
             // _capacity is already set to DEFAULT_SIZE
             // _count already set to 0
         }
@@ -33,7 +33,7 @@ namespace CPF_experiment
         /// </summary>
         public BinaryHeap(int capacity)
         {
-            _data = new IBinaryHeapItem[capacity];
+            _data = new Item[capacity];
             _capacity = capacity;
             // _count already set to 0
         }
@@ -41,18 +41,18 @@ namespace CPF_experiment
         /// <summary>
         /// Creates a new binary heap from the given array.
         /// </summary>
-        public BinaryHeap(IBinaryHeapItem[] data, int count)
+        public BinaryHeap(Item[] data, int count)
         {
             _count = count;
             _capacity = count;
-            _data = new IBinaryHeapItem[_capacity];
+            _data = new Item[_capacity];
             Array.Copy(data, _data, count);
         }
 
         /// <summary>
         /// Creates a new binary heap from the given collection.
         /// </summary>
-        public BinaryHeap(IReadOnlyCollection<IBinaryHeapItem> from)
+        public BinaryHeap(IReadOnlyCollection<Item> from)
             : this(from.Count)
         {
             foreach (var item in from)
@@ -82,7 +82,7 @@ namespace CPF_experiment
                 if (value > _capacity)
                 {
                     _capacity = value;
-                    IBinaryHeapItem[] temp = new IBinaryHeapItem[_capacity];
+                    Item[] temp = new Item[_capacity];
                     Array.Copy(_data, temp, _count);
                     _data = temp;
                 }
@@ -94,7 +94,7 @@ namespace CPF_experiment
         /// Gets the first value in the heap without removing it.
         /// </summary>
         /// <returns>The lowest value of type TValue.</returns>
-        public IBinaryHeapItem Peek()
+        public Item Peek()
         {
             return _data[0];
         }
@@ -105,14 +105,14 @@ namespace CPF_experiment
         public void Clear()
         {
             this._count = 0;
-            _data = new IBinaryHeapItem[_capacity]; // Faster than clearing the array, maybe
+            _data = new Item[_capacity]; // Faster than clearing the array, maybe
         }
         
         /// <summary>
         /// Adds a key and value to the heap.
         /// </summary>
         /// <param name="item">The item to add to the heap.</param>
-        public void Add(IBinaryHeapItem item)
+        public void Add(Item item)
         {
             if (item == null)
                 return;
@@ -130,12 +130,12 @@ namespace CPF_experiment
         /// Removes and returns the first item in the heap.
         /// </summary>
         /// <returns>The next item in the heap.</returns>
-        public IBinaryHeapItem Remove()
+        public Item Remove()
         {
             if (this._count == 0)
                 throw new InvalidOperationException("Cannot remove item, heap is empty.");
 
-            IBinaryHeapItem v = _data[0];
+            Item v = _data[0];
             v.SetIndexInHeap(REMOVED_FROM_HEAP);
             _count--;
             if (this._count != 0)
@@ -143,7 +143,7 @@ namespace CPF_experiment
                 _data[0] = _data[_count];
                 DownHeap();
             }
-            _data[_count] = default(IBinaryHeapItem); // Clear the last node
+            _data[_count] = default(Item); // Clear the last node
             return v;
         }
 
@@ -156,7 +156,7 @@ namespace CPF_experiment
         {
             _sorted = false;
             int p = _count - 1;
-            IBinaryHeapItem item = _data[p];
+            Item item = _data[p];
             int par = Parent(p);
             while (par > -1 && item.CompareTo(_data[par]) < 0)
             {
@@ -179,7 +179,7 @@ namespace CPF_experiment
             _sorted = false;
             int n;
             int p = 0;
-            IBinaryHeapItem item = _data[p];
+            Item item = _data[p];
             while (true)
             {
                 int ch1 = Child1(p);
@@ -248,9 +248,9 @@ namespace CPF_experiment
         /// Creates a new instance of an identical binary heap.
         /// </summary>
         /// <returns>A BinaryHeap.</returns>
-        public BinaryHeap Copy()
+        public BinaryHeap<Item> Copy()
         {
-            return new BinaryHeap(_data, _count);
+            return new BinaryHeap<Item>(_data, _count);
         }
 
         /// <summary>
@@ -277,10 +277,10 @@ namespace CPF_experiment
         /// </summary>
         /// <param name="item">The item to search the binary heap for.</param>
         /// <returns>A boolean, true if binary heap contains item.</returns>
-        public bool Contains(IBinaryHeapItem item)
+        public bool Contains(Item item)
         {
             EnsureSort();
-            return Array.BinarySearch<IBinaryHeapItem>(_data, 0, _count, item) >= 0;
+            return Array.BinarySearch<Item>(_data, 0, _count, item) >= 0;
         }
         
         /// <summary>
@@ -288,7 +288,7 @@ namespace CPF_experiment
         /// </summary>
         /// <param name="array">One dimensional array that is the destination of the copied elements.</param>
         /// <param name="arrayIndex">The zero-based index at which copying begins.</param>
-        public void CopyTo(IBinaryHeapItem[] array, int arrayIndex)
+        public void CopyTo(Item[] array, int arrayIndex)
         {
             EnsureSort();
             Array.Copy(_data, array, _count);
@@ -310,7 +310,7 @@ namespace CPF_experiment
         /// </summary>
         /// <param name="item">The item to be removed.</param>
         /// <returns>Boolean true if the item was removed.</returns>
-        public bool Remove(IBinaryHeapItem item)
+        public bool Remove(Item item)
         {
             if (item == null)
                 return false;
@@ -326,7 +326,7 @@ namespace CPF_experiment
             //    return true;
             //}
 
-            IBinaryHeapItem to_remove = _data[child_index];
+            Item to_remove = _data[child_index];
             // Bubble to_remove up the heap
             // If UpHeap received an index parameter instead of always starting from the last element,
             // we could maybe remove some code duplication.

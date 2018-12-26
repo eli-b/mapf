@@ -95,7 +95,7 @@ namespace CPF_experiment
 
         private bool singleAgentA_Star(AgentState agent)
         {
-            BinaryHeap openList = new BinaryHeap(); // TODO: Safe to use OpenList here instead?
+            BinaryHeap<AgentState> openList = new BinaryHeap<AgentState>(); // TODO: Safe to use OpenList here instead?
             HashSet<AgentState> closedList = new HashSet<AgentState>();
             openList.Add(agent);
             AgentState temp = agent;
@@ -106,7 +106,7 @@ namespace CPF_experiment
                 {
                     return false;
                 }
-                temp = (AgentState)openList.Remove();
+                temp = openList.Remove();
                 if (temp.h == 0)
                 {
                     valid = true;
@@ -125,7 +125,7 @@ namespace CPF_experiment
                     }
                 }
                 expanded++;
-                expendNode(temp, openList, closedList);
+                expandNode(temp, openList, closedList);
             }
             return false;
         }
@@ -141,7 +141,7 @@ namespace CPF_experiment
             if (allPathCost[end.agent.agentNum] > maxPathCost)
                 maxPathCost = allPathCost[end.agent.agentNum];
         }
-        private void expendNode(AgentState node, BinaryHeap openList, HashSet<AgentState> closedList)
+        private void expandNode(AgentState node, BinaryHeap<AgentState> openList, HashSet<AgentState> closedList)
         {
             foreach (TimedMove move in node.lastMove.GetNextMoves())
             {

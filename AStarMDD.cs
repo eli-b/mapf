@@ -12,7 +12,7 @@ namespace CPF_experiment
         MDD[] problem;
         Dictionary<MDDStep, MDDStep> closedList;
         Run runner;
-        BinaryHeap openList; // TODO: Not an OpenList for now because AStarMDD doesn't implement ISolver, which OpenList requires at its constructor.
+        BinaryHeap<MDDStep> openList;
         public int expanded;
         public int generated;
         public int conflictAvoidanceViolations;
@@ -29,7 +29,7 @@ namespace CPF_experiment
             this.ID_CAT = conflicts;
             this.CBS_CAT = CBS_CAT;
             this.closedList = new Dictionary<MDDStep, MDDStep>();
-            this.openList = new BinaryHeap();
+            this.openList = new BinaryHeap<MDDStep>();
             MDDNode[] sRoot = new MDDNode[problem.Length];
             for (int i = 0; i < problem.Length; i++)
             {
@@ -53,7 +53,7 @@ namespace CPF_experiment
                 {
                     return null;
                 }
-                 currentNode = (MDDStep)openList.Remove();
+                 currentNode = openList.Remove();
                 // Check if node is the goal
                 if (this.GoalTest(currentNode))
                 {

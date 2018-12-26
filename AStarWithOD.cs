@@ -14,7 +14,7 @@ namespace CPF_experiment
         protected int generatedFullStates;
         protected int accGeneratedFullStates;
 
-        public AStarWithOD(IHeuristicCalculator heuristic = null, bool mStar = false, bool mStarShuffle = false)
+        public AStarWithOD(IHeuristicCalculator<WorldState> heuristic = null, bool mStar = false, bool mStarShuffle = false)
             : base(heuristic, mStar, mStarShuffle) { }
 
         override protected WorldState CreateSearchRoot(int minDepth = -1, int minCost = -1)
@@ -27,7 +27,7 @@ namespace CPF_experiment
             return new WorldStateWithOD((WorldStateWithOD)from);
         }
 
-        override public string GetName() { return base.GetName() + "+OD"; }
+        public override string GetName() { return base.GetName() + "+OD"; }
 
         public override void Setup(ProblemInstance problemInstance, int minDepth, Run runner, int minCost = -1)
         {

@@ -8,12 +8,12 @@ namespace CPF_experiment
     /// <summary>
     /// Describes a node in the A* search space.
     /// </summary>
-    public class WorldState : IComparable<IBinaryHeapItem> , IBinaryHeapItem
+    public class WorldState : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristicSearchNode
     {
         public int makespan; // Total time steps passed, max(agent makespans)
-        public int g; // Sum of agent makespans until they reach their goal
-        public int h;
-        public int hBonus;
+        public int g { get; set; } // Value depends on Constants.costFunction and Constants.sumOfCostsVariant, Sum of agent makespans until they reach their goal
+        public int h { get; set; }
+        public int hBonus { get; set; }
         public AgentState[] allAgentsState;
         public WorldState prevStep;
         private int binaryHeapIndex;
@@ -35,13 +35,13 @@ namespace CPF_experiment
         /// TODO: Consider moving out of the node object to a static variable or something.
         ///       It doesn't change between nodes.
         /// </summary>
-        public int minDepth;
+        public int minGoalTimeStep;
         /// <summary>
         /// The min cost (g) from which a node may be considered a goal.
         /// TODO: Consider moving out of the node object to a static variable or something.
         ///       It doesn't change between nodes.
         /// </summary>
-        public int minCost;
+        public int minGoalCost;
         /// <summary>
         /// The last move of all agents that have already moved in this turn.
         /// Used for making sure the next agent move doesn't collide with moves already made.
@@ -80,8 +80,8 @@ namespace CPF_experiment
             this.cbsInternalConflictsCount = 0;
             this.cbsInternalConflicts = new Dictionary<int, int>();
             this.conflictTimes = new Dictionary<int, List<int>>();
-            this.minDepth = minDepth;
-            this.minCost = minCost;
+            this.minGoalTimeStep = minDepth;
+            this.minGoalCost = minCost;
             this.currentMoves = new Dictionary<TimedMove, int>();
             this.goalCost = NOT_SET;
             this.goalSingleCosts = null;
@@ -99,8 +99,8 @@ namespace CPF_experiment
             this.g = cpy.g;
             this.h = cpy.h;
             // The potentialConflictsCount, conflictTimes, cbsInternalConflicts and cbsInternalConflictsCount are only copied later if necessary.
-            this.minDepth = cpy.minDepth;
-            this.minCost = cpy.minCost;
+            this.minGoalTimeStep = cpy.minGoalTimeStep;
+            this.minGoalCost = cpy.minGoalCost;
             this.allAgentsState = new AgentState[cpy.allAgentsState.Length];
             for (int i = 0; i < allAgentsState.Length; i++)
             {
@@ -145,10 +145,10 @@ namespace CPF_experiment
                 }
             }
 
-            if (this.g < this.minCost)
+            if (this.g < this.minGoalCost)
                 return false;
 
-            if (this.makespan < this.minDepth)
+            if (this.makespan < this.minGoalTimeStep)
                 return false;
 
             return this.h == 0; // That's crazy! A node that is close to the goal might also get h==0.
@@ -342,6 +342,8 @@ namespace CPF_experiment
                 return this.g + this.h;
             }
         }
+
+        public int GetTargetH(int f) => f - g;
 
         public override string ToString()
         {

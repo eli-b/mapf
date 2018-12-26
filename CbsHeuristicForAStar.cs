@@ -98,7 +98,7 @@ namespace CPF_experiment
                 this.cbs.Setup(sAsProblemInstance,
                                Math.Max(s.makespan,  // This forces must-constraints to be upheld when dealing with A*+OD nodes,
                                                      // at the cost of forcing every agent to move when a goal could be found earlier with all must constraints upheld.
-                                        s.minDepth), // No point in finding shallower goal nodes
+                                        s.minGoalTimeStep), // No point in finding shallower goal nodes
                                this.runner);
                 
                 if (this.cbs.openList.Count > 0 && this.cbs.topMost)
@@ -122,7 +122,7 @@ namespace CPF_experiment
             }
 
             // Calc the h:
-            this.cbs.targetCost = targetCost;
+            this.cbs.targetF = targetCost;
             this.cbs.milliCap = milliCap;
             this.cbs.lowLevelGeneratedCap = lowLevelGeneratedCap;
 

@@ -1,6 +1,4 @@
-﻿using System;
-using System.IO;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace CPF_experiment
 {
@@ -10,7 +8,7 @@ namespace CPF_experiment
         /// Return the name of the solver, useful for outputing results.
         /// </summary>
         /// <returns>The name of the solver</returns>
-        String GetName();
+        string GetName();
 
         /// <summary>
         /// Solves the instance that was set by a call to Setup()
@@ -24,14 +22,6 @@ namespace CPF_experiment
         /// <param name="problemInstance"></param>
         /// <param name="runner"></param>
         void Setup(ProblemInstance problemInstance, Run runner);
-
-        /// <summary>
-        /// Set the heuristic
-        /// </summary>
-        /// <param name="heuristic"></param>
-        void SetHeuristic(IHeuristicCalculator heuristic);
-
-        IHeuristicCalculator GetHeuristic();
 
         /// <summary>
         /// Clears the relevant data structures and variables to free memory usage.
@@ -67,9 +57,13 @@ namespace CPF_experiment
         /// 
         /// </summary>
         /// <param name="problemInstance"></param>
-        /// <param name="minDepth">!@# Shoud be more generally called minTimeStep? Because for CBS the depth isn't the time step</param>
+        /// <param name="minTimeStep"></param>
         /// <param name="runner"></param>
-        void Setup(ProblemInstance problemInstance, int minDepth, Run runner, int minCost);
+        /// <param name="minCost">
+        /// Goal nodes with a lower cost aren't considered a goal.
+        /// This can be used to improve the heuristic estimate!
+        /// </param>
+        void Setup(ProblemInstance problemInstance, int minTimeStep, Run runner, int minCost);
         SinglePlan[] GetSinglePlans();
         int[] GetSingleCosts();
         Dictionary<int, int> GetExternalConflictCounts();
@@ -82,5 +76,14 @@ namespace CPF_experiment
     public interface IMStarSolver : ICbsSolver
     {
         // Just does the appropriate thing when it's under M-Star
+    }
+
+    public interface IHeuristicSolver<in State>
+    {
+        /// <summary>
+        /// Get the heuristic
+        /// </summary>
+        /// <returns></returns>
+        IHeuristicCalculator<State> GetHeuristic();
     }
 }

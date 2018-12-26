@@ -98,6 +98,9 @@
     <Compile Include="CbsConflict.cs" />
     <Compile Include="ConflictGraph.cs" />
     <Compile Include="DisjointSets.cs" />
+    <Compile Include="IHeuristicSearchNode.cs" />
+    <Compile Include="MddPruningHeuristicForCbs.cs" />
+    <Compile Include="MvcHeuristicForCbs.cs" />
     <Compile Include="MyExtensions.cs" />
     <Compile Include="ConflictAvoidanceTable.cs" />
     <Compile Include="Dictionary_U.cs" />

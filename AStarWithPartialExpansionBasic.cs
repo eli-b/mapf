@@ -24,7 +24,7 @@ namespace CPF_experiment
         public int nextFvalue;
         public int currentFTarget;
 
-        public AStarWithPartialExpansionBasic(IHeuristicCalculator heuristic = null)
+        public AStarWithPartialExpansionBasic(IHeuristicCalculator<WorldState> heuristic = null)
             : base(heuristic) { }
 
         override protected WorldState CreateSearchRoot(int minDepth = -1, int minCost = -1)
@@ -62,7 +62,7 @@ namespace CPF_experiment
 
             base.Expand(node);
 
-            if (hasMoreSuccessors && this.nextFvalue <= this.maxCost)
+            if (hasMoreSuccessors && this.nextFvalue <= this.maxSolutionCost)
             {
                 node.h = this.nextFvalue - node.g; // Just to update this node's f value to the desired value.
                                                    // Although you could say that since we exhausted the current F value, if we get to this node again it means the heuristic was off by at least 1

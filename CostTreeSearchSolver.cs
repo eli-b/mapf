@@ -66,10 +66,10 @@ namespace CPF_experiment
         /// Setup the relevant data structures for a run.
         /// </summary>
         /// <param name="problemInstance"></param>
-        /// <param name="minDepth"></param>
+        /// <param name="minTimeStep"></param>
         /// <param name="runner"></param>
-        /// <param name="minCost">Not taken into account, just added to comply with ICbsSolver</param>
-        public virtual void Setup(ProblemInstance problemInstance, int minDepth, Run runner, int minCost = -1)
+        /// <param name="minCost">FIXME: Not taken into account, just added to comply with ICbsSolver</param>
+        public virtual void Setup(ProblemInstance problemInstance, int minTimeStep, Run runner, int minCost = -1)
         {
             this.minCAViolations = int.MaxValue;
             CostTreeSearchSolver.passed = 0;
@@ -101,7 +101,7 @@ namespace CPF_experiment
             int[] costs = new int[problem.GetNumOfAgents()];
             for (int i = 0; i < problem.GetNumOfAgents(); i++)
             {
-                costs[i] = Math.Max(problem.GetSingleAgentOptimalCost(problem.m_vAgents[i]), minDepth);
+                costs[i] = Math.Max(problem.GetSingleAgentOptimalCost(problem.m_vAgents[i]), minTimeStep);
             }
 
             openList.Enqueue(new CostTreeNode(costs)); // The root
@@ -122,13 +122,6 @@ namespace CPF_experiment
             {
                 CBS_CAT = (Dictionary<TimedMove, List<int>>)problemInstance.parameters[CBS_LocalConflicts.CAT];
             }
-        }
-
-        public void SetHeuristic(IHeuristicCalculator heuristic) {}
-
-        public IHeuristicCalculator GetHeuristic()
-        {
-            return null;
         }
 
         /// <summary>
