@@ -18,7 +18,10 @@ namespace CPF_experiment
         /// </summary>
         HashSet<TimedMove> RT;
         AgentState[] allAgentsState;
-        Hashtable parked;
+        /// <summary>
+        /// 
+        /// </summary>
+        Dictionary<Move, int> parked;
         int[] allPathCost;
         int maxPathCost;
         public int expanded;
@@ -29,7 +32,7 @@ namespace CPF_experiment
         public Silver()
         {
             RT = new HashSet<TimedMove>();
-            parked = new Hashtable();
+            parked = new Dictionary<Move, int>();
         }
 
         public void Clear()
@@ -102,17 +105,16 @@ namespace CPF_experiment
             HashSet<AgentState> closedList = new HashSet<AgentState>();
             openList.Add(agent);
             AgentState temp = agent;
-            bool valid;
             while (openList.Count > 0)
             {
-                if (this.runner.ElapsedMilliseconds() > 120000)
+                if (this.runner.ElapsedMilliseconds() > Constants.MAX_TIME)
                 {
                     return false;
                 }
                 temp = openList.Remove();
                 if (temp.h == 0)
                 {
-                    valid = true;
+                    bool valid = true;
                     for (int i = temp.lastMove.time ; i <= maxPathCost; i++)
                     {
                         if (RT.Contains(new TimedMove(temp.lastMove.x, temp.lastMove.y, Move.Direction.NO_DIRECTION, i)))
@@ -177,7 +179,7 @@ namespace CPF_experiment
                 if (move.IsColliding(this.RT) == false)
                 {
                     Move key = new Move(move.x, move.y, Move.Direction.NO_DIRECTION);
-                    if (!parked.Contains(key) || (int)(parked[key]) > move.time)
+                    if (!parked.ContainsKey(key) || parked[key] > move.time)
                         return true;
                 }
             }
