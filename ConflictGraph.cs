@@ -18,7 +18,7 @@ namespace CPF_experiment
             this.numOfEdges = 0;
             this.numOfNodes = 0;
             this.G = new bool[numOfAgents, numOfAgents];
-            for (int i = 0; i< numOfAgents; i++)
+            for (int i = 0; i< numOfAgents; i++)  // FIXME: Not necessary.
             {
                 for (int j = 0; j < numOfAgents; j++)
                     G[i, j] = false;
@@ -44,14 +44,14 @@ namespace CPF_experiment
 
         public int MinimumVertexCover(int prevMVC = (int) MinVertexCover.NOT_SET)
         {
-            if (numOfEdges < 2)
-                return numOfEdges;
+            if (this.numOfEdges < 2)
+                return this.numOfEdges;
 
             // compute number of nodes that have edges
             this.numOfNodes = 0;
-            for (int i = 0; i < this.G.GetLength(0); i++)
+            for (int i = 0; i < this.G.GetLength(0) - 1; i++)
             {
-                for (int j = 0; j < this.G.GetLength(1); j++)
+                for (int j = i+1; j < this.G.GetLength(1); j++)
                 {
                     if (G[i,j])
                     {
@@ -89,43 +89,57 @@ namespace CPF_experiment
         }
 
         /// <summary>
-        /// Whether there exists a k-vertex cover solution
+        /// Whether there exists a k-vertex (at most) cover solution (an NP-Complete question).
+        /// This algorithm theoretically runs in O(2^(k-1)*2*n), or O(2^k*n). It was described in Parameterized
+        /// Computational Feasibility (Downey and Fellows, 1995).
+        /// The algorithm with the best asymptotic dependence on k was desribed in Improved
+        /// Parameterized Upper Bounds for Vertex Cover (Cheng, Kanj and Xia 2006) and has a runtime of
+        /// O(1.2738^k + kn). Even that algorithm can only find a vertex cover of size up to ~190 in
+        /// reasonable time.
         /// </summary>
-        private static bool KVertexCover(ConflictGraph CG, int k)
+        private static bool KVertexCover(ConflictGraph CG, int k, int lastEdgeX = 0)
         {
             if (CG.numOfEdges == 0)
                 return true;
-            else if (CG.numOfEdges > k * CG.numOfNodes - k) // not sure
+            else if (CG.numOfEdges > k * CG.numOfNodes - k) // |E| > K*(|V|-1), there are more edges
+                // to cover than the maximum number of edges that could be covered with K vertices
+                // (if every vertex chosen for the cover is connected to all other vertices in the graph),
+                // so a K vertex cover is impossible
                 return false;
 
-            int[] node = new int[2];
-            bool flag = true;
-            for (int i = 0; i < CG.G.GetLength(0) - 1 && flag; i++) // to find an edge
+            // Choose an edge (u,v) - (this step is actually O(n^2) but the algorithm assumes is done in constant time)
+            // TODO: Measure if this part is significant
+            int[] edge = new int[2];
+            bool found = false;
+            for (int i = lastEdgeX; i < CG.G.GetLength(0) - 1 && !found; i++)
             {
-                for (int j = i + 1; j < CG.G.GetLength(1) && flag; j++)
+                for (int j = i + 1; j < CG.G.GetLength(1) && !found; j++)
                 {
                     if (CG.G[i, j])
                     {
-                        node[0] = i;
-                        node[1] = j;
-                        flag = false;
+                        edge[0] = i;
+                        edge[1] = j;
+                        found = true;
                     }
                 }
             }
+
+            // Recurse over KVertexCover(G-{u}, k-1) and KVertexCover(G-{v}, k-1).
+            // If any are true, return true. Else return false.
             for (int i = 0; i < 2; i++)
             {
-                ConflictGraph CG_copy = new ConflictGraph(CG);
+                ConflictGraph CG_copy = new ConflictGraph(CG);  // TODO: This part also costs n^2
                 for (int j = 0; j < CG.G.GetLength(0); j++)
                 {
-                    if (CG_copy.G[node[i], j])
+                    if (CG_copy.G[edge[i], j])
                     {
-                        CG_copy.G[node[i], j] = false;
-                        CG_copy.G[j, node[i]] = false;
+                        CG_copy.G[edge[i], j] = false;
+                        CG_copy.G[j, edge[i]] = false;
                         CG_copy.numOfEdges--;
                     }
                 }
                 CG_copy.numOfNodes--;
-                if (KVertexCover(CG_copy, k - 1))
+                if (KVertexCover(CG_copy, k - 1, edge[0]))
                     return true;
             }
             return false;
