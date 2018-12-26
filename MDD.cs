@@ -25,8 +25,6 @@ namespace CPF_experiment
             NOTHING = 1,
             SOME = 2
         }
-        protected HashSet_U<CbsConstraint> constraints;
-        protected Dictionary<int, TimedMove>[] mustConstraints;
         protected bool supportPruning;
 
         /// <summary>
@@ -54,13 +52,17 @@ namespace CPF_experiment
             this.cost = cost;
             this.levels = new LinkedList<MDDNode>[numOfLevels + 1];
             this.supportPruning = supportPruning;
+
+            HashSet_U<CbsConstraint> constraints = null; 
+            Dictionary<int, TimedMove>[] mustConstraints = null;
+
             if (ignoreConstraints == false && instance.parameters.ContainsKey(CBS_LocalConflicts.CONSTRAINTS) &&
                     ((HashSet_U<CbsConstraint>)instance.parameters[CBS_LocalConflicts.CONSTRAINTS]).Count != 0)
             {
                 this.queryConstraint = new CbsConstraint();
                 this.queryConstraint.queryInstance = true;
 
-                this.constraints = (HashSet_U<CbsConstraint>)instance.parameters[CBS_LocalConflicts.CONSTRAINTS];
+                constraints = (HashSet_U<CbsConstraint>)instance.parameters[CBS_LocalConflicts.CONSTRAINTS];
             }
 
             if (ignoreConstraints == false && instance.parameters.ContainsKey(CBS_LocalConflicts.MUST_CONSTRAINTS) &&
@@ -68,13 +70,13 @@ namespace CPF_experiment
             {
                 // TODO: Code dup with ClassicAStar's constructor
                 var musts = (HashSet_U<CbsConstraint>)instance.parameters[CBS_LocalConflicts.MUST_CONSTRAINTS];
-                this.mustConstraints = new Dictionary<int, TimedMove>[musts.Max<CbsConstraint>(con => con.GetTimeStep()) + 1]; // To have index MAX, array needs MAX + 1 places.
+                mustConstraints = new Dictionary<int, TimedMove>[musts.Max(con => con.GetTimeStep()) + 1]; // To have index MAX, array needs MAX + 1 places.
                 foreach (CbsConstraint con in musts)
                 {
                     int timeStep = con.GetTimeStep();
-                    if (this.mustConstraints[timeStep] == null)
-                        this.mustConstraints[timeStep] = new Dictionary<int, TimedMove>();
-                    this.mustConstraints[timeStep][con.agentNum] = con.move;
+                    if (mustConstraints[timeStep] == null)
+                        mustConstraints[timeStep] = new Dictionary<int, TimedMove>();
+                    mustConstraints[timeStep][con.agentNum] = con.move;
                 }
             }
 
@@ -100,7 +102,7 @@ namespace CPF_experiment
                 // Go over each MDDNode in this level
                 foreach (MDDNode currentMddNode in levels[i]) // Since we're not deleting nodes in this method, we can use the simpler iteration method :)
                 {
-                    List<MDDNode> children = this.GetAllChildren(currentMddNode, heuristicBound, numOfAgents);
+                    List<MDDNode> children = this.GetAllChildren(currentMddNode, heuristicBound, numOfAgents, constraints, mustConstraints);
                     if (children.Count == 0) // Heuristic wasn't perfect because of constraints, illegal moves or other reasons
                         toDelete.Add(currentMddNode);
 
@@ -151,8 +153,11 @@ namespace CPF_experiment
         /// <param name="parent"></param>
         /// <param name="heuristicBound">The heuristic estimate of the returned children must be lower than or equal to the bound</param>
         /// <param name="numOfAgents">The number of agents in the MDD node</param>
+        /// <param name="constraints"></param>
+        /// <param name="mustConstraints"></param>
         /// <returns>A list of relevant MDD nodes</returns>
-        private List<MDDNode> GetAllChildren(MDDNode parent, int heuristicBound, int numOfAgents)
+        private List<MDDNode> GetAllChildren(MDDNode parent, int heuristicBound, int numOfAgents,
+            HashSet_U<CbsConstraint> constraints, Dictionary<int, TimedMove>[] mustConstraints)
         {
             var children = new List<MDDNode>();
             foreach (TimedMove move in parent.move.GetNextMoves())
@@ -160,19 +165,19 @@ namespace CPF_experiment
                 if (this.problem.IsValid(move) &&
                     this.problem.GetSingleAgentOptimalCost(this.agentNum, move) <= heuristicBound) // Only nodes that can reach the goal in the given cost according to the heuristic.
                 {
-                    if (this.constraints != null)
+                    if (constraints != null)
                     {
                         queryConstraint.Init(agentNum, move);
 
-                        if (this.constraints.Contains(queryConstraint))
+                        if (constraints.Contains(queryConstraint))
                             continue;
                     }
 
-                    if (this.mustConstraints != null && move.time < this.mustConstraints.Length && // There may be a constraint on the timestep of the generated node
-                        this.mustConstraints[move.time] != null &&
-                        this.mustConstraints[move.time].ContainsKey(this.agentNum)) // This agent has a must constraint for this time step
+                    if (mustConstraints != null && move.time < mustConstraints.Length && // There may be a constraint on the timestep of the generated node
+                        mustConstraints[move.time] != null &&
+                        mustConstraints[move.time].ContainsKey(this.agentNum)) // This agent has a must constraint for this time step
                     {
-                        if (this.mustConstraints[move.time][this.agentNum].Equals(move) == false)
+                        if (mustConstraints[move.time][this.agentNum].Equals(move) == false)
                             continue;
                     }
 
@@ -313,7 +318,7 @@ namespace CPF_experiment
                 {
                     narrownessValues.Add(i, LevelNarrowness.WIDTH_1);
                 }
-                else if (this.levels[i].All<MDDNode>(node => node.move.Equals(firstNode)))
+                else if (this.levels[i].All(node => node.move.Equals(firstNode)))
                 {
                     narrownessValues.Add(i, LevelNarrowness.ONE_LOCATION_MULTIPLE_DIRECTIONS);
                 }
@@ -408,6 +413,7 @@ namespace CPF_experiment
         /// previously found to coexist with this node.
         /// Assumes before MDDs i,j are checked for coexistence, all MDDs k such that i &lt; k &lt; j
         /// were checked.
+        /// Assumes this MDD was built with pruning support.
         /// </summary>
         /// <param name="toCheck"></param>
         /// <param name="otherAgentIndex"></param>
@@ -453,7 +459,7 @@ namespace CPF_experiment
         
         public void SetCoexistingNodes(HashSet<MDDNode> coexistingNodes, int mddNum)
         {
-            Debug.Assert(coexistingNodes.All<MDDNode>(node => node.mdd.getMddNum() == mddNum), "unexpected");
+            Debug.Assert(coexistingNodes.All(node => node.mdd.getMddNum() == mddNum), "unexpected");
             this.coexistingNodesFromOtherMdds[mddNum] = coexistingNodes;
         }
         
