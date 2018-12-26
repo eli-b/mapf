@@ -306,8 +306,6 @@ namespace CPF_experiment
             this.locationAtTimes = locations.ToList<Move>();
         }
 
-
-
         public SinglePlan(LinkedList<Move> route, int agentNum)
         {
             this.agentNum = agentNum;
@@ -337,12 +335,26 @@ namespace CPF_experiment
             }
         }
 
-        public override bool Equals(object obj) // FIXME: Implement GetHashCode!
+        public override bool Equals(object obj)
         {
             if (obj == null)
                 return false;
             SinglePlan other = (SinglePlan)obj;
             return this.agentNum == other.agentNum && this.locationAtTimes.SequenceEqual<Move>(other.locationAtTimes);
+        }
+
+        public override int GetHashCode()
+        {
+            int ret = Constants.PRIMES_FOR_HASHING[0] * this.agentNum.GetHashCode();
+
+            // Hash the contents and order of locationsAtTimes
+            int i = 0;
+            foreach (var move in this.locationAtTimes)
+            {
+                ret += Constants.PRIMES_FOR_HASHING[1] * i + Constants.PRIMES_FOR_HASHING[2] * move.GetHashCode();
+                i++;
+            }
+            return  ret;
         }
 
         /// <summary>
