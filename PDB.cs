@@ -42,7 +42,7 @@ namespace CPF_experiment
         /// <returns></returns>
         public virtual UInt64 estimateSize()
         {
-            /**
+            /*
              * @TODO Write an estimation function here!
              */
 

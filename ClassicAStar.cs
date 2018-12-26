@@ -998,7 +998,7 @@ namespace CPF_experiment
                         currentNode.conflictTimes[kvp.Key] = new List<int>(kvp.Value);
 
                     currentNode.UpdateConflictCounts(
-                        ((IReadOnlyDictionary<TimedMove, List<int>>)instance.parameters[IndependenceDetection.CONFLICT_AVOIDANCE]));
+                        (IReadOnlyDictionary<TimedMove, List<int>>)instance.parameters[IndependenceDetection.CONFLICT_AVOIDANCE]);
                     // We're counting conflicts along the entire path, so the parent's conflicts count
                     // is added to the child's.
 
@@ -1164,13 +1164,13 @@ namespace CPF_experiment
                     this.openList.Add(currentNode);
                     currentNode.expandedCountWhenGenerated = this.expanded;
                     if (this.debug)
-                        Debug.Print("Generated node {0}", currentNode);
+                        Debug.Print($"Generated node {currentNode}");
                     return true;
                 }
                 else
                 {
                     if (this.debug)
-                        Debug.Print("NOT generating node {0}. It already exists.", currentNode);
+                        Debug.Print($"NOT generating node {currentNode}. It already exists.");
                 }
 
                 // What if in open list? This implementation immediately puts _generated_ nodes in the closed list,
@@ -1340,11 +1340,6 @@ namespace CPF_experiment
 
         void reinsertIntoOpenList(WorldState node)
         {
-            //if (this.openList.Contains(node)) // Node is partially expanded in the open list. Need to restart its expansion
-            //{
-            //    this.openList.Remove(node);
-            //    node.Clear();
-            //}
             this.openList.Remove(node);
             node.Clear();
             this.openList.Add(node); // Re-insert into open list
@@ -1362,4 +1357,3 @@ namespace CPF_experiment
         }
     }
 }
-

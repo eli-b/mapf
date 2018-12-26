@@ -137,9 +137,9 @@ namespace CPF_experiment
             if (this.singlePlans != null)
             {
                 // Check if plans are long enough and costly enough
-                if (this.singlePlans.All<SinglePlan>(plan => plan.GetSize() - 1 >= this.minDepth))
+                if (this.singlePlans.All(plan => plan.GetSize() - 1 >= this.minGoalTimeStep))
                 {
-                    if (this.singlePlans.Sum<SinglePlan>(plan => plan.GetCost()) >= this.minCost)
+                    if (this.singlePlans.Sum(plan => plan.GetCost()) >= this.minGoalCost)
                     // FIXME: support a makespan cost function!!!
                         return true;
                 }

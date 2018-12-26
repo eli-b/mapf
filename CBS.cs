@@ -1604,9 +1604,8 @@ namespace CPF_experiment
             else
             {
                 closedListHits++;
-                closedListHitChildCost = closedList[child].totalCost;
+                return (child: null, closedListHitChildCost: closedList[child].g);
             }
-            return (child: null, closedListHitChildCost);
         }
 
         /// <summary>
@@ -1672,7 +1671,9 @@ namespace CPF_experiment
             //    and aren't guaranteed to increase the cost because the goal can still be possibly reached from another edge.
             {
                 if (otherChildExpansionsState == CbsNode.ExpansionState.DEFERRED)
-                        throw new Exception("Unexpected: Expansion of both children deffered, but this is a vertex conflict so that means the targets for the two agents are equal, which is illegal");
+                        throw new Exception("Unexpected: Expansion of both children deffered, " +
+                            "but this is a vertex conflict so that means the targets for the " +
+                            "two agents are equal, which is illegal");
 
                 Debug.WriteLine($"Skipping {agentSide} child for now");
                 if (doLeftChild)

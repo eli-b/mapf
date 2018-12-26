@@ -162,16 +162,13 @@ namespace CPF_experiment
         /// </summary>
         public override void build()
         {
-            /**
-             * Create the subproblem pertaining to this additive pattern
-             * database. We do this by taking the problem instance and swapping
-             * the initial state with the goal. We will also save a copy of our
-             * m_vAgents data structure, because during the building process 
-             * our state already is a projection.
-             */
+            // Create the subproblem pertaining to this additive pattern
+            // database. We do this by taking the problem instance and swapping
+            // the initial state with the goal. We will also save a copy of our
+            // m_vAgents data structure, because during the building process 
+            // our state already is a projection.
 
-            WorldState goal =
-                new WorldState(m_Problem.m_vAgents, m_vAgents);
+            WorldState goal = new WorldState(m_Problem.m_vAgents, m_vAgents);
             foreach (AgentState ags in goal.allAgentsState)
                 ags.SwapCurrentWithGoal();
             List<uint> vBackup = m_vAgents;
@@ -179,14 +176,12 @@ namespace CPF_experiment
             for (uint i = 0; i < goal.allAgentsState.Length; ++i)
                 m_vAgents.Add(i);
 
-            /**
-             * Initialize variables and insert the root node into our queue. We
-             * use Byte.MaxValue to symbolize that an entry in our heuristic
-             * table is uninitialized. The first time that we initialize an
-             * entry in the table is also the first time that we encounter the
-             * particular state, which is also the shortest path to that state
-             * because we are conducting an uninformed breadth-first search.
-             */
+            // Initialize variables and insert the root node into our queue. We
+            // use Byte.MaxValue to symbolize that an entry in our heuristic
+            // table is uninitialized. The first time that we initialize an
+            // entry in the table is also the first time that we encounter the
+            // particular state, which is also the shortest path to that state
+            // because we are conducting an uninformed breadth-first search.
 
             m_vTable = new Byte[m_vPermutations[0] * (m_Problem.m_nLocations + 1)];
             for (int i = 0; i < m_vTable.Length; ++i)
@@ -200,14 +195,12 @@ namespace CPF_experiment
             {
                 for (ulong n = 0; n < c.m_nNodes; ++n)
                 {
-                    /*
-                     * Get the next node, generate its children and write the
-                     * children to the next queue file. I had previously
-                     * thought that since we are doing an uninformed breadth-
-                     * first search, the first time we generate a node we would
-                     * also have the shortest path to that node. Unfortunately,
-                     * for this particular domain, this is not true.
-                     */
+                    // Get the next node, generate its children and write the
+                    // children to the next queue file. I had previously
+                    // thought that since we are doing an uninformed breadth-
+                    // first search, the first time we generate a node we would
+                    // also have the shortest path to that node. Unfortunately,
+                    // for this particular domain, this is not true.
 
                     List<WorldState> vChildren = new List<WorldState>();
                     WorldState tws = (WorldState)c.m_bf.Deserialize(c.m_fsQueue);
@@ -219,21 +212,18 @@ namespace CPF_experiment
                     {
                         UInt32 nHash = hash(i);
 
-                        /**
-                         * We store only the difference in heuristic value
-                         * between the single agent shortest path heuristic and
-                         * our pattern database heuristic. The hope is that the
-                         * resulting value will always fit within the minimum
-                         * and maximum ranges of a single byte.
-                         */
+                        // We store only the difference in heuristic value
+                        // between the single agent shortest path heuristic and
+                        // our pattern database heuristic. The hope is that the
+                        // resulting value will always fit within the minimum
+                        // and maximum ranges of a single byte.
 
                         Byte nCandidateValue;
                         if (m_bOffsetFromSingleShortestPath)
                         {
                             int nSingleAgentShortestPath = 0;
                             foreach (var a in i.allAgentsState)
-                                nSingleAgentShortestPath +=
-                                    this.m_Problem.GetSingleAgentOptimalCost(a);
+                                nSingleAgentShortestPath += this.m_Problem.GetSingleAgentOptimalCost(a);
                             int nDifference = i.g - nSingleAgentShortestPath;
                             Debug.Assert(nDifference >= 0);
                             Debug.Assert(nDifference < Byte.MaxValue);
@@ -288,28 +278,22 @@ namespace CPF_experiment
         /// <returns>An index into the table of heuristic values.</returns>
         uint hash(WorldState s)
         {
-
-            /**
-             * This function works as follows. We have enumerated all of the
-             * empty locations in our grid from 0 up to
-             * (ProblemInstance.m_nLocations - 1). The first agent is allowed
-             * to be placed in any location. The second agent is allowed to be
-             * placed in any locations except for where the first one is
-             * placed, etc. This means that after placing the first agent, we
-             * must relabel all of the remaining empty locations from 0 up to
-             * (ProblemInstance.m_nLocations - 2), etc.
-             */
+            // This function works as follows. We have enumerated all of the
+            // empty locations in our grid from 0 up to
+            // (ProblemInstance.m_nLocations - 1). The first agent is allowed
+            // to be placed in any location. The second agent is allowed to be
+            // placed in any locations except for where the first one is
+            // placed, etc. This means that after placing the first agent, we
+            // must relabel all of the remaining empty locations from 0 up to
+            // (ProblemInstance.m_nLocations - 2), etc.
 
             UInt32 nHash = 0;
             for (int i = 0; i < m_vAgents.Count; ++i)
             {
-
-                /**
-                 * Compute the cardinality of the agent. That is, compute j
-                 * where the agent is in the jth empty location. This requires
-                 * us to keep figure out how many other agents have been placed
-                 * in positions previous to our current position.
-                 */
+                // Compute the cardinality of the agent. That is, compute j
+                // where the agent is in the jth empty location. This requires
+                // us to keep figure out how many other agents have been placed
+                // in positions previous to our current position.
 
                 Int32 nCard1 = m_Problem.GetCardinality(s.allAgentsState[m_vAgents[i]].lastMove);
                 Int32 nPreceding = 0;
@@ -322,7 +306,7 @@ namespace CPF_experiment
                 UInt32 nCardinality = (UInt32)(nCard1 - nPreceding);
                 nHash += nCardinality * (UInt32)m_vPermutations[i];
             }
-            return (nHash);
+            return nHash;
         }
 
 #if false

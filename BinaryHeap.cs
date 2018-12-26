@@ -253,10 +253,10 @@ namespace CPF_experiment
             return new BinaryHeap<Item>(_data, _count);
         }
 
-        /// <summary>
-        /// Gets an enumerator for the binary heap.
-        /// </summary>
-        /// <returns>An IEnumerator of type T.</returns>
+        //// <summary>
+        //// Gets an enumerator for the binary heap.
+        //// </summary>
+        //// <returns>An IEnumerator of type T.</returns>
         //public GetEnumerator()
         //{
         //    EnsureSort();

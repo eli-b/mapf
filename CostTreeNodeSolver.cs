@@ -158,7 +158,7 @@ namespace CPF_experiment
             if (obj == null)
                 return false;
             CostTreeNode check = (CostTreeNode)obj;
-            return this.costs.SequenceEqual<int>(check.costs);
+            return this.costs.SequenceEqual(check.costs);
         }
     }
 

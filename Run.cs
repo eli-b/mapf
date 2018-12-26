@@ -606,10 +606,8 @@ namespace CPF_experiment
         /// <returns></returns>
         public ProblemInstance GenerateProblemInstance(int gridSize, int agentsNum, int obstaclesNum)
         {
-            /**
-             * Randomization based on timer is disabled for purposes of getting
-             * reproducible experiments.
-             */
+            // Randomization based on timer is disabled for purposes of getting
+            // reproducible experiments.
             //Random rand = new Random();
             Debug.WriteLine($"Generating instance with {agentsNum} agents, {obstaclesNum} obstacles of size {gridSize}");
             if (agentsNum + obstaclesNum + 1 > gridSize * gridSize)

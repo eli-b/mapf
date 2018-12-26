@@ -76,7 +76,6 @@ namespace CPF_experiment
         /// For partial expansion
         /// </summary>
         public ExpansionState agentBExpansion;
-        //public ProblemInstance problem;
         protected ICbsSolver solver;
         protected ICbsSolver singleAgentSolver;
         public CBS_LocalConflicts cbs;
@@ -101,7 +100,8 @@ namespace CPF_experiment
         /// </summary>
         public Dictionary<int, MDD.LevelNarrowness>[] mddNarrownessValues;
 
-        public CbsNode(int numberOfAgents, ICbsSolver solver, ICbsSolver singleAgentSolver, CBS_LocalConflicts cbs, ushort[] agentsGroupAssignment = null)
+        public CbsNode(int numberOfAgents, ICbsSolver solver, ICbsSolver singleAgentSolver,
+            CBS_LocalConflicts cbs, ushort[] agentsGroupAssignment = null)
         {
             this.cbs = cbs;
             allSingleAgentPlans = new SinglePlan[numberOfAgents];
@@ -142,12 +142,12 @@ namespace CPF_experiment
         /// <param name="agentToReplan"></param>
         public CbsNode(CbsNode parent, CbsConstraint newConstraint, int agentToReplan)
         {
-            this.allSingleAgentPlans = parent.allSingleAgentPlans.ToArray<SinglePlan>();
-            this.allSingleAgentCosts = parent.allSingleAgentCosts.ToArray<int>();
-            this.mddNarrownessValues = parent.mddNarrownessValues.ToArray<Dictionary<int, MDD.LevelNarrowness>>();
+            this.allSingleAgentPlans = parent.allSingleAgentPlans.ToArray();
+            this.allSingleAgentCosts = parent.allSingleAgentCosts.ToArray();
+            this.mddNarrownessValues = parent.mddNarrownessValues.ToArray();
             this.mddNarrownessValues[agentToReplan] = null;  // This agent has a new constraint, its old MDD isn't relevant anymore.
 
-            this.countsOfInternalAgentsThatConflict = parent.countsOfInternalAgentsThatConflict.ToArray<int>();
+            this.countsOfInternalAgentsThatConflict = parent.countsOfInternalAgentsThatConflict.ToArray();
             this.conflictCountsPerAgent = new Dictionary<int, int>[parent.conflictCountsPerAgent.Length];
             for (int i = 0; i < this.conflictCountsPerAgent.Length; i++)
                 this.conflictCountsPerAgent[i] = new Dictionary<int, int>(parent.conflictCountsPerAgent[i]); // Need a separate copy because unlike plans, the conflict counts for agents that aren't replanned do change.
@@ -158,7 +158,7 @@ namespace CPF_experiment
                 foreach (var kvp in parent.conflictTimesPerAgent[i])
                     this.conflictTimesPerAgent[i][kvp.Key] = new List<int>(kvp.Value);
             }
-            this.agentsGroupAssignment = parent.agentsGroupAssignment.ToArray<ushort>();
+            this.agentsGroupAssignment = parent.agentsGroupAssignment.ToArray();
             this.agentNumToIndex = parent.agentNumToIndex;
             this.prev = parent;
             this.constraint = newConstraint;
@@ -180,9 +180,9 @@ namespace CPF_experiment
         /// <param name="mergeGroupB"></param>
         public CbsNode(CbsNode parent, int mergeGroupA, int mergeGroupB)
         {
-            this.allSingleAgentPlans = parent.allSingleAgentPlans.ToArray<SinglePlan>();
-            this.allSingleAgentCosts = parent.allSingleAgentCosts.ToArray<int>();
-            this.mddNarrownessValues = parent.mddNarrownessValues.ToArray<Dictionary<int, MDD.LevelNarrowness>>();  // No new constraint was added so all of the parent's MDDs are valid
+            this.allSingleAgentPlans = parent.allSingleAgentPlans.ToArray();
+            this.allSingleAgentCosts = parent.allSingleAgentCosts.ToArray();
+            this.mddNarrownessValues = parent.mddNarrownessValues.ToArray();  // No new constraint was added so all of the parent's MDDs are valid
             this.countsOfInternalAgentsThatConflict = parent.countsOfInternalAgentsThatConflict.ToArray<int>();
             this.conflictCountsPerAgent = new Dictionary<int, int>[parent.conflictCountsPerAgent.Length];
             for (int i = 0; i < this.conflictCountsPerAgent.Length; i++)
@@ -194,7 +194,7 @@ namespace CPF_experiment
                 foreach (var kvp in parent.conflictTimesPerAgent[i])
                     this.conflictTimesPerAgent[i][kvp.Key] = new List<int>(kvp.Value);
             }
-            this.agentsGroupAssignment = parent.agentsGroupAssignment.ToArray<ushort>();
+            this.agentsGroupAssignment = parent.agentsGroupAssignment.ToArray();
             this.agentNumToIndex = parent.agentNumToIndex;
             this.prev = parent;
             this.constraint = null;
@@ -1477,20 +1477,20 @@ namespace CPF_experiment
 
                 int depth = this.allSingleAgentCosts.Max();
 
-                IEnumerable<CbsConstraint> myConstraints = constraints.Where<CbsConstraint>(
+                IEnumerable<CbsConstraint> myConstraints = constraints.Where(
                     constraint => constraint.agentNum == problem.m_vAgents[agentIndex].agent.agentNum);
-                if (myConstraints.Count<CbsConstraint>() != 0)
+                if (myConstraints.Count() != 0)
                 {
-                    int maxConstraintTimeStep = myConstraints.Max<CbsConstraint>(constraint => constraint.time);
+                    int maxConstraintTimeStep = myConstraints.Max(constraint => constraint.time);
                     depth = Math.Max(depth, maxConstraintTimeStep); // Give all constraints a chance to affect the plan
                 }
                 if (mustConstraints != null)
                 {
-                    IEnumerable<CbsConstraint> myMustConstraints = mustConstraints.Where<CbsConstraint>(
+                    IEnumerable<CbsConstraint> myMustConstraints = mustConstraints.Where(
                         constraint => constraint.agentNum == problem.m_vAgents[agentIndex].agent.agentNum);
-                    if (myMustConstraints.Count<CbsConstraint>() != 0)
+                    if (myMustConstraints.Count() != 0)
                     {
-                        int maxMustConstraintTimeStep = myMustConstraints.Max<CbsConstraint>(constraint => constraint.time);
+                        int maxMustConstraintTimeStep = myMustConstraints.Max(constraint => constraint.time);
                         depth = Math.Max(depth, maxMustConstraintTimeStep); // Give all must constraints a chance to affect the plan
                     }
                 }
@@ -1557,8 +1557,8 @@ namespace CPF_experiment
             // We could just look for any of this agent's conflicts,
             // but the best choice among the agents it conflicts with is the one which maximizes the formula itself.
             IEnumerable<int> conflictsWithAgentNums = this.conflictCountsPerAgent[chosenAgentIndex].Keys;
-            IEnumerable<int> conflictsWithInternallyAgentNums = conflictsWithAgentNums.Where<int>(agentNum => this.agentNumToIndex.ContainsKey(agentNum));
-            IEnumerable<int> conflictsWithInternallyAgentIndices = conflictsWithInternallyAgentNums.Select<int, int>(agentNum => this.agentNumToIndex[agentNum]);
+            IEnumerable<int> conflictsWithInternallyAgentNums = conflictsWithAgentNums.Where(agentNum => this.agentNumToIndex.ContainsKey(agentNum));
+            IEnumerable<int> conflictsWithInternallyAgentIndices = conflictsWithInternallyAgentNums.Select(agentNum => this.agentNumToIndex[agentNum]);
             int chosenConflictingAgentIndex = conflictsWithInternallyAgentIndices.MaxByKeyFunc(formula);
 
             groupRepA = chosenAgentIndex;
@@ -1647,7 +1647,7 @@ namespace CPF_experiment
                 return false;
             CbsNode other = (CbsNode)obj;
 
-            if (this.agentsGroupAssignment.SequenceEqual<ushort>(other.agentsGroupAssignment) == false)
+            if (this.agentsGroupAssignment.SequenceEqual(other.agentsGroupAssignment) == false)
                 return false;
 
             CbsNode current = this;
@@ -1942,7 +1942,7 @@ namespace CPF_experiment
         /// <summary>
         /// A bit cheaper than GetGroup(n).Count. Still O(n).
         /// </summary>
-        /// <param name="groupNumber"></param>
+        /// <param name="agentIndex"></param>
         /// <returns></returns>
         public int GetGroupSize(int agentIndex)
         {
@@ -2010,6 +2010,7 @@ namespace CPF_experiment
         /// </summary>
         /// <param name="a">Index of first group representative</param>
         /// <param name="b">Index of second group representative</param>
+        /// <param name="fixCounts"></param>
         public void MergeGroups(int a, int b, bool fixCounts = true)
         {
             if (b < a)
