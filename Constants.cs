@@ -24,7 +24,7 @@ namespace CPF_experiment
         /// <summary>
         /// Prime numbers for hashing
         /// </summary>
-        public static readonly int[] PRIMES_FOR_HASHING = { 1, 2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 71, 73, 79 }; //22 numbers - 1 isn't prime!
+        public static readonly int[] PRIMES_FOR_HASHING = { 2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 71, 73, 79 }; // 21 numbers
         /// <summary>
         /// Max Consecutive failures before an algorithm is omitted from the list of tested algorithms
         /// </summary>
