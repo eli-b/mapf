@@ -84,12 +84,12 @@ namespace CPF_experiment
         }
 
         /// <summary>
-        /// all types of algorithms to be run
+        /// All types of algorithms to be run
         /// </summary>
         List<ISolver> solvers;
 
         /// <summary>
-        /// all types of heuristics used
+        /// All types of A* heuristics used
         /// </summary>
         public List<IHeuristicCalculator<WorldState>> astar_heuristics; // FIXME: Make unpublic again later
 
@@ -435,7 +435,7 @@ namespace CPF_experiment
             //solvers.Add(new CBS_LocalConflicts(astar_with_od, astar_with_od, 500));
             //solvers.Add(new CBS_GlobalConflicts(astar_with_od, astar_with_od, 500));
             */
-                        //solvers.Add(new ClassicAStar(simple, mStar: true)); // rM*! Works
+            //solvers.Add(new ClassicAStar(simple, mStar: true)); // rM*! Works
             //solvers.Add(new ClassicAStar(simple, mStar: true, mStarShuffle: true)); // rM* shuffle! Works
             //solvers.Add(new ClassicAStar(cbsHeuristic)); // A* with cbsHeuristic
             //solvers.Add(new AStarWithOD(simple));  // A* + OD
@@ -804,7 +804,7 @@ namespace CPF_experiment
         {
             //return; // add for generator
             // Preparing a list of agent indices (not agent nums) for the heuristics' Init() method
-            List<uint> agentList = Enumerable.Range(0, instance.m_vAgents.Length).Select<int, uint>(x=> (uint)x).ToList<uint>(); // FIXME: Must the heuristics really receive a list of uints?
+            List<uint> agentList = Enumerable.Range(0, instance.m_vAgents.Length).Select(x=> (uint)x).ToList(); // FIXME: Must the heuristics really receive a list of uints?
             
             // Solve using the different algorithms
             Console.WriteLine($"Solving {instance}");
@@ -1077,10 +1077,10 @@ namespace CPF_experiment
         public void StartOracle()
         {
             this.watch.Stop();
-            // NOTE: This allows the algorithm with the oracle to solve harder problems without timing out, getting
-            // a higher average timeout than running without the oracle, which isn't what we want.
-            // We need to start another counter when the oracle runs and when the run successfully finishes
-            // substract its count
+            // NOTE: This allows the algorithm with the oracle to solve harder problems without timing out.
+            // Care must be taken when comparing average runtimes of algorithms, to avoid the average
+            // runtime of algorithms with an oracle appearing longer since they managed to solve
+            // harder problems.
         }
 
         public void StopOracle()

@@ -8,6 +8,8 @@ namespace CPF_experiment
 {
     /// <summary>
     /// Supporting O(1) insertion and removal of items that compare equal to the top of the heap.
+    /// TODO: Compare against a bucketed implementation where all equal costs are bucketed in a queue,
+    ///       even though it might not respect all tie-breaking (but still prioritizes goal nodes).
     /// </summary>
     [DebuggerDisplay("Count = {Count}")]
     public class OpenList<Item> : IAccumulatingStatisticsCsvWriter where Item : IBinaryHeapItem
@@ -15,7 +17,7 @@ namespace CPF_experiment
         protected Queue<Item> queue;
         protected BinaryHeap<Item> heap;
         
-        protected ISolver user;
+        protected ISolver user;  // For updating its stats
         protected int quickInsertionCount;
         protected int accQuickInsertionCount;
 

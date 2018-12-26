@@ -7,12 +7,15 @@ using System.Diagnostics;
 namespace CPF_experiment
 {
     /// <summary>
-    /// Runs Silver's CA*.
+    /// Runs Silver's CA*. It doesn't find optimal solutions.
     /// </summary>
-    [Obsolete("Not maintained for about 2-3 months.")]
+    [Obsolete("Not maintained for a long time.")]
     class Silver 
     {
         Run runner;
+        /// <summary>
+        /// The Reservation Table
+        /// </summary>
         HashSet<TimedMove> RT;
         AgentState[] allAgentsState;
         Hashtable parked;

@@ -89,6 +89,7 @@ namespace CPF_experiment
             else // A vertex constraint is different to an edge constraint for the same agentNum and position.
                  // Must check the direction explicitly because vertex constraints have no direction and moves with no direction
                  // compare equal to moves with any direction
+                 // TODO: Get rid of all of this using Nathan's advice.
                 return this.move.Equals(other.move) && this.move.direction == other.move.direction; 
         }
 

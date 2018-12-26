@@ -31,6 +31,8 @@ namespace CPF_experiment
         public OpenList<CbsNode> openList;
         /// <summary>
         /// Might as well be a HashSet. We don't need to retrieve from it.
+        /// TODO: Consider a closedList for single agent paths under an unordered set of constraints.
+        ///       It would get more hits.
         /// </summary>
         public Dictionary<CbsNode, CbsNode> closedList;
         protected IHeuristicCalculator<CbsNode> heuristic;
@@ -1486,10 +1488,10 @@ namespace CPF_experiment
                 node.h = parentH;
                 // Take care of counts:
                 this.lookAheadNodesCreated += children.Count; // FIXME: This is a different kind of lookahead! Not looking at 
-                                                                // nodes in the subtree below the node to expand that have the
-                                                                // same cost and trying to find one with less conflicts,
-                                                                // this time, it's looking ahead at the immediate children
-                                                                // of a node to check if the conflict is cardinal.
+                                                              // nodes in the subtree below the node to expand that have the
+                                                              // same cost and trying to find one with less conflicts,
+                                                              // this time, it's looking ahead at the immediate children
+                                                              // of a node to check if the conflict is cardinal.
             }
 
             if (reinsertParent)
@@ -1630,6 +1632,7 @@ namespace CPF_experiment
             int planSize = node.allSingleAgentPlans[conflictingAgentIndex].GetSize();
             int groupSize = node.GetGroupSize(conflictingAgentIndex);
 
+            // Check if expansion should be deferred
             if (Constants.costFunction == Constants.CostFunction.SUM_OF_COSTS && // Otherwise adding a constraint to an agent at a time step after
                                                                                  // it reaches its goal doesn't necessarily increase the cost,
                                                                                  // so we're not allowed to defer expansion.
@@ -1670,6 +1673,8 @@ namespace CPF_experiment
             //    We're ignoring edge conflicts because they can only happen at the goal when reaching it,
             //    and aren't guaranteed to increase the cost because the goal can still be possibly reached from another edge.
             {
+                // Defer expansion. The conflict happens while the agent is at its goal - the cost will
+                // surely increase.
                 if (otherChildExpansionsState == CbsNode.ExpansionState.DEFERRED)
                         throw new Exception("Unexpected: Expansion of both children deffered, " +
                             "but this is a vertex conflict so that means the targets for the " +
@@ -1697,7 +1702,7 @@ namespace CPF_experiment
                     // Technically, we've already made sure above we're going to increase the node's h,
                     // This is just to make the line look correct without reading the complex if statement above.
                 }
-                this.partialExpansions++;
+                this.partialExpansions++;  // The other child was surely generated, so we can count a partial expansion here.
                 return (node, closedListHitChildCost: -1);
             }
             else if (expansionsState != CbsNode.ExpansionState.EXPANDED)

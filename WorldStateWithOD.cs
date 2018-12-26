@@ -3,7 +3,8 @@
 namespace CPF_experiment
 {
     /// <summary>
-    /// This class represents a state in the A* search with operator decomposition, as proposed by IndependenceDetection Scott Standley's AAAI paper in 2010.
+    /// This class represents a state in the A* search with operator decomposition,
+    /// as proposed by Scott Standley's AAAI paper in 2010.
     /// More specifically, states can represent a partial move, in which only some of the agents have moved
     /// and the other have not yet moved in this turn. 
     /// </summary>

@@ -1613,6 +1613,7 @@ namespace CPF_experiment
 
         /// <summary>
         /// Uses the group assignments and the constraints.
+        /// Irrelevant constraints stemming from conflicts between merged agents are ignored.
         /// </summary>
         /// <returns></returns>
         public override int GetHashCode()
@@ -1627,6 +1628,7 @@ namespace CPF_experiment
 
                 HashSet<CbsConstraint> constraints = this.GetConstraints();
 
+                // Add the hash codes for the contraints, ignoring their order
                 foreach (CbsConstraint constraint in constraints)
                 {
                     ans += constraint.GetHashCode();
@@ -1660,6 +1662,8 @@ namespace CPF_experiment
                     return false;
                 current = current.prev;
             }
+            // TODO: Consider replacing the above foreach with constraints.IsSubsetOf(other_constraints)
+
             return constraints.Count == other_constraints.Count;
         }
 
@@ -1785,7 +1789,7 @@ namespace CPF_experiment
             while (current.depth > 0) // The root has no constraints
             {
                 if (current.constraint != null && // Next check not enough if "surprise merges" happen (merges taken from adopted child)
-                    current.prev.conflict != null && // Can only happen for temporary lookahead nodes the were created and then later the parent adopted a goal node
+                    current.prev.conflict != null && // Can only happen for temporary lookahead nodes that were created and then later the parent adopted a goal node
                     this.agentsGroupAssignment[current.prev.conflict.agentAIndex] !=
                     this.agentsGroupAssignment[current.prev.conflict.agentBIndex]) // Ignore constraints that deal with conflicts between
                                                                                    // agents that were later merged. They're irrelevant
@@ -1842,13 +1846,13 @@ namespace CPF_experiment
         /// IBinaryHeapItem implementation
         /// </summary>
         /// <returns></returns>
-        public int GetIndexInHeap() { return binaryHeapIndex; }
+        public int GetIndexInHeap() { return this.binaryHeapIndex; }
 
         /// <summary>
         /// IBinaryHeapItem implementation
         /// </summary>
         /// <returns></returns>
-        public void SetIndexInHeap(int index) { binaryHeapIndex = index; }
+        public void SetIndexInHeap(int index) { this.binaryHeapIndex = index; }
 
         public Plan CalculateJointPlan()
         {
@@ -2113,7 +2117,7 @@ namespace CPF_experiment
 
         /// <summary>
         /// For CBS IDA* only.
-        /// Consider inheriting from CbsNode and overriding the Replan method instead.
+        /// TODO: Consider inheriting from CbsNode and overriding the Replan method instead.
         /// </summary>
         /// <param name="agentForReplan"></param>
         /// <param name="depthToReplan"></param>

@@ -79,7 +79,7 @@ namespace CPF_experiment
             this.expandedLL = 0;
             this.totalCost = Constants.TIMEOUT_COST;
             
-            // If there exists relevant previously solved subproblems - use their solution as a lower bound
+            // If there exist relevant previously solved subproblems - use their solution as a lower bound
             //if (problemInstance.parameters.ContainsKey(CostTreeSearch.PARENT_GROUP1_KEY))
             //{
             //    costA = ((AgentsGroup)(problemInstance.parameters[CostTreeSearch.PARENT_GROUP1_KEY])).solutionCost;
@@ -107,7 +107,8 @@ namespace CPF_experiment
             openList.Enqueue(new CostTreeNode(costs)); // The root
             this.initialEstimate = openList.Peek().costs.Sum();
 
-            // Store parameters used by IndependenceDetection's Independence Detection algorithm
+            // Store parameters used by the Independence Detection algorithm
+            // TODO: Just make an IIDSolver interface instead of passing parameters this way.
             if (problemInstance.parameters.ContainsKey(IndependenceDetection.MAXIMUM_COST_KEY))
                 this.maxCost = (int)problemInstance.parameters[IndependenceDetection.MAXIMUM_COST_KEY];
             else

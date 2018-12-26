@@ -436,8 +436,8 @@ namespace CPF_experiment
                 if (this.mstar == false && // Backpropagation can cause the root to be re-expanded after many more expensive nodes were expanded.
                     (Constants.costFunction == Constants.CostFunction.SUM_OF_COSTS || this.GetType() != typeof(AStarWithOD)) &&  // A*+OD on makespan can have final nodes with lower F than intermediate nodes because the move cost is
                                                                                                                                  // attributed to the first agent and its gains may show up in a later agent's h
-                    (this.openList is DynamicLazyOpenList<WorldState>) == false && // Lazy application of the heuristic can cause decreasing F values.
-                    (this.openList is DynamicRationalLazyOpenList) == false        // Note _lazy_, not _late_. When the open list has just one node, application of the heuristic is lazily skipped altogether.
+                    (this.openList is DynamicLazyOpenList<WorldState>) == false && // When the open list has just one node, application of the heuristic is skipped altogether.
+                    (this.openList is DynamicRationalLazyOpenList) == false        // This can cause decreasing F values.
                     )
                     Debug.Assert(currentNode.f >= lastF,
                                  $"A* node with decreasing F: {currentNode.f} < {lastF}.");
@@ -576,14 +576,15 @@ namespace CPF_experiment
                 {
                     int newParentH = maxChildH - deltaGOfChildWithMaxH;
                     parent.hBonus += newParentH - parent.h;
-                    parent.h = newParentH; // Good for partial expansion algs that reinsert the expanded node into the open list.
+                    parent.h = newParentH; // Also good for partial expansion algs that reinsert the expanded node into the open list
+                                           // (in addition to aiding the forward Path-Max).
                     ++bpmxBoosts;
+                    // FIXME: Code duplication with Forward Path-Max
                 }
                 // Forward Path-Max
                 foreach (var child in finalGeneratedNodes)
                 {
                     int deltaG = child.g - parent.g; // == (parent.g + c(parent, current)) - parent.g == c(parent, current)
-
                     if (child.h < parent.h - deltaG)
                     {
                         int newChildH = parent.h - deltaG;
@@ -978,10 +979,11 @@ namespace CPF_experiment
         }
 
         /// <summary>
-        /// Returns whether the node was inserted into the open list.
+        /// Checks for closed list hits and handles them, check the max cost, does book-keeping
+        /// of conflict counts, etc.
         /// </summary>
         /// <param name="currentNode"></param>
-        /// <returns></returns>
+        /// <returns>Returns whether the node was inserted into the open list.</returns>
         protected virtual bool ProcessGeneratedNode(WorldState currentNode)
         {
             if (currentNode.f <= this.maxSolutionCost)
@@ -1089,24 +1091,24 @@ namespace CPF_experiment
                         improvedHOfOldNode = true;
                     }
 
-                    ushort hackData = 0;
+                    // LOAD OPTIMIZATION HACK:
+                    // Work around the fact that a partially-expanded node implicitly has higher h, which isn't
+                    // copied to currentNode. We don't want currentNode.CompareTo(inClosedList) to be -1 just for this reason.
+                    ushort inClosedTargetDeltaFBackup = 0;
                     if (inClosedList.GetType() == typeof(WorldStateForPartialExpansion))
                     {
-                        // OPTIMIZATION HACK:
                         WorldStateForPartialExpansion inClosed = (WorldStateForPartialExpansion)inClosedList;
-                        hackData = inClosed.targetDeltaF;
+                        inClosedTargetDeltaFBackup = inClosed.targetDeltaF;
                         inClosed.targetDeltaF = 0;
-                        // This works around the fact that a partially-expanded node implicitly has higher h, which isn't
-                        // copied to currentNode. We don't want currentNode.CompareTo(inClosedList) to be -1 just for this reason.
                     }
 
-                    int compareVal = currentNode.CompareTo(inClosedList); 
+                    int compareVal = currentNode.CompareTo(inClosedList);
 
+                    // UNLOAD OPTIMIZATION HACK:
                     if (inClosedList.GetType() == typeof(WorldStateForPartialExpansion))
                     {
-                        // OPTIMIZATION HACK:
                         WorldStateForPartialExpansion inClosed = (WorldStateForPartialExpansion)inClosedList;
-                        inClosed.targetDeltaF = hackData;
+                        inClosed.targetDeltaF = inClosedTargetDeltaFBackup;
                     }
 
                     if (compareVal == -1 || // This node has smaller f, or preferred due to other consideration.

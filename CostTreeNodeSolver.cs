@@ -167,9 +167,13 @@ namespace CPF_experiment
     /// </summary>
     class CostTreeNodeSolverOldMatching : CostTreeNodeSolver
     {
+        /// <summary>
+        /// Currently the only supported values are 3 and non-3. This is equivalent to bool checkTriples.
+        /// </summary>
         int syncSize;
         public CostTreeNodeSolverOldMatching(ProblemInstance problem, Run runner) : base(problem, runner) {}
-        public CostTreeNodeSolverOldMatching(ProblemInstance problem, CostTreeNode costNode, Run runner, int syncSize) : base(problem, costNode, runner) { this.syncSize = syncSize; }
+        public CostTreeNodeSolverOldMatching(ProblemInstance problem, CostTreeNode costNode, Run runner, int syncSize)
+            : base(problem, costNode, runner) { this.syncSize = syncSize; }
         
         public void Setup(CostTreeNode costNode, int syncSize)
         {

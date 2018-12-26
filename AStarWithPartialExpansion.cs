@@ -78,6 +78,8 @@ namespace CPF_experiment
             //    node.h -= node.targetDeltaF; // This way we retain any BPMX or other h boosts, allowing the new targetDeltaF to fully add to the base h
             //    node.hBonus -= node.targetDeltaF;
             //}
+            // FIXME: Why is this commented out? It was the only use of wasAlreadyExpanded, so if
+            //        removing the above is correct, also remove wasAlreadyExpanded.
 
             node.targetDeltaF++; // This delta F was exhausted
             node.remainingDeltaF = node.targetDeltaF;

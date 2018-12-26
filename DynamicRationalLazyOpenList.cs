@@ -103,7 +103,7 @@ namespace CPF_experiment
                     break;
                 }
 
-                if (node.hBonus > 0) // Improving the h will be more difficult than usual
+                if (node.hBonus > 0) // Improving the h will be more difficult than usual - don't try
                 {
                     this.skips++; // TODO: Separate statistic?
                     break;
