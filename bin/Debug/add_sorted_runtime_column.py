@@ -6,7 +6,7 @@ input_path = sys.argv[1]
 input_filename = os.path.splitext(input_path)[0]
 output_path = input_filename + ' with analysis' + '.csv'
 
-reader = csv.DictReader(open(input_path, 'rb'))
+reader = csv.DictReader(open(input_path))
 
 runtime_fieldnames = [fieldname for fieldname in reader.fieldnames if fieldname.endswith('Runtime') and not fieldname.endswith('Average Runtime')]
 writer_fieldnames = reader.fieldnames

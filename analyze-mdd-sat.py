@@ -12,14 +12,14 @@ writer = csv.DictWriter(open('mdd-sat-dao.csv', 'wb'),
 writer.writeheader()
 for filename in glob.glob(r'C:\Users\Eli\Documents\Search\Guni\CPF-experiment\bin\Debug\mdd-sat dao\*'):
     try:
-        #print 'working on', filename
+        #print(f'working on {filename}')
         with open(filename) as f:
             output = f.read()
         seconds = float(output.split()[-1])
         cost = int(output.splitlines()[1].split(':')[1])
         success = cost != 0
         if seconds < 50 and not success:
-            print 'failed fast for {}'.format(filename)
+            print(f'failed fast for {filename}')
         rows = -1
         cols = -1
         obstacles = -1
@@ -41,9 +41,9 @@ for filename in glob.glob(r'C:\Users\Eli\Documents\Search\Guni\CPF-experiment\bi
             "mdd-sat Conflicts Bypassed With Adoption (HL)":-1, "mdd-sat Expanded (HL)":-1,
         })
     except (ValueError, IndexError), e:
-        print 'problem with {}: {}'.format(filename, e)
-        print 'content:', output
-        print "delete? (y/n)"
+        print('problem with {filename}: {e}')
+        print(f'content: {output}')
+        print("delete? (y/n)")
         x = raw_input()
         if x == 'y':
             os.unlink(filename)

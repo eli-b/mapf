@@ -22,7 +22,7 @@ if __name__ == '__main__':
         if not os.path.exists(filepath):
             return
         command = './solver_reLOC --output-file={1} --bgu-input={0} --cost-limit=65536 --layer-limit=65536 --makespan-limit=65536 --minisat-timeout=300 --total-timeout=300 --encoding=mdd > /dev/null'.format(filepath, output_path)
-        print 'running {}'.format(command)
+        print(f'running {command}')
         try:
             start = time.time()
             subprocess.check_call(command, shell=True)
