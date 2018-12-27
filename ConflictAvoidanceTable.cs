@@ -31,11 +31,10 @@ namespace CPF_experiment
             this.atGoalWaitsToTimeAndAgentNum.Add(goal, new Tuple<int, int>(planSize, plan.agentNum));
         }
 
-        // Summary:
-        //     Gets an enumerable collection that contains the keys in the read-only dictionary.
-        //
-        // Returns:
-        //     An enumerable collection that contains the keys in the read-only dictionary.
+        /// <summary>
+        /// Gets an enumerable collection that contains the keys in the read-only dictionary
+        /// </summary>
+        /// <returns>An enumerable collection that contains the keys in the read-only dictionary</returns>
         public IEnumerable<TimedMove> Keys
         {
             get
@@ -43,12 +42,11 @@ namespace CPF_experiment
                 throw new NotImplementedException(); // How would I know how many waits in the goal to return?
             }
         }
-        //
-        // Summary:
-        //     Gets an enumerable collection that contains the values in the read-only dictionary.
-        //
-        // Returns:
-        //     An enumerable collection that contains the values in the read-only dictionary.
+
+        /// <summary>
+        /// Gets an enumerable collection that contains the values in the read-only dictionary
+        /// </summary>
+        /// <returns>An enumerable collection that contains the values in the read-only dictionary</returns>
         public IEnumerable<List<int>> Values
         {
             get
@@ -60,22 +58,13 @@ namespace CPF_experiment
             }
         }
 
-        // Summary:
-        //     Gets the element that has the specified key in the read-only dictionary.
-        //
-        // Parameters:
-        //   key:
-        //     The key to locate.
-        //
-        // Returns:
-        //     The element that has the specified key in the read-only dictionary.
-        //
-        // Exceptions:
-        //   System.ArgumentNullException:
-        //     key is null.
-        //
-        //   System.Collections.Generic.KeyNotFoundException:
-        //     The property is retrieved and key is not found.
+        /// <summary>
+        /// Gets the element that has the specified key in the read-only dictionary.
+        /// </summary>
+        /// <param name="key">The key to locate</param>
+        /// <returns>The element that has the specified key in the read-only dictionary</returns>
+        /// <exception cref="System.ArgumentNullException">key is null</exception>
+        /// <exception cref="System.Collections.Generic.KeyNotFoundException">The property is retrieved and key is not found</exception>
         public List<int> this[TimedMove key]
         {
             get
@@ -110,21 +99,14 @@ namespace CPF_experiment
 
         private Move queryMove = new Move();
 
-        // Summary:
-        //     Determines whether the read-only dictionary contains an element that has
-        //     the specified key.
-        //
-        // Parameters:
-        //   key:
-        //     The key to locate.
-        //
-        // Returns:
-        //     true if the read-only dictionary contains an element that has the specified
-        //     key; otherwise, false.
-        //
-        // Exceptions:
-        //   System.ArgumentNullException:
-        //     key is null.
+        /// <summary>
+        /// Determines whether the read-only dictionary contains an element that has
+        ///  the specified key.
+        /// </summary>
+        /// <param name="key">The key to locate.</param>
+        /// <returns>true if the read-only dictionary contains an element that has the specified key;
+        /// otherwise, false.</returns>
+        /// <exception cref="System.ArgumentNullException">key is null</exception>
         public bool ContainsKey(TimedMove key)
         {
             if (this.timedMovesToAgentNumList.ContainsKey(key))
