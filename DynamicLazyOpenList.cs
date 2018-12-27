@@ -17,17 +17,16 @@ namespace CPF_experiment
     public class DynamicLazyOpenList<Item> : OpenList<Item> where Item: IBinaryHeapItem, IHeuristicSearchNode
     {
         public ILazyHeuristic<Item> expensive;
-        protected Run runner;
+        public Run runner;
         protected int lastF;
         protected int nodesPushedBack;
         protected int accNodesPushedBack;
         public bool debug;
 
-        public DynamicLazyOpenList(ISolver user, ILazyHeuristic<Item> expensive, Run runner)
+        public DynamicLazyOpenList(ISolver user, ILazyHeuristic<Item> expensive)
             : base(user)
         {
             this.expensive = expensive;
-            this.runner = runner;
             this.ClearStatistics();
             this.accNodesPushedBack = 0;
             this.debug = false;

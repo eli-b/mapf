@@ -35,7 +35,7 @@ namespace CPF_experiment
         ///       It would get more hits.
         /// </summary>
         public Dictionary<CbsNode, CbsNode> closedList;
-        protected IHeuristicCalculator<CbsNode> heuristic;
+        protected ILazyHeuristic<CbsNode> heuristic;
         protected int highLevelExpanded;
         protected int highLevelGenerated;
         protected int closedListHits;
@@ -173,7 +173,7 @@ namespace CPF_experiment
             if (heuristic == null)
                 this.openList = new OpenList<CbsNode>(this);
             else
-                this.openList = new DynamicLazyOpenList<CbsNode>(this, heuristic, runner);
+                this.openList = new DynamicLazyOpenList<CbsNode>(this, heuristic);
             this.mergeThreshold = mergeThreshold;
             this.solver = generalSolver;
             this.singleAgentSolver = singleAgentSolver;
@@ -207,6 +207,8 @@ namespace CPF_experiment
         {
             this.instance = problemInstance;
             this.runner = runner;
+            if (this.openList is DynamicLazyOpenList<CbsNode>)
+                ((DynamicLazyOpenList<CbsNode>)this.openList).runner = runner;
 
             this.ClearPrivateStatistics();
             this.solutionCost = 0;

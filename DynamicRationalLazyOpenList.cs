@@ -8,7 +8,7 @@ namespace CPF_experiment
 {
     public class DynamicRationalLazyOpenList : OpenList<WorldState>
     {
-        protected Run runner;
+        public Run runner;
         public IBoundedLazyHeuristic<WorldState> expensive;
         protected int lastF;
         protected int skips;
@@ -23,13 +23,12 @@ namespace CPF_experiment
         protected double accSumExpandTimes;
         protected int accNumExpands;
 
-        public DynamicRationalLazyOpenList(ISolver user, IBoundedLazyHeuristic<WorldState> expensive, Run runner)
+        public DynamicRationalLazyOpenList(ISolver user, IBoundedLazyHeuristic<WorldState> expensive)
             : base(user)
         {
             this.expensive = expensive;
             this.ClearPrivateStatistics();
             this.ClearPrivateAccumulatedStatistics();
-            this.runner = runner;
         }
 
         public override string GetName()
