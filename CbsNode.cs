@@ -383,7 +383,7 @@ namespace CPF_experiment
                 // and add the plans of all other agents to CAT
                 internalCAT = new ConflictAvoidanceTable();
                 subGroup = new List<AgentState>();
-                maxPlanSizeOfOtherAgents = this.allSingleAgentPlans.Max<SinglePlan>(plan => plan.GetSize());
+                maxPlanSizeOfOtherAgents = this.allSingleAgentPlans.Max(plan => plan.GetSize());
                 for (int i = 0; i < agentsGroupAssignment.Length; i++)
                 {
                     if (this.agentsGroupAssignment[i] == groupNum)
@@ -417,19 +417,20 @@ namespace CPF_experiment
             if (mustConstraints != null)
                 mustConstraints.Join(newMustConstraints);
 
-            Dictionary<int, int> subGroupAgentNums = subGroup.Select<AgentState, int>(state => state.agent.agentNum).ToDictionary<int, int>(num => num); // No need to call Distinct(). Each agent appears at most once
-            IEnumerable<CbsConstraint> myConstraints = constraints.Where<CbsConstraint>(constraint => subGroupAgentNums.ContainsKey(constraint.agentNum)); // TODO: Consider passing only myConstraints to the low level to speed things up.
-            if (myConstraints.Count<CbsConstraint>() != 0)
+            Dictionary<int, int> subGroupAgentNums = subGroup.Select(state => state.agent.agentNum).ToDictionary(num => num); // No need to call Distinct(). Each agent appears at most once
+
+            IEnumerable<CbsConstraint> myConstraints = constraints.Where(constraint => subGroupAgentNums.ContainsKey(constraint.agentNum)); // TODO: Consider passing only myConstraints to the low level to speed things up.
+            if (myConstraints.Count() != 0)
             {
-                int maxConstraintTimeStep = myConstraints.Max<CbsConstraint>(constraint => constraint.time);
+                int maxConstraintTimeStep = myConstraints.Max(constraint => constraint.time);
                 minPathTimeStep = Math.Max(minPathTimeStep, maxConstraintTimeStep); // Give all constraints a chance to affect the plan
             }
             if (mustConstraints != null)
             {
-                IEnumerable<CbsConstraint> myMustConstraints = mustConstraints.Where<CbsConstraint>(constraint => subGroupAgentNums.ContainsKey(constraint.agentNum));
-                if (myMustConstraints.Count<CbsConstraint>() != 0)
+                IEnumerable<CbsConstraint> myMustConstraints = mustConstraints.Where(constraint => subGroupAgentNums.ContainsKey(constraint.agentNum));
+                if (myMustConstraints.Count() != 0)
                 {
-                    int maxMustConstraintTimeStep = myMustConstraints.Max<CbsConstraint>(constraint => constraint.time);
+                    int maxMustConstraintTimeStep = myMustConstraints.Max(constraint => constraint.time);
                     minPathTimeStep = Math.Max(minPathTimeStep, maxMustConstraintTimeStep); // Give all must constraints a chance to affect the plan
                 }
             }
@@ -1838,7 +1839,6 @@ namespace CPF_experiment
                     constraints.Add(current.mustConstraint);
                 current = current.prev;
             }
-            //constraints.Sort(); // Why?
             return constraints;
         }
 

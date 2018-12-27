@@ -73,8 +73,8 @@ namespace CPF_experiment
         /// <param name="minCost"></param>
         public WorldState(AgentState[] allAgentsState, int minDepth = -1, int minCost = -1)
         {
-            this.allAgentsState = allAgentsState.ToArray<AgentState>();
-            this.makespan = allAgentsState.Max<AgentState>(state => state.lastMove.time); // We expect to only find at most two G values within the agent group
+            this.allAgentsState = allAgentsState.ToArray();
+            this.makespan = allAgentsState.Max(state => state.lastMove.time); // We expect to only find at most two G values within the agent group
             this.CalculateG(); // G not necessarily zero when solving a partially solved problem.
             this.potentialConflictsCount = 0;
             this.cbsInternalConflictsCount = 0;
