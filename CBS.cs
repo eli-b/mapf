@@ -42,7 +42,8 @@ namespace CPF_experiment
         protected int partialExpansions;
         protected int bypasses;
         protected int nodesExpandedWithGoalCost;
-        protected int lookAheadNodesCreated;
+        protected int bypassLookAheadNodesCreated;
+        protected int cardinalLookAheadNodesCreated;
         protected int conflictsBypassed;
         protected int cardinalConflictSplits;
         protected int semiCardinalConflictSplits;
@@ -59,7 +60,8 @@ namespace CPF_experiment
         protected int accPartialExpansions;
         protected int accBypasses;
         protected int accNodesExpandedWithGoalCost;
-        protected int accLookAheadNodesCreated;
+        protected int accBypassLookAheadNodesCreated;
+        protected int accCardinalLookAheadNodesCreated;
         protected int accConflictsBypassed;
         protected int accCardinalConflictSplits;
         protected int accSemiCardinalConflictSplits;
@@ -355,7 +357,8 @@ namespace CPF_experiment
             this.partialExpansions = 0;
             this.bypasses = 0;
             this.nodesExpandedWithGoalCost = 0;
-            this.lookAheadNodesCreated = 0;
+            this.bypassLookAheadNodesCreated = 0;
+            this.cardinalLookAheadNodesCreated = 0;
             this.conflictsBypassed = 0;
             this.cardinalConflictSplits = 0;
             this.semiCardinalConflictSplits = 0;
@@ -382,7 +385,9 @@ namespace CPF_experiment
             output.Write(Run.RESULTS_DELIMITER);
             output.Write(this.ToString() + " Nodes Expanded With Goal Cost (HL)");
             output.Write(Run.RESULTS_DELIMITER);
-            output.Write(this.ToString() + " Look Ahead Nodes Created (HL)");
+            output.Write(this.ToString() + " Bypass Look Ahead Nodes Created (HL)");
+            output.Write(Run.RESULTS_DELIMITER);
+            output.Write(this.ToString() + " Cardinal Look Ahead Nodes Created (HL)");
             output.Write(Run.RESULTS_DELIMITER);
             output.Write(this.ToString() + " Conflicts Bypassed With Adoption (HL)");
             output.Write(Run.RESULTS_DELIMITER);
@@ -420,7 +425,8 @@ namespace CPF_experiment
             Console.WriteLine("Partial Expansions (High-Level): {0}", this.partialExpansions);
             Console.WriteLine("Adoptions (High-Level): {0}", this.bypasses);
             Console.WriteLine("Nodes expanded with goal cost (High-Level): {0}", this.nodesExpandedWithGoalCost);
-            Console.WriteLine("Look ahead nodes created (High-Level): {0}", this.lookAheadNodesCreated);
+            Console.WriteLine("Bypass lookahead nodes created (High-Level): {0}", this.bypassLookAheadNodesCreated);
+            Console.WriteLine("Cardinal lookahead nodes created (High-Level): {0}", this.cardinalLookAheadNodesCreated);
             Console.WriteLine("Conflicts Bypassed With Adoption (High-Level): {0}", this.conflictsBypassed);
             Console.WriteLine("Cardinal Conflicts Splits (High-Level): {0}", this.cardinalConflictSplits);
             Console.WriteLine("Semi-Cardinal Conflicts Splits (High-Level): {0}", this.semiCardinalConflictSplits);
@@ -438,7 +444,8 @@ namespace CPF_experiment
             output.Write(this.partialExpansions + Run.RESULTS_DELIMITER);
             output.Write(this.bypasses + Run.RESULTS_DELIMITER);
             output.Write(this.nodesExpandedWithGoalCost + Run.RESULTS_DELIMITER);
-            output.Write(this.lookAheadNodesCreated + Run.RESULTS_DELIMITER);
+            output.Write(this.bypassLookAheadNodesCreated + Run.RESULTS_DELIMITER);
+            output.Write(this.cardinalLookAheadNodesCreated + Run.RESULTS_DELIMITER);
             output.Write(this.conflictsBypassed + Run.RESULTS_DELIMITER);
             output.Write(this.cardinalConflictSplits + Run.RESULTS_DELIMITER);
             output.Write(this.semiCardinalConflictSplits + Run.RESULTS_DELIMITER);
@@ -464,7 +471,7 @@ namespace CPF_experiment
                 int numSolverStats = this.solver.NumStatsColumns;
                 if (Object.ReferenceEquals(this.singleAgentSolver, this.solver) == false)
                     numSolverStats += this.singleAgentSolver.NumStatsColumns;
-                return 17 + numSolverStats + this.openList.NumStatsColumns;
+                return 18 + numSolverStats + this.openList.NumStatsColumns;
             }
         }
 
@@ -488,7 +495,8 @@ namespace CPF_experiment
             this.accPartialExpansions = 0;
             this.accBypasses = 0;
             this.accNodesExpandedWithGoalCost = 0;
-            this.accLookAheadNodesCreated = 0;
+            this.accBypassLookAheadNodesCreated = 0;
+            this.accCardinalLookAheadNodesCreated = 0;
             this.accConflictsBypassed = 0;
             this.accCardinalConflictSplits = 0;
             this.accSemiCardinalConflictSplits = 0;
@@ -515,7 +523,8 @@ namespace CPF_experiment
             this.accPartialExpansions += this.partialExpansions;
             this.accBypasses += this.bypasses;
             this.accNodesExpandedWithGoalCost += this.nodesExpandedWithGoalCost;
-            this.accLookAheadNodesCreated += this.lookAheadNodesCreated;
+            this.accBypassLookAheadNodesCreated += this.bypassLookAheadNodesCreated;
+            this.accCardinalLookAheadNodesCreated += this.cardinalLookAheadNodesCreated;
             this.accConflictsBypassed += this.conflictsBypassed;
             this.accCardinalConflictSplits += this.cardinalConflictSplits;
             this.accSemiCardinalConflictSplits += this.semiCardinalConflictSplits;
@@ -558,7 +567,8 @@ namespace CPF_experiment
             output.Write(this.accPartialExpansions + Run.RESULTS_DELIMITER);
             output.Write(this.accBypasses + Run.RESULTS_DELIMITER);
             output.Write(this.accNodesExpandedWithGoalCost + Run.RESULTS_DELIMITER);
-            output.Write(this.accLookAheadNodesCreated + Run.RESULTS_DELIMITER);
+            output.Write(this.accBypassLookAheadNodesCreated + Run.RESULTS_DELIMITER);
+            output.Write(this.accCardinalLookAheadNodesCreated + Run.RESULTS_DELIMITER);
             output.Write(this.accConflictsBypassed + Run.RESULTS_DELIMITER);
             output.Write(this.accCardinalConflictSplits + Run.RESULTS_DELIMITER);
             output.Write(this.accSemiCardinalConflictSplits + Run.RESULTS_DELIMITER);
@@ -1130,8 +1140,8 @@ namespace CPF_experiment
 
                         if (adopted == true)
                         {
-                            this.lookAheadNodesCreated += lookAheadChildren.Count + 1; // Either 1, if the first child was adopted, or 2 otherwise. +1 for the node itself before it adopted another solution.
-                            this.cardinalConflictSplits = origCardinalConflictSplits;
+                            this.bypassLookAheadNodesCreated += lookAheadChildren.Count + 1; // Either 1, if the first child was adopted, or 2 otherwise. +1 for the node itself before it adopted another solution.
+                            this.cardinalConflictSplits = origCardinalConflictSplits;  // No split was done
                             this.semiCardinalConflictSplits = origSemiCardinalConflictSplits;
                             this.nonCardinalConflictSplits = origNonCardinalConflictSplits;
                             break; // Insert children into open list
@@ -1142,7 +1152,7 @@ namespace CPF_experiment
 
                         foreach (var child in lookAheadChildren)
                         {
-                            this.lookAheadNodesCreated++;
+                            this.bypassLookAheadNodesCreated++;
                             this.closedList.Add(child, child); // Temporarily! Just so look ahead expansion can use this data
                             if (child.g == node.g)
                             {
@@ -1197,7 +1207,7 @@ namespace CPF_experiment
                         }
                         foreach (CbsNode lookAheadNode in lookAheadLargerCostNodes)
                             this.closedList.Remove(lookAheadNode); // Just so they'll be inserted into the open list at the end of the method
-                        this.lookAheadNodesCreated -= lookAheadSameCostNodes.Count + lookAheadLargerCostNodes.Count; // None of these nodes weren't wasted effort, they were properly generated
+                        this.bypassLookAheadNodesCreated -= lookAheadSameCostNodes.Count + lookAheadLargerCostNodes.Count; // None of these nodes weren't wasted effort, they were properly generated
                         this.highLevelGenerated += lookAheadSameCostNodes.Count
                                                    - lookAheadSameCostNodesToReinsertWithHigherCost.Count
                                                    - unexpandedSameCostNodes; // You could say they were generated and not looked ahead at, and they won't be counted later.
@@ -1252,7 +1262,7 @@ namespace CPF_experiment
 
                     foreach (var child in lookAheadChildren)
                     {
-                        this.lookAheadNodesCreated++;
+                        this.bypassLookAheadNodesCreated++;
                         this.closedList.Add(child, child); // Temporarily! Just so look ahead expansion can use this data
                         if (child.g == node.g)
                         {
@@ -1350,7 +1360,7 @@ namespace CPF_experiment
                     }
                     foreach (CbsNode lookAheadNode in lookAheadLargerCostNodes)
                         this.closedList.Remove(lookAheadNode); // Just so they'll be inserted into the open list at the end of the method
-                    this.lookAheadNodesCreated -= lookAheadSameCostNodes.Count + lookAheadLargerCostNodes.Count; // These nodes weren't wasted effort
+                    this.bypassLookAheadNodesCreated -= lookAheadSameCostNodes.Count + lookAheadLargerCostNodes.Count; // These nodes weren't wasted effort
                     this.highLevelGenerated += lookAheadSameCostNodes.Count - lookAheadSameCostNodesToReinsertWithHigherCost.Count - unexpandedSameCostNodes; // You could say they were generated and not looked ahead at, and they won't be counted later.
                     this.highLevelExpanded += lookAheadSameCostNodes.Count - unexpandedSameCostNodes;
                 }
@@ -1425,7 +1435,7 @@ namespace CPF_experiment
                         adoptionPerformedBefore = true;
                         this.bypasses++; // Only count one adoption for the entire look ahead subtree branch traversed.
                     }
-                    this.lookAheadNodesCreated += children.Count + 1; // Either 1, if the first child was adopted, or 2 otherwise. +1 for the node itself before it adopted another solution.
+                    this.bypassLookAheadNodesCreated += children.Count + 1; // Either 1, if the first child was adopted, or 2 otherwise, +1 because the adopted child isn't returned.
                     this.cardinalConflictSplits = origCardinalConflictSplits;
                     this.semiCardinalConflictSplits = origSemiCardinalConflictSplits;
                     this.nonCardinalConflictSplits = origNonCardinalConflictSplits;
@@ -1489,11 +1499,7 @@ namespace CPF_experiment
                 node.agentBExpansion = CbsNode.ExpansionState.NOT_EXPANDED;
                 node.h = parentH;
                 // Take care of counts:
-                this.lookAheadNodesCreated += children.Count; // FIXME: This is a different kind of lookahead! Not looking at 
-                                                              // nodes in the subtree below the node to expand that have the
-                                                              // same cost and trying to find one with less conflicts,
-                                                              // this time, it's looking ahead at the immediate children
-                                                              // of a node to check if the conflict is cardinal.
+                this.cardinalLookAheadNodesCreated += children.Count;
             }
 
             if (reinsertParent)
