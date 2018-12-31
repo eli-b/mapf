@@ -1732,18 +1732,12 @@ namespace CPF_experiment
             return this.CompareToIgnoreH(other);
         }
 
-        public int CompareToIgnoreH(CbsNode other, bool ignorePartialExpansion = false)
+        public int CompareToIgnoreH(CbsNode other, bool ignorePartialExpansion = false, bool ignoreDepth = false)
         {
             // Tie breaking:
 
-            // Prefer larger cost - higher h usually means more work needs to be done
-            if (this.g > other.g)
-                return -1;
-            if (this.g < other.g)
-                return 1;
-
-            // Prefer less external conflicts, even over goal nodes, as goal nodes with less external conflicts are better.
-            // External conflicts are also taken into account by the low level solver to prefer less conflicts between fewer agents.
+            // Prefer fewer external conflicts, even over goal nodes, as goal nodes with less external conflicts are better.
+            // External conflicts are also taken into account by the low level solver to prefer fewer conflicts between fewer agents.
             // This only helps when this CBS is used as a low level solver, of course.
             if (this.totalConflictsWithExternalAgents < other.totalConflictsWithExternalAgents)
                 return -1;
@@ -1761,6 +1755,14 @@ namespace CPF_experiment
             if (other.GoalTest() == true && this.GoalTest() == false)
                 return 1;
 
+            // Prefer larger cost? Higher h means more work needs to be done, but lower h sometimes
+            // means work needs to be done to discover dependencies between agents which would then
+            // increase the h
+            //if (this.g > other.g)
+            //    return -1;
+            //if (this.g < other.g)
+            //    return 1;
+
             // Prefer nodes which would possibly require less work.
             // Remember replans and merges don't necessarily enlarge the total cost, so the number of operations needed to solve
             // sadly can't be added to the node's total cost.
@@ -1772,10 +1774,7 @@ namespace CPF_experiment
                     return 1;
             }
 
-            // Not preferring more depth because it makes no sense. It's not like preferring larger g,
-            // which is smart because that part of the cost isn't an estimate.
-
-            // Prefer less internal conflicts if the minOpsToSolve is the same
+            // Prefer fewer internal conflicts if the minOpsToSolve is the same
             if (this.totalConflictsBetweenInternalAgents < other.totalConflictsBetweenInternalAgents)
                 return -1;
             if (this.totalConflictsBetweenInternalAgents > other.totalConflictsBetweenInternalAgents)
@@ -1785,6 +1784,17 @@ namespace CPF_experiment
                 return -1;
             if (this.totalInternalAgentsThatConflict > other.totalInternalAgentsThatConflict)
                 return 1;
+
+            // If same number of internal conflicts and agents that conflict - prefer more depth.
+            // More work was done on deeper nodes, so they're more probable to either finally resolve
+            // a dependency between agents or find a cardinal conflict
+            if (ignoreDepth == false)
+            {
+                if (this.depth > other.depth)
+                    return -1;
+                if (this.depth < other.depth)
+                    return 1;
+            }
 
             if (ignorePartialExpansion == false)
             {

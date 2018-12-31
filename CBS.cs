@@ -1789,7 +1789,7 @@ namespace CPF_experiment
             Debug.WriteLine($"Considering adoption of node hash: {adoptionCandidate.GetHashCode()}.");
 
             if (adoptionCandidate.g == node.g && // No need to branch :)
-                adoptionCandidate.CompareToIgnoreH(node, true) == -1
+                adoptionCandidate.CompareToIgnoreH(node, ignorePartialExpansion: true, ignoreDepth: true) == -1
                )
             {
                 this.conflictsBypassed += node.totalConflictsWithExternalAgents + node.totalConflictsBetweenInternalAgents
