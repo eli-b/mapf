@@ -804,7 +804,6 @@ namespace CPF_experiment
         public void ClearConflictChoiceData()
         {
             this.nextConflicts = null;
-            this.mddNarrownessValues = null;
         }
 
         /// <summary>
@@ -1457,8 +1456,36 @@ namespace CPF_experiment
         {
             if (this.mddNarrownessValues[agentIndex] == null)
             {
-                Debug.WriteLine($"Building MDD for agent index {agentIndex}");
+                // Check if an ancestor has an appropriate one already.
+                // If so, copy it down the CT branch to this node.
+                CbsNode node = this;
+                CbsNode ancestorWithAppropriateMdd = null;
+                while (node != null)
+                {
+                    if (node.mddNarrownessValues[agentIndex] != null)
+                    {
+                        ancestorWithAppropriateMdd = node;
+                        break;
+                    }
+                    if (node.constraint != null &&
+                        this.agentNumToIndex[node.constraint.agentNum] == agentIndex)
+                        break;  // This is where the last contraint on the agent was added.
+                                // Ancestors will have inappropriate MDDs for this agent - no need to check them.
+                    node = node.prev;
+                }
+                if (ancestorWithAppropriateMdd != null)
+                {
+                    node = this;
+                    while (node != ancestorWithAppropriateMdd)
+                    {
+                        node.mddNarrownessValues[agentIndex] = ancestorWithAppropriateMdd.mddNarrownessValues[agentIndex];
+                        node = node.prev;
+                    }
+                    return false;
+                }
 
+                // Build the MDD
+                Debug.WriteLine($"Building MDD for agent index {agentIndex}");
                 // TODO: Code dup with Replan, Solve
                 ProblemInstance problem = this.cbs.GetProblemInstance();
                 HashSet<CbsConstraint> newConstraints = this.GetConstraints();
@@ -1506,6 +1533,18 @@ namespace CPF_experiment
                     mustConstraints.Separate(newMustConstraints);
 
                 this.cbs.mddsBuilt++;
+
+                // Copy the MDD up to ancestors where appropriate
+                node = this;
+                while (node != null)
+                {
+                    node.mddNarrownessValues[agentIndex] = this.mddNarrownessValues[agentIndex];
+                    if (node.constraint != null &&
+                        this.agentNumToIndex[node.constraint.agentNum] == agentIndex)
+                        break;  // This is where the last contraint on the agent was added.
+                                // Ancestors will have inappropriate MDDs for this agent - no need to check them.
+                    node = node.prev;
+                }
 
                 return true;
             }
@@ -1675,7 +1714,6 @@ namespace CPF_experiment
         {
             this.allSingleAgentPlans = null;
             this.allSingleAgentCosts = null;
-            this.mddNarrownessValues = null;
             this.countsOfInternalAgentsThatConflict = null;
             this.conflictCountsPerAgent = null;
             this.conflictTimesPerAgent = null;
