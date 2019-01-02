@@ -2,19 +2,24 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Diagnostics;
 
 namespace CPF_experiment
 {
     class MvcHeuristicForCbs : ILazyHeuristic<CbsNode>
     {
-        protected int targetTooHigh;
-        protected int accTargetTooHigh;
+        protected int targetClearlyTooHigh;
+        protected int targetReached;
+        protected int targetNotReached;
+        protected int accTargetClearlyTooHigh;
+        protected int accTargetReached;
+        protected int accTargetNotReached;
 
         public int NumStatsColumns
         {
             get
             {
-                return 1;
+                return 3;
             }
         }
 
@@ -25,17 +30,23 @@ namespace CPF_experiment
 
         public void AccumulateStatistics()
         {
-            this.accTargetTooHigh += this.targetTooHigh;
+            this.accTargetClearlyTooHigh += this.targetClearlyTooHigh;
+            this.accTargetReached += this.targetReached;
+            this.accTargetNotReached += this.targetNotReached;
         }
 
         public void ClearAccumulatedStatistics()
         {
-            this.accTargetTooHigh = 0;
+            this.accTargetClearlyTooHigh = 0;
+            this.accTargetReached = 0;
+            this.accTargetNotReached = 0;
         }
 
         public void ClearStatistics()
         {
-            this.targetTooHigh = 0;
+            this.targetClearlyTooHigh = 0;
+            this.targetReached = 0;
+            this.targetNotReached = 0;
         }
 
         /// <summary>
@@ -45,43 +56,7 @@ namespace CPF_experiment
         /// <returns></returns>
         public uint h(CbsNode s)
         {
-            s.buildAllMDDs();
-
-            ConflictGraph CardinallyConflictingAgents = new ConflictGraph(s.allSingleAgentPlans.Length);
-            ISet<int>[] groups = s.GetGroups();
-
-            // Populate the cardinal conflict graph
-            foreach (var agentIndex in Enumerable.Range(0, s.allSingleAgentPlans.Length))
-            {
-                if (s.conflictTimesPerAgent[agentIndex].Count == 0)
-                    continue;  // Agent has no conflicts
-
-                foreach (int conflictingAgentNum in s.conflictTimesPerAgent[agentIndex].Keys)
-                {
-                    int conflictingAgentIndex = s.agentNumToIndex[conflictingAgentNum];
-                    if (conflictingAgentIndex < agentIndex) // check later
-                        continue;
-
-                    foreach (int conflictTime in s.conflictTimesPerAgent[agentIndex][conflictingAgentNum])
-                    {
-                        bool iNarrow = s.DoesAgentHaveNoOtherOption(agentIndex, conflictTime, conflictingAgentIndex, groups);
-                        bool jNarrow = s.DoesAgentHaveNoOtherOption(conflictingAgentIndex, conflictTime, agentIndex, groups);
-                        if (iNarrow && jNarrow) // Cardinal conflict
-                            CardinallyConflictingAgents.Add(agentIndex, conflictingAgentIndex);
-                    }
-                }
-            }
-
-            if (s.prev == null)
-                s.minimumVertexCover = CardinallyConflictingAgents.MinimumVertexCover();
-            else
-                s.minimumVertexCover = CardinallyConflictingAgents.MinimumVertexCover(s.prev.minimumVertexCover);
-            if (s.h < s.minimumVertexCover)
-            {
-                s.hBonus = s.minimumVertexCover - s.h;
-                s.h = s.minimumVertexCover;
-            }
-            return (uint)s.h;
+            return this.h(s, int.MaxValue);
         }
 
         /// <summary>
@@ -92,14 +67,83 @@ namespace CPF_experiment
         /// <returns></returns>
         public uint h(CbsNode s, int target)
         {
-            if (s.prev != null && target > s.prev.minimumVertexCover + 1)
+            Debug.WriteLine($"Computing heuristic estimate for node hash {s.GetHashCode()}");
+            if (target != int.MaxValue &&
+                (
+                (s.prev != null && s.prev.minimumVertexCover != (int) ConflictGraph.MinVertexCover.NOT_SET && 
+                                                                       target > s.prev.minimumVertexCover + 1) ||
+                (target > s.totalInternalAgentsThatConflict))
+                )
             {
-                this.targetTooHigh++;
+                Debug.WriteLine($"Target estimate {target} was too high!");
+                this.targetClearlyTooHigh++;
                 return 0;  // We can't give a higher estimate than the size of the parent's MVC + 1,
+                           // or the max number of vertices in this agent's conflict graph
                            // see comments in ConflictGraph.MinimumVertexCover for details.
                            // 0 just signals we couldn't raise the h enough.
             }
-            return this.h(s);
+
+            ConflictGraph CardinallyConflictingAgents = new ConflictGraph(s.allSingleAgentPlans.Length);
+            ISet<int>[] groups = s.GetGroups();
+
+            // Populate the cardinal conflict graph
+            foreach (var agentIndex in Enumerable.Range(0, s.allSingleAgentPlans.Length))
+            {
+                if (s.conflictTimesPerAgent[agentIndex].Count == 0)
+                    continue;  // Agent has no conflicts
+                bool hasMdd = s.mddNarrownessValues[agentIndex] != null;
+
+                foreach (int conflictingAgentNum in s.conflictTimesPerAgent[agentIndex].Keys)
+                {
+                    int conflictingAgentIndex = s.agentNumToIndex[conflictingAgentNum];
+                    if (conflictingAgentIndex < agentIndex) // check later
+                        continue;
+                    bool otherHasMdd = s.mddNarrownessValues[conflictingAgentIndex] != null;
+
+                    foreach (int conflictTime in s.conflictTimesPerAgent[agentIndex][conflictingAgentNum])
+                    {
+                        if (otherHasMdd == false || s.DoesAgentHaveNoOtherOption(conflictingAgentIndex, conflictTime, agentIndex, groups))  // Other agent's MDD is narrow at this timestep.
+                        {
+                            s.buildMddForAgentWithItsCurrentCost(agentIndex);
+                            hasMdd = true;
+                        }
+                        else
+                            continue;
+                        bool iNarrow = s.DoesAgentHaveNoOtherOption(agentIndex, conflictTime, conflictingAgentIndex, groups);
+                        if (iNarrow == false)
+                            continue;
+                        if (otherHasMdd == false)
+                        {
+                            s.buildMddForAgentWithItsCurrentCost(conflictingAgentIndex);
+                            otherHasMdd = true;
+                        }
+                        bool jNarrow = s.DoesAgentHaveNoOtherOption(conflictingAgentIndex, conflictTime, agentIndex, groups);
+                        if (jNarrow) // Cardinal conflict - both agent's MDDs are narrow at this timestep.
+                            CardinallyConflictingAgents.Add(agentIndex, conflictingAgentIndex);
+                    }
+                }
+            }
+
+            if (s.prev == null || s.prev.minimumVertexCover == (int) ConflictGraph.MinVertexCover.NOT_SET)
+                s.minimumVertexCover = CardinallyConflictingAgents.MinimumVertexCover();
+            else
+                s.minimumVertexCover = CardinallyConflictingAgents.MinimumVertexCover(s.prev.minimumVertexCover);
+
+            if (target != int.MaxValue)
+            {
+                if (s.minimumVertexCover >= target)
+                {
+                    Debug.WriteLine($"Target estimate {target} reached");
+                    this.targetReached++;
+                }
+                else
+                {
+                    Debug.WriteLine($"Target estimate {target} not reached");
+                    this.targetNotReached++;
+                }
+            }
+
+            return (uint)s.minimumVertexCover;
         }
 
         public void init(ProblemInstance pi, List<uint> vAgents)
@@ -110,23 +154,35 @@ namespace CPF_experiment
         public void OutputAccumulatedStatistics(TextWriter output)
         {
             string name = this.GetName();
-            Console.WriteLine($"{name} Accumulated Times Target Estimate Was Too High (High-Level): {this.accTargetTooHigh}");
+            Console.WriteLine($"{name} Accumulated Times Target Estimate Was Clearly Too High: {this.accTargetClearlyTooHigh}");
+            Console.WriteLine($"{name} Accumulated Times Target Estimate Was Reached: {this.accTargetReached}");
+            Console.WriteLine($"{name} Accumulated Times Target Estimate Was Not Reached: {this.accTargetNotReached}");
 
-            output.Write(this.accTargetTooHigh + Run.RESULTS_DELIMITER);
+            output.Write(this.accTargetClearlyTooHigh + Run.RESULTS_DELIMITER);
+            output.Write(this.accTargetReached + Run.RESULTS_DELIMITER);
+            output.Write(this.accTargetNotReached + Run.RESULTS_DELIMITER);
         }
 
         public void OutputStatistics(TextWriter output)
         {
             string name = this.GetName();
-            Console.WriteLine($"{name} Times Target Estimate was Too High (High-Level): {this.targetTooHigh}");
+            Console.WriteLine($"{name} times target estimate was clearly too high: {this.targetClearlyTooHigh}");
+            Console.WriteLine($"{name} times target estimate was reached: {this.targetReached}");
+            Console.WriteLine($"{name} times target estimate was not reached: {this.targetNotReached}");
 
-            output.Write(this.targetTooHigh + Run.RESULTS_DELIMITER);
+            output.Write(this.targetClearlyTooHigh + Run.RESULTS_DELIMITER);
+            output.Write(this.targetReached + Run.RESULTS_DELIMITER);
+            output.Write(this.targetNotReached + Run.RESULTS_DELIMITER);
         }
 
         public void OutputStatisticsHeader(TextWriter output)
         {
             string name = this.GetName();
             output.Write($"{name} Times Target Estimate Was Too High");
+            output.Write(Run.RESULTS_DELIMITER);
+            output.Write($"{name} Times Target Estimate Was Reached");
+            output.Write(Run.RESULTS_DELIMITER);
+            output.Write($"{name} Times Target Estimate Was Not Reached");
             output.Write(Run.RESULTS_DELIMITER);
         }
     }
