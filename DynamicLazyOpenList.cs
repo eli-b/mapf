@@ -48,6 +48,7 @@ namespace CPF_experiment
             if (base.Count < 2)
             {
                 // No need to run the expensive heuristic - it can't push back a node over another.
+                Debug.WriteLine("Fewer than 2 nodes in the open list - not applying the heuristic");
                 node = base.Remove(); // Throws if Count == 0
                 this.lastF = node.f;
                 return node;
