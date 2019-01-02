@@ -271,7 +271,7 @@ namespace CPF_experiment
 
             bool success = true;
 
-            int maxPlanSize = 0;
+            int maxPlanSize = -1;
             for (int i = 0; i < problem.m_vAgents.Length; i++)
             {
                 if (this.agentsGroupAssignment[i] != i) // This isn't the first agent in its group - we've already solved its group.
@@ -362,7 +362,7 @@ namespace CPF_experiment
         /// <param name="subGroup">If given, assume CAT is already populated and use this subGroup</param>
         /// <param name="maxPlanSizeOfOtherAgents">
         /// Internal optimization parameter indicating the max timestep to check for in-goal conflicts.
-        /// If given, the value is used instead of computing it.
+        /// If subGroup is given, this value is used instead of computing it.
         /// </param>
         /// <param name="minPathCost"></param>
         /// <returns>Whether a path was successfully found</returns>
