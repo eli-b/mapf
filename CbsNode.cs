@@ -2282,18 +2282,13 @@ namespace CPF_experiment
     /// </summary>
     public class AgentToCheckForCardinalConflicts : IBinaryHeapItem
     {
-        //public bool hasMDD;
-        //int conflictingAgentsWithMDD;
         int groupSize;
         int degree;
         int planCost;
         public int index;
 
-        public AgentToCheckForCardinalConflicts(/*bool hasMDD, int conflictingAgentsWithMDD,*/ int groupSize, int degree,
-                                                int planCost, int index)
+        public AgentToCheckForCardinalConflicts(int groupSize, int degree, int planCost, int index)
         {
-            //this.hasMDD = hasMDD;
-            //this.conflictingAgentsWithMDD = conflictingAgentsWithMDD;
             this.groupSize = groupSize;
             this.degree = degree;
             this.planCost = planCost;
@@ -2303,16 +2298,6 @@ namespace CPF_experiment
         public int CompareTo(IBinaryHeapItem item)
         {
             AgentToCheckForCardinalConflicts other = (AgentToCheckForCardinalConflicts)item;
-
-            /*if (this.hasMDD && !other.hasMDD)
-                return -1;
-            else if (other.hasMDD && !this.hasMDD)
-                return 1;
-
-            if (this.conflictingAgentsWithMDD < other.conflictingAgentsWithMDD)
-                return -1;
-            else if (this.conflictingAgentsWithMDD > other.conflictingAgentsWithMDD)
-                return 1;*/
 
             if (this.groupSize < other.groupSize)
                 return -1;
