@@ -242,11 +242,6 @@ namespace CPF_experiment
 
             if (solved)
             {
-                //if (this.heuristic != null)
-                //    root.h = (int) this.heuristic.h(root);  // So that children inherit the built MDDs,
-                //                                            // and for a better initial estimate
-                // FIXME: Enable under a flag
-
                 if (root.f <= this.maxSolutionCost)
                 {
                     this.openList.Add(root);
