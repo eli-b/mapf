@@ -13,7 +13,15 @@ namespace CPF_experiment
         /// If true, conflict is two agents have same dest, from any direction. Otherwise it's an edge conflict.
         /// </summary>
         public bool vertex;
-        public bool mddPredictedCardinal;
+        public WillCostIncrease willCostIncreaseForAgentA;
+        public WillCostIncrease willCostIncreaseForAgentB;
+
+        public enum WillCostIncrease
+        {
+            MAYBE,
+            YES,
+            NO
+        }
 
         public CbsConflict(int conflictingAgentAIndex, int conflictingAgentBIndex, Move agentAMove, Move agentBMove, int timeStep)
         {
@@ -29,6 +37,8 @@ namespace CPF_experiment
                 this.vertex = false;
                 Debug.Assert(Constants.ALLOW_HEAD_ON_COLLISION == false, "Creating an edge conflict when head-on collision are allowed");
             }
+            this.willCostIncreaseForAgentA = WillCostIncrease.MAYBE;
+            this.willCostIncreaseForAgentB = WillCostIncrease.MAYBE;
         }
 
         public override string ToString()

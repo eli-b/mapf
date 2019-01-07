@@ -34,6 +34,7 @@ namespace CPF_experiment
         protected int closedListHits;
         protected int mstarBackprops;
         protected int mstarShuffles;
+        protected int surplusNodesAvoided;
         protected int accExpanded;
         protected int accGenerated;
         protected int accReopened;
@@ -44,6 +45,7 @@ namespace CPF_experiment
         protected int accClosedListHits;
         protected int accMstarBackprops;
         protected int accMstarShuffles;
+        protected int accSurplusNodesAvoided;
         public int totalCost;
         public int numOfAgents;
         protected int maxSolutionCost;
@@ -84,7 +86,7 @@ namespace CPF_experiment
         /// <summary>
         /// Setup the relevant data structures for a run.
         /// </summary>
-        public virtual void Setup(ProblemInstance problemInstance, int minDepth, Run runner, int minCost)
+        public virtual void Setup(ProblemInstance problemInstance, int minDepth, Run runner, int minCost, int maxCost)
         {
             this.instance = problemInstance;
             this.runner = runner;
@@ -103,7 +105,7 @@ namespace CPF_experiment
             this.solutionDepth = -1;
             this.numOfAgents = problemInstance.m_vAgents.Length;
 
-            // Store parameters used by IndependenceDetection's Independence Detection algorithm
+            // Store parameters used by the Independence Detection algorithm
             if (problemInstance.parameters.ContainsKey(IndependenceDetection.MAXIMUM_COST_KEY))
                 this.maxSolutionCost = (int)problemInstance.parameters[IndependenceDetection.MAXIMUM_COST_KEY];
             else
@@ -114,6 +116,9 @@ namespace CPF_experiment
                 this.illegalMoves = (HashSet<TimedMove>)(problemInstance.parameters[IndependenceDetection.ILLEGAL_MOVES_KEY]);
             else
                 this.illegalMoves = null;
+
+            // Store CBS parameters
+            this.maxSolutionCost = Math.Max(this.maxSolutionCost, maxCost);
 
             if (problemInstance.parameters.ContainsKey(CBS_LocalConflicts.CONSTRAINTS) &&
                 ((HashSet_U<CbsConstraint>)problemInstance.parameters[CBS_LocalConflicts.CONSTRAINTS]).Count != 0)
@@ -209,6 +214,7 @@ namespace CPF_experiment
             this.noReopenHUpdates = 0;
             this.closedListHits = 0;
             this.maxExpansionDelay = -1;
+            this.surplusNodesAvoided = 0;
             this.mstarBackprops = 0;
             this.mstarShuffles = 0;
         }
@@ -230,6 +236,8 @@ namespace CPF_experiment
             output.Write(this.ToString() + " H Updated From Other Area");
             output.Write(Run.RESULTS_DELIMITER);
             output.Write(this.ToString() + " Max expansion delay");
+            output.Write(Run.RESULTS_DELIMITER);
+            output.Write(this.ToString() + " Surplus nodes avoided");
             output.Write(Run.RESULTS_DELIMITER);
             if (this.mstar)
             {
@@ -258,6 +266,7 @@ namespace CPF_experiment
             Console.WriteLine("Reopened Nodes With Old H: {0}", this.reopenedWithOldH);
             Console.WriteLine("No Reopen H Updates: {0}", this.noReopenHUpdates);
             Console.WriteLine("Max expansion delay: {0}", this.maxExpansionDelay);
+            Console.WriteLine("Surplus nodes avoided: {0}", this.surplusNodesAvoided);
             if (this.mstar)
             {
                 Console.WriteLine("Backpropagations: {0}", this.mstarBackprops);
@@ -272,6 +281,7 @@ namespace CPF_experiment
             output.Write(this.reopenedWithOldH + Run.RESULTS_DELIMITER);
             output.Write(this.noReopenHUpdates + Run.RESULTS_DELIMITER);
             output.Write(this.maxExpansionDelay + Run.RESULTS_DELIMITER);
+            output.Write(this.surplusNodesAvoided + Run.RESULTS_DELIMITER);
             if (this.mstar)
             {
                 output.Write(this.mstarBackprops + Run.RESULTS_DELIMITER);
@@ -287,7 +297,7 @@ namespace CPF_experiment
         {
             get
             {
-                return (this.mstar? 10 : 8) + this.heuristic.NumStatsColumns + this.openList.NumStatsColumns;
+                return (this.mstar? 11 : 9) + this.heuristic.NumStatsColumns + this.openList.NumStatsColumns;
             }
         }
 
@@ -308,6 +318,7 @@ namespace CPF_experiment
             this.accReopenedWithOldH = 0;
             this.accNoReopenHUpdates = 0;
             this.accMaxExpansionDelay = 0;
+            this.accSurplusNodesAvoided = 0;
             this.accMstarBackprops = 0;
             this.accMstarShuffles = 0;
 
@@ -326,6 +337,7 @@ namespace CPF_experiment
             this.accReopenedWithOldH += this.reopenedWithOldH;
             this.accNoReopenHUpdates += this.noReopenHUpdates;
             this.accMaxExpansionDelay = Math.Max(this.accMaxExpansionDelay, this.maxExpansionDelay);
+            this.accSurplusNodesAvoided += this.surplusNodesAvoided;
             this.accMstarBackprops += this.mstarBackprops;
             this.accMstarShuffles += this.mstarShuffles;
 
@@ -344,6 +356,7 @@ namespace CPF_experiment
             Console.WriteLine("{0} Accumulated Reopened Nodes With Old H (Low-Level): {1}", this, this.accReopenedWithOldH);
             Console.WriteLine("{0} Accumulated No Reopen H Updates (Low-Level): {1}", this, this.accNoReopenHUpdates);
             Console.WriteLine("{0} Accumulated Max expansion delay (Low-Level): {1}", this, this.accMaxExpansionDelay);
+            Console.WriteLine("{0} Accumulated Surplus nodes avoided (Low-Level): {1}", this, this.accSurplusNodesAvoided);
             if (this.mstar)
             {
                 Console.WriteLine("{0} Accumulated Backpropagations (Low-Level): {1}", this, this.accMstarBackprops);
@@ -358,6 +371,7 @@ namespace CPF_experiment
             output.Write(this.accReopenedWithOldH + Run.RESULTS_DELIMITER);
             output.Write(this.accNoReopenHUpdates + Run.RESULTS_DELIMITER);
             output.Write(this.accMaxExpansionDelay + Run.RESULTS_DELIMITER);
+            output.Write(this.accSurplusNodesAvoided + Run.RESULTS_DELIMITER);
             if (this.mstar)
             {
                 output.Write(this.accMstarBackprops + Run.RESULTS_DELIMITER);
@@ -975,7 +989,7 @@ namespace CPF_experiment
 
         public void Setup(ProblemInstance problemInstance, Run runner)
         {
-            this.Setup(problemInstance, -1, runner, -1);
+            this.Setup(problemInstance, -1, runner, -1, int.MaxValue);
         }
 
         /// <summary>
@@ -1180,6 +1194,7 @@ namespace CPF_experiment
                 // That actually makes a lot of sense: membership tests in heaps are expensive, and in hashtables are cheap.
                 // This way we only need to _search_ the open list if we encounter a node that was already visited.
             }
+            this.surplusNodesAvoided++;
             return false;
         }
 

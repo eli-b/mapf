@@ -69,7 +69,9 @@ namespace CPF_experiment
         /// <param name="minTimeStep"></param>
         /// <param name="runner"></param>
         /// <param name="minCost">FIXME: Not taken into account, just added to comply with ICbsSolver</param>
-        public virtual void Setup(ProblemInstance problemInstance, int minTimeStep, Run runner, int minCost = -1)
+        /// <param name="maxCost">FIXME: Not taken into account, just added to comply with ICbsSolver</param>
+        public virtual void Setup(ProblemInstance problemInstance, int minTimeStep, Run runner,
+                                  int minCost = -1, int maxCost = int.MaxValue)
         {
             this.minCAViolations = int.MaxValue;
             CostTreeSearchSolver.passed = 0;
@@ -483,12 +485,12 @@ namespace CPF_experiment
         int maxGroupChecked;
         public CostTreeSearchSolverKMatch(int maxGroupChecked) : base() { this.maxGroupChecked = maxGroupChecked; }
         public override void Setup(ProblemInstance problemInstance, Run runner) { Setup(problemInstance, 0, runner); }
-        public override void Setup(ProblemInstance problemInstance, int minDepth, Run runner, int minCost = -1)
+        public override void Setup(ProblemInstance problemInstance, int minDepth, Run runner, int minCost = -1, int maxCost = int.MaxValue)
         {
             edgesMatrix = new int[problemInstance.m_vAgents.Length, problemInstance.GetMaxX() * problemInstance.GetMaxY() + problemInstance.GetMaxY(), Move.NUM_NON_DIAG_MOVES];
             edgesMatrixCounter = 0;
             maxY = problemInstance.GetMaxY();
-            base.Setup(problemInstance, minDepth, runner, minCost);
+            base.Setup(problemInstance, minDepth, runner, minCost, maxCost);
         }
         public override bool Solve()
         {
@@ -566,12 +568,12 @@ namespace CPF_experiment
         int syncSize;
         public CostTreeSearchSolverRepeatedMatch(int syncSize) : base() { this.syncSize = syncSize; }
         public override void Setup(ProblemInstance problemInstance, Run runner) { Setup(problemInstance, 0, runner); }
-        public override void Setup(ProblemInstance problemInstance, int minDepth, Run runner, int minCost = -1)
+        public override void Setup(ProblemInstance problemInstance, int minDepth, Run runner, int minCost = -1, int maxCost = int.MaxValue)
         {
             edgesMatrix = new int[problemInstance.m_vAgents.Length, problemInstance.GetMaxX() * problemInstance.GetMaxY() + problemInstance.GetMaxY(), Move.NUM_NON_DIAG_MOVES];
             edgesMatrixCounter = 0;
             maxY = problemInstance.GetMaxY();
-            base.Setup(problemInstance, minDepth, runner, minCost);
+            base.Setup(problemInstance, minDepth, runner, minCost, maxCost);
         }
         public override bool Solve()
         {

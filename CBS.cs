@@ -53,6 +53,7 @@ namespace CPF_experiment
         protected int pathMaxBoosts;
         protected int reversePathMaxBoosts;
         protected int pathMaxPlusBoosts;
+        protected int surplusNodesAvoided;
         // TODO: Count shuffles
         protected int accHLExpanded;
         protected int accHLGenerated;
@@ -71,6 +72,7 @@ namespace CPF_experiment
         protected int accPathMaxBoosts;
         protected int accReversePathMaxBoosts;
         protected int accPathMaxPlusBoosts;
+        protected int accSurplusNodesAvoided;
 
         public int solutionCost;
         /// <summary>
@@ -205,7 +207,7 @@ namespace CPF_experiment
         /// <param name="runner"></param>
         /// <param name="minSolutionCost"></param>
         public virtual void Setup(ProblemInstance problemInstance, int minSolutionTimeStep, Run runner,
-            int minSolutionCost = -1)
+            int minSolutionCost = -1, int maxSolutionCost = int.MaxValue)
         {
             this.instance = problemInstance;
             this.runner = runner;
@@ -221,15 +223,18 @@ namespace CPF_experiment
             this.goalNode = null;
             this.solution = null;
 
+            // Independence Detection parameters
             if (problemInstance.parameters.ContainsKey(IndependenceDetection.MAXIMUM_COST_KEY))
                 this.maxSolutionCost = (int)problemInstance.parameters[IndependenceDetection.MAXIMUM_COST_KEY];
             else
                 this.maxSolutionCost = int.MaxValue;
 
-            this.topMost = this.SetGlobals();
-
+            // CBS parameters
             this.minSolutionTimeStep = minSolutionTimeStep;
             this.minSolutionCost = minSolutionCost;
+            this.maxSolutionCost = Math.Max(this.maxSolutionCost, maxSolutionCost);
+
+            this.topMost = this.SetGlobals();
 
             CbsNode root = new CbsNode(instance.m_vAgents.Length, this.solver, this.singleAgentSolver, this); // Problem instance and various strategy data is all passed under 'this'.
             // Solve the root node
@@ -247,6 +252,10 @@ namespace CPF_experiment
                     this.openList.Add(root);
                     this.highLevelGenerated++;
                     this.closedList.Add(root, root);
+                }
+                else
+                {
+                    this.surplusNodesAvoided++;
                 }
             }
         }
@@ -369,6 +378,7 @@ namespace CPF_experiment
             this.reversePathMaxBoosts = 0;
             this.pathMaxPlusBoosts = 0;
             this.maxSizeGroup = 1;
+            this.surplusNodesAvoided = 0;
         }
 
         public virtual void OutputStatisticsHeader(TextWriter output)
@@ -409,6 +419,8 @@ namespace CPF_experiment
             output.Write(Run.RESULTS_DELIMITER);
             output.Write(this.ToString() + " Max Group Size (HL)");
             output.Write(Run.RESULTS_DELIMITER);
+            output.Write(this.ToString() + " Surplus Nodes Avoided (HL)");
+            output.Write(Run.RESULTS_DELIMITER);
 
             this.solver.OutputStatisticsHeader(output);
             if (Object.ReferenceEquals(this.singleAgentSolver, this.solver) == false)
@@ -437,6 +449,7 @@ namespace CPF_experiment
             Console.WriteLine("Reverse Path-Max Boosts (High-Level): {0}", this.reversePathMaxBoosts);
             Console.WriteLine("Path-Max Plus Boosts (High-Level): {0}", this.pathMaxPlusBoosts);
             Console.WriteLine("Max Group Size (High-Level): {0}", this.maxSizeGroup);
+            Console.WriteLine("Surplus Nodes Avoided (High-Level): {0}", this.surplusNodesAvoided);
 
             output.Write(this.highLevelExpanded + Run.RESULTS_DELIMITER);
             output.Write(this.highLevelGenerated + Run.RESULTS_DELIMITER);
@@ -456,6 +469,7 @@ namespace CPF_experiment
             output.Write(this.reversePathMaxBoosts + Run.RESULTS_DELIMITER);
             output.Write(this.pathMaxPlusBoosts + Run.RESULTS_DELIMITER);
             output.Write(this.maxSizeGroup + Run.RESULTS_DELIMITER);
+            output.Write(this.surplusNodesAvoided + Run.RESULTS_DELIMITER);
 
             this.solver.OutputAccumulatedStatistics(output);
             if (Object.ReferenceEquals(this.singleAgentSolver, this.solver) == false)
@@ -471,7 +485,7 @@ namespace CPF_experiment
                 int numSolverStats = this.solver.NumStatsColumns;
                 if (Object.ReferenceEquals(this.singleAgentSolver, this.solver) == false)
                     numSolverStats += this.singleAgentSolver.NumStatsColumns;
-                return 18 + numSolverStats + this.openList.NumStatsColumns;
+                return 19 + numSolverStats + this.openList.NumStatsColumns;
             }
         }
 
@@ -507,6 +521,7 @@ namespace CPF_experiment
             this.accReversePathMaxBoosts = 0;
             this.accPathMaxPlusBoosts = 0;
             this.accMaxSizeGroup = 1;
+            this.accSurplusNodesAvoided = 0;
 
             this.solver.ClearAccumulatedStatistics();
             if (Object.ReferenceEquals(this.singleAgentSolver, this.solver) == false)
@@ -535,6 +550,7 @@ namespace CPF_experiment
             this.accReversePathMaxBoosts += this.reversePathMaxBoosts;
             this.accPathMaxPlusBoosts += this.pathMaxPlusBoosts;
             this.accMaxSizeGroup = Math.Max(this.accMaxSizeGroup, this.maxSizeGroup);
+            this.accSurplusNodesAvoided += this.surplusNodesAvoided;
 
             // this.solver statistics are accumulated every time it's used.
 
@@ -560,6 +576,7 @@ namespace CPF_experiment
             Console.WriteLine("{0} Accumulated Reverse Path-Max Boosts (High-Level): {1}", this, this.accReversePathMaxBoosts);
             Console.WriteLine("{0} Accumulated Path-Max Plus Boosts (High-Level): {1}", this, this.accPathMaxPlusBoosts);
             Console.WriteLine("{0} Max Group Size (High-Level): {1}", this, this.accMaxSizeGroup);
+            Console.WriteLine("{0} Accumulated Surplus Nodes Avoided (High-Level): {1}", this, this.accSurplusNodesAvoided);
 
             output.Write(this.accHLExpanded + Run.RESULTS_DELIMITER);
             output.Write(this.accHLGenerated + Run.RESULTS_DELIMITER);
@@ -579,6 +596,7 @@ namespace CPF_experiment
             output.Write(this.accReversePathMaxBoosts + Run.RESULTS_DELIMITER);
             output.Write(this.accPathMaxPlusBoosts + Run.RESULTS_DELIMITER);
             output.Write(this.accMaxSizeGroup + Run.RESULTS_DELIMITER);
+            output.Write(this.accSurplusNodesAvoided + Run.RESULTS_DELIMITER);
 
             this.solver.OutputAccumulatedStatistics(output);
             if (Object.ReferenceEquals(this.singleAgentSolver, this.solver) == false)
@@ -1394,6 +1412,10 @@ namespace CPF_experiment
                     this.highLevelGenerated++;
                     openList.Add(child);
                 }
+                else
+                {
+                    this.surplusNodesAvoided++;
+                }
             }
         }
 
@@ -1470,7 +1492,9 @@ namespace CPF_experiment
                 {
                     // This wasn't a cardinal conflict
                     Debug.Assert(children.Count == 0 ||  // A timeout probably occured
-                                 node.conflict.mddPredictedCardinal == false, "MDD predicted this would be a cardinal conflict but it isn't");
+                                 (node.conflict.willCostIncreaseForAgentA != CbsConflict.WillCostIncrease.YES &&
+                                  node.conflict.willCostIncreaseForAgentB != CbsConflict.WillCostIncrease.YES
+                                 ), "MDD predicted this would be a cardinal conflict but it isn't");
                 }
 
                 if (children.Any(child => child.GoalTest() && child.g == node.g)) // Admissable goal found (and adoption isn't enabled, otherwise the goal would have been adopted above)
@@ -1596,8 +1620,18 @@ namespace CPF_experiment
             if (closedList.ContainsKey(child) == false) // We may have already merged these agents in another node
             {
                 Debug.WriteLine("Merging agents {0} and {1}", conflict.agentAIndex, conflict.agentBIndex);
-                bool success = child.Replan(conflict.agentAIndex, this.minSolutionTimeStep); // or agentBIndex. Doesn't matter - they're in the same group.
-                // TODO: Set minCost to the sum of the agent costs
+                int aCost = node.GetGroupCost(node.agentsGroupAssignment[conflict.agentAIndex]);
+                int bCost = node.GetGroupCost(node.agentsGroupAssignment[conflict.agentBIndex]);
+                int minNewCost;
+                if (Constants.costFunction == Constants.CostFunction.SUM_OF_COSTS)
+                    minNewCost = aCost + bCost;
+                else if (Constants.costFunction == Constants.CostFunction.MAKESPAN ||
+                         Constants.costFunction == Constants.CostFunction.MAKESPAN_THEN_SUM_OF_COSTS)
+                    minNewCost = Math.Max(aCost, bCost);
+                else
+                    throw new NotImplementedException("Unsupported cost function");
+                bool success = child.Replan(conflict.agentAIndex,  // or agentBIndex. Doesn't matter - they're in the same group.
+                                            this.minSolutionTimeStep, minPathCost: minNewCost);
 
                 if (success == false) // A timeout probably occured
                     return (child: null, closedListHitChildCost);
@@ -1639,6 +1673,7 @@ namespace CPF_experiment
             string agentSide = doLeftChild? "left" : "right";
             int planSize = node.allSingleAgentPlans[conflictingAgentIndex].GetSize();
             int groupSize = node.GetGroupSize(conflictingAgentIndex);
+            CbsConflict.WillCostIncrease willCostIncrease = doLeftChild ? node.conflict.willCostIncreaseForAgentA : node.conflict.willCostIncreaseForAgentB;
 
             // Check if expansion should be deferred
             if (Constants.costFunction == Constants.CostFunction.SUM_OF_COSTS && // Otherwise adding a constraint to an agent at a time step after
@@ -1738,11 +1773,15 @@ namespace CPF_experiment
 
                 if (closedList.ContainsKey(child) == false)
                 {
-                    // TODO: Set minCost to the agent's old cost - adding a constraint can't lead to a
-                    //       cheaper path! If the constraint is on a "cardinal" part of the old path,
-                    //       set to the old cost + 1.
-                    bool success = child.Replan(conflictingAgentIndex, this.minSolutionTimeStep); // The node takes the max between
-                                                                                          // minTimeStep and the max time over all constraints.
+                    int oldCost = node.GetGroupCost(node.agentsGroupAssignment[conflictingAgentIndex]);
+                    int minNewCost = oldCost;
+                    if (willCostIncrease == CbsConflict.WillCostIncrease.YES)
+                        minNewCost = oldCost + 1;
+                    int maxNewCost = int.MaxValue;
+                    if (willCostIncrease == CbsConflict.WillCostIncrease.NO)
+                        maxNewCost = oldCost;
+                    bool success = child.Replan(conflictingAgentIndex, this.minSolutionTimeStep,  // The node takes the max between minSolutionTimeStep and the max time over all constraints.
+                                                minPathCost: minNewCost, maxPathCost: maxNewCost);
 
                     if (success == false)
                         return (null, closedListHitChildCost: -1); // A timeout probably occured

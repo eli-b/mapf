@@ -29,9 +29,9 @@ namespace CPF_experiment
 
         public override string GetName() { return base.GetName() + "+OD"; }
 
-        public override void Setup(ProblemInstance problemInstance, int minDepth, Run runner, int minCost = -1)
+        public override void Setup(ProblemInstance problemInstance, int minDepth, Run runner, int minCost = -1, int maxCost = int.MaxValue)
         {
-            base.Setup(problemInstance, minDepth, runner, minCost);
+            base.Setup(problemInstance, minDepth, runner, minCost, maxCost);
             this.expandedFullStates = 0;
             this.generatedFullStates = 0;
         }

@@ -37,9 +37,9 @@ namespace CPF_experiment
             return new WorldStateForPartialExpansion((WorldStateForPartialExpansion)from);
         }
 
-        public override void Setup(ProblemInstance problemInstance, int minDepth, Run runner, int minCost = -1) 
+        public override void Setup(ProblemInstance problemInstance, int minDepth, Run runner, int minCost = -1, int maxCost = int.MaxValue)
         { 
-            base.Setup(problemInstance, minDepth, runner, minCost);
+            base.Setup(problemInstance, minDepth, runner, minCost, maxCost);
             this.generatedAndDiscarded = 0;
             this.expandedFullStates = 0;
         }

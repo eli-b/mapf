@@ -57,13 +57,14 @@ namespace CPF_experiment
         /// 
         /// </summary>
         /// <param name="problemInstance"></param>
-        /// <param name="minTimeStep"></param>
+        /// <param name="minTimeStep">Used mostly to force constraints to have an effect</param>
         /// <param name="runner"></param>
         /// <param name="minCost">
         /// Goal nodes with a lower cost aren't considered a goal.
         /// This can be used to improve the heuristic estimate!
         /// </param>
-        void Setup(ProblemInstance problemInstance, int minTimeStep, Run runner, int minCost);
+        /// <param name="maxCost">If known, can speed up the search (no surplus nodes would be generated)</param>
+        void Setup(ProblemInstance problemInstance, int minTimeStep, Run runner, int minCost, int maxCost);
         SinglePlan[] GetSinglePlans();
         int[] GetSingleCosts();
         Dictionary<int, int> GetExternalConflictCounts();
