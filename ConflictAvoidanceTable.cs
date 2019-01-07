@@ -8,7 +8,7 @@ namespace CPF_experiment
     class ConflictAvoidanceTable : IReadOnlyDictionary<TimedMove, List<int>>
     {
         Dictionary<TimedMove, List<int>> timedMovesToAgentNumList = new Dictionary<TimedMove,List<int>>();
-        Dictionary<Move, Tuple<int, int>> atGoalWaitsToTimeAndAgentNum = new Dictionary<Move,Tuple<int,int>>(); // No need for a list of agent nums because goals can't collide :)
+        Dictionary<Move, (int time, int agentNum)> atGoalWaitsToTimeAndAgentNum = new Dictionary<Move, (int time, int agentNum)>(); // No need for a list of agent nums because goals can't collide :)
 
         public void AddPlan(SinglePlan plan)
         {
@@ -28,7 +28,7 @@ namespace CPF_experiment
 
             Move lastMove = plan.GetLocationAt(planSize - 1);
             Move goal = new Move(lastMove.x, lastMove.y, Move.Direction.Wait);
-            this.atGoalWaitsToTimeAndAgentNum.Add(goal, new Tuple<int, int>(planSize, plan.agentNum));
+            this.atGoalWaitsToTimeAndAgentNum.Add(goal, (planSize, plan.agentNum));
         }
 
         /// <summary>
@@ -80,11 +80,11 @@ namespace CPF_experiment
                 if (this.atGoalWaitsToTimeAndAgentNum.ContainsKey(queryMove))
                 {
                     var timeAndAgentNum = this.atGoalWaitsToTimeAndAgentNum[queryMove];
-                    if (key.time >= timeAndAgentNum.Item1)
+                    if (key.time >= timeAndAgentNum.time)
                     {
                         if (ans == null)
                             ans = new List<int>(1);
-                        ans.Add(timeAndAgentNum.Item2);
+                        ans.Add(timeAndAgentNum.agentNum);
                     }
                 }
 
@@ -116,31 +116,26 @@ namespace CPF_experiment
             if (this.atGoalWaitsToTimeAndAgentNum.ContainsKey(queryMove))
             {
                 var timeAndAgentNum = this.atGoalWaitsToTimeAndAgentNum[queryMove];
-                if (key.time >= timeAndAgentNum.Item1)
+                if (key.time >= timeAndAgentNum.time)
                     return true;
             }
             return false;
         }
-        //
-        // Summary:
-        //     Gets the value that is associated with the specified key.
-        //
-        // Parameters:
-        //   key:
-        //     The key to locate.
-        //
-        //   value:
-        //     When this method returns, the value associated with the specified key, if
-        //     the key is found; otherwise, the default value for the type of the value
-        //     parameter. This parameter is passed uninitialized.
-        //
-        // Returns:
-        //     true if the object that implements the System.Collections.Generic.IReadOnlyDictionary<TKey,TValue>
-        //     interface contains an element that has the specified key; otherwise, false.
-        //
-        // Exceptions:
-        //   System.ArgumentNullException:
-        //     key is null.
+
+        /// <summary>
+        /// Gets the value that is associated with the specified key.
+        /// </summary>
+        /// <param name="key">The key to locate</param>
+        /// <param name="value">
+        /// When this method returns, the value associated with the specified key, if
+        /// the key is found; otherwise, the default value for the type of the value
+        /// parameter. This parameter is passed uninitialized.
+        /// </param>
+        /// <exception cref="System.ArgumentNullException">key is null</exception>
+        /// <returns>
+        /// true if the object that implements the System.Collections.Generic.IReadOnlyDictionary&lt;TKey,TValue&gt;
+        /// interface contains an element that has the specified key; otherwise, false.
+        /// </returns>
         public bool TryGetValue(TimedMove key, out List<int> value)
         {
             if (this.ContainsKey(key))
