@@ -15,19 +15,18 @@ import traceback
 input_paths = sys.argv[1:]
 
 # 1. Calculate success rate -
-#    a solver needs to solve 30% of the problems in a category to have its its runtime averaged at all.
+#    a solver needs to solve enough of the problems in a category to have its runtime averaged at all.
 min_success_to_consider = 0.0
+
 readers = [csv.DictReader(open(input_path)) for input_path in input_paths]
-#pd_data = pd.concat((pd.readcsv(path) for path in input_paths))
+pd_data = pd.concat((pd.read_csv(path) for path in input_paths))
 
 solver_successes_per_num_of_agents = defaultdict(Counter)
 solver_run_count_per_num_of_agents = defaultdict(Counter)
 solvers = set()
 # pd variant:
-#category_name = "Num Of Agents"
-#by_num_agents = pd_data.group_by(category_name)
-
-#solver_run_count_per_num_of_agents = 
+category_name = 'Num Of Agents'
+by_category = pd_data.groupby(category_name)
 
 for i, reader in enumerate(readers):
     print(f"Reading input file {i}")
@@ -37,7 +36,7 @@ for i, reader in enumerate(readers):
         try:
             num_of_agents = int(row['Num Of Agents'])
             solvers_run = [col_name[:-len(" Solution Cost")] for col_name, col_val in row.items() \
-                           if col_name in solution_cost_fieldnames if col_val != "irrelevant"] # Algs that were actually run
+                           if col_name in solution_cost_fieldnames if col_val != "irrelevant"]  # Algs that were actually run
             solvers.update(solvers_run)
             solvers_that_succeeded = [col_name[:-len(" Success")] for col_name, col_val in row.items() \
                                       if col_name in success_fieldnames if int(col_val) == 1]
@@ -45,7 +44,7 @@ for i, reader in enumerate(readers):
             print(f"Problem in row: num agents={row['Num Of Agents']} instance id={row['Instance Id']}:\n{traceback.format_exc()}")
             #raise
             continue
-        solver_run_count_per_num_of_agents[num_of_agents].update(solvers_run) # Add the counts of the items in solvers
+        solver_run_count_per_num_of_agents[num_of_agents].update(solvers_run)  # Add the counts of the items in solvers
         solver_successes_per_num_of_agents[num_of_agents].update(solvers_that_succeeded)
 
 solver_success_rate_per_num_of_agents = defaultdict(Counter)        
@@ -99,6 +98,7 @@ solver_relevant_conflicts_solved_with_adoption_per_num_of_agents = defaultdict(C
 solver_relevant_expanded_per_num_of_agents_per_num_of_agents = defaultdict(Counter)
 solver_relevant_nodes_with_goal_cost_per_num_of_agents = defaultdict(Counter)
 solver_relevant_expanded_per_num_of_agents = defaultdict(Counter)
+solver_relevant_mdds_built_per_num_of_agents = defaultdict(Counter)
 num_averaged_problems_per_num_of_agents = Counter()
 
 for i, reader in enumerate(readers):
@@ -112,6 +112,7 @@ for i, reader in enumerate(readers):
     conflicts_solved_with_adoption_fieldnames = {fieldname for fieldname in reader.fieldnames if fieldname.endswith(" Conflicts Bypassed With Adoption (HL)")}
     nodes_expanded_with_goal_cost_fieldnames = {fieldname for fieldname in reader.fieldnames if fieldname.endswith(" Nodes Expanded With Goal Cost (HL)")}
     expanded_fieldnames = {fieldname for fieldname in reader.fieldnames if fieldname.endswith(" Expanded (HL)")}
+    mdds_built_fieldnames = {fieldname for fieldname in reader.fieldnames if fieldname.endswith(" MDDs Built (HL)")}
     
     for row in reader:
         try:
@@ -138,6 +139,8 @@ for i, reader in enumerate(readers):
                                     if col_name in nodes_expanded_with_goal_cost_fieldnames}
             solvers_and_expanded = {col_name[:-len(" Expanded (HL)")]:float(col_val) for col_name, col_val in row.items() \
                                     if col_name in expanded_fieldnames}
+            solvers_and_mdds_built = {col_name[:-len(" MDDs Built (HL)")]:float(col_val) for col_name, col_val in row.items() \
+                                    if col_name in mdds_built_fieldnames}
             relevant_solvers_and_runtimes = {solver_name:runtime for solver_name, runtime in solvers_and_runtimes.items() \
                                              if solver_name in relevant_solvers_in_category}
             relevant_solvers_and_generated = {solver_name:generated for solver_name, generated in solvers_and_generated.items() \
@@ -151,6 +154,8 @@ for i, reader in enumerate(readers):
             relevant_solvers_and_nodes_with_goal_cost = {solver_name:nodes_with_goal_cost for solver_name, nodes_with_goal_cost in solvers_and_nodes_with_goal_cost.items() \
                                                          if solver_name in relevant_solvers_in_category}
             relevant_solvers_and_expanded = {solver_name:expanded for solver_name, expanded in solvers_and_expanded.items() \
+                                             if solver_name in relevant_solvers_in_category}
+            relevant_solvers_and_mdds_built = {solver_name:mdds_built for solver_name, mdds_built in solvers_and_mdds_built.items() \
                                              if solver_name in relevant_solvers_in_category}
             
         except (TypeError, ValueError) as e:
@@ -170,6 +175,7 @@ for i, reader in enumerate(readers):
         solver_relevant_nodes_with_goal_cost_per_num_of_agents[num_of_agents].update(relevant_solvers_and_nodes_with_goal_cost)
         solver_relevant_expanded_per_num_of_agents[num_of_agents].update(relevant_solvers_and_expanded)
         solver_relevant_run_count_per_num_of_agents[num_of_agents].update(relevant_solvers_and_runtimes.keys())
+        solver_relevant_mdds_built_per_num_of_agents[num_of_agents].update(relevant_solvers_and_mdds_built)
 
 # Average the results:
 solver_average_runtimes_per_num_of_agents = defaultdict(partial(defaultdict, lambda : None)) # Plot average runtime for solvers that weren't averaged for that category as missing data
@@ -206,6 +212,11 @@ solver_average_expanded_per_num_of_agents = defaultdict(partial(defaultdict, lam
 for num_of_agents, solver_expanded in solver_relevant_expanded_per_num_of_agents.items():
     for solver, expanded in solver_expanded.items():
         solver_average_expanded_per_num_of_agents[num_of_agents][solver] = expanded / solver_relevant_run_count_per_num_of_agents[num_of_agents][solver]
+        
+solver_average_mdds_built_per_num_of_agents = defaultdict(partial(defaultdict, lambda : None)) # Plot average mdds built for solvers that weren't averaged for that category as missing data
+for num_of_agents, solver_mdds_built in solver_relevant_mdds_built_per_num_of_agents.items():
+    for solver, mdds_built in solver_expanded.items():
+        solver_average_mdds_built_per_num_of_agents[num_of_agents][solver] = mdds_built / solver_relevant_run_count_per_num_of_agents[num_of_agents][solver]
         
 # Print relevant average runtimes per category
 print()
@@ -501,5 +512,29 @@ if do_legend:
 # plt.subplot(1, 2, 1) # First of two side-by-side figures
 # plt.subplot(1, 2, 2) # Second of two side-by-side figures
         
-plt.show()
+fig = plt.figure(9) # Figure ID 9 - average MDDs built
+point_styles_big = itertools.cycle(point_styles_big_data) # Reset the cycle. Color cycle resets automatically.
+# Set window title
+fig.canvas.set_window_title(title)
+for solver in sorted_solver_names:
+    plt.plot(sorted_num_of_agents, np.array([(solver_average_mdds_built_per_num_of_agents[num_agents][solver] if solver_average_mdds_built_per_num_of_agents[num_agents][solver] is not None else None) for num_agents in sorted_num_of_agents]), next(point_styles_big) + "-", label=solver, linewidth=4, markersize=15)
+#plt.title('Average MDDs built', fontsize="x-large")
+plt.xlabel('Number Of Agents', fontsize="x-large", )#fontweight="semibold")
+#plt.xlim(xmin=10)
+#plt.xlim(3, 72)
+#plt.xlim(2.5, 13.5)
+#plt.xticks(size="x-large")
+plt.ylabel('Average MDDs built', fontsize="x-large", )#fontweight="semibold")
+plt.yscale('linear')
+#plt.yticks(size="x-large")
+do_legend = True
+if do_legend:
+    legend = plt.legend(loc='upper left', shadow=True, fancybox=True, title="Solvers", )#fontsize="xx-large") # default fontsize is "large"
+    if legend is not None:
+        legend.draggable()
+        legend.get_title().set_fontsize("x-large")
+        legend.get_title().set_fontweight("semibold")
+
+        
+        plt.show()
 #print "not plotting for now"
