@@ -311,7 +311,12 @@ namespace CPF_experiment
             if (this.bypassStrategy == BypassStrategy.FIRST_FIT_LOOKAHEAD)
             {
                 if (this.lookaheadMaxExpansions != int.MaxValue)
-                    variants += $" with first fit adoption max expansions: {this.lookaheadMaxExpansions}";
+                {
+                    if (this.lookaheadMaxExpansions != 1)
+                        variants += $" with first fit adoption max expansions: {this.lookaheadMaxExpansions}";
+                    else
+                        variants += " + BP";
+                }
                 else
                     variants += " with first fit adoption max expansions: $\\infty$"; // LaTeX infinity symbol
             }
@@ -328,7 +333,7 @@ namespace CPF_experiment
             if (this.conflictChoice == ConflictChoice.FIRST)
                 variants += " choosing the first conflict in CBS nodes";
             else if (this.conflictChoice == ConflictChoice.CARDINAL_MDD)
-                variants += " choosing cardinal conflicts using MDD";
+                variants += " + PC";
             else if (this.conflictChoice == ConflictChoice.CARDINAL_LOOKAHEAD)
                 variants += " choosing cardinal conflicts using lookahead";
 
@@ -338,12 +343,9 @@ namespace CPF_experiment
             if (this.mergeCausesRestart == true && mergeThreshold != -1)
                 variants += " with merge&restart";
 
-            if (this.heuristic != null)
-                variants += $" using heuristic {this.heuristic.GetName()}";
-
             if (this.openList.GetType() != typeof(OpenList<CbsNode>))
             {
-                variants += $" using open list {this.openList.GetName()}";
+                variants += $" using {this.openList.GetName()}";
             }
 
             if (mergeThreshold == -1)
