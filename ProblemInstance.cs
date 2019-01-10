@@ -188,6 +188,8 @@ namespace CPF_experiment
                 if (shortestPathLengths[start] == -1)
                 {
                     throw new Exception($"Unsolvable instance! Agent {agentId} cannot reach its goal");
+                    // Note instances can still be unsolvable if this isn't reached. E.g. this corridor:
+                    // s1-g2-g1-s2
                 }
 
                 this.singleAgentOptimalCosts[agentId] = shortestPathLengths;
@@ -318,7 +320,6 @@ namespace CPF_experiment
         {
             using (TextReader input = new StreamReader(fileName))
             {
-                //return new ProblemInstance(); // DELETE ME!!!
                 string[] lineParts;
                 string line;
                 int instanceId = 0;
