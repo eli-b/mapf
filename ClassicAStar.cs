@@ -1054,7 +1054,9 @@ namespace CPF_experiment
                 }
 
                 // If in closed list - only reopen if F is lower or node is otherwise preferred
-                if (this.closedList.ContainsKey(currentNode) == true)
+                bool wasInClosedList = this.closedList.ContainsKey(currentNode);
+                bool removedFromClosedList = false;
+                if (wasInClosedList)
                 {
                     ++this.closedListHits;
                     WorldState inClosedList = this.closedList[currentNode];
@@ -1131,6 +1133,7 @@ namespace CPF_experiment
                     {
                         this.reopened++;
                         this.closedList.Remove(inClosedList);
+                        removedFromClosedList = true;
                         this.openList.Remove(inClosedList);
                         // Items are searched for in the heap using their binaryHeapIndex, which is only initialized when they're put into it,
                         // and not their hash or their Equals or CompareTo methods, so it's important to call Remove with inClosedList,
@@ -1152,7 +1155,7 @@ namespace CPF_experiment
                     }
                 }
 
-                if (this.closedList.ContainsKey(currentNode) == false)
+                if (wasInClosedList == false || removedFromClosedList)
                 {
                     //if (this.instance.m_vAgents.Length > 2)
                     //{
