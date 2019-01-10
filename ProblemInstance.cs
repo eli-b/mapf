@@ -46,6 +46,11 @@ namespace CPF_experiment
         public int[][] singleAgentOptimalCosts;
 
         /// <summary>
+        /// The time it took to compute the shortest paths.
+        /// </summary>
+        public double shortestPathComputeTime;
+
+        /// <summary>
         /// This is a matrix that contains the best move towards the goal of every agent from any point in the grid.
         /// The first dimension of the matrix is the number of agents.
         /// The second dimension of the matrix is the cardinality of the location from which we want the shortest path.
@@ -130,6 +135,8 @@ namespace CPF_experiment
         public void ComputeSingleAgentShortestPaths()
         {
             Debug.WriteLine("Computing the single agent shortest path for all agents...");
+            Stopwatch watch = Stopwatch.StartNew();
+            double startTime = watch.Elapsed.TotalMilliseconds;
             //return; // Add for generator
 
             this.singleAgentOptimalCosts = new int[this.GetNumOfAgents()][];
@@ -186,6 +193,8 @@ namespace CPF_experiment
                 this.singleAgentOptimalCosts[agentId] = shortestPathLengths;
                 this.singleAgentOptimalMoves[agentId] = optimalMoves;
             }
+            double endTime = watch.Elapsed.TotalMilliseconds;
+            this.shortestPathComputeTime = endTime - startTime;
         }
 
         /// <summary>

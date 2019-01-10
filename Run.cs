@@ -936,10 +936,11 @@ namespace CPF_experiment
             }
             Console.WriteLine();
 
-            Console.WriteLine("Time In milliseconds: {0}", elapsedTime);
-           // Console.WriteLine("Total Unique/Full Expanded Nodes: {0}", solver.GetNodesPassedPruningCounter());
+            Console.WriteLine("Time In milliseconds: {0}", elapsedTime + instance.shortestPathComputeTime);
+            // TODO: Allow solvers to claim they don't use this heuristic and don't add the time to
+            //       compute it to their runtime.
 
-            this.PrintStatistics(instance, solver, elapsedTime);
+            this.PrintStatistics(instance, solver, elapsedTime + instance.shortestPathComputeTime);
             // Solver clears itself when it finishes the search.
             solver.ClearStatistics();
         }
