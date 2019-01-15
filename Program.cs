@@ -39,7 +39,7 @@ namespace CPF_experiment
             ProblemInstance instance;
             try
             {
-                instance = ProblemInstance.Import($"{Directory.GetCurrentDirectory()}\\Instances\\{fileName}");
+                instance = ProblemInstance.Import($"{Directory.GetCurrentDirectory()}\\..\\..\\Instances\\{fileName}");
             }
             catch (Exception e)
             {
@@ -75,7 +75,7 @@ namespace CPF_experiment
 
                 bool continueFromLastRun = false;
                 string[] LastProblemDetails = null;
-                string currentProblemFileName = $"{Directory.GetCurrentDirectory()}\\Instances\\current problem-{Process.GetCurrentProcess().ProcessName}";
+                string currentProblemFileName = $"{Directory.GetCurrentDirectory()}\\current-problem-{Process.GetCurrentProcess().ProcessName}";
                 if (File.Exists(currentProblemFileName)) //if we're continuing running from last time
                 {
                     var lastProblemFile = new StreamReader(currentProblemFileName);
