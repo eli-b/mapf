@@ -4,8 +4,8 @@ obj/Debug/*
 bin/Debug/*
 bin/Release/*
 obj/Release/*
-.svn-old/
 *.orig
 .vs/*
 packages/*
 Pipfile.lock
+instances/*

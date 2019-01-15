@@ -207,17 +207,24 @@ namespace CPF_experiment
             }
         }
 
-        protected static readonly string[] daoMapFilenames = { "dao_maps\\den520d.map", "dao_maps\\ost003d.map", "dao_maps\\brc202d.map"};
+        protected static readonly string[] daoMapPaths = {
+            "..\\..\\dao_maps\\den520d.map",
+            "..\\..\\dao_maps\\ost003d.map",
+            "..\\..\\dao_maps\\brc202d.map"
+        };
 
-        protected static readonly string[] mazeMapFilenames = { "mazes-width1-maps\\maze512-1-6.map", "mazes-width1-maps\\maze512-1-2.map",
-                                                "mazes-width1-maps\\maze512-1-9.map" };
+        protected static readonly string[] mazeMapPaths = {
+            "..\\..\\mazes_width1_maps\\maze512-1-6.map",
+            "..\\..\\mazes_width1_maps\\maze512-1-2.map",
+            "..\\..\\mazes_width1_maps\\maze512-1-9.map"
+        };
         
         /// <summary>
         /// Dragon Age experiment
         /// </summary>
         /// <param name="numInstances"></param>
-        /// <param name="mapFileNames"></param>
-        public void RunDragonAgeExperimentSet(int numInstances, string[] mapFileNames)
+        /// <param name="mapFilePaths"></param>
+        public void RunDragonAgeExperimentSet(int numInstances, string[] mapFilePaths)
         {
             ProblemInstance instance;
             string instanceName;
@@ -254,7 +261,7 @@ namespace CPF_experiment
                         //if (i % 33 != Convert.ToInt32(name)) // DAO!
                         //    continue;
 
-                        for (int map = 0; map < mapFileNames.Length; map++)
+                        for (int map = 0; map < mapFilePaths.Length; map++)
                         {
                             if (continueFromLastRun) // Set the latest problem
                             {
@@ -270,11 +277,11 @@ namespace CPF_experiment
                             }
                             if (runner.outOfTimeCounters.Sum() == runner.outOfTimeCounters.Length * 20) // All algs should be skipped
                                 break;
-                            string mapFileName = mapFileNames[map];
-                            instanceName = $"{Path.GetFileNameWithoutExtension(mapFileName)}-{agentListSizes[ag]}-{i}";
+                            string mapFilePath = mapFilePaths[map];
+                            instanceName = $"{Path.GetFileNameWithoutExtension(mapFilePath)}-{agentListSizes[ag]}-{i}";
                             try
                             {
-                                instance = ProblemInstance.Import($"{Directory.GetCurrentDirectory()}\\Instances\\{instanceName}");
+                                instance = ProblemInstance.Import($"{Directory.GetCurrentDirectory()}\\..\\..\\Instances\\{instanceName}");
                             }
                             catch (Exception importException)
                             {
@@ -284,7 +291,7 @@ namespace CPF_experiment
                                     return;
                                 }
 
-                                instance = runner.GenerateDragonAgeProblemInstance(mapFileName, agentListSizes[ag]);
+                                instance = runner.GenerateDragonAgeProblemInstance(mapFilePath, agentListSizes[ag]);
                                 instance.ComputeSingleAgentShortestPaths(); // Consider just importing the generated problem after exporting it to remove the duplication of this line from Import()
                                 instance.instanceId = i;
                                 instance.Export(instanceName);
@@ -320,9 +327,9 @@ namespace CPF_experiment
                 Debug.WriteLine("Debugger attached - running without a timeout!!");
             }
 
-            if (Directory.Exists(Directory.GetCurrentDirectory() + "\\Instances") == false)
+            if (Directory.Exists($"{Directory.GetCurrentDirectory()}..\\..\\Instances") == false)
             {
-                Directory.CreateDirectory(Directory.GetCurrentDirectory() + "\\Instances");
+                Directory.CreateDirectory($"{Directory.GetCurrentDirectory()}..\\..\\Instances");
             }
 
             Program.onlyReadInstances = false;
@@ -353,9 +360,9 @@ namespace CPF_experiment
                 me.RunExperimentSet(gridSizes, agentListSizes, obstaclesPercents, instances);
             }
             else if (runDragonAge == true)
-                me.RunDragonAgeExperimentSet(instances, Program.daoMapFilenames); // Obstacle percents and grid sizes built-in to the maps.
+                me.RunDragonAgeExperimentSet(instances, Program.daoMapPaths); // Obstacle percents and grid sizes built-in to the maps.
             else if (runMazesWidth1 == true)
-                me.RunDragonAgeExperimentSet(instances, Program.mazeMapFilenames); // Obstacle percents and grid sizes built-in to the maps.
+                me.RunDragonAgeExperimentSet(instances, Program.mazeMapPaths); // Obstacle percents and grid sizes built-in to the maps.
             else if (runSpecific == true)
             {
                 me.RunInstance("Instance-5-15-6-13");
