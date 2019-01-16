@@ -39,7 +39,7 @@ namespace CPF_experiment
             ProblemInstance instance;
             try
             {
-                instance = ProblemInstance.Import($"{Directory.GetCurrentDirectory()}\\..\\..\\Instances\\{fileName}");
+                instance = ProblemInstance.Import(Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "Instances", fileName));
             }
             catch (Exception e)
             {
@@ -75,7 +75,8 @@ namespace CPF_experiment
 
                 bool continueFromLastRun = false;
                 string[] LastProblemDetails = null;
-                string currentProblemFileName = $"{Directory.GetCurrentDirectory()}\\current-problem-{Process.GetCurrentProcess().ProcessName}";
+                string currentProblemFileName = Path.Combine(
+                    Directory.GetCurrentDirectory(), $"current-problem-{Process.GetCurrentProcess().ProcessName}");
                 if (File.Exists(currentProblemFileName)) //if we're continuing running from last time
                 {
                     var lastProblemFile = new StreamReader(currentProblemFileName);
@@ -122,7 +123,7 @@ namespace CPF_experiment
                                 instanceName = $"Instance-{gridSizes[gridSizeIndex]}-{obstaclesProbs[obstaclePercentageIndex]}-{agentListSizes[numOfAgentsIndex]}-{i}";
                                 try
                                 {
-                                    instance = ProblemInstance.Import($"{Directory.GetCurrentDirectory()}\\Instances\\{instanceName}");
+                                    instance = ProblemInstance.Import(Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "Instances", instanceName));
                                     instance.instanceId = i;
                                 }
                                 catch (Exception importException)
@@ -208,15 +209,15 @@ namespace CPF_experiment
         }
 
         protected static readonly string[] daoMapPaths = {
-            "..\\..\\dao_maps\\den520d.map",
-            "..\\..\\dao_maps\\ost003d.map",
-            "..\\..\\dao_maps\\brc202d.map"
+            Path.Combine("..", "..", "dao_maps", "den520d.map"),
+            Path.Combine("..", "..", "dao_maps", "ost003d.map"),
+            Path.Combine("..", "..", "dao_maps", "brc202d.map")
         };
 
         protected static readonly string[] mazeMapPaths = {
-            "..\\..\\mazes_width1_maps\\maze512-1-6.map",
-            "..\\..\\mazes_width1_maps\\maze512-1-2.map",
-            "..\\..\\mazes_width1_maps\\maze512-1-9.map"
+            Path.Combine("..", "..", "mazes_width1_maps", "maze512-1-6.map"),
+            Path.Combine("..", "..", "mazes_width1_maps", "maze512-1-2.map"),
+            Path.Combine("..", "..", "mazes_width1_maps", "maze512-1-9.map")
         };
         
         /// <summary>
@@ -244,7 +245,8 @@ namespace CPF_experiment
                 bool continueFromLastRun = false;
                 string[] lineParts = null;
 
-                string currentProblemFileName = $"{Directory.GetCurrentDirectory()}\\Instances\\current problem-{Process.GetCurrentProcess().ProcessName}";
+                string currentProblemFileName = Path.Combine(
+                    Directory.GetCurrentDirectory(), $"current-problem-{Process.GetCurrentProcess().ProcessName}"); 
                 if (File.Exists(currentProblemFileName)) //if we're continuing running from last time
                 {
                     TextReader input = new StreamReader(currentProblemFileName);
@@ -281,7 +283,7 @@ namespace CPF_experiment
                             instanceName = $"{Path.GetFileNameWithoutExtension(mapFilePath)}-{agentListSizes[ag]}-{i}";
                             try
                             {
-                                instance = ProblemInstance.Import($"{Directory.GetCurrentDirectory()}\\..\\..\\Instances\\{instanceName}");
+                                instance = ProblemInstance.Import(Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "Instances", instanceName));
                             }
                             catch (Exception importException)
                             {
@@ -327,9 +329,9 @@ namespace CPF_experiment
                 Debug.WriteLine("Debugger attached - running without a timeout!!");
             }
 
-            if (Directory.Exists($"{Directory.GetCurrentDirectory()}..\\..\\Instances") == false)
+            if (Directory.Exists(Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "Instances")) == false)
             {
-                Directory.CreateDirectory($"{Directory.GetCurrentDirectory()}..\\..\\Instances");
+                Directory.CreateDirectory(Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "Instances"));
             }
 
             Program.onlyReadInstances = false;
