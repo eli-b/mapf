@@ -9,7 +9,7 @@ namespace CPF_experiment
     /// <summary>
     /// This class solves an instance of the MAPF problem using the increasing costs tree search algorithm.
     /// </summary>
-    class CostTreeSearchSolver : ICbsSolver
+    abstract class CostTreeSearchSolver : ICbsSolver
     {
         protected Queue<CostTreeNode> openList;
         protected HashSet<CostTreeNode> closedList;
@@ -18,10 +18,12 @@ namespace CPF_experiment
         public int expandedHL;
         public int expandedLL;
         public int generatedLL;
+        public int passed;
         int accExpandedHL;
         int accGeneratedHL;
         int accExpandedLL;
         int accGeneratedLL;
+        int accPassed;
         protected ProblemInstance problem;
         protected Run runner;
         public CostTreeNode costTreeNode;
@@ -32,15 +34,13 @@ namespace CPF_experiment
         protected SinglePlan[] solution;
         protected int initialEstimate;
         protected int solutionDepth;
-        public static int passed; // FIXME: Why static?
         protected Dictionary<TimedMove, List<int>> ID_CAT;
         protected Dictionary<TimedMove, List<int>> CBS_CAT;
         protected int minCAViolations;
 
         // These variables are for matching and pruning MDDs
-        public static int[,,] edgesMatrix; // K(agent), V(from), V(to)
-        public static int edgesMatrixCounter;
-        public static int maxY; 
+        public int[,,] edgesMatrix; // K(agent), V(from), V(to)
+        public int edgesMatrixCounter;
 
         public CostTreeSearchSolver()
         {
@@ -60,7 +60,9 @@ namespace CPF_experiment
             return GetName();
         }
 
-        public virtual void Setup(ProblemInstance problemInstance, Run runner) { Setup(problemInstance, 0, runner); }
+        public virtual void Setup(ProblemInstance problemInstance, Run runner) {
+            Setup(problemInstance, 0, runner);
+        }
 
         /// <summary>
         /// Setup the relevant data structures for a run.
@@ -74,7 +76,7 @@ namespace CPF_experiment
                                   int minCost = -1, int maxCost = int.MaxValue)
         {
             this.minCAViolations = int.MaxValue;
-            CostTreeSearchSolver.passed = 0;
+            this.passed = 0;
             this.generatedHL = 1;
             this.expandedHL = 1;
             this.generatedLL = 0;
@@ -181,13 +183,13 @@ namespace CPF_experiment
             Console.WriteLine("Total Generated Nodes (High-Level): {0}", this.GetHighLevelGenerated());
             Console.WriteLine("Total Expanded Nodes (Low-Level): {0}", this.GetLowLevelExpanded());
             Console.WriteLine("Total Generated Nodes (Low-Level): {0}", this.GetLowLevelGenerated());
-            Console.WriteLine("\"passed\": {0}", CostTreeSearchSolver.passed);
+            Console.WriteLine("\"passed\": {0}", this.passed);
 
             output.Write(this.expandedHL + Run.RESULTS_DELIMITER);
             output.Write(this.generatedHL + Run.RESULTS_DELIMITER);
             output.Write(this.expandedLL + Run.RESULTS_DELIMITER);
             output.Write(this.generatedLL + Run.RESULTS_DELIMITER);
-            output.Write(CostTreeSearchSolver.passed + Run.RESULTS_DELIMITER);
+            output.Write(this.passed + Run.RESULTS_DELIMITER);
         }
 
         public int NumStatsColumns
@@ -209,6 +211,7 @@ namespace CPF_experiment
             this.accGeneratedHL = 0;
             this.accExpandedLL = 0;
             this.accGeneratedLL = 0;
+            this.accPassed = 0;
         }
 
         public void AccumulateStatistics()
@@ -217,6 +220,7 @@ namespace CPF_experiment
             this.accGeneratedHL += this.generatedHL;
             this.accExpandedLL += this.expandedLL;
             this.accGeneratedLL += this.generatedLL;
+            this.accPassed += this.passed;
         }
 
         public void OutputAccumulatedStatistics(TextWriter output)
@@ -225,80 +229,20 @@ namespace CPF_experiment
             Console.WriteLine("{0} Accumulated Generated Nodes (High-Level): {1}", this, this.accGeneratedHL);
             Console.WriteLine("{0} Accumulated Expanded Nodes (Low-Level): {1}", this, this.accExpandedLL);
             Console.WriteLine("{0} Accumulated Generated Nodes (Low-Level): {1}", this, this.accGeneratedLL);
-            Console.WriteLine("{0} Accumulated \"passed\": ?", this);
+            Console.WriteLine("{0} Accumulated \"passed\": {1}", this, this.accPassed);
 
             output.Write(this.accExpandedHL + Run.RESULTS_DELIMITER);
             output.Write(this.accGeneratedHL + Run.RESULTS_DELIMITER);
             output.Write(this.accExpandedLL + Run.RESULTS_DELIMITER);
             output.Write(this.accGeneratedLL + Run.RESULTS_DELIMITER);
-
-            output.Write("" + Run.RESULTS_DELIMITER); // TODO: Can't accumulate what I don't yet understand...
+            output.Write(this.accPassed + Run.RESULTS_DELIMITER);
         }
 
         /// <summary>
         /// Solves the instance that was set by a call to Setup()
         /// </summary>
         /// <returns></returns>
-        public virtual bool Solve()
-        {
-            // TODO: Remove dead code.
-            //int currentLevelCost = -1;
-            //CostTreeNodeSolver next;
-            //LinkedList<Move>[] ans = null;
-            //int sumSubGroupA;
-            //int sumSubGroupB;
-            ////TODO if no solution found the algorithm will never stop
-            //while (runner.ElapsedMilliseconds() <= Constants.MAX_TIME)
-            //{
-            //    costTreeNode = openList.First.Value;
-            //    if (costTreeNode.costs.Sum() > currentLevelCost)
-            //    {
-            //        costTreeDepth++;
-            //        currentLevelCost = costTreeNode.costs.Sum();
-            //    }
-            //    sumSubGroupA = costTreeNode.Sum(0, sizeOfA);
-            //    sumSubGroupB = costTreeNode.Sum(sizeOfA, costTreeNode.costs.Length);
-
-            //    //if maxValue is set i.e. were loking for a given cost solution
-            //    if (maxCost != -1)
-            //    {
-            //        //if we are above the given solution return no solution found
-            //        if (sumSubGroupA + sumSubGroupB > maxCost)
-            //            return false;
-            //        //if we are below the given solution no need to do goal test just expand node
-            //        if (sumSubGroupA + sumSubGroupB < maxCost)
-            //        {
-            //            costTreeNode.Expand(openList, closedList);
-            //            openList.RemoveFirst();
-            //            continue;
-            //        }
-            //    }
-            //    // Reuse optimal solutions to previously solved subproblems
-            //    if (sumSubGroupA >= costA && sumSubGroupB >= costB)
-            //    {
-            //        next = new CostTreeNodeSolverDDBF(problem, costTreeNode, runner);
-            //        generated++;
-            //        ans = next.Solve(conflictTable);
-            //        expanded += next.GetExpanded();
-            //        if (ans != null)
-            //        {
-            //            if (ans[0] != null)
-            //            {
-            //                totalCost = 0;
-            //                for (int i = 0; i < next.costs.Length; i++)
-            //                {
-            //                    totalCost += next.costs[i];
-            //                }
-            //                solution = new Plan(ans);
-            //                return true;
-            //            }
-            //        }
-            //    }
-            //    costTreeNode.Expand(openList, closedList);
-            //    openList.RemoveFirst();
-            //}
-            return false;
-        }
+        public abstract bool Solve();
 
         public int GetHighLevelExpanded() { return this.expandedHL; }
         public int GetHighLevelGenerated() { return this.generatedHL; }
@@ -317,6 +261,8 @@ namespace CPF_experiment
         {
             return null;
         }
+
+        public abstract CostTreeNodeSolver CreateNodeSolver(ProblemInstance instance, Run runner);
     }
 
     class CostTreeSearchSolverOldMatching : CostTreeSearchSolver
@@ -325,9 +271,14 @@ namespace CPF_experiment
 
         public CostTreeSearchSolverOldMatching(int syncSize) : base() { this.syncSize = syncSize; }
 
+        public override CostTreeNodeSolver CreateNodeSolver(ProblemInstance instance, Run runner)
+        {
+            return new CostTreeNodeSolverOldMatching(problem, runner, this);
+        }
+
         public override bool Solve()
         {
-            CostTreeNodeSolverOldMatching nodeSolver = new CostTreeNodeSolverOldMatching(problem, runner); // TODO: This begs a factory.
+            CostTreeNodeSolver nodeSolver = CreateNodeSolver(this.problem, this.runner);
             SinglePlan[] ans = null;
             int sumSubGroupA;
             int sumSubGroupB;
@@ -357,7 +308,7 @@ namespace CPF_experiment
                 // Eli: Does this actually happen? Add a statistic
                 if (sumSubGroupA >= costA && sumSubGroupB >= costB)
                 {
-                    nodeSolver.Setup(costTreeNode, syncSize);
+                    ((CostTreeNodeSolverOldMatching)nodeSolver).Setup(costTreeNode, syncSize);
                     expandedHL++;
                     ans = nodeSolver.Solve(ID_CAT, CBS_CAT);
                     generatedLL += nodeSolver.generated;
@@ -371,7 +322,7 @@ namespace CPF_experiment
                                 this.totalCost = nodeSolver.totalCost;
                                 this.solutionDepth = nodeSolver.totalCost - this.initialEstimate;
                                 this.solution = ans;
-                                CostTreeSearchSolver.passed--;
+                                this.passed--;
                                 return true;
                             }
 
@@ -380,7 +331,7 @@ namespace CPF_experiment
                                 this.totalCost = nodeSolver.totalCost;
                                 this.solutionDepth = nodeSolver.totalCost - this.initialEstimate;
                                 this.solution = ans;
-                                CostTreeSearchSolver.passed--;
+                                this.passed--;
                                 this.minCAViolations = nodeSolver.caViolations;
                                 this.maxCost = totalCost;
                                 if (nodeSolver.caViolations == 0)
@@ -409,9 +360,14 @@ namespace CPF_experiment
 
     class CostTreeSearchSolverNoPruning : CostTreeSearchSolver
     {
+        public override CostTreeNodeSolver CreateNodeSolver(ProblemInstance instance, Run runner)
+        {
+            return new CostTreeNodeSolverDDBF(problem, runner, this);
+        }
+
         public override bool Solve()
         {
-            CostTreeNodeSolverDDBF next = new CostTreeNodeSolverDDBF(problem, this.runner);
+            CostTreeNodeSolver next = CreateNodeSolver(this.problem, this.runner);
             SinglePlan[] ans = null;
             int sumSubGroupA;
             int sumSubGroupB;
@@ -441,7 +397,7 @@ namespace CPF_experiment
                 {
                     next.Setup(costTreeNode);
                     expandedHL++;
-                    ans = next.Solve(ID_CAT,CBS_CAT);
+                    ans = next.Solve(ID_CAT, CBS_CAT);
                     generatedLL += next.generated;
                     expandedLL += next.expanded;
                     if (ans != null)
@@ -489,12 +445,17 @@ namespace CPF_experiment
         {
             edgesMatrix = new int[problemInstance.m_vAgents.Length, problemInstance.GetMaxX() * problemInstance.GetMaxY() + problemInstance.GetMaxY(), Move.NUM_NON_DIAG_MOVES];
             edgesMatrixCounter = 0;
-            maxY = problemInstance.GetMaxY();
             base.Setup(problemInstance, minDepth, runner, minCost, maxCost);
         }
+
+        public override CostTreeNodeSolver CreateNodeSolver(ProblemInstance instance, Run runner)
+        {
+            return new CostTreeNodeSolverKSimpleMatching(problem, runner, this);
+        }
+
         public override bool Solve()
         {
-            CostTreeNodeSolverKSimpleMatching next = new CostTreeNodeSolverKSimpleMatching(problem, runner);
+            CostTreeNodeSolver next = CreateNodeSolver(problem, runner);
             SinglePlan[] ans = null;
             int sumSubGroupA;
             int sumSubGroupB;
@@ -522,9 +483,9 @@ namespace CPF_experiment
                 // Reuse optimal solutions to previously solved subproblems
                 if (sumSubGroupA >= costA && sumSubGroupB >= costB)
                 {
-                    next.setup(costTreeNode, maxGroupChecked);
+                    ((CostTreeNodeSolverKSimpleMatching)next).setup(costTreeNode, maxGroupChecked);
                     expandedHL++;
-                    ans = next.Solve(ID_CAT,CBS_CAT);
+                    ans = next.Solve(ID_CAT, CBS_CAT);
                     generatedLL += next.generated;
                     expandedLL += next.expanded;
                     if (ans != null)
@@ -572,13 +533,18 @@ namespace CPF_experiment
         {
             edgesMatrix = new int[problemInstance.m_vAgents.Length, problemInstance.GetMaxX() * problemInstance.GetMaxY() + problemInstance.GetMaxY(), Move.NUM_NON_DIAG_MOVES];
             edgesMatrixCounter = 0;
-            maxY = problemInstance.GetMaxY();
             base.Setup(problemInstance, minDepth, runner, minCost, maxCost);
         }
+
+        public override CostTreeNodeSolver CreateNodeSolver(ProblemInstance instance, Run runner)
+        {
+            return new CostTreeNodeSolverRepeatedMatching(problem, runner, this);
+        }
+
         public override bool Solve()
         {
             //int time = 0;
-            CostTreeNodeSolverRepeatedMatching next = new CostTreeNodeSolverRepeatedMatching(problem, runner);
+            CostTreeNodeSolver next = CreateNodeSolver(problem, runner);
             SinglePlan[] ans = null;
             Stopwatch sw = new Stopwatch();
             int sumSubGroupA;
@@ -608,7 +574,7 @@ namespace CPF_experiment
                 // Reuse optimal solutions to previously solved subproblems
                 if (sumSubGroupA >= costA && sumSubGroupB >= costB)
                 {
-                    next.setup(costTreeNode, syncSize);
+                    ((CostTreeNodeSolverRepeatedMatching)next).setup(costTreeNode, syncSize);
                     generatedLL += next.generated;
                     expandedLL += next.expanded;
                     sw.Start();

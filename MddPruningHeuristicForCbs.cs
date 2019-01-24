@@ -126,7 +126,7 @@ namespace CPF_experiment
                                s.allSingleAgentCosts[s.conflict.agentBIndex], maxCost,
                                this.instance.GetNumOfAgents(), this.instance, this.ignoreConstraints);
             s.cbs.mddsBuilt += 2;
-            MDD.PruningDone ans = mddA.SyncMDDs(mddB, checkTriples: false);
+            (MDD.PruningDone ans, int stat) = mddA.SyncMDDs(mddB, checkTriples: false);
             if (ans == MDD.PruningDone.EVERYTHING)
             {
                 if (this.ignoreConstraints)

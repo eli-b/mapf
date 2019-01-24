@@ -259,11 +259,13 @@ namespace CPF_experiment
         /// </summary>
         /// <param name="other"></param>
         /// <param name="checkTriples">If true, use the "3E" method.</param>
-        public PruningDone SyncMDDs(MDD other, bool checkTriples)
+        /// <returns>How much pruning was done, and by how much the matchCounter should be incremented</returns>
+        public (PruningDone, int) SyncMDDs(MDD other, bool checkTriples)
         {
-            PruningDone ans = PruningDone.NOTHING;
+            int matchCounter = 0;
+            PruningDone pruningDone = PruningDone.NOTHING;
             if (this.levels == null || other.levels == null) // Either of the MDDs was already completely pruned already
-                return PruningDone.EVERYTHING;
+                return (PruningDone.EVERYTHING, matchCounter);
 
             // Cheaply find the coexisting nodes on level zero - all nodes coexist because agent starting points never collide
             var coexistingNodesForLevelZero = new HashSet<MDDNode>();
@@ -293,7 +295,7 @@ namespace CPF_experiment
 
                                         if (coexistingForNode.Contains(childOfParentCoexistingNode) == false)
                                         {
-                                            CostTreeNodeSolver.matchCounter++;
+                                            matchCounter++;
                                             coexistingForNode.Add(childOfParentCoexistingNode);
                                         }
                                     }
@@ -303,22 +305,22 @@ namespace CPF_experiment
                         if (!validParent)
                         {
                             node.removeParent(parent); // And continue up the levels if necessary
-                            ans = PruningDone.SOME;
+                            pruningDone = PruningDone.SOME;
                         }
                     }
                     node.SetCoexistingNodes(coexistingForNode, other.mddNum);
                     if (node.getCoexistingNodesCount(other.mddNum) == 0)
                     {
                         node.delete();
-                        ans = PruningDone.SOME;
+                        pruningDone = PruningDone.SOME;
                     }
                 }
                 if (levels[0].Count == 0)
                 {
-                    return PruningDone.EVERYTHING;
+                    return (PruningDone.EVERYTHING, matchCounter);
                 }
             }
-            return ans;
+            return (pruningDone, matchCounter);
         }
 
         // TODO: Make a Combine method to multiply with another MDD.
@@ -536,7 +538,7 @@ namespace CPF_experiment
         
         public int getVertexIndex()
         {
-            return move.x * CostTreeSearchSolver.maxY + move.y;
+            return move.x * this.mdd.problem.GetMaxY() + move.y;
         }
         
         /// <summary>

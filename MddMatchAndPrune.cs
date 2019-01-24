@@ -5,6 +5,9 @@ using System.Linq;
 
 namespace CPF_experiment
 {
+    /// <summary>
+    /// Used by CostTreeNodeSolverKSimpleMatching (but actually commented out)
+    /// </summary>
     class MddMatchAndPrune
     {
         MDD[] allMDDs;
@@ -15,16 +18,18 @@ namespace CPF_experiment
         bool legal; //indicates if all single MDDs are legal
         public bool[] conflicted; //indicates if the matching process found any illegal nodes/edges and pruned any of the MDDs
         Run runner;
+        CostTreeNodeSolver nodeSolver;
 
         /// <summary>
         /// constructor
         /// </summary>
-        public MddMatchAndPrune(Run runner)
+        public MddMatchAndPrune(Run runner, CostTreeNodeSolver nodeSolver)
         {
             this.openList = new Queue<MddMatchAndPruneState>();
             this.closedList = new Dictionary<MddMatchAndPruneState, MddMatchAndPruneState>();
             conflicted = new bool[4];
             this.runner = runner;
+            this.nodeSolver = nodeSolver;
         }
 
         public void initialize(MDD[] allMDDs)
@@ -52,7 +57,7 @@ namespace CPF_experiment
         /// <summary>
         /// Build the generalized MDD
         /// </summary>
-        /// <returns></returns>
+        /// <returns>Whether it was successful</returns>
         private bool buildGeneralMDD()
         {
             MddMatchAndPruneState current = openList.Dequeue();
@@ -61,7 +66,7 @@ namespace CPF_experiment
 
             while (current.stateLevel + 1 != this.solutionDepth) // while not goal
             {
-                Expand(current,allChildren);
+                Expand(current, allChildren);
                 if (openList.Count == 0)
                     return false;
                 current = openList.Dequeue();
@@ -91,11 +96,11 @@ namespace CPF_experiment
                 successor = allChildren.getNext();
                 if (closedList.ContainsKey(successor))
                 {
-                    ((MddMatchAndPruneState)closedList[successor]).addParent(toExpand);
+                    closedList[successor].addParent(toExpand);
                 }
                 else
                 {
-                    CostTreeNodeSolver.matchCounter++;
+                    this.nodeSolver.matchCounter++;
                     successor.addParent(toExpand);
                     closedList.Add(successor, successor);
                     openList.Enqueue(successor);
@@ -111,7 +116,10 @@ namespace CPF_experiment
             {
                 for (int i = 0; i < toExpand.allPositions.Length; i++)
                 {
-                    CostTreeSearchSolver.edgesMatrix[i, parent.allPositions[i].getVertexIndex(), (int) Move.Direction.Wait] = CostTreeSearchSolver.edgesMatrixCounter + 1;
+                    this.nodeSolver.solver.edgesMatrix[i,
+                                                       parent.allPositions[i].getVertexIndex(),
+                                                       (int) Move.Direction.Wait] =
+                        this.nodeSolver.solver.edgesMatrixCounter + 1;
                 }
                 if (closedList.ContainsKey(parent) == false)
                 {
@@ -144,7 +152,10 @@ namespace CPF_experiment
                     foreach (MDDNode parent in node.parents)
                     {
                         //if not legal
-                        if ((int)CostTreeSearchSolver.edgesMatrix[i, parent.getVertexIndex(), (int) node.move.direction /*or parent.move.direction, I'm not sure*/] != CostTreeSearchSolver.edgesMatrixCounter + 1)
+                        int edge = this.nodeSolver.solver.edgesMatrix[i,
+                                                                      parent.getVertexIndex(),
+                                                                      (int)node.move.direction /*or parent.move.direction, I'm not sure*/];
+                        if (edge != this.nodeSolver.solver.edgesMatrixCounter + 1)
                         {
                             parentsToDelete[parentI] = parent;
                             this.conflicted[i] = true;
@@ -159,43 +170,42 @@ namespace CPF_experiment
         }
 
         /// <summary>
-        /// prunes the given MDDs according to each other
+        /// Prunes the given MDDs according to each other
         /// </summary>
-         public bool pruneMDDs()
-         {
-             if (legal == false || buildGeneralMDD() == false)
-                 return false;
+        /// <returns>Whether it was successful, by how much to increment edgesMatrixCounter, and by how much to increment matchCounter</returns>
+        public bool pruneMDDs()
+        {
+            if (legal == false)
+                return false;
+
+            bool success = buildGeneralMDD();
+            if (success == false)
+                return false;
+
+            Debug.Assert(openList.Count == 0);
    
-             //Run.resultsWriterdd.Write(CostTreeNodeSolver.matchCounter + ",");
-             //Run.resultsWriterdd.WriteLine();
-             //Run.resultsWriterdd.Flush();
-             //Run.resultsWriterdd.Close();
+            MddMatchAndPruneState current = goal;
+            int currentLevel = goal.stateLevel;
+            closedList.Clear();
    
-             if (openList.Count != 0)
-                 Console.ReadLine();//should be empty
+            while (current.stateLevel > 0) // while not root
+            {
+                if (runner.ElapsedMilliseconds() > Constants.MAX_TIME)
+                    return false;
    
-             MddMatchAndPruneState current = goal;
-             int currentLevel = goal.stateLevel;
-             closedList.Clear();
-   
-             while (current.stateLevel > 0) //while not root
-             {
-                 if (runner.ElapsedMilliseconds() > Constants.MAX_TIME)
-                     return false;
-   
-                 if (current.stateLevel < currentLevel)
-                 {
-                     pruneLevel(currentLevel);
-                     currentLevel--;
-                     CostTreeSearchSolver.edgesMatrixCounter++;
-                     closedList.Clear();
-                 }
-                 reverseExpand(current);
-                 current = openList.Dequeue();
-             }
-             pruneLevel(currentLevel); //prune level 1
-             return true;
-         }
+                if (current.stateLevel < currentLevel)
+                {
+                    pruneLevel(currentLevel);
+                    currentLevel--;
+                    this.nodeSolver.solver.edgesMatrixCounter++;
+                    closedList.Clear();
+                }
+                reverseExpand(current);
+                current = openList.Dequeue();
+            }
+            pruneLevel(currentLevel); //prune level 1
+            return true;
+        }
    
     }
 
@@ -267,7 +277,7 @@ namespace CPF_experiment
 
         public successorIterator(int size)
         {
-            this.nodesFromChildrenList=new LinkedListNode<MDDNode>[size]; 
+            this.nodesFromChildrenList = new LinkedListNode<MDDNode>[size]; 
         }
 
         public void initialize(MddMatchAndPruneState prevStep)

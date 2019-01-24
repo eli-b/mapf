@@ -15,18 +15,18 @@ namespace CPF_experiment
         BinaryHeap<MDDStep> openList;
         public int expanded;
         public int generated;
-        public int conflictAvoidanceViolations;
+        public int conflictCount;
         Dictionary<TimedMove, List<int>> ID_CAT;
         Dictionary<TimedMove, List<int>> CBS_CAT;
 
-        public AStarMDD(MDD[] problem, Run runner, Dictionary<TimedMove, List<int>> conflicts, Dictionary<TimedMove, List<int>> CBS_CAT)
+        public AStarMDD(MDD[] problem, Run runner, Dictionary<TimedMove, List<int>> ID_CAT, Dictionary<TimedMove, List<int>> CBS_CAT)
         {
             this.expanded = 0;
             this.generated = 0;
             MDDStep root;
             this.problem = problem;
             this.runner = runner;
-            this.ID_CAT = conflicts;
+            this.ID_CAT = ID_CAT;
             this.CBS_CAT = CBS_CAT;
             this.closedList = new Dictionary<MDDStep, MDDStep>();
             this.openList = new BinaryHeap<MDDStep>();
@@ -39,7 +39,7 @@ namespace CPF_experiment
             root = new MDDStep(sRoot, null);
             openList.Add(root);
             closedList.Add(root, root); // There will never be a hit. This is only done for consistancy
-            conflictAvoidanceViolations = 0;
+            conflictCount = 0;
         }
        
         public SinglePlan[] Solve()
@@ -57,7 +57,7 @@ namespace CPF_experiment
                 // Check if node is the goal
                 if (this.GoalTest(currentNode))
                 {
-                    conflictAvoidanceViolations = currentNode.conflicts;
+                    conflictCount = currentNode.conflictCount;
                     return GetAnswer(currentNode);
                 }
 
@@ -79,14 +79,14 @@ namespace CPF_experiment
 
                 if (IsLegalMove(child))
                 {
-                    child.conflicts = currentNode.parent.conflicts;
+                    child.conflictCount = currentNode.parent.conflictCount;
                     child.SetConflicts(ID_CAT, CBS_CAT);
 
                     if (this.closedList.ContainsKey(child) == true)
                     {
                         MDDStep inClosedList = this.closedList[child];
 
-                        if (inClosedList.conflicts > child.conflicts)
+                        if (inClosedList.conflictCount > child.conflictCount)
                         {
                             closedList.Remove(inClosedList);
                             openList.Remove(inClosedList);
@@ -100,29 +100,6 @@ namespace CPF_experiment
                     }
                 }
             }
-        }
-
-        /// <summary>
-        /// Not used.
-        /// </summary>
-        public void ClearIllegal()
-        {
-            foreach (MDD mdd in problem)
-                foreach (LinkedList<MDDNode> level in mdd.levels)
-                    foreach (MDDNode node in level)
-                        if (node.legal == false)
-                            node.delete();
-        }
-
-        /// <summary>
-        /// Not used.
-        /// </summary>
-        public void ResetIllegal()
-        {
-            foreach (MDD mdd in problem)
-                for (int i = 1; i < mdd.levels.Length; i++)
-                    foreach (MDDNode node in mdd.levels[i])
-                            node.legal = false;
         }
 
         public int GetGenerated() { return this.generated; }
@@ -186,7 +163,7 @@ namespace CPF_experiment
     {
         public MDDNode[] allSteps;
         public MDDStep prevStep;
-        public int conflicts;
+        public int conflictCount;
         int binaryHeapIndex;
 
         public MDDStep(MDDNode[] allSteps, MDDStep prevStep)
@@ -252,15 +229,15 @@ namespace CPF_experiment
                 // TODO: Kill this code dup. The ConflictAvoidanceTable class takes care of it.
                 queryMove.setup(allSteps[i].move.x, allSteps[i].move.y, Move.Direction.NO_DIRECTION, allSteps[i].move.time);
                 if (ID_CAT != null && ID_CAT.ContainsKey(queryMove))
-                    conflicts++;
+                    conflictCount++;
                 if (CBS_CAT != null && CBS_CAT.ContainsKey(queryMove))
-                    conflicts++;
+                    conflictCount++;
                 queryMove.direction = allSteps[i].move.direction;
                 queryMove.setOppositeMove();
                 if (ID_CAT != null && ID_CAT.ContainsKey(queryMove))
-                    conflicts++;
+                    conflictCount++;
                 if (CBS_CAT != null && CBS_CAT.ContainsKey(queryMove))
-                    conflicts++;
+                    conflictCount++;
             }
         }
 
@@ -279,9 +256,9 @@ namespace CPF_experiment
         public int CompareTo(IBinaryHeapItem other)
         {
             MDDStep that = (MDDStep)other;
-            if (this.conflicts  < that.conflicts)
+            if (this.conflictCount  < that.conflictCount)
                 return -1;
-            if (this.conflicts > that.conflicts)
+            if (this.conflictCount > that.conflictCount)
                 return 1;
 
             if (this.GetDepth() > that.GetDepth())
