@@ -28,7 +28,8 @@ namespace CPF_experiment
         protected bool supportPruning;
 
         /// <summary>
-        /// 
+        /// Builds an MDD by first performing a BFS from start_pos to the agent's goal,
+        /// then deleting all nodes which don't lead to the goal at the given cost.
         /// </summary>
         /// <param name="mddNum"></param>
         /// <param name="agentNum"></param>
@@ -38,7 +39,7 @@ namespace CPF_experiment
         /// The MDD must be of this number of levels, not counting level zero.
         /// If higher than cost, the extra levels will be WAITs at the goal.
         /// </param>
-        /// <param name="numOfAgents"></param>
+        /// <param name="numOfAgents">Used for initializng coexistence lists</param>
         /// <param name="instance"></param>
         /// <param name="ignoreConstraints"></param>
         /// <param name="supportPruning"></param>
@@ -83,7 +84,7 @@ namespace CPF_experiment
             var perLevelClosedList = new Dictionary<MDDNode, MDDNode>();
             var toDelete = new List<MDDNode>();
 
-            for (int i = 0; i <= numOfLevels; i++)
+            for (int i = 0; i < levels.Length; i++)
             {
                 levels[i] = new LinkedList<MDDNode>();
             }
@@ -142,6 +143,69 @@ namespace CPF_experiment
                 levels = null;
         }
 
+        public MDD(MDD other)
+        {
+            this.problem = other.problem;
+            this.mddNum = other.mddNum;
+            this.agentNum = other.agentNum;
+            this.numOfAgents = other.numOfAgents;
+            this.cost = other.cost;
+            this.supportPruning = other.supportPruning;
+            if (other.levels == null)
+            {
+                this.levels = null;
+                return;
+            }
+            this.levels = new LinkedList<MDDNode>[other.levels.Length];
+            int numOfLevels = other.levels.Length - 1;  // Level zero not counted
+            for (int i = 0; i < levels.Length; i++)
+            {
+                levels[i] = new LinkedList<MDDNode>();
+            }
+            Dictionary<MDDNode, MDDNode> originals = new Dictionary<MDDNode, MDDNode>();
+            Dictionary<MDDNode, MDDNode> copies = new Dictionary<MDDNode, MDDNode>();
+            MDDNode copiedRoot = new MDDNode(new TimedMove(other.levels[0].First.Value.move),
+                                             numOfAgents, this, supportPruning); // Root
+            LinkedListNode<MDDNode> llNode = new LinkedListNode<MDDNode>(copiedRoot);
+            copiedRoot.setMyNode(llNode);
+            llNode.Value.startOrGoal = true;
+            levels[0].AddFirst(llNode);
+            originals.Add(copiedRoot, other.levels[0].First.Value);
+            copies.Add(other.levels[0].First.Value, copiedRoot);
+
+            for (int i = 0; i < numOfLevels; i++) // For each level, populate the _next_ level
+            {
+                foreach (MDDNode copiedNode in levels[i])
+                {
+                    foreach (MDDNode originalChildNode in originals[copiedNode].children)
+                    {
+                        MDDNode copiedChild;
+                        if (copies.ContainsKey(originalChildNode) == false)
+                        {
+                            copiedChild = new MDDNode(originalChildNode.move, numOfLevels, this, supportPruning);
+                            originals.Add(copiedChild, originalChildNode);
+                            copies.Add(originalChildNode, copiedChild);
+                            llNode = new LinkedListNode<MDDNode>(copiedChild);
+                            copiedChild.setMyNode(llNode);
+                            levels[i + 1].AddLast(llNode);
+                        }
+                        else
+                            copiedChild = copies[originalChildNode];
+                        copiedNode.addChild(copiedChild); // forward edge
+                        copiedChild.addParent(copiedNode); // backward edge
+                    }
+                }
+            }
+
+            originals.Clear();
+            copies.Clear();
+
+            foreach (MDDNode goal in levels[numOfLevels]) // The goal may be reached in more than one direction
+            {
+                goal.startOrGoal = true;
+            }
+        }
+
         /// <summary>
         /// Just an optimization
         /// </summary>
@@ -163,7 +227,8 @@ namespace CPF_experiment
             foreach (TimedMove move in parent.move.GetNextMoves())
             {
                 if (this.problem.IsValid(move) &&
-                    this.problem.GetSingleAgentOptimalCost(this.agentNum, move) <= heuristicBound) // Only nodes that can reach the goal in the given cost according to the heuristic.
+                    this.problem.GetSingleAgentOptimalCost(this.agentNum, move) <= heuristicBound) // Only nodes that can reach the goal
+                                                                                                   // in the given cost according to the heuristic.
                 {
                     if (constraints != null)
                     {
@@ -173,7 +238,8 @@ namespace CPF_experiment
                             continue;
                     }
 
-                    if (mustConstraints != null && move.time < mustConstraints.Length && // There may be a constraint on the timestep of the generated node
+                    if (mustConstraints != null && move.time < mustConstraints.Length && // There may be a constraint on the timestep
+                                                                                         // of the generated node
                         mustConstraints[move.time] != null &&
                         mustConstraints[move.time].ContainsKey(this.agentNum)) // This agent has a must constraint for this time step
                     {
@@ -331,7 +397,7 @@ namespace CPF_experiment
     public class MDDNode
     {
         public TimedMove move;
-        public LinkedList<MDDNode> children;
+        public LinkedList<MDDNode> children;  // LinkedList because we need to delete items from the middle
         public LinkedList<MDDNode> parents;
         public HashSet<MDDNode>[] coexistingNodesFromOtherMdds;
         public MDD mdd;
