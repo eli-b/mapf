@@ -345,16 +345,20 @@ namespace CPF_experiment
 
         public override int GetHashCode()
         {
-            int ret = Constants.PRIMES_FOR_HASHING[0] * this.agentNum.GetHashCode();
-
-            // Hash the contents and order of locationsAtTimes
-            int i = 0;
-            foreach (var move in this.locationAtTimes)
+            int ret;
+            unchecked // wrap-around is fine in hash functions
             {
-                ret += Constants.PRIMES_FOR_HASHING[1] * i + Constants.PRIMES_FOR_HASHING[2] * move.GetHashCode();
-                i++;
+                ret = Constants.PRIMES_FOR_HASHING[0] * this.agentNum.GetHashCode();
+
+                // Hash the contents and order of locationsAtTimes
+                int i = 0;
+                foreach (var move in this.locationAtTimes)
+                {
+                    ret += Constants.PRIMES_FOR_HASHING[1] * i + Constants.PRIMES_FOR_HASHING[2] * move.GetHashCode();
+                    i++;
+                }
             }
-            return  ret;
+            return ret;
         }
 
         /// <summary>
