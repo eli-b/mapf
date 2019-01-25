@@ -15,7 +15,7 @@ namespace CPF_experiment
         /// the caller(for example, if the caller wanted to add to our
         /// heuristic estimate).
         /// </summary>
-        public SortedSet<uint> m_vExcludedAgents;
+        public SortedSet<uint> excludedAgents;
 
         /// <summary>
         /// Determines how many additive pattern databases to build and divides
@@ -78,7 +78,7 @@ namespace CPF_experiment
              // For informational purposes, we will set the number of agents
              // that aren't included in this set of pattern databases.
 
-            m_vExcludedAgents = new SortedSet<uint>();
+            excludedAgents = new SortedSet<uint>();
 
             Debug.WriteLine("done.");
         }

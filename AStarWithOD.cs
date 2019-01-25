@@ -19,7 +19,7 @@ namespace CPF_experiment
 
         override protected WorldState CreateSearchRoot(int minDepth = -1, int minCost = -1)
         {
-            return new WorldStateWithOD(this.instance.m_vAgents, minDepth, minCost);
+            return new WorldStateWithOD(this.instance.agents, minDepth, minCost);
         }
 
         protected override WorldState CreateSearchNode(WorldState from)
@@ -69,7 +69,7 @@ namespace CPF_experiment
 
             var generated = base.ExpandOneAgent(intermediateNodes, agentIndex);
 
-            int childAgentTurn = ((parent.agentTurn + 1) % (this.instance.m_vAgents.Length));
+            int childAgentTurn = ((parent.agentTurn + 1) % (this.instance.agents.Length));
             foreach (var node in generated)
             {
                 WorldStateWithOD childNode = (WorldStateWithOD)node;

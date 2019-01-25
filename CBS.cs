@@ -236,7 +236,7 @@ namespace CPF_experiment
 
             this.topMost = this.SetGlobals();
 
-            CbsNode root = new CbsNode(instance.m_vAgents.Length, this.solver, this.singleAgentSolver, this); // Problem instance and various strategy data is all passed under 'this'.
+            CbsNode root = new CbsNode(instance.agents.Length, this.solver, this.singleAgentSolver, this); // Problem instance and various strategy data is all passed under 'this'.
             // Solve the root node
             bool solved = root.Solve(minSolutionTimeStep);
 
@@ -1017,8 +1017,8 @@ namespace CPF_experiment
                 {
                     // TODO: What if planning a path for the merged agents finds a path with the same
                     // cost as the sum of their current paths and no other conflicts exist
-                    child = new CbsNode(this.instance.m_vAgents.Length, this.solver,
-                                            this.singleAgentSolver, this, node.agentsGroupAssignment);
+                    child = new CbsNode(this.instance.agents.Length, this.solver,
+                                        this.singleAgentSolver, this, node.agentsGroupAssignment);  // This will be the new root node
                     child.MergeGroups(node.agentsGroupAssignment[conflict.agentAIndex],
                         node.agentsGroupAssignment[conflict.agentBIndex], fixCounts: false);
                     this.maxSizeGroup = Math.Max(this.maxSizeGroup, child.GetGroupSize(conflict.agentAIndex));
@@ -1914,7 +1914,7 @@ namespace CPF_experiment
 
         private void MakeConflictMatrix(ProblemInstance problemInstance)
         {
-            this.globalConflictsCounter = new int[problemInstance.m_vAgents.Length][];
+            this.globalConflictsCounter = new int[problemInstance.agents.Length][];
             for (int i = 0; i < globalConflictsCounter.Length; i++)
             {
                 this.globalConflictsCounter[i] = new int[i];

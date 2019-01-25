@@ -7,7 +7,7 @@ namespace CPF_experiment
     [Serializable]
     class PDB : IHeuristicCalculator<WorldState>
     {
-        [NonSerialized] protected ProblemInstance m_Problem;
+        [NonSerialized] protected ProblemInstance problem;
 
         /// <summary>
         /// The agents to extract from the state. Each value in this list is an
@@ -17,7 +17,7 @@ namespace CPF_experiment
         /// the agents we are interested in), but is used during the search effort
         /// in the real problem.
         /// </summary>
-        protected List<uint> m_vAgents;
+        protected List<uint> agents;
 
         /// <summary>
         /// Initializes the pattern database by storing references to the
@@ -28,9 +28,9 @@ namespace CPF_experiment
         /// <param name="vAgents">The agents that the pattern database should keep track of.</param>
         public virtual void init(ProblemInstance pi, List<uint> vAgents)
         {
-            m_Problem = pi;
-            m_vAgents = new List<uint>(vAgents);
-            m_vAgents.Sort();
+            problem = pi;
+            agents = new List<uint>(vAgents);
+            agents.Sort();
         }
 
         /// <summary>
@@ -91,7 +91,7 @@ namespace CPF_experiment
             {
                 prev = currentNode;
             }
-            if (agentIndex == m_Problem.m_vAgents.Length) // If all the agents have moved
+            if (agentIndex == problem.agents.Length) // If all the agents have moved
             {
                 currentNode.makespan++;
                 currentNode.CalculateG();
@@ -124,7 +124,7 @@ namespace CPF_experiment
         private bool IsValid(Move possibleMove, int agentNum, ICollection<Move> previousAgentMoves)
         {
             // If the tile is not free (out of the grid or with an obstacle)
-            if (m_Problem.IsValid(possibleMove) == false)
+            if (problem.IsValid(possibleMove) == false)
                 return false;
 
             // If previous move of another agent will collide with this move

@@ -30,24 +30,24 @@ namespace CPF_experiment
         /// get the correct admissible heuristic value. We reserve Byte.MaxValue
         /// to represent an uninitialized table entry.
         /// </summary>
-        Byte[] m_vTable;
+        byte[] table;
 
         /// <summary>
-        /// m_vPermutations[i] represents the number of permutations of the
+        /// permutations[i] represents the number of permutations of the
         /// remaining agents after placing the ith agent. For example, if we
         /// had 10 agents, and we've already placed 3 of them, then
-        /// m_vPermutations[2] represents the number of permutations for the
+        /// permutations[2] represents the number of permutations for the
         /// remaining 7 agents. This precomputed table depends on the number
         /// of free locations in the board and is used as a perfect hash 
         /// function that maps a state in the search space to an integer.
         /// </summary>
-        UInt64[] m_vPermutations;
+        ulong[] permutations;
 
         /// <summary>
         /// Determines whether or not we will internally represent heuristic
         /// values as offsets from the single shortest path heuristic.
         /// </summary>
-        bool m_bOffsetFromSingleShortestPath = true;
+        bool offsetFromSingleShortestPath = true;
 
         /// <summary>
         /// Encapsulates the two file streams we will be using as we are
@@ -60,29 +60,29 @@ namespace CPF_experiment
 
         class Context : IDisposable
         {
-            String m_sQueue;
-            public UInt64 m_nNodes;
-            public FileStream m_fsQueue;
+            string queue;
+            public ulong nodes;
+            public FileStream fsQueue;
 
-            String m_sNext;
-            public UInt64 m_nNextNodes;
-            public FileStream m_fsNext;
-            public BinaryFormatter m_bf;
+            string next;
+            public ulong nextNodesCount;
+            public FileStream fsNext;
+            public BinaryFormatter binaryFormatter;
 
-            public void initialize(String q1, String q2)
+            public void initialize(string q1, string q2)
             {
-                m_sQueue = q1;
-                m_nNodes = 0;
-                if (m_fsQueue != null)
-                    m_fsQueue.Close();
+                queue = q1;
+                nodes = 0;
+                if (fsQueue != null)
+                    fsQueue.Close();
 
-                m_sNext = q2;
-                m_nNextNodes = 0;
-                if (m_fsNext != null)
-                    m_fsNext.Close();
-                m_fsNext = new FileStream(m_sNext, FileMode.Create);
+                next = q2;
+                nextNodesCount = 0;
+                if (fsNext != null)
+                    fsNext.Close();
+                fsNext = new FileStream(next, FileMode.Create);
 
-                m_bf = new BinaryFormatter();
+                binaryFormatter = new BinaryFormatter();
             }
 
             /// <summary>
@@ -94,36 +94,36 @@ namespace CPF_experiment
 
             public void nextLevel()
             {
-                String sTemp = m_sQueue;
-                m_sQueue = m_sNext;
-                m_sNext = sTemp;
+                string sTemp = queue;
+                queue = next;
+                next = sTemp;
 
-                m_nNodes = m_nNextNodes;
-                m_nNextNodes = 0;
+                nodes = nextNodesCount;
+                nextNodesCount = 0;
 
-                if (m_fsQueue != null)
-                    m_fsQueue.Close();
-                if (m_fsNext != null)
-                    m_fsNext.Close();
+                if (fsQueue != null)
+                    fsQueue.Close();
+                if (fsNext != null)
+                    fsNext.Close();
 
-                m_fsQueue = new FileStream(m_sQueue, FileMode.Open, FileAccess.Read);
-                m_fsNext = new FileStream(m_sNext, FileMode.Create, FileAccess.Write);
+                fsQueue = new FileStream(queue, FileMode.Open, FileAccess.Read);
+                fsNext = new FileStream(next, FileMode.Create, FileAccess.Write);
             }
             public void write(WorldState tws)
             {
-                m_bf.Serialize(m_fsNext, tws);
-                ++m_nNextNodes;
+                binaryFormatter.Serialize(fsNext, tws);
+                nextNodesCount++;
             }
             public void clear()
             {
-                m_fsQueue.Close();
-                m_fsNext.Close();
+                fsQueue.Close();
+                fsNext.Close();
             }
 
             public void Dispose()
             {
-                this.m_fsQueue.Dispose();
-                this.m_fsNext.Dispose();
+                this.fsQueue.Dispose();
+                this.fsNext.Dispose();
             }
         };
 
@@ -135,10 +135,9 @@ namespace CPF_experiment
         /// </summary>
         /// <returns>An estimate of the amount of memory required for this
         /// pattern database in units of bytes.</returns>
-        public override UInt64 estimateSize()
+        public override ulong estimateSize()
         {
-            return (m_vPermutations[0] * m_Problem.m_nLocations +
-                (ulong) (sizeof(UInt64) * m_vPermutations.Length));
+            return permutations[0] * problem.numLocations + (ulong) (sizeof(ulong) * permutations.Length);
         }
 
         /// <summary>
@@ -149,7 +148,7 @@ namespace CPF_experiment
         /// </summary>
         /// <param name="pi">A description of the problem instance.</param>
         /// <param name="vAgents">The agents that we should be responsible for.
-        /// Each entry in the list is an index to ProblemInstance.m_vAgents
+        /// Each entry in the list is an index to ProblemInstance.agents
         /// pointing to which agents we care about.</param>
         public override void init(ProblemInstance pi, List<uint> vAgents)
         {
@@ -165,16 +164,16 @@ namespace CPF_experiment
             // Create the subproblem pertaining to this additive pattern
             // database. We do this by taking the problem instance and swapping
             // the initial state with the goal. We will also save a copy of our
-            // m_vAgents data structure, because during the building process 
+            // agents data structure, because during the building process 
             // our state already is a projection.
 
-            WorldState goal = new WorldState(m_Problem.m_vAgents, m_vAgents);
+            WorldState goal = new WorldState(problem.agents, agents);
             foreach (AgentState ags in goal.allAgentsState)
                 ags.SwapCurrentWithGoal();
-            List<uint> vBackup = m_vAgents;
-            m_vAgents = new List<uint>(goal.allAgentsState.Length);
+            List<uint> vBackup = agents;
+            agents = new List<uint>(goal.allAgentsState.Length);
             for (uint i = 0; i < goal.allAgentsState.Length; ++i)
-                m_vAgents.Add(i);
+                agents.Add(i);
 
             // Initialize variables and insert the root node into our queue. We
             // use Byte.MaxValue to symbolize that an entry in our heuristic
@@ -183,17 +182,17 @@ namespace CPF_experiment
             // particular state, which is also the shortest path to that state
             // because we are conducting an uninformed breadth-first search.
 
-            m_vTable = new Byte[m_vPermutations[0] * (m_Problem.m_nLocations + 1)];
-            for (int i = 0; i < m_vTable.Length; ++i)
-                m_vTable[i] = Byte.MaxValue;
+            table = new Byte[permutations[0] * (problem.numLocations + 1)];
+            for (int i = 0; i < table.Length; ++i)
+                table[i] = Byte.MaxValue;
             Context c = new Context();
             c.initialize("q1.tmp", "q2.tmp");
-            m_vTable[hash(goal)] = 0;
+            table[hash(goal)] = 0;
             c.write(goal);
             c.nextLevel();
-            while (c.m_nNodes > 0)
+            while (c.nodes > 0)
             {
-                for (ulong n = 0; n < c.m_nNodes; ++n)
+                for (ulong n = 0; n < c.nodes; ++n)
                 {
                     // Get the next node, generate its children and write the
                     // children to the next queue file. I had previously
@@ -203,7 +202,7 @@ namespace CPF_experiment
                     // for this particular domain, this is not true.
 
                     List<WorldState> vChildren = new List<WorldState>();
-                    WorldState tws = (WorldState)c.m_bf.Deserialize(c.m_fsQueue);
+                    WorldState tws = (WorldState)c.binaryFormatter.Deserialize(c.fsQueue);
                     UInt32 nHashParent = hash(tws);
 
                     this.Expand(tws, vChildren);
@@ -219,11 +218,11 @@ namespace CPF_experiment
                         // and maximum ranges of a single byte.
 
                         Byte nCandidateValue;
-                        if (m_bOffsetFromSingleShortestPath)
+                        if (offsetFromSingleShortestPath)
                         {
                             int nSingleAgentShortestPath = 0;
                             foreach (var a in i.allAgentsState)
-                                nSingleAgentShortestPath += this.m_Problem.GetSingleAgentOptimalCost(a);
+                                nSingleAgentShortestPath += this.problem.GetSingleAgentOptimalCost(a);
                             int nDifference = i.g - nSingleAgentShortestPath;
                             Debug.Assert(nDifference >= 0);
                             Debug.Assert(nDifference < Byte.MaxValue);
@@ -234,17 +233,17 @@ namespace CPF_experiment
                             Debug.Assert(i.g < Byte.MaxValue);
                             nCandidateValue = (Byte)i.g;
                         }
-                        if (nCandidateValue < m_vTable[nHash])
+                        if (nCandidateValue < table[nHash])
                         {
                             c.write(i);
-                            m_vTable[nHash] = nCandidateValue;
+                            table[nHash] = nCandidateValue;
                         }
                     }
                 }
                 c.nextLevel();
             }
             c.clear();
-            m_vAgents = vBackup;
+            agents = vBackup;
         }
 
         /// <summary>
@@ -256,19 +255,19 @@ namespace CPF_experiment
         public override uint h(WorldState s)
         {
             var nSingleAgentShortestPath = 0;
-            if (m_bOffsetFromSingleShortestPath)
-                foreach (var a in m_vAgents)
+            if (offsetFromSingleShortestPath)
+                foreach (var a in agents)
                 {
                     nSingleAgentShortestPath +=
-                        this.m_Problem.GetSingleAgentOptimalCost(s.allAgentsState[a]);
+                        this.problem.GetSingleAgentOptimalCost(s.allAgentsState[a]);
                 }
-            return (m_vTable[hash(s)] + (uint) nSingleAgentShortestPath);
+            return (table[hash(s)] + (uint) nSingleAgentShortestPath);
         }
 
         /// <summary>
         /// While working on the original search problem, we have to only pay
         /// attention to a subset of all of the agents in the current state.
-        /// Specifically, we only consider the agents listed in m_vAgents,
+        /// Specifically, we only consider the agents listed in agents,
         /// which are the agents that we've built the current pattern database
         /// for. This differs from the buildHash function, which hashes all
         /// agents in the given state.
@@ -280,33 +279,33 @@ namespace CPF_experiment
         {
             // This function works as follows. We have enumerated all of the
             // empty locations in our grid from 0 up to
-            // (ProblemInstance.m_nLocations - 1). The first agent is allowed
+            // (ProblemInstance.locations - 1). The first agent is allowed
             // to be placed in any location. The second agent is allowed to be
             // placed in any locations except for where the first one is
             // placed, etc. This means that after placing the first agent, we
             // must relabel all of the remaining empty locations from 0 up to
-            // (ProblemInstance.m_nLocations - 2), etc.
+            // (ProblemInstance.locations - 2), etc.
 
-            UInt32 nHash = 0;
-            for (int i = 0; i < m_vAgents.Count; ++i)
+            uint hash = 0;
+            for (int i = 0; i < agents.Count; ++i)
             {
                 // Compute the cardinality of the agent. That is, compute j
                 // where the agent is in the jth empty location. This requires
                 // us to keep figure out how many other agents have been placed
                 // in positions previous to our current position.
 
-                Int32 nCard1 = m_Problem.GetCardinality(s.allAgentsState[m_vAgents[i]].lastMove);
-                Int32 nPreceding = 0;
+                int card1 = problem.GetCardinality(s.allAgentsState[agents[i]].lastMove);
+                int preceding = 0;
                 for (int j = 0; j < i; ++j)
                 {
-                    Int32 nCard2 = m_Problem.GetCardinality(s.allAgentsState[m_vAgents[j]].lastMove);
-                    if (nCard2 < nCard1)
-                        ++nPreceding;
+                    int nCard2 = problem.GetCardinality(s.allAgentsState[agents[j]].lastMove);
+                    if (nCard2 < card1)
+                        ++preceding;
                 }
-                UInt32 nCardinality = (UInt32)(nCard1 - nPreceding);
-                nHash += nCardinality * (UInt32)m_vPermutations[i];
+                uint nCardinality = (uint)(card1 - preceding);
+                hash += nCardinality * (uint)permutations[i];
             }
-            return nHash;
+            return hash;
         }
 
 #if false
@@ -329,12 +328,12 @@ namespace CPF_experiment
             /**
              * This function works as follows. We have enumerated all of the
              * empty locations in our grid from 0 up to
-             * (ProblemInstance.m_nLocations - 1). The first agent is allowed
+             * (ProblemInstance.locations - 1). The first agent is allowed
              * to be placed in any location. The second agent is allowed to be
              * placed in any locations except for where the first one is
              * placed, etc. This means that after placing the first agent, we
              * must relabel all of the remaining empty locations from 0 up to
-             * (ProblemInstance.m_nLocations - 2), etc.
+             * (ProblemInstance.locations - 2), etc.
              */
 
             UInt32 nHash = 0;
@@ -348,16 +347,16 @@ namespace CPF_experiment
                  * in positions previous to our current position.
                  */
 
-                Int32 nCard1 = m_Problem.getCardinality(s.allAgentsState[i]);
+                Int32 nCard1 = problem.getCardinality(s.allAgentsState[i]);
                 Int32 nPreceding = 0;
                 for (int j = 0; j < i; ++j)
                 {
-                    Int32 nCard2 = m_Problem.getCardinality(s.allAgentsState[j]);
+                    Int32 nCard2 = problem.getCardinality(s.allAgentsState[j]);
                     if (nCard2 < nCard1)
                         ++nPreceding;
                 }
                 UInt32 nCardinality = (UInt32)(nCard1 - nPreceding);
-                nHash += nCardinality * (UInt32)m_vPermutations[i];
+                nHash += nCardinality * (UInt32)permutations[i];
             }
             return (nHash);
         }
@@ -369,10 +368,10 @@ namespace CPF_experiment
         /// </summary>
         void computePermutations()
         {
-            m_vPermutations = new UInt64[m_vAgents.Count];
-            m_vPermutations[m_vPermutations.Length - 1] = 1;
-            for(var i = m_vPermutations.Length - 2; i >= 0; --i)
-                m_vPermutations[i] = m_vPermutations[i + 1] * (UInt64) (m_Problem.m_nLocations - (i + 1));
+            permutations = new UInt64[agents.Count];
+            permutations[permutations.Length - 1] = 1;
+            for(var i = permutations.Length - 2; i >= 0; --i)
+                permutations[i] = permutations[i + 1] * (UInt64) (problem.numLocations - (i + 1));
         }
     }
 }

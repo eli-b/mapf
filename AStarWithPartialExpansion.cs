@@ -15,7 +15,7 @@ namespace CPF_experiment
 
         override protected WorldState CreateSearchRoot(int minDepth = -1, int minCost = -1)
         {
-            return new WorldStateForPartialExpansion(this.instance.m_vAgents, minDepth, minCost);
+            return new WorldStateForPartialExpansion(this.instance.agents, minDepth, minCost);
         }
 
         protected override WorldState CreateSearchNode(WorldState from)

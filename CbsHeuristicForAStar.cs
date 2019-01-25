@@ -118,7 +118,7 @@ namespace CPF_experiment
             if (lowLevelGeneratedCap == -1)
             {
                 // Rough estimate of the branching factor:
-                lowLevelGeneratedCap = (int) Math.Pow(Constants.NUM_ALLOWED_DIRECTIONS, this.instance.m_vAgents.Length);
+                lowLevelGeneratedCap = (int) Math.Pow(Constants.NUM_ALLOWED_DIRECTIONS, this.instance.agents.Length);
             }
 
             // Calc the h:
@@ -363,8 +363,8 @@ namespace CPF_experiment
         public uint h(WorldState s, int targetH, float effectiveBranchingFactor)
         {
             // No need to check if SIC is zero because this heuristic is run after SIC was already computed, not instead of it.
-            int lowLevelGeneratedCap = (int) Math.Round(effectiveBranchingFactor * this.instance.m_vAgents.Length); // Cap of B_of_AStar * K,
-                                                                                                                    // because CBS low level nodes are of one agent only so they're about k times cheaper to work with
+            int lowLevelGeneratedCap = (int) Math.Round(effectiveBranchingFactor * this.instance.agents.Length); // Cap of B_of_AStar * K,
+                                                                                                                 // because CBS low level nodes are of one agent only so they're about k times cheaper to work with
             return base.h(s, s.g + targetH, -1, lowLevelGeneratedCap);
         }
 

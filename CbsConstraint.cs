@@ -31,12 +31,12 @@ namespace CPF_experiment
             if (agentA)
             {
                 move = conflict.agentAmove;
-                agentNum = instance.m_vAgents[conflict.agentAIndex].agent.agentNum;
+                agentNum = instance.agents[conflict.agentAIndex].agent.agentNum;
             }
             else
             {
                 move = conflict.agentBmove;
-                agentNum = instance.m_vAgents[conflict.agentBIndex].agent.agentNum;
+                agentNum = instance.agents[conflict.agentBIndex].agent.agentNum;
             }
 
             this.agentNum = (byte)agentNum;

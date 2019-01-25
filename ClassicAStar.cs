@@ -103,7 +103,7 @@ namespace CPF_experiment
             this.conflictCounts = null;
             this.conflictTimes = null;
             this.solutionDepth = -1;
-            this.numOfAgents = problemInstance.m_vAgents.Length;
+            this.numOfAgents = problemInstance.agents.Length;
 
             // Store parameters used by the Independence Detection algorithm
             if (problemInstance.parameters.ContainsKey(IndependenceDetection.MAXIMUM_COST_KEY))
@@ -154,7 +154,7 @@ namespace CPF_experiment
         /// <returns>The root of the search tree</returns>
         protected virtual WorldState CreateSearchRoot(int minDepth = -1, int minCost = -1)
         {
-            return new WorldState(this.instance.m_vAgents, minDepth, minCost);
+            return new WorldState(this.instance.agents, minDepth, minCost);
         }
 
         /// <summary>
@@ -423,7 +423,7 @@ namespace CPF_experiment
                     Debug.WriteLine($"Expanding node: {currentNode}");
                 }
 
-                //if (this.instance.m_vAgents.Length > 2)
+                //if (this.instance.agents.Length > 2)
                 //{
                 //    int a = 3;
                 //    int b = (a + 2) * 2;
@@ -537,7 +537,7 @@ namespace CPF_experiment
             var intermediateNodes = new List<WorldState>();
             intermediateNodes.Add(node);
 
-            for (int agentIndex = 0; agentIndex < this.instance.m_vAgents.Length ; ++agentIndex)
+            for (int agentIndex = 0; agentIndex < this.instance.agents.Length ; ++agentIndex)
             {
                 if (runner.ElapsedMilliseconds() > Constants.MAX_TIME)
                     return;
@@ -1157,7 +1157,7 @@ namespace CPF_experiment
 
                 if (wasInClosedList == false || removedFromClosedList)
                 {
-                    //if (this.instance.m_vAgents.Length > 2)
+                    //if (this.instance.agents.Length > 2)
                     //{
                     //    int a = 3;
                     //    int b = (a + 2) * 2;

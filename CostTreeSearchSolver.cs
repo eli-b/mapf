@@ -92,7 +92,7 @@ namespace CPF_experiment
             //}
             //else
             {
-                costA = problemInstance.GetSingleAgentOptimalCost(problemInstance.m_vAgents[0]);
+                costA = problemInstance.GetSingleAgentOptimalCost(problemInstance.agents[0]);
                 costB = 0;
                 sizeOfA = 1;
             }
@@ -105,7 +105,7 @@ namespace CPF_experiment
             int[] costs = new int[problem.GetNumOfAgents()];
             for (int i = 0; i < problem.GetNumOfAgents(); i++)
             {
-                costs[i] = Math.Max(problem.GetSingleAgentOptimalCost(problem.m_vAgents[i]), minTimeStep);
+                costs[i] = Math.Max(problem.GetSingleAgentOptimalCost(problem.agents[i]), minTimeStep);
             }
 
             openList.Enqueue(new CostTreeNode(costs)); // The root
@@ -254,7 +254,7 @@ namespace CPF_experiment
         public int GetAccumulatedGenerated() { return this.accGeneratedHL; }
         public int GetSolutionDepth() { return this.solutionDepth; }
         public long GetMemoryUsed() { return Process.GetCurrentProcess().VirtualMemorySize64; }
-        public int GetMaxGroupSize() { return problem.m_vAgents.Length; }
+        public int GetMaxGroupSize() { return problem.agents.Length; }
         public SinglePlan[] GetSinglePlans() { return solution; }
 
         public virtual int[] GetSingleCosts()
@@ -443,7 +443,7 @@ namespace CPF_experiment
         public override void Setup(ProblemInstance problemInstance, Run runner) { Setup(problemInstance, 0, runner); }
         public override void Setup(ProblemInstance problemInstance, int minDepth, Run runner, int minCost = -1, int maxCost = int.MaxValue)
         {
-            edgesMatrix = new int[problemInstance.m_vAgents.Length, problemInstance.GetMaxX() * problemInstance.GetMaxY() + problemInstance.GetMaxY(), Move.NUM_NON_DIAG_MOVES];
+            edgesMatrix = new int[problemInstance.agents.Length, problemInstance.GetMaxX() * problemInstance.GetMaxY() + problemInstance.GetMaxY(), Move.NUM_NON_DIAG_MOVES];
             edgesMatrixCounter = 0;
             base.Setup(problemInstance, minDepth, runner, minCost, maxCost);
         }
@@ -531,7 +531,7 @@ namespace CPF_experiment
         public override void Setup(ProblemInstance problemInstance, Run runner) { Setup(problemInstance, 0, runner); }
         public override void Setup(ProblemInstance problemInstance, int minDepth, Run runner, int minCost = -1, int maxCost = int.MaxValue)
         {
-            edgesMatrix = new int[problemInstance.m_vAgents.Length, problemInstance.GetMaxX() * problemInstance.GetMaxY() + problemInstance.GetMaxY(), Move.NUM_NON_DIAG_MOVES];
+            edgesMatrix = new int[problemInstance.agents.Length, problemInstance.GetMaxX() * problemInstance.GetMaxY() + problemInstance.GetMaxY(), Move.NUM_NON_DIAG_MOVES];
             edgesMatrixCounter = 0;
             base.Setup(problemInstance, minDepth, runner, minCost, maxCost);
         }

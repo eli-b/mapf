@@ -804,7 +804,7 @@ namespace CPF_experiment
         {
             //return; // add for generator
             // Preparing a list of agent indices (not agent nums) for the heuristics' Init() method
-            List<uint> agentList = Enumerable.Range(0, instance.m_vAgents.Length).Select(x=> (uint)x).ToList(); // FIXME: Must the heuristics really receive a list of uints?
+            List<uint> agentList = Enumerable.Range(0, instance.agents.Length).Select(x=> (uint)x).ToList(); // FIXME: Must the heuristics really receive a list of uints?
             
             // Solve using the different algorithms
             Console.WriteLine($"Solving {instance}");
@@ -1022,13 +1022,13 @@ namespace CPF_experiment
             else
                 this.resultsWriter.Write(RESULTS_DELIMITER);
             // Grid Rows col:
-            this.resultsWriter.Write(instance.m_vGrid.Length + RESULTS_DELIMITER);
+            this.resultsWriter.Write(instance.grid.Length + RESULTS_DELIMITER);
             // Grid Columns col:
-            this.resultsWriter.Write(instance.m_vGrid[0].Length + RESULTS_DELIMITER);
+            this.resultsWriter.Write(instance.grid[0].Length + RESULTS_DELIMITER);
             // Num Of Agents col:
-            this.resultsWriter.Write(instance.m_vAgents.Length + RESULTS_DELIMITER);
+            this.resultsWriter.Write(instance.agents.Length + RESULTS_DELIMITER);
             // Num Of Obstacles col:
-            this.resultsWriter.Write(instance.m_nObstacles + RESULTS_DELIMITER);
+            this.resultsWriter.Write(instance.numObstacles + RESULTS_DELIMITER);
             // Instance Id col:
             this.resultsWriter.Write(instance.instanceId + RESULTS_DELIMITER);
         }

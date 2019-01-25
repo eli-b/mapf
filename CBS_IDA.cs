@@ -248,7 +248,7 @@ namespace CPF_experiment
         public void Setup(ProblemInstance problemInstance, Run runner)
         {
             AgentState.EquivalenceOverDifferentTimes = false;
-            globalConflictsCounter = new int[problemInstance.m_vAgents.Length][];
+            globalConflictsCounter = new int[problemInstance.agents.Length][];
             for (int i = 0; i < globalConflictsCounter.Length; i++)
             {
                 globalConflictsCounter[i] = new int[i];
@@ -260,7 +260,7 @@ namespace CPF_experiment
 
             this.instance = problemInstance;
             this.runner = runner;
-            //root = new CbsNode(instance.m_vAgents.Length, problemInstance, this.solver, this.lowLevelSolver, this); // FIXME!
+            //root = new CbsNode(instance.agents.Length, problemInstance, this.solver, this.lowLevelSolver, this); // FIXME!
             this.highLevelExpanded = 0;
             this.highLevelGenerated = 1;
             maxSizeGroup = 1;

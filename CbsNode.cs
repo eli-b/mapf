@@ -121,7 +121,7 @@ namespace CPF_experiment
             agentNumToIndex = new Dictionary<int, int>();
             for (int i = 0; i < numberOfAgents; i++)
             {
-                agentNumToIndex[this.cbs.GetProblemInstance().m_vAgents[i].agent.agentNum] = i;
+                agentNumToIndex[this.cbs.GetProblemInstance().agents[i].agent.agentNum] = i;
             }
             depth = 0;
             replanSize = 1;
@@ -261,18 +261,18 @@ namespace CPF_experiment
             // layers of CBS solvers, each one adding its own constraints and respecting those of the solvers above it.
 
             // Find all the agents groups:
-            var subGroups = new List<AgentState>[problem.m_vAgents.Length];
+            var subGroups = new List<AgentState>[problem.agents.Length];
             for (int i = 0; i < agentsGroupAssignment.Length; i++)
             {
                 if (subGroups[i] == null)
                     subGroups[i] = new List<AgentState>();
-                subGroups[this.agentsGroupAssignment[i]].Add(problem.m_vAgents[i]);
+                subGroups[this.agentsGroupAssignment[i]].Add(problem.agents[i]);
             }
 
             bool success = true;
 
             int maxPlanSize = -1;
-            for (int i = 0; i < problem.m_vAgents.Length; i++)
+            for (int i = 0; i < problem.agents.Length; i++)
             {
                 if (this.agentsGroupAssignment[i] != i) // This isn't the first agent in its group - we've already solved its group.
                     continue;
@@ -286,13 +286,13 @@ namespace CPF_experiment
                     agentGroupHasMustConstraints == false &&
                     subGroup.Count == 1) // Top-most CBS with no must constraints on this agent. Shortcut available (that doesn't consider the CAT, though)
                 {
-                    allSingleAgentPlans[i] = new SinglePlan(problem.m_vAgents[i]); // All moves up to starting pos
-                    allSingleAgentPlans[i].agentNum = problem.m_vAgents[this.agentsGroupAssignment[i]].agent.agentNum; // Use the group's representative
+                    allSingleAgentPlans[i] = new SinglePlan(problem.agents[i]); // All moves up to starting pos
+                    allSingleAgentPlans[i].agentNum = problem.agents[this.agentsGroupAssignment[i]].agent.agentNum; // Use the group's representative
                     SinglePlan optimalPlan = problem.GetSingleAgentOptimalPlan(
-                                    problem.m_vAgents[i],
+                                    problem.agents[i],
                                     out this.conflictCountsPerAgent[i], out this.conflictTimesPerAgent[i]);
                     allSingleAgentPlans[i].ContinueWith(optimalPlan);
-                    allSingleAgentCosts[i] = problem.m_vAgents[i].g + problem.GetSingleAgentOptimalCost(problem.m_vAgents[i]);
+                    allSingleAgentCosts[i] = problem.agents[i].g + problem.GetSingleAgentOptimalCost(problem.agents[i]);
                     if (Constants.costFunction == Constants.CostFunction.SUM_OF_COSTS)
                     {
                         g += (ushort)allSingleAgentCosts[i];
@@ -338,9 +338,9 @@ namespace CPF_experiment
                         this.agentNumToIndex[pair.Key] < i)                                 // Just an optimization. Would also be correct without this check.
                     {
                         this.conflictCountsPerAgent[this.agentNumToIndex[pair.Key]] // Yes, index here, num there
-                            [problem.m_vAgents[i].agent.agentNum] = pair.Value; // Collisions are symmetrical, and agent "key" didn't see the route for agent "i" when planning.
+                            [problem.agents[i].agent.agentNum] = pair.Value; // Collisions are symmetrical, and agent "key" didn't see the route for agent "i" when planning.
                         this.conflictTimesPerAgent[this.agentNumToIndex[pair.Key]]
-                            [problem.m_vAgents[i].agent.agentNum] = this.conflictTimesPerAgent[i][pair.Key];
+                            [problem.agents[i].agent.agentNum] = this.conflictTimesPerAgent[i][pair.Key];
                     }
                 }
             }
@@ -389,7 +389,7 @@ namespace CPF_experiment
                 for (int i = 0; i < agentsGroupAssignment.Length; i++)
                 {
                     if (this.agentsGroupAssignment[i] == groupNum)
-                        subGroup.Add(problem.m_vAgents[i]);
+                        subGroup.Add(problem.agents[i]);
                     else
                         internalCAT.AddPlan(allSingleAgentPlans[i]);
                 }
@@ -463,7 +463,7 @@ namespace CPF_experiment
                 int agentNum = subGroup[i].agent.agentNum;
                 int agentIndex = this.agentNumToIndex[agentNum];
                 this.allSingleAgentPlans[agentIndex] = singlePlans[i];
-                this.allSingleAgentPlans[agentIndex].agentNum = problem.m_vAgents[groupNum].agent.agentNum; // Use the group's representative
+                this.allSingleAgentPlans[agentIndex].agentNum = problem.agents[groupNum].agent.agentNum; // Use the group's representative
                 this.allSingleAgentCosts[agentIndex] = singleCosts[i];
                 if (i == 0) // This is the group representative
                 {
@@ -498,7 +498,7 @@ namespace CPF_experiment
                 int representativeAgentNum = subGroup[0].agent.agentNum;
                 for (int i = 0; i < this.conflictCountsPerAgent.Length; i++)
                 {
-                    int agentNum = problem.m_vAgents[i].agent.agentNum;
+                    int agentNum = problem.agents[i].agent.agentNum;
                     if (perAgent.ContainsKey(agentNum))
                     {
                         this.conflictCountsPerAgent[i][representativeAgentNum] = perAgent[agentNum];
@@ -599,7 +599,7 @@ namespace CPF_experiment
             {
                 //if (this.conflictCountsPerAgent[j].Count != 0)
                 {
-                    Debug.Write($"Agent {problem.m_vAgents[j].agent.agentNum} conflict counts: ");
+                    Debug.Write($"Agent {problem.agents[j].agent.agentNum} conflict counts: ");
                     foreach (var pair in this.conflictCountsPerAgent[j])
                     {
                         Debug.Write($"{pair.Key}:{pair.Value} ");
@@ -612,7 +612,7 @@ namespace CPF_experiment
             {
                 //if (this.conflictCountsPerAgent[j].Count != 0)
                 {
-                    Debug.Write($"Agent {problem.m_vAgents[j].agent.agentNum} conflict times: ");
+                    Debug.Write($"Agent {problem.agents[j].agent.agentNum} conflict times: ");
                     foreach (var pair in this.conflictTimesPerAgent[j])
                     {
                         Debug.Write($"{pair.Key}:[{String.Join(",", pair.Value)}], ");
@@ -653,7 +653,8 @@ namespace CPF_experiment
         {
             ProblemInstance problem = this.cbs.GetProblemInstance();
             var afterGoal = new TimedMove(
-                problem.m_vAgents[agentIndex].agent.Goal.x, problem.m_vAgents[agentIndex].agent.Goal.y, Move.Direction.Wait, 0);
+                problem.agents[agentIndex].agent.Goal.location.x, problem.agents[agentIndex].agent.Goal.location.y,
+                Move.Direction.Wait, time: 0);
             for (int time = allSingleAgentPlans[agentIndex].GetSize(); time < maxPlanSize; time++)
             {
                 afterGoal.time = time;
@@ -1329,7 +1330,7 @@ namespace CPF_experiment
                                  out specificConflictingAgentA, out specificConflictingAgentB,
                                  groups);
             ProblemInstance problem = this.cbs.GetProblemInstance();
-            int initialTimeStep = problem.m_vAgents[0].lastMove.time; // To account for solving partially solved problems.
+            int initialTimeStep = problem.agents[0].lastMove.time; // To account for solving partially solved problems.
             // This assumes the makespan of all the agents is the same.
             Move first = allSingleAgentPlans[specificConflictingAgentA].GetLocationAt(time);
             Move second = allSingleAgentPlans[specificConflictingAgentB].GetLocationAt(time);
@@ -1469,7 +1470,7 @@ namespace CPF_experiment
                 int depth = this.allSingleAgentCosts.Max();
 
                 IEnumerable<CbsConstraint> myConstraints = constraints.Where(
-                    constraint => constraint.agentNum == problem.m_vAgents[agentIndex].agent.agentNum);
+                    constraint => constraint.agentNum == problem.agents[agentIndex].agent.agentNum);
                 if (myConstraints.Count() != 0)
                 {
                     int maxConstraintTimeStep = myConstraints.Max(constraint => constraint.time);
@@ -1478,7 +1479,7 @@ namespace CPF_experiment
                 if (mustConstraints != null)
                 {
                     IEnumerable<CbsConstraint> myMustConstraints = mustConstraints.Where(
-                        constraint => constraint.agentNum == problem.m_vAgents[agentIndex].agent.agentNum);
+                        constraint => constraint.agentNum == problem.agents[agentIndex].agent.agentNum);
                     if (myMustConstraints.Count() != 0)
                     {
                         int maxMustConstraintTimeStep = myMustConstraints.Max(constraint => constraint.time);
@@ -1486,8 +1487,8 @@ namespace CPF_experiment
                     }
                 }
 
-                var mdd = new MDD(agentIndex, problem.m_vAgents[agentIndex].agent.agentNum,
-                    problem.m_vAgents[agentIndex].GetMove(), this.allSingleAgentCosts[agentIndex],
+                var mdd = new MDD(agentIndex, problem.agents[agentIndex].agent.agentNum,
+                    problem.agents[agentIndex].GetMove(), this.allSingleAgentCosts[agentIndex],
                     depth, problem.GetNumOfAgents(), problem,
                     ignoreConstraints: false, supportPruning: false);
                 this.mddNarrownessValues[agentIndex] = mdd.getLevelNarrownessValues();
@@ -1569,7 +1570,7 @@ namespace CPF_experiment
 
             ProblemInstance problem = this.cbs.GetProblemInstance();
             time = this.conflictTimesPerAgent[chosenAgentIndex] // Yes, the index of the first and the num of the second
-                                                 [problem.m_vAgents[chosenConflictingAgentIndex].agent.agentNum][0];
+                                                 [problem.agents[chosenConflictingAgentIndex].agent.agentNum][0];
             return (groupRepA, groupRepB, time);
         }
 
@@ -2051,8 +2052,8 @@ namespace CPF_experiment
                 b = c;
             }
             ProblemInstance problem = this.cbs.GetProblemInstance();
-            int aAgentNum = problem.m_vAgents[a].agent.agentNum;
-            int bAgentNum = problem.m_vAgents[b].agent.agentNum;
+            int aAgentNum = problem.agents[a].agent.agentNum;
+            int bAgentNum = problem.agents[b].agent.agentNum;
 
             for (int i = 0; i < agentsGroupAssignment.Length; i++)
             {
@@ -2172,7 +2173,7 @@ namespace CPF_experiment
             for (int i = 0; i < agentsGroupAssignment.Length; i++)
             {
                 if (this.agentsGroupAssignment[i] == groupNum)
-                    subGroup.Add(problem.m_vAgents[i]);
+                    subGroup.Add(problem.agents[i]);
                 else
                     internalCAT.AddPlan(allSingleAgentPlans[i]);
             }
@@ -2212,7 +2213,7 @@ namespace CPF_experiment
                 if (this.agentsGroupAssignment[i] == groupNum)
                 {
                     this.allSingleAgentPlans[i] = singlePlans[j];
-                    this.allSingleAgentPlans[i].agentNum = problem.m_vAgents[groupNum].agent.agentNum; // Use the group's representative
+                    this.allSingleAgentPlans[i].agentNum = problem.agents[groupNum].agent.agentNum; // Use the group's representative
                     this.allSingleAgentCosts[i] = singleCosts[j];
                     j++;
                 }

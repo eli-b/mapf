@@ -117,12 +117,12 @@ namespace CPF_experiment
                                    s.allSingleAgentCosts[s.conflict.agentBIndex]);
             // Building MDDs for the conflicting agents. We can't keep them because we're
             // destructively syncing them later (the first one, at least).
-            var mddA = new MDD(s.conflict.agentAIndex, this.instance.m_vAgents[s.conflict.agentAIndex].agent.agentNum,
-                                this.instance.m_vAgents[s.conflict.agentAIndex].lastMove,
+            var mddA = new MDD(s.conflict.agentAIndex, this.instance.agents[s.conflict.agentAIndex].agent.agentNum,
+                                this.instance.agents[s.conflict.agentAIndex].lastMove,
                                 s.allSingleAgentCosts[s.conflict.agentAIndex], maxCost,
                                 this.instance.GetNumOfAgents(), this.instance, this.ignoreConstraints);
-            var mddB = new MDD(s.conflict.agentBIndex, this.instance.m_vAgents[s.conflict.agentBIndex].agent.agentNum,
-                               this.instance.m_vAgents[s.conflict.agentBIndex].lastMove,
+            var mddB = new MDD(s.conflict.agentBIndex, this.instance.agents[s.conflict.agentBIndex].agent.agentNum,
+                               this.instance.agents[s.conflict.agentBIndex].lastMove,
                                s.allSingleAgentCosts[s.conflict.agentBIndex], maxCost,
                                this.instance.GetNumOfAgents(), this.instance, this.ignoreConstraints);
             s.cbs.mddsBuilt += 2;

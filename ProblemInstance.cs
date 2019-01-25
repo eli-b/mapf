@@ -23,12 +23,12 @@ namespace CPF_experiment
         /// <summary>
         /// This contains extra data of this problem instance (used for special problem instances, e.g. subproblems of a bigger problem instance).
         /// </summary>
-        public IDictionary<String, Object> parameters;
+        public IDictionary<string, object> parameters;
 
         /// <summary>
         /// Contains true at [x][y] if cell (x,y) is an obstacle
         /// </summary>
-        public bool[][] m_vGrid;
+        public bool[][] grid;
 
         /// <summary>
         /// We keep a reference to the array of agents in the original problem.
@@ -36,8 +36,8 @@ namespace CPF_experiment
         /// iteration that a new set of agents must be jointly planned due
         /// to their mutual conflicts.
         /// </summary>
-        public AgentState[] m_vAgents;
-        
+        public AgentState[] agents;
+
         /// <summary>
         /// This is a matrix that contains the cost of the optimal path to the goal of every agent from any point in the grid.
         /// The first dimension of the matrix is the number of agents.
@@ -57,8 +57,8 @@ namespace CPF_experiment
         /// </summary>
         public Move[][] singleAgentOptimalMoves;
 
-        public uint m_nObstacles;
-        public uint m_nLocations;
+        public uint numObstacles;
+        public uint numLocations;
         
         /// <summary>
         /// This field is used to identify an instance when running a set of experiments
@@ -72,14 +72,14 @@ namespace CPF_experiment
         /// the y-axis. If there are obstacles, it's more space-efficient to store
         /// data for each non-empty spot.
         /// </summary>
-        public Int32[,] m_vCardinality;
+        public int[,] cardinality;
 
-        public ProblemInstance(IDictionary<String,Object> parameters = null)
+        public ProblemInstance(IDictionary<string, object> parameters = null)
         {
             if (parameters != null)
                 this.parameters = parameters;
             else
-                this.parameters = new Dictionary<String, Object>();
+                this.parameters = new Dictionary<string, object>();
         }
 
         /// <summary>
@@ -92,7 +92,7 @@ namespace CPF_experiment
             // Notice selected agents may actually be a completely different set of agents.
             // Not copying instance id. This isn't the same problem.
             ProblemInstance subproblemInstance = new ProblemInstance(this.parameters);
-            subproblemInstance.Init(selectedAgents, this.m_vGrid, (int)this.m_nObstacles, (int)this.m_nLocations, this.m_vCardinality);
+            subproblemInstance.Init(selectedAgents, this.grid, (int)this.numObstacles, (int)this.numLocations, this.cardinality);
             subproblemInstance.singleAgentOptimalCosts = this.singleAgentOptimalCosts; // Each subproblem knows every agent's single shortest paths so this.singleAgentOptimalCosts[agent_num] would easily work
             subproblemInstance.singleAgentOptimalMoves = this.singleAgentOptimalMoves;
             return subproblemInstance;
@@ -109,23 +109,23 @@ namespace CPF_experiment
         public void Init(AgentState[] agentStartStates, bool[][] grid, int nObstacles=-1,
                          int nLocations=-1, int[,] cardinality=null)
         {
-            m_vAgents = agentStartStates;
-            m_vGrid = grid;
+            agents = agentStartStates;
+            this.grid = grid;
             
             if (nObstacles == -1)
-                m_nObstacles = (uint)grid.Sum(row => row.Count(x => x));
+                numObstacles = (uint)grid.Sum(row => row.Count(x => x));
             else
-                m_nObstacles = (uint)nObstacles;
+                numObstacles = (uint)nObstacles;
 
             if (nLocations == -1)
-                m_nLocations = ((uint)(grid.Length * grid[0].Length)) - m_nObstacles;
+                numLocations = ((uint)(grid.Length * grid[0].Length)) - numObstacles;
             else
-                m_nLocations = (uint)nLocations;
+                numLocations = (uint)nLocations;
             
             if (cardinality == null)
                 PrecomputeCardinality();
             else
-                m_vCardinality = cardinality;
+                cardinality = cardinality;
         }
         
         /// <summary>
@@ -145,14 +145,14 @@ namespace CPF_experiment
             for (int agentId = 0; agentId < this.GetNumOfAgents(); agentId++)
             {
                 // Run a single source shortest path algorithm from the _goal_ of the agent
-                var shortestPathLengths = new int[this.m_nLocations];
-                var optimalMoves = new Move[this.m_nLocations];
-                for (int i = 0; i < m_nLocations; i++)
+                var shortestPathLengths = new int[this.numLocations];
+                var optimalMoves = new Move[this.numLocations];
+                for (int i = 0; i < numLocations; i++)
                     shortestPathLengths[i] = -1;
                 var openlist = new Queue<AgentState>();
 
                 // Create initial state
-                var agentStartState = this.m_vAgents[agentId];
+                var agentStartState = this.agents[agentId];
                 var agent = agentStartState.agent;
                 var goalState = new AgentState(agent.Goal.x, agent.Goal.y, -1, -1, agentId);
                 int goalIndex = this.GetCardinality(goalState.lastMove);
@@ -169,7 +169,7 @@ namespace CPF_experiment
                     {
                         if (IsValid(aMove))
                         {
-                            int entry = m_vCardinality[aMove.x, aMove.y];
+                            int entry = cardinality[aMove.x, aMove.y];
                             // If move will generate a new or better state - add it to the queue
                             if ((shortestPathLengths[entry] == -1) || (shortestPathLengths[entry] > state.g + 1))
                             {
@@ -208,7 +208,7 @@ namespace CPF_experiment
         /// <returns>The length of the shortest path from x,y to the goal of the agent.</returns>
         public int GetSingleAgentOptimalCost(int agentNum, int x, int y)
         {
-            return this.singleAgentOptimalCosts[agentNum][this.m_vCardinality[x, y]];
+            return this.singleAgentOptimalCosts[agentNum][this.cardinality[x, y]];
         }
 
         /// <summary>
@@ -219,7 +219,7 @@ namespace CPF_experiment
         /// <returns>The length of the shortest path from x,y to the goal of the agent.</returns>
         public int GetSingleAgentOptimalCost(int agentNum, Move move)
         {
-            return this.singleAgentOptimalCosts[agentNum][this.m_vCardinality[move.x, move.y]];
+            return this.singleAgentOptimalCosts[agentNum][this.cardinality[move.x, move.y]];
         }
 
         /// <summary>
@@ -229,7 +229,8 @@ namespace CPF_experiment
         /// <returns>The length of the shortest path between a given agent's location and the goal of that agent</returns>
         public int GetSingleAgentOptimalCost(AgentState agentState)
         {
-            return this.singleAgentOptimalCosts[agentState.agent.agentNum][this.m_vCardinality[agentState.lastMove.x, agentState.lastMove.y]];
+            int locationCardinality = this.cardinality[agentState.lastMove.x, agentState.lastMove.y];
+            return this.singleAgentOptimalCosts[agentState.agent.agentNum][locationCardinality];
         }
 
         /// <summary>
@@ -239,7 +240,8 @@ namespace CPF_experiment
         /// <returns></returns>
         public Move GetSingleAgentOptimalMove(AgentState agentState)
         {
-            return this.singleAgentOptimalMoves[agentState.agent.agentNum][this.m_vCardinality[agentState.lastMove.x, agentState.lastMove.y]];
+            int locationCardinality = this.cardinality[agentState.lastMove.x, agentState.lastMove.y];
+            return this.singleAgentOptimalMoves[agentState.agent.agentNum][locationCardinality];
         }
 
         /// <summary>
@@ -292,7 +294,7 @@ namespace CPF_experiment
         /// </summary>
         public int GetNumOfAgents()
         {
-            return m_vAgents.Length;
+            return this.agents.Length;
         }
 
         /// <summary>
@@ -300,7 +302,7 @@ namespace CPF_experiment
         /// </summary>
         public int GetMaxX()
         {
-            return this.m_vGrid.GetLength(0);
+            return this.grid.GetLength(0);
         }
 
         /// <summary>
@@ -308,7 +310,7 @@ namespace CPF_experiment
         /// </summary>
         public int GetMaxY()
         {
-            return this.m_vGrid[0].Length;
+            return this.grid[0].Length;
         }
 
         /// <summary>
@@ -416,13 +418,13 @@ namespace CPF_experiment
 
             // Output the grid
             output.WriteLine("Grid:");
-            output.WriteLine($"{this.m_vGrid.GetLength(0)},{this.m_vGrid[0].GetLength(0)}");
+            output.WriteLine($"{this.grid.GetLength(0)},{this.grid[0].GetLength(0)}");
                         
-            for (int i = 0; i < this.m_vGrid.GetLength(0); i++)
+            for (int i = 0; i < this.grid.GetLength(0); i++)
             {
-                for (int j = 0; j < this.m_vGrid[0].GetLength(0); j++)
+                for (int j = 0; j < this.grid[0].GetLength(0); j++)
                 {
-                    if (this.m_vGrid[i][j] == true)
+                    if (this.grid[i][j] == true)
                         output.Write('@');
                     else
                         output.Write('.');
@@ -432,11 +434,11 @@ namespace CPF_experiment
             }
             // Output the agents state
             output.WriteLine("Agents:");
-            output.WriteLine(this.m_vAgents.Length);
+            output.WriteLine(this.agents.Length);
             AgentState state;
-            for(int i = 0 ; i < this.m_vAgents.Length ; i++)
+            for(int i = 0 ; i < this.agents.Length ; i++)
             {
-                state = this.m_vAgents[i];
+                state = this.agents[i];
                 output.Write(state.agent.agentNum);
                 output.Write(EXPORT_DELIMITER);
                 output.Write(state.agent.Goal.x);
@@ -456,25 +458,25 @@ namespace CPF_experiment
         /// Given an agent located at the nth location on our board that is
         /// not occupied by an obstacle, we return n.
         /// </summary>
-        /// <param name="location">An agent's current location.</param>
+        /// <param name="move">An agent's current location.</param>
         /// <returns>n, where the agent is located at the nth non-obstacle
         /// location in our grid.</returns>
-        public Int32 GetCardinality(Move location)
+        public int GetCardinality(Move move)
         {
-            return m_vCardinality[location.x, location.y];
+            return cardinality[move.x, move.y];
         }
         
         private void PrecomputeCardinality()
         {
-            m_vCardinality = new Int32[m_vGrid.Length, m_vGrid[0].Length];
-            Int32 maxCardinality = 0;
-            for (uint i = 0; i < m_vGrid.Length; ++i)
-                for (uint j = 0; j < m_vGrid[i].Length; ++j)
+            cardinality = new int[grid.Length, grid[0].Length];
+            int maxCardinality = 0;
+            for (uint i = 0; i < grid.Length; ++i)
+                for (uint j = 0; j < grid[i].Length; ++j)
                 {
-                    if (m_vGrid[i][j])
-                        m_vCardinality[i, j] = -1;
+                    if (grid[i][j])
+                        cardinality[i, j] = -1;
                     else
-                        m_vCardinality[i, j] = maxCardinality++;
+                        cardinality[i, j] = maxCardinality++;
                 }
         }
 
@@ -516,7 +518,7 @@ namespace CPF_experiment
                 return false;
             if (y < 0 || y >= GetMaxY())
                 return false;
-            return !m_vGrid[x][y];
+            return !grid[x][y];
         }
 
         public override string ToString()
@@ -524,7 +526,7 @@ namespace CPF_experiment
             string str = $"Problem instance:{instanceId}";
             if (this.parameters.ContainsKey(ProblemInstance.GRID_NAME_KEY))
                 str += $" Grid Name:{this.parameters[ProblemInstance.GRID_NAME_KEY]}";
-            str += $" #Agents:{m_vAgents.Length}, GridCells:{m_nLocations}, #Obstacles:{m_nObstacles}";
+            str += $" #Agents:{agents.Length}, GridCells:{numLocations}, #Obstacles:{numObstacles}";
             return str;
         }
     }

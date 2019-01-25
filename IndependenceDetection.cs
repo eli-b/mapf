@@ -65,7 +65,7 @@ namespace CPF_experiment
             this.allConflicts = new HashSet<IndependenceDetectionConflict>();
             this.allGroups = new LinkedList<IndependenceDetectionAgentsGroup>();
             // Initialize the agent group collection with a group for every agent
-            foreach (AgentState agentStartState in instance.m_vAgents)
+            foreach (AgentState agentStartState in instance.agents)
                 this.allGroups.AddLast(
                     new IndependenceDetectionAgentsGroup(
                         this.instance, new AgentState[1] { agentStartState },
@@ -120,7 +120,7 @@ namespace CPF_experiment
             // Compute and output the maximum group size
             this.maxGroupSize = 0;
             this.solutionDepth = 0;
-            this.minGroupSize = this.instance.m_vAgents.Length;
+            this.minGroupSize = this.instance.agents.Length;
             foreach (var group in this.allGroups)
             {
                 this.solutionDepth += group.depthOfSolution;
@@ -150,7 +150,7 @@ namespace CPF_experiment
             this.expanded = 0;
             this.generated = 0;
             this.maxGroupSize = 1;
-            this.minGroupSize = instance.m_vAgents.Length;
+            this.minGroupSize = instance.agents.Length;
         }
 
         public void ClearAccumulatedStatistics()
@@ -158,7 +158,7 @@ namespace CPF_experiment
             this.accExpanded = 0;
             this.accGenerated = 0;
             this.accMaxGroupSize = 1;
-            this.accMinGroupSize = this.instance.m_vAgents.Length;
+            this.accMinGroupSize = this.instance.agents.Length;
         }
 
         public void AccumulateStatistics()

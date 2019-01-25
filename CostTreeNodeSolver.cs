@@ -66,7 +66,7 @@ namespace CPF_experiment
 
         public virtual void Setup(CostTreeNode costsNode)
         {
-            this.startingPos = problem.m_vAgents;
+            this.startingPos = problem.agents;
             this.totalCost = costsNode.costs.Sum();
             this.maxCost = costsNode.costs.Max();
 
@@ -86,9 +86,9 @@ namespace CPF_experiment
             int index = 0;
             foreach (var agentNum in agentNums)
             {
-                while (problem.m_vAgents[index].agent.agentNum != agentNum)
+                while (problem.agents[index].agent.agentNum != agentNum)
                     ++index;
-                this.startingPos[index] = this.problem.m_vAgents[index];
+                this.startingPos[index] = this.problem.agents[index];
             }
             this.totalCost = costsNode.costs.Sum();
             this.maxCost = costsNode.costs.Max();

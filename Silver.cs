@@ -44,7 +44,7 @@ namespace CPF_experiment
         public void Setup(ProblemInstance instance)
         {
             this.problem = instance;
-            this.allAgentsState = instance.m_vAgents;
+            this.allAgentsState = instance.agents;
             this.allPathCost = new int[this.allAgentsState.Length];
             this.maxPathCost = 0;
             this.expanded = 0;
