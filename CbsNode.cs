@@ -653,7 +653,7 @@ namespace CPF_experiment
         {
             ProblemInstance problem = this.cbs.GetProblemInstance();
             var afterGoal = new TimedMove(
-                problem.agents[agentIndex].agent.Goal.location.x, problem.agents[agentIndex].agent.Goal.location.y,
+                problem.agents[agentIndex].agent.Goal.x, problem.agents[agentIndex].agent.Goal.y,
                 Move.Direction.Wait, time: 0);
             for (int time = allSingleAgentPlans[agentIndex].GetSize(); time < maxPlanSize; time++)
             {
