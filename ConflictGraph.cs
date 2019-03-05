@@ -49,9 +49,9 @@ namespace CPF_experiment
 
             // compute number of nodes that have edges
             this.numOfNodes = 0;
-            for (int i = 0; i < this.G.GetLength(0) - 1; i++)
+            for (int i = 0; i < this.G.GetLength(0); i++)
             {
-                for (int j = i+1; j < this.G.GetLength(1); j++)
+                for (int j = 0; j < this.G.GetLength(1); j++)
                 {
                     if (G[i,j])
                     {
@@ -66,7 +66,7 @@ namespace CPF_experiment
                     if (KVertexCover(this, i))
                         return i;
 
-            // Eiter a single (meta-)agent's path was replanned under a new constraint,
+            // Either a single (meta-)agent's path was replanned under a new constraint,
             // or two (meta-)agents were merged and their combined path is planned under infinite
             // implicit constraints not to collide between themselves.
             // In the first case, all edges between the agent and other agents in the
