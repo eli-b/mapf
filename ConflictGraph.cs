@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace CPF_experiment
 {
@@ -42,6 +43,44 @@ namespace CPF_experiment
             }
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="prevMVC"></param>
+        /// <returns>The size of the 2-approximate minimum vertex cover</returns>
+        public int ApproximateMinimumVertexCover(int prevMVC = (int)MinVertexCover.NOT_SET)
+        {
+            if (this.numOfEdges < 2)
+                return this.numOfEdges;
+
+            var approximateMinCover = new HashSet<int>();
+            for (int i = 0; i < this.G.GetLength(0) - 1; i++)
+            {
+                if (approximateMinCover.Contains(i)) // Node i already in the cover - all its edges are already covered.
+                    continue;
+
+                for (int j = i + 1; j < this.G.GetLength(1); j++)
+                {
+                    if (G[i, j])
+                    {
+                        if (approximateMinCover.Contains(j) == false)
+                        {
+                            approximateMinCover.Add(i);
+                            approximateMinCover.Add(j);
+                            break; // All of node i's edges are now covered.
+                        }
+                    }
+                }
+            }
+
+            return approximateMinCover.Count;
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="prevMVC"></param>
+        /// <returns>The size of the minimum vertex cover</returns>
         public int MinimumVertexCover(int prevMVC = (int) MinVertexCover.NOT_SET)
         {
             if (this.numOfEdges < 2)
@@ -61,7 +100,7 @@ namespace CPF_experiment
                 }
             }
 
-            if (prevMVC == (int) MinVertexCover.NOT_SET) // root node of CBS tree
+            if (prevMVC == (int) MinVertexCover.NOT_SET) // root node of CBS tree, or any node on whose parent we decided not to compute this heuristic
                 for (int i = 1; i < this.numOfNodes; i++)
                     if (KVertexCover(this, i))
                         return i;
@@ -89,7 +128,7 @@ namespace CPF_experiment
         }
 
         /// <summary>
-        /// Whether there exists a k-vertex (at most) cover solution (an NP-Complete question).
+        /// Return whether there exists a k-vertex (at most) cover solution (an NP-Complete question).
         /// This algorithm theoretically runs in O(2^(k-1)*2*n), or O(2^k*n). It was described in Parameterized
         /// Computational Feasibility (Downey and Fellows, 1995).
         /// The algorithm with the best asymptotic dependence on k was desribed in Improved
