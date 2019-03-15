@@ -9,7 +9,7 @@
     <OutputType>Exe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>CPF_experiment</RootNamespace>
-    <AssemblyName>CPF-experiment</AssemblyName>
+    <AssemblyName>dao</AssemblyName>
     <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <FileUpgradeFlags>
@@ -42,7 +42,7 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-    <DocumentationFile>bin\Debug\CPF-experiment.xml</DocumentationFile>
+    <DocumentationFile>bin\Debug\dao.xml</DocumentationFile>
     <RunCodeAnalysis>false</RunCodeAnalysis>
     <Prefer32Bit>false</Prefer32Bit>
     <UseVSHostingProcess>false</UseVSHostingProcess>
@@ -56,10 +56,36 @@
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-    <DocumentationFile>bin\Release\CPF-experiment.xml</DocumentationFile>
+    <DocumentationFile>bin\Release\dao.xml</DocumentationFile>
     <Prefer32Bit>false</Prefer32Bit>
     <PlatformTarget>x64</PlatformTarget>
     <LangVersion>latest</LangVersion>
+  </PropertyGroup>
+  <PropertyGroup>
+    <StartupObject>CPF_experiment.Program</StartupObject>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>bin\x64\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DocumentationFile>bin\Debug\CPF-experiment.xml</DocumentationFile>
+    <DebugType>full</DebugType>
+    <PlatformTarget>x64</PlatformTarget>
+    <UseVSHostingProcess>false</UseVSHostingProcess>
+    <LangVersion>latest</LangVersion>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">
+    <OutputPath>bin\x64\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <DocumentationFile>bin\Release\CPF-experiment.xml</DocumentationFile>
+    <Optimize>true</Optimize>
+    <DebugType>pdbonly</DebugType>
+    <PlatformTarget>x64</PlatformTarget>
+    <LangVersion>latest</LangVersion>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Microsoft.CSharp" />
@@ -94,12 +120,15 @@
     <Compile Include="AStarWithPartialExpansionBasic.cs" />
     <Compile Include="CBS.cs" />
     <Compile Include="CbsHeuristicForAStar.cs" />
-    <Compile Include="CBS_IDA.cs" />
     <Compile Include="CbsConflict.cs" />
     <Compile Include="ConflictGraph.cs" />
     <Compile Include="DisjointSets.cs" />
+    <Compile Include="GreedyMaximalMatchingHeuristicForCbs.cs" />
     <Compile Include="IHeuristicSearchNode.cs" />
+    <Compile Include="IterativeDeepeningCbs.cs" />
+    <Compile Include="Location.cs" />
     <Compile Include="MddPruningHeuristicForCbs.cs" />
+    <Compile Include="ApproximateMvcHeuristicForCbs.cs" />
     <Compile Include="MvcHeuristicForCbs.cs" />
     <Compile Include="MyExtensions.cs" />
     <Compile Include="ConflictAvoidanceTable.cs" />

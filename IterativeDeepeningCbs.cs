@@ -10,7 +10,7 @@ namespace CPF_experiment
     /// Is the CBS open list ever large enough to warrant this?
     /// Consider foregoing this implementation. It needs maintainence anyway.
     /// </summary>
-    class CBS_IDA : ISolver, IHeuristicSolver<CbsNode>
+    class IterativeDeepeningCBS : ISolver, IHeuristicSolver<CbsNode>
     {
         protected ProblemInstance instance;
         public int highLevelExpanded;
@@ -31,7 +31,7 @@ namespace CPF_experiment
         CbsNode root;
         bool topMost;
 
-        public CBS_IDA(ICbsSolver singleAgentSolver, ICbsSolver generalSolver, int maxThreshold = -1,
+        public IterativeDeepeningCBS(ICbsSolver singleAgentSolver, ICbsSolver generalSolver, int maxThreshold = -1,
             int currentThreshold = -1, IHeuristicCalculator<CbsNode> heuristic = null)
         {
             this.mergeThreshold = currentThreshold;
@@ -96,13 +96,13 @@ namespace CPF_experiment
 
             if (root.Solve(minDepth) == false)
             {
-                AgentState.EquivalenceOverDifferentTimes = true;
+                AgentState.EquivalenceOverDifferentTimes = equivalenceWasOn;
                 return false;
             }
 
             fBound = root.f;
 
-            //fBound must be <= maxCost
+            // fBound must be <= maxCost
             while (fBound < maxCost)
             {
                 nextF = int.MaxValue;
@@ -112,19 +112,19 @@ namespace CPF_experiment
                     totalCost = Constants.TIMEOUT_COST;
                     Console.WriteLine("Out of time");
                     this.Clear();
-                    AgentState.EquivalenceOverDifferentTimes = true;
+                    AgentState.EquivalenceOverDifferentTimes = equivalenceWasOn;
                     return false;
                 }
                 if (Expand(root, root.GetConflict()))
                 {
-                    AgentState.EquivalenceOverDifferentTimes = true;
+                    AgentState.EquivalenceOverDifferentTimes = equivalenceWasOn;
                     return true;
                 }
                 fBound = nextF;
             }
             totalCost = Constants.NO_SOLUTION_COST;
             this.Clear();
-            AgentState.EquivalenceOverDifferentTimes = true;
+            AgentState.EquivalenceOverDifferentTimes = equivalenceWasOn;
             return false;
         }
 
@@ -245,8 +245,11 @@ namespace CPF_experiment
             return this.maxSizeGroup;
         }
 
+        bool equivalenceWasOn;
+
         public void Setup(ProblemInstance problemInstance, Run runner)
         {
+            this.equivalenceWasOn = AgentState.EquivalenceOverDifferentTimes == true;
             AgentState.EquivalenceOverDifferentTimes = false;
             globalConflictsCounter = new int[problemInstance.agents.Length][];
             for (int i = 0; i < globalConflictsCounter.Length; i++)
