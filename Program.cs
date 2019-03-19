@@ -143,34 +143,6 @@ namespace CPF_experiment
                                 runner.SolveGivenProblem(instance);
 
                                 // Save the latest problem
-                                if (File.Exists(currentProblemFileName))
-                                {
-                                    try
-                                    {
-                                        File.Delete(currentProblemFileName);
-                                    }
-                                    catch (Exception)
-                                    {
-                                        try
-                                        {
-                                            File.Delete(currentProblemFileName);
-                                        }
-                                        catch (Exception)
-                                        {
-
-                                            try
-                                            {
-                                                File.Delete(currentProblemFileName);
-                                            }
-                                            catch (Exception)
-                                            {
-
-                                                throw;
-                                            }
-                                        }
-                                    }
-
-                                }
                                 StreamWriter lastProblemFile;
                                 try
                                 {
@@ -178,22 +150,8 @@ namespace CPF_experiment
                                 }
                                 catch (Exception)
                                 {
-                                    try
-                                    {
-                                        lastProblemFile = new StreamWriter(currentProblemFileName);
-                                    }
-                                    catch (Exception)
-                                    {
-                                        try
-                                        {
-                                            lastProblemFile = new StreamWriter(currentProblemFileName);
-                                        }
-                                        catch (Exception)
-                                        {
-
-                                            throw;
-                                        }
-                                    }
+                                    System.Threading.Thread.Sleep(1000);
+                                    lastProblemFile = new StreamWriter(currentProblemFileName);
                                 }
                                 lastProblemFile.Write("{0},{1},{2},{3}", gridSizeIndex, obstaclePercentageIndex, numOfAgentsIndex, i);
                                 for (int j = 0; j < runner.outOfTimeCounters.Length; j++)
@@ -201,6 +159,7 @@ namespace CPF_experiment
                                     lastProblemFile.Write($",{runner.outOfTimeCounters[j]}");
                                 }
                                 lastProblemFile.Close();
+                                lastProblemFile = null;
                             }
                         }
                     }
@@ -275,7 +234,7 @@ namespace CPF_experiment
                                     runner.outOfTimeCounters[j - 3] = int.Parse(lineParts[j]);
                                 }
                                 continueFromLastRun = false;
-                                continue;
+                                continue;  // We write the details of the last problem that was solved, no need to solve it again
                             }
                             if (runner.outOfTimeCounters.Sum() == runner.outOfTimeCounters.Length * 20) // All algs should be skipped
                                 break;
@@ -302,8 +261,15 @@ namespace CPF_experiment
                             runner.SolveGivenProblem(instance);
 
                             //save the latest problem
-                            File.Delete(currentProblemFileName);
-                            output = new StreamWriter(currentProblemFileName);
+                            try
+                            {
+                                output = new StreamWriter(currentProblemFileName);
+                            }
+                            catch (Exception e)
+                            {
+                                System.Threading.Thread.Sleep(1000);
+                                output = new StreamWriter(currentProblemFileName);
+                            }
                             output.Write("{0},{1},{2}", ag, i, map);
                             for (int j = 0; j < runner.outOfTimeCounters.Length; j++)
                             {
