@@ -10,9 +10,9 @@ namespace CPF_experiment
 
         /// <summary>
         /// The set of agents that are not covered by this set of pattern
-        /// databases.This information is not used by this class or any of its
+        /// databases. This information is not used by this class or any of its
         /// related classes, but is simply precomputed as useful information for
-        /// the caller(for example, if the caller wanted to add to our
+        /// the caller (for example, if the caller wanted to add to our
         /// heuristic estimate).
         /// </summary>
         public SortedSet<uint> excludedAgents;
@@ -38,7 +38,7 @@ namespace CPF_experiment
                 {
                      // Make a list of agents we want to include together in the
                      // next additive pattern database. We specify agents by
-                     // their index into the Travor_WorldState.allAgentsState
+                     // their index into the WorldState.allAgentsState
                      // array.
 
                     List<uint> vAgents = new List<uint>();

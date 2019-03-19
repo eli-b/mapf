@@ -57,7 +57,6 @@ namespace CPF_experiment
         /// include certain measures such as the number of nodes that have been
         /// written to a file, and the filenames.
         /// </summary>
-
         class Context : IDisposable
         {
             string queue;
@@ -69,7 +68,7 @@ namespace CPF_experiment
             public FileStream fsNext;
             public BinaryFormatter binaryFormatter;
 
-            public void initialize(string q1, string q2)
+            public void Initialize(string q1, string q2)
             {
                 queue = q1;
                 nodes = 0;
@@ -91,8 +90,7 @@ namespace CPF_experiment
             /// process the next file. Therefore, we simply swap the input for
             /// the output file stream.
             /// </summary>
-
-            public void nextLevel()
+            public void NextLevel()
             {
                 string sTemp = queue;
                 queue = next;
@@ -109,12 +107,12 @@ namespace CPF_experiment
                 fsQueue = new FileStream(queue, FileMode.Open, FileAccess.Read);
                 fsNext = new FileStream(next, FileMode.Create, FileAccess.Write);
             }
-            public void write(WorldState tws)
+            public void Write(WorldState tws)
             {
                 binaryFormatter.Serialize(fsNext, tws);
                 nextNodesCount++;
             }
-            public void clear()
+            public void Clear()
             {
                 fsQueue.Close();
                 fsNext.Close();
@@ -186,10 +184,10 @@ namespace CPF_experiment
             for (int i = 0; i < table.Length; ++i)
                 table[i] = Byte.MaxValue;
             Context c = new Context();
-            c.initialize("q1.tmp", "q2.tmp");
+            c.Initialize("q1.tmp", "q2.tmp");
             table[hash(goal)] = 0;
-            c.write(goal);
-            c.nextLevel();
+            c.Write(goal);
+            c.NextLevel();
             while (c.nodes > 0)
             {
                 for (ulong n = 0; n < c.nodes; ++n)
@@ -235,14 +233,14 @@ namespace CPF_experiment
                         }
                         if (nCandidateValue < table[nHash])
                         {
-                            c.write(i);
+                            c.Write(i);
                             table[nHash] = nCandidateValue;
                         }
                     }
                 }
-                c.nextLevel();
+                c.NextLevel();
             }
-            c.clear();
+            c.Clear();
             agents = vBackup;
         }
 
@@ -322,7 +320,7 @@ namespace CPF_experiment
         /// <param name="s">A state which include only agents that pertain to
         /// this pattern database.</param>
         /// <returns>An index into the table of heuristic values.</returns>
-        uint buildHash(Travor_WorldState s)
+        uint buildHash(WorldState s)
         {
 
             /**
