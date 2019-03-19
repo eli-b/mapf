@@ -7,7 +7,7 @@ using System.Diagnostics;
 namespace CPF_experiment
 {
     /// <summary>
-    /// Runs Silver's CA*. It doesn't find optimal solutions.
+    /// Runs Silver's CA*. It doesn't find optimal solutions and isn't complete.
     /// </summary>
     [Obsolete("Not maintained for a long time.")]
     class Silver 
@@ -16,7 +16,7 @@ namespace CPF_experiment
         /// <summary>
         /// The Reservation Table
         /// </summary>
-        HashSet<TimedMove> RT;
+        HashSet<TimedMove> reservationTable;
         AgentState[] allAgentsState;
         /// <summary>
         /// 
@@ -31,13 +31,13 @@ namespace CPF_experiment
 
         public Silver()
         {
-            RT = new HashSet<TimedMove>();
+            reservationTable = new HashSet<TimedMove>();
             parked = new Dictionary<Move, int>();
         }
 
         public void Clear()
         {
-            this.RT.Clear();
+            this.reservationTable.Clear();
             this.parked.Clear();
         }
 
@@ -86,7 +86,7 @@ namespace CPF_experiment
             this.runner = aRunner;
             foreach (AgentState agent in allAgentsState)
             {
-                if (!singleAgentA_Star(agent))
+                if (!singleAgentAStar(agent))
                 {
                     totalTime = -1;
                     Console.WriteLine("Expanded - " + expanded);
@@ -99,72 +99,74 @@ namespace CPF_experiment
             return true;
         }
 
-        private bool singleAgentA_Star(AgentState agent)
+        private bool singleAgentAStar(AgentState agent)
         {
             BinaryHeap<AgentState> openList = new BinaryHeap<AgentState>(); // TODO: Safe to use OpenList here instead?
             HashSet<AgentState> closedList = new HashSet<AgentState>();
             openList.Add(agent);
-            AgentState temp = agent;
+            AgentState node = agent;
             while (openList.Count > 0)
             {
                 if (this.runner.ElapsedMilliseconds() > Constants.MAX_TIME)
                 {
                     return false;
                 }
-                temp = openList.Remove();
-                if (temp.h == 0)
+                node = openList.Remove();
+                if (node.h == 0)
                 {
                     bool valid = true;
-                    for (int i = temp.lastMove.time ; i <= maxPathCost; i++)
+                    for (int i = node.lastMove.time ; i <= maxPathCost; i++)
                     {
-                        if (RT.Contains(new TimedMove(temp.lastMove.x, temp.lastMove.y, Move.Direction.NO_DIRECTION, i)))
+                        if (reservationTable.Contains(new TimedMove(node.lastMove.x, node.lastMove.y, Move.Direction.NO_DIRECTION, i)))
                             valid = false;
                     }
                     if (valid)
                     {
-                        reservePath(temp);
-                        totalTime += temp.lastMove.time;
+                        reservePath(node);
+                        totalTime += node.lastMove.time;
                         //printPath(temp);
-                        parked.Add(new Move(temp.lastMove.x, temp.lastMove.y, Move.Direction.NO_DIRECTION), temp.lastMove.time);
+                        parked.Add(new Move(node.lastMove.x, node.lastMove.y, Move.Direction.NO_DIRECTION), node.lastMove.time);
                         return true;
                     }
                 }
                 expanded++;
-                expandNode(temp, openList, closedList);
+                expandNode(node, openList, closedList);
             }
             return false;
         }
+
         private void reservePath(AgentState end)
         {
             AgentState temp = end;
             while (temp != null)
             {
-                RT.Add(new TimedMove(temp.lastMove.x, temp.lastMove.y, temp.lastMove.direction, temp.lastMove.time));
+                reservationTable.Add(new TimedMove(temp.lastMove.x, temp.lastMove.y, temp.lastMove.direction, temp.lastMove.time));
                 allPathCost[temp.agent.agentNum]++;
                 temp = temp.prev;
             }
             if (allPathCost[end.agent.agentNum] > maxPathCost)
                 maxPathCost = allPathCost[end.agent.agentNum];
         }
+
         private void expandNode(AgentState node, BinaryHeap<AgentState> openList, HashSet<AgentState> closedList)
         {
             foreach (TimedMove move in node.lastMove.GetNextMoves())
             {
                 if (isValidMove(move))
                 {
-                    AgentState temp = new AgentState(node);
-                    AgentState tempCL = temp;
-                    temp.prev = node;
+                    AgentState child = new AgentState(node);
+                    AgentState childForClosedList = child;
+                    child.prev = node;
                     if (move.time > maxPathCost)
                     {
-                        tempCL = new AgentState(temp);
-                        tempCL.lastMove.time = maxPathCost;
+                        childForClosedList = new AgentState(child);
+                        childForClosedList.lastMove.time = maxPathCost;
                     }
-                    if (!closedList.Contains(tempCL))
+                    if (!closedList.Contains(childForClosedList))
                     {
-                        closedList.Add(tempCL);
-                        temp.lastMove.time = move.time;
-                        openList.Add(temp);
+                        closedList.Add(childForClosedList);
+                        child.lastMove.time = move.time;
+                        openList.Add(child);
                         generated++;
                     }
                 }
@@ -176,7 +178,7 @@ namespace CPF_experiment
         {
             if (this.problem.IsValid(move))
             {
-                if (move.IsColliding(this.RT) == false)
+                if (move.IsColliding(this.reservationTable) == false)
                 {
                     Move key = new Move(move.x, move.y, Move.Direction.NO_DIRECTION);
                     if (!parked.ContainsKey(key) || parked[key] > move.time)
