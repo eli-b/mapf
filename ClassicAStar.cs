@@ -127,14 +127,14 @@ namespace CPF_experiment
             // Store CBS parameters
             this.maxSolutionCost = Math.Max(this.maxSolutionCost, maxCost);
 
-            if (problemInstance.parameters.ContainsKey(CBS_LocalConflicts.CONSTRAINTS) &&
-                ((HashSet_U<CbsConstraint>)problemInstance.parameters[CBS_LocalConflicts.CONSTRAINTS]).Count != 0)
-                 this.constraints = (HashSet_U<CbsConstraint>)problemInstance.parameters[CBS_LocalConflicts.CONSTRAINTS];
+            if (problemInstance.parameters.ContainsKey(CBS.CONSTRAINTS) &&
+                ((HashSet_U<CbsConstraint>)problemInstance.parameters[CBS.CONSTRAINTS]).Count != 0)
+                 this.constraints = (HashSet_U<CbsConstraint>)problemInstance.parameters[CBS.CONSTRAINTS];
  
-             if (problemInstance.parameters.ContainsKey(CBS_LocalConflicts.MUST_CONSTRAINTS) &&
-                 ((HashSet_U<CbsConstraint>)problemInstance.parameters[CBS_LocalConflicts.MUST_CONSTRAINTS]).Count != 0)
+             if (problemInstance.parameters.ContainsKey(CBS.MUST_CONSTRAINTS) &&
+                 ((HashSet_U<CbsConstraint>)problemInstance.parameters[CBS.MUST_CONSTRAINTS]).Count != 0)
              {
-                 var musts = (HashSet_U<CbsConstraint>)problemInstance.parameters[CBS_LocalConflicts.MUST_CONSTRAINTS];
+                 var musts = (HashSet_U<CbsConstraint>)problemInstance.parameters[CBS.MUST_CONSTRAINTS];
                  this.mustConstraints = new Dictionary<int, TimedMove>[musts.Max<CbsConstraint>(con => con.GetTimeStep()) + 1]; // To have index MAX, array needs MAX + 1 places.
                  foreach (CbsConstraint con in musts)
                  {
@@ -1046,7 +1046,7 @@ namespace CPF_experiment
                     // FIXME: The above code duplication with the CBS CAT. Some of the vars above are actually from CBS now.
                 }
 
-                if (instance.parameters.ContainsKey(CBS_LocalConflicts.CAT))
+                if (instance.parameters.ContainsKey(CBS.CAT))
                 {
                     // Accumulating the conflicts count from parent to child.
                     // We're counting conflicts along the entire path, so the parent's conflicts count is added to the child's:
@@ -1056,7 +1056,7 @@ namespace CPF_experiment
                         currentNode.conflictTimes[kvp.Key] = new List<int>(kvp.Value);
 
                     currentNode.UpdateConflictCounts(
-                        ((IReadOnlyDictionary<TimedMove, List<int>>)instance.parameters[CBS_LocalConflicts.CAT]));
+                        (IReadOnlyDictionary<TimedMove, List<int>>)instance.parameters[CBS.CAT]);
 
                     // Count one for every agent the path conflicts with any number of times:
                     currentNode.cbsInternalConflictsCount = currentNode.cbsInternalConflicts.Count;

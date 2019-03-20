@@ -78,7 +78,7 @@ namespace CPF_experiment
         public ExpansionState agentBExpansion;
         protected ICbsSolver solver;
         protected ICbsSolver singleAgentSolver;
-        public CBS_LocalConflicts cbs;
+        public CBS cbs;
         public Dictionary<int, int> agentNumToIndex;
         public bool parentAlreadyLookedAheadOf;
         /// <summary>
@@ -107,7 +107,7 @@ namespace CPF_experiment
         public MDD[] mdds;
 
         public CbsNode(int numberOfAgents, ICbsSolver solver, ICbsSolver singleAgentSolver,
-            CBS_LocalConflicts cbs, ushort[] agentsGroupAssignment = null)
+            CBS cbs, ushort[] agentsGroupAssignment = null)
         {
             this.cbs = cbs;
             allSingleAgentPlans = new SinglePlan[numberOfAgents];
@@ -259,15 +259,15 @@ namespace CPF_experiment
             ProblemInstance problem = this.cbs.GetProblemInstance();
             var internalCAT = new ConflictAvoidanceTable();
             HashSet<CbsConstraint> newConstraints = this.GetConstraints(); // Probably empty as this is probably the root of the CT.
-            var CAT = (Dictionary_U<TimedMove, int>)problem.parameters[CBS_LocalConflicts.CAT];
-            var constraints = (HashSet_U<CbsConstraint>)problem.parameters[CBS_LocalConflicts.CONSTRAINTS];
+            var CAT = (Dictionary_U<TimedMove, int>)problem.parameters[CBS.CAT];
+            var constraints = (HashSet_U<CbsConstraint>)problem.parameters[CBS.CONSTRAINTS];
 
             HashSet_U<CbsConstraint> mustConstraints = null;
             HashSet<CbsConstraint> newMustConstraints = null;
             Dictionary<int,int> agentsWithMustConstraints = null;
-            if (problem.parameters.ContainsKey(CBS_LocalConflicts.MUST_CONSTRAINTS))
+            if (problem.parameters.ContainsKey(CBS.MUST_CONSTRAINTS))
             {
-                mustConstraints = (HashSet_U<CbsConstraint>)problem.parameters[CBS_LocalConflicts.MUST_CONSTRAINTS];
+                mustConstraints = (HashSet_U<CbsConstraint>)problem.parameters[CBS.MUST_CONSTRAINTS];
                 newMustConstraints = this.GetMustConstraints();
                 agentsWithMustConstraints = mustConstraints.Select<CbsConstraint, int>(constraint => constraint.agentNum).Distinct().ToDictionary<int, int>(x => x); // ToDictionary because there's no ToSet...
             }
@@ -399,7 +399,7 @@ namespace CPF_experiment
                            int maxPathCost = int.MaxValue)
         {
             ProblemInstance problem = this.cbs.GetProblemInstance();
-            Dictionary_U<TimedMove, int> CAT = (Dictionary_U<TimedMove, int>)problem.parameters[CBS_LocalConflicts.CAT];
+            Dictionary_U<TimedMove, int> CAT = (Dictionary_U<TimedMove, int>)problem.parameters[CBS.CAT];
 
             ConflictAvoidanceTable internalCAT = null; // To quiet the compiler
             int groupNum = this.agentsGroupAssignment[agentForReplan];
@@ -424,13 +424,13 @@ namespace CPF_experiment
                 CAT.Join(internalCAT);
             }
             HashSet<CbsConstraint> newConstraints = this.GetConstraints();
-            var constraints = (HashSet_U<CbsConstraint>)problem.parameters[CBS_LocalConflicts.CONSTRAINTS];
+            var constraints = (HashSet_U<CbsConstraint>)problem.parameters[CBS.CONSTRAINTS];
 
             HashSet_U<CbsConstraint> mustConstraints = null;
             HashSet<CbsConstraint> newMustConstraints = null;
-            if (problem.parameters.ContainsKey(CBS_LocalConflicts.MUST_CONSTRAINTS))
+            if (problem.parameters.ContainsKey(CBS.MUST_CONSTRAINTS))
             {
-                mustConstraints = (HashSet_U<CbsConstraint>)problem.parameters[CBS_LocalConflicts.MUST_CONSTRAINTS];
+                mustConstraints = (HashSet_U<CbsConstraint>)problem.parameters[CBS.MUST_CONSTRAINTS];
                 newMustConstraints = this.GetMustConstraints();
             }
             
@@ -601,7 +601,7 @@ namespace CPF_experiment
                 Debug.WriteLine(mustConstraint);
             }
             ProblemInstance problem = this.cbs.GetProblemInstance();
-            var externalConstraints = (HashSet_U<CbsConstraint>)problem.parameters[CBS_LocalConflicts.CONSTRAINTS];
+            var externalConstraints = (HashSet_U<CbsConstraint>)problem.parameters[CBS.CONSTRAINTS];
             Debug.WriteLine($"{externalConstraints.Count} external constraints: ");
             foreach (CbsConstraint constraint in externalConstraints)
             {
@@ -746,7 +746,7 @@ namespace CPF_experiment
                 //    Debug.WriteLine("min replans lower estimate: " + minReplansToSolve);
                 if (this.cbs.mergeThreshold != -1) // Merges possible, account for them
                 {
-                    if (this.cbs.GetType() == typeof(CBS_LocalConflicts))
+                    if (this.cbs.GetType() == typeof(CBS))
                     {
                         if (this.cbs.mergeThreshold > 0)
                         {
@@ -886,15 +886,15 @@ namespace CPF_experiment
             if (this.conflict != null) // Conflict already chosen before
                 return;
 
-            if (this.cbs.conflictChoice == CBS_LocalConflicts.ConflictChoice.FIRST)
+            if (this.cbs.conflictChoice == CBS.ConflictChoice.FIRST)
             {
                 this.ChooseFirstConflict();
             }
-            else if (this.cbs.conflictChoice == CBS_LocalConflicts.ConflictChoice.MOST_CONFLICTING_SMALLEST_AGENTS)
+            else if (this.cbs.conflictChoice == CBS.ConflictChoice.MOST_CONFLICTING_SMALLEST_AGENTS)
             {
                 this.ChooseConflictOfMostConflictingSmallestAgents();
             }
-            else if (this.cbs.conflictChoice == CBS_LocalConflicts.ConflictChoice.CARDINAL_MDD)
+            else if (this.cbs.conflictChoice == CBS.ConflictChoice.CARDINAL_MDD)
             {
                 // Choose the first (in order of looking at them), earliest (in time), cardinal
                 // (if not found settle for semi-cardinal, then non-cardinal) conflict.
@@ -909,7 +909,7 @@ namespace CPF_experiment
                 }
                 this.conflict = this.nextConflicts.Current;
             }
-            else if (this.cbs.conflictChoice == CBS_LocalConflicts.ConflictChoice.CARDINAL_LOOKAHEAD)
+            else if (this.cbs.conflictChoice == CBS.ConflictChoice.CARDINAL_LOOKAHEAD)
             {
                 this.nextConflicts = this.GetConflictsNoOrder().GetEnumerator();
                 bool hasConflict = this.nextConflicts.MoveNext(); // This node isn't a goal node so this is expected to return true -
@@ -1506,13 +1506,13 @@ namespace CPF_experiment
                 // TODO: Code dup with Replan, Solve
                 ProblemInstance problem = this.cbs.GetProblemInstance();
                 HashSet<CbsConstraint> newConstraints = this.GetConstraints();
-                var constraints = (HashSet_U<CbsConstraint>)problem.parameters[CBS_LocalConflicts.CONSTRAINTS];
+                var constraints = (HashSet_U<CbsConstraint>)problem.parameters[CBS.CONSTRAINTS];
 
                 HashSet_U<CbsConstraint> mustConstraints = null;
                 HashSet<CbsConstraint> newMustConstraints = null;
-                if (problem.parameters.ContainsKey(CBS_LocalConflicts.MUST_CONSTRAINTS))
+                if (problem.parameters.ContainsKey(CBS.MUST_CONSTRAINTS))
                 {
-                    mustConstraints = (HashSet_U<CbsConstraint>)problem.parameters[CBS_LocalConflicts.MUST_CONSTRAINTS];
+                    mustConstraints = (HashSet_U<CbsConstraint>)problem.parameters[CBS.MUST_CONSTRAINTS];
                     newMustConstraints = this.GetMustConstraints();
                 }
 
@@ -2210,9 +2210,9 @@ namespace CPF_experiment
             var internalCAT = new ConflictAvoidanceTable();
             HashSet<CbsConstraint> newConstraints = this.GetConstraints();
             ProblemInstance problem = this.cbs.GetProblemInstance();
-            var CAT = (Dictionary_U<TimedMove, int>)problem.parameters[CBS_LocalConflicts.CAT];
-            var constraints = (HashSet_U<CbsConstraint>)problem.parameters[CBS_LocalConflicts.CONSTRAINTS];
-            var mustConstraints = (HashSet_U<CbsConstraint>)problem.parameters[CBS_LocalConflicts.MUST_CONSTRAINTS];
+            var CAT = (Dictionary_U<TimedMove, int>)problem.parameters[CBS.CAT];
+            var constraints = (HashSet_U<CbsConstraint>)problem.parameters[CBS.CONSTRAINTS];
+            var mustConstraints = (HashSet_U<CbsConstraint>)problem.parameters[CBS.MUST_CONSTRAINTS];
             HashSet<CbsConstraint> newMustConstraints = this.GetMustConstraints();
 
             if (newConstraints.Count != 0)

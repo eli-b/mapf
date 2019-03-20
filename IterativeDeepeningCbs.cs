@@ -274,11 +274,11 @@ namespace CPF_experiment
             else
                 this.maxCost = int.MaxValue;
 
-            if (problemInstance.parameters.ContainsKey(CBS_LocalConflicts.CAT) == false) // Top-most CBS only
+            if (problemInstance.parameters.ContainsKey(CBS.CAT) == false) // Top-most CBS only
             {
-                problemInstance.parameters[CBS_LocalConflicts.CAT] = new HashSet_U<TimedMove>();
-                problemInstance.parameters[CBS_LocalConflicts.CONSTRAINTS] = new HashSet_U<CbsConstraint>();
-                problemInstance.parameters[CBS_LocalConflicts.MUST_CONSTRAINTS] = new List<CbsConstraint>();
+                problemInstance.parameters[CBS.CAT] = new HashSet_U<TimedMove>();
+                problemInstance.parameters[CBS.CONSTRAINTS] = new HashSet_U<CbsConstraint>();
+                problemInstance.parameters[CBS.MUST_CONSTRAINTS] = new List<CbsConstraint>();
                 this.topMost = true;
             }
             else

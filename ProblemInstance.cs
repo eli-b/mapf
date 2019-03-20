@@ -260,8 +260,8 @@ namespace CPF_experiment
             var conflictCounts = new Dictionary<int, int>();
             var conflictTimes = new Dictionary<int, List<int>>();
             IReadOnlyDictionary<TimedMove, List<int>> CAT;
-            if (this.parameters.ContainsKey(CBS_LocalConflicts.CAT)) // TODO: Add support for IndependenceDetection's CAT
-                CAT = ((IReadOnlyDictionary<TimedMove, List<int>>)this.parameters[CBS_LocalConflicts.CAT]);
+            if (this.parameters.ContainsKey(CBS.CAT)) // TODO: Add support for IndependenceDetection's CAT
+                CAT = ((IReadOnlyDictionary<TimedMove, List<int>>)this.parameters[CBS.CAT]);
             else
                 CAT = new Dictionary<TimedMove, List<int>>();
 

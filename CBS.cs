@@ -11,7 +11,7 @@ namespace CPF_experiment
     /// <summary>
     /// Merges agents if they conflict more times than the given threshold in the CT nodes from the root to the current CT nodes only.
     /// </summary>
-    public class CBS_LocalConflicts : ICbsSolver, IHeuristicSolver<CbsNode>
+    public class CBS : ICbsSolver, IHeuristicSolver<CbsNode>
     {
         /// <summary>
         /// The key of the constraints list used for each CBS node
@@ -166,7 +166,7 @@ namespace CPF_experiment
         /// <param name="disableTieBreakingByMinOpsEstimate"></param>
         /// <param name="lookaheadMaxExpansions"></param>
         /// <param name="mergeCausesRestart"></param>
-        public CBS_LocalConflicts(ICbsSolver singleAgentSolver, ICbsSolver generalSolver,
+        public CBS(ICbsSolver singleAgentSolver, ICbsSolver generalSolver,
                                   int mergeThreshold = -1,
                                   bool doShuffle = false,
                                   BypassStrategy bypassStrategy = BypassStrategy.NONE,
@@ -642,12 +642,12 @@ namespace CPF_experiment
             this.equivalenceWasOn = (AgentState.EquivalenceOverDifferentTimes == true);
             AgentState.EquivalenceOverDifferentTimes = false;
 
-            if (this.instance.parameters.ContainsKey(CBS_LocalConflicts.CAT) == false) // Top-most CBS solver
+            if (this.instance.parameters.ContainsKey(CBS.CAT) == false) // Top-most CBS solver
             {
-                this.instance.parameters[CBS_LocalConflicts.CAT] = new Dictionary_U<TimedMove, int>(); // Dictionary_U values are actually lists of ints.
-                this.instance.parameters[CBS_LocalConflicts.CONSTRAINTS] = new HashSet_U<CbsConstraint>();
-                if (this.doMalte && this.instance.parameters.ContainsKey(CBS_LocalConflicts.MUST_CONSTRAINTS) == false)
-                    this.instance.parameters[CBS_LocalConflicts.MUST_CONSTRAINTS] = new HashSet_U<CbsConstraint>();
+                this.instance.parameters[CBS.CAT] = new Dictionary_U<TimedMove, int>(); // Dictionary_U values are actually lists of ints.
+                this.instance.parameters[CBS.CONSTRAINTS] = new HashSet_U<CbsConstraint>();
+                if (this.doMalte && this.instance.parameters.ContainsKey(CBS.MUST_CONSTRAINTS) == false)
+                    this.instance.parameters[CBS.MUST_CONSTRAINTS] = new HashSet_U<CbsConstraint>();
                 return true;
             }
             else
@@ -660,8 +660,8 @@ namespace CPF_experiment
                 AgentState.EquivalenceOverDifferentTimes = true;
             if (this.topMost) // Clear problem parameters. Done for clarity only, since the Union structures are expected to be empty at this point.
             {
-                this.instance.parameters.Remove(CBS_LocalConflicts.CAT);
-                this.instance.parameters.Remove(CBS_LocalConflicts.CONSTRAINTS);
+                this.instance.parameters.Remove(CBS.CAT);
+                this.instance.parameters.Remove(CBS.CONSTRAINTS);
                 // Don't remove must constraints:
                 // A) It usually wasn't CBS that added them (they're only used for Malte's variant).
                 // B) Must constraints only appear in temporary problems. There's no danger of leaking them to other solvers.
@@ -1930,7 +1930,7 @@ namespace CPF_experiment
     /// <summary>
     /// Merges agents if they conflict more times than the given threshold in all the CT.
     /// </summary>
-    public class CBS_GlobalConflicts : CBS_LocalConflicts
+    public class CBS_GlobalConflicts : CBS
     {
         public int[][] globalConflictsCounter;
 

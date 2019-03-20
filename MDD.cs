@@ -54,20 +54,20 @@ namespace CPF_experiment
             HashSet_U<CbsConstraint> constraints = null; 
             Dictionary<int, TimedMove>[] mustConstraints = null;
 
-            if (ignoreConstraints == false && instance.parameters.ContainsKey(CBS_LocalConflicts.CONSTRAINTS) &&
-                    ((HashSet_U<CbsConstraint>)instance.parameters[CBS_LocalConflicts.CONSTRAINTS]).Count != 0)
+            if (ignoreConstraints == false && instance.parameters.ContainsKey(CBS.CONSTRAINTS) &&
+                    ((HashSet_U<CbsConstraint>)instance.parameters[CBS.CONSTRAINTS]).Count != 0)
             {
                 this.queryConstraint = new CbsConstraint();
                 this.queryConstraint.queryInstance = true;
 
-                constraints = (HashSet_U<CbsConstraint>)instance.parameters[CBS_LocalConflicts.CONSTRAINTS];
+                constraints = (HashSet_U<CbsConstraint>)instance.parameters[CBS.CONSTRAINTS];
             }
 
-            if (ignoreConstraints == false && instance.parameters.ContainsKey(CBS_LocalConflicts.MUST_CONSTRAINTS) &&
-                 ((HashSet_U<CbsConstraint>)instance.parameters[CBS_LocalConflicts.MUST_CONSTRAINTS]).Count != 0)
+            if (ignoreConstraints == false && instance.parameters.ContainsKey(CBS.MUST_CONSTRAINTS) &&
+                 ((HashSet_U<CbsConstraint>)instance.parameters[CBS.MUST_CONSTRAINTS]).Count != 0)
             {
                 // TODO: Code dup with ClassicAStar's constructor
-                var musts = (HashSet_U<CbsConstraint>)instance.parameters[CBS_LocalConflicts.MUST_CONSTRAINTS];
+                var musts = (HashSet_U<CbsConstraint>)instance.parameters[CBS.MUST_CONSTRAINTS];
                 mustConstraints = new Dictionary<int, TimedMove>[musts.Max(con => con.GetTimeStep()) + 1]; // To have index MAX, array needs MAX + 1 places.
                 foreach (CbsConstraint con in musts)
                 {

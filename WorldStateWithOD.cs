@@ -53,9 +53,9 @@ namespace CPF_experiment
             if (this.agentTurn != 0)
             {
                 subproblem.parameters = new Dictionary<string,object>(subproblem.parameters); // Use a copy to not pollute general problem instance with the must constraints
-                if (subproblem.parameters.ContainsKey(CBS_LocalConflicts.MUST_CONSTRAINTS) == false)
-                    subproblem.parameters[CBS_LocalConflicts.MUST_CONSTRAINTS] = new HashSet_U<CbsConstraint>();
-                var mustConstraints = (HashSet_U<CbsConstraint>)subproblem.parameters[CBS_LocalConflicts.MUST_CONSTRAINTS];
+                if (subproblem.parameters.ContainsKey(CBS.MUST_CONSTRAINTS) == false)
+                    subproblem.parameters[CBS.MUST_CONSTRAINTS] = new HashSet_U<CbsConstraint>();
+                var mustConstraints = (HashSet_U<CbsConstraint>)subproblem.parameters[CBS.MUST_CONSTRAINTS];
                 var newMustConstraints = new HashSet<CbsConstraint>();
                 for (int i = 0; i < this.agentTurn; ++i)
                 {

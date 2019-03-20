@@ -124,9 +124,9 @@ namespace CPF_experiment
                 ID_CAT = (Dictionary<TimedMove, List<int>>)problemInstance.parameters[IndependenceDetection.CONFLICT_AVOIDANCE];
             }
 
-            if (problemInstance.parameters.ContainsKey(CBS_LocalConflicts.CAT))
+            if (problemInstance.parameters.ContainsKey(CBS.CAT))
             {
-                CBS_CAT = (Dictionary<TimedMove, List<int>>)problemInstance.parameters[CBS_LocalConflicts.CAT];
+                CBS_CAT = (Dictionary<TimedMove, List<int>>)problemInstance.parameters[CBS.CAT];
             }
         }
 

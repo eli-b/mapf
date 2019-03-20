@@ -13,7 +13,7 @@ namespace CPF_experiment
     /// </summary>
     class CbsHeuristicForAStar : IHeuristicCalculator<WorldState>
     {
-        protected CBS_LocalConflicts cbs;
+        protected CBS cbs;
         protected ProblemInstance instance;
         protected List<uint> vAgents;
         protected Run runner;
@@ -43,7 +43,7 @@ namespace CPF_experiment
         /// Larger values would cause each call to the heuristic to take longer, but make it return better estimates.
         /// </param>
         /// <param name="validate"></param>
-        public CbsHeuristicForAStar(CBS_LocalConflicts cbs, Run runner, bool reportSolution = false,
+        public CbsHeuristicForAStar(CBS cbs, Run runner, bool reportSolution = false,
                             int minAboveSic = 1, bool validate = false)
         {
             this.cbs = cbs;
@@ -350,7 +350,7 @@ namespace CPF_experiment
 
     class DyanamicLazyCbsHeuristicForAStar : CbsHeuristicForAStar, IBoundedLazyHeuristic<WorldState>
     {
-        public DyanamicLazyCbsHeuristicForAStar(CBS_LocalConflicts cbs, Run runner, bool reportSolution = false, bool validate = false)
+        public DyanamicLazyCbsHeuristicForAStar(CBS cbs, Run runner, bool reportSolution = false, bool validate = false)
             : base(cbs, runner, reportSolution, -1, validate) {}
 
         /// <summary>
