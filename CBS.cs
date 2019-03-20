@@ -49,6 +49,7 @@ namespace CPF_experiment
         protected int semiCardinalConflictSplits;
         protected int nonCardinalConflictSplits;
         public int mddsBuilt;
+        public int mddsAdapted;
         protected int restarts;
         protected int pathMaxBoosts;
         protected int reversePathMaxBoosts;
@@ -68,6 +69,7 @@ namespace CPF_experiment
         protected int accSemiCardinalConflictSplits;
         protected int accNonCardinalConflictSplits;
         protected int accMddsBuilt;
+        protected int accMddsAdapted;
         protected int accRestarts;
         protected int accPathMaxBoosts;
         protected int accReversePathMaxBoosts;
@@ -380,6 +382,7 @@ namespace CPF_experiment
             this.semiCardinalConflictSplits = 0;
             this.nonCardinalConflictSplits = 0;
             this.mddsBuilt = 0;
+            this.mddsAdapted = 0;
             this.restarts = 0;
             this.pathMaxBoosts = 0;
             this.reversePathMaxBoosts = 0;
@@ -416,6 +419,8 @@ namespace CPF_experiment
             output.Write(Run.RESULTS_DELIMITER);
             output.Write(this.ToString() + " MDDs Built (HL)");
             output.Write(Run.RESULTS_DELIMITER);
+            output.Write(this.ToString() + " MDDs Adapted (HL)");
+            output.Write(Run.RESULTS_DELIMITER);
             output.Write(this.ToString() + " Restarts (HL)");
             output.Write(Run.RESULTS_DELIMITER);
             output.Write(this.ToString() + " Path-Max Boosts (HL)");
@@ -451,6 +456,7 @@ namespace CPF_experiment
             Console.WriteLine("Semi-Cardinal Conflicts Splits (High-Level): {0}", this.semiCardinalConflictSplits);
             Console.WriteLine("Non-Cardinal Conflicts Splits (High-Level): {0}", this.nonCardinalConflictSplits);
             Console.WriteLine("MDDs Built (High-Level): {0}", this.mddsBuilt);
+            Console.WriteLine("MDDs adapted (High-Level): {0}", this.mddsAdapted);
             Console.WriteLine("Restarts (High-Level): {0}", this.restarts);
             Console.WriteLine("Path-Max Boosts (High-Level): {0}", this.pathMaxBoosts);
             Console.WriteLine("Reverse Path-Max Boosts (High-Level): {0}", this.reversePathMaxBoosts);
@@ -471,6 +477,7 @@ namespace CPF_experiment
             output.Write(this.semiCardinalConflictSplits + Run.RESULTS_DELIMITER);
             output.Write(this.nonCardinalConflictSplits + Run.RESULTS_DELIMITER);
             output.Write(this.mddsBuilt + Run.RESULTS_DELIMITER);
+            output.Write(this.mddsAdapted + Run.RESULTS_DELIMITER);
             output.Write(this.restarts + Run.RESULTS_DELIMITER);
             output.Write(this.pathMaxBoosts + Run.RESULTS_DELIMITER);
             output.Write(this.reversePathMaxBoosts + Run.RESULTS_DELIMITER);
@@ -492,7 +499,7 @@ namespace CPF_experiment
                 int numSolverStats = this.solver.NumStatsColumns;
                 if (Object.ReferenceEquals(this.singleAgentSolver, this.solver) == false)
                     numSolverStats += this.singleAgentSolver.NumStatsColumns;
-                return 19 + numSolverStats + this.openList.NumStatsColumns;
+                return 20 + numSolverStats + this.openList.NumStatsColumns;
             }
         }
 
@@ -523,6 +530,7 @@ namespace CPF_experiment
             this.accSemiCardinalConflictSplits = 0;
             this.accNonCardinalConflictSplits = 0;
             this.accMddsBuilt = 0;
+            this.accMddsAdapted = 0;
             this.accRestarts = 0;
             this.accPathMaxBoosts = 0;
             this.accReversePathMaxBoosts = 0;
@@ -552,6 +560,7 @@ namespace CPF_experiment
             this.accSemiCardinalConflictSplits += this.semiCardinalConflictSplits;
             this.accNonCardinalConflictSplits += this.nonCardinalConflictSplits;
             this.accMddsBuilt += this.mddsBuilt;
+            this.accMddsAdapted += this.mddsAdapted;
             this.accRestarts += this.restarts;
             this.accPathMaxBoosts += this.pathMaxBoosts;
             this.accReversePathMaxBoosts += this.reversePathMaxBoosts;
@@ -578,6 +587,7 @@ namespace CPF_experiment
             Console.WriteLine("{0} Accumulated Semi-Cardinal Conflicts Splits (High-Level): {1}", this, this.accSemiCardinalConflictSplits);
             Console.WriteLine("{0} Accumulated Non-Cardinal Conflicts Splits (High-Level): {1}", this, this.accNonCardinalConflictSplits);
             Console.WriteLine("{0} Accumulated MDDs Built (High-Level): {1}", this, this.accMddsBuilt);
+            Console.WriteLine("{0} Accumulated MDDs adapted (High-Level): {1}", this, this.accMddsAdapted);
             Console.WriteLine("{0} Accumulated Restarts (High-Level): {1}", this, this.accRestarts);
             Console.WriteLine("{0} Accumulated Path-Max Boosts (High-Level): {1}", this, this.accPathMaxBoosts);
             Console.WriteLine("{0} Accumulated Reverse Path-Max Boosts (High-Level): {1}", this, this.accReversePathMaxBoosts);
@@ -598,6 +608,7 @@ namespace CPF_experiment
             output.Write(this.accSemiCardinalConflictSplits + Run.RESULTS_DELIMITER);
             output.Write(this.accNonCardinalConflictSplits + Run.RESULTS_DELIMITER);
             output.Write(this.accMddsBuilt + Run.RESULTS_DELIMITER);
+            output.Write(this.accMddsAdapted + Run.RESULTS_DELIMITER);
             output.Write(this.accRestarts + Run.RESULTS_DELIMITER);
             output.Write(this.accPathMaxBoosts + Run.RESULTS_DELIMITER);
             output.Write(this.accReversePathMaxBoosts + Run.RESULTS_DELIMITER);

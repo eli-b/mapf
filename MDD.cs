@@ -14,10 +14,7 @@ namespace CPF_experiment
         private int agentNum;
         private int mddNum;
         private int numOfAgents;
-        /// <summary>
-        /// Just for printing the node
-        /// </summary>
-        private int cost;
+        public readonly int cost;
         public ProblemInstance problem;
         public enum PruningDone : int
         {

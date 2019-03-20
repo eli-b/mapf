@@ -155,7 +155,7 @@ namespace CPF_experiment
             this.mdds = parent.mdds.ToArray();
             this.mddNarrownessValues = parent.mddNarrownessValues.ToArray();
 
-            // Handle the MDDs for the agent to replan
+            // Adapt the MDDs for the agent to replan, if possible
             // The cost may increase, so the old MDD might not be relevant anymore.
             if (this.mdds[agentToReplan] != null &&
                 this.mdds[agentToReplan].levels.Length - 1 > newConstraint.time &&
@@ -166,6 +166,7 @@ namespace CPF_experiment
                 // The same cost can still be achieved - adapt the MDD
                 this.mdds[agentToReplan] = new MDD(this.mdds[agentToReplan], newConstraint);
                 this.mddNarrownessValues[agentToReplan] = this.mdds[agentToReplan].getLevelNarrownessValues();
+                this.cbs.mddsAdapted++;
             }
             else
             {
@@ -1002,12 +1003,14 @@ namespace CPF_experiment
             {
                 if (this.conflictTimesPerAgent[agentIndex].Count == 0)
                     continue;  // Agent has no conflicts
-                bool hasMdd = this.mddNarrownessValues[agentIndex] != null || this.CopyAppropriateMddFromParent(agentIndex);
+                bool hasMdd = this.mddNarrownessValues[agentIndex] != null ||
+                    this.CopyAppropriateMddFromParent(agentIndex);
 
                 foreach (int conflictingAgentNum in this.conflictTimesPerAgent[agentIndex].Keys)
                 {
                     int conflictingAgentIndex = this.agentNumToIndex[conflictingAgentNum];
-                    bool otherHasMdd = this.mddNarrownessValues[conflictingAgentIndex] != null || this.CopyAppropriateMddFromParent(conflictingAgentIndex);
+                    bool otherHasMdd = this.mddNarrownessValues[conflictingAgentIndex] != null ||
+                        this.CopyAppropriateMddFromParent(conflictingAgentIndex);
 
                     foreach (int conflictTime in this.conflictTimesPerAgent[agentIndex][conflictingAgentNum])
                     {
@@ -1127,7 +1130,7 @@ namespace CPF_experiment
                                           // prefer the agent that can build an MDD to be the first one.
                         }
                         bool otherHasMDD = this.mddNarrownessValues[conflictingAgentIndex] != null ||
-                                           this.CopyAppropriateMddFromParent(conflictingAgentIndex);  // If no ancestor has an appropriate MDD, this might be checked multiple times :(
+                            this.CopyAppropriateMddFromParent(conflictingAgentIndex);  // If no ancestor has an appropriate MDD, this might be checked multiple times :(
 
                         // Reaching here means either i < conflictingAgentIndex,
                         // or the i'th agent can build an MDD and the conflictingAgentIndex'th can't.
@@ -1431,38 +1434,58 @@ namespace CPF_experiment
         }
 
         /// <summary>
-        /// Check if an ancestor has an appropriate one already.
-        /// If so, copy it down the CT branch to this node.
+        /// Copy the MDD down the CT branch from an ancestor with an MDD of the same cost.
+        /// Delete nodes from it as necessary.
         /// </summary>
-        /// <returns>Whether an appropriate MDD was found and copied</returns>
+        /// <returns>True if an appropriate MDD was found and copied,
+        /// or if an MDD of the same cost was adapted</returns>
         private bool CopyAppropriateMddFromParent(int agentIndex)
         {
+            int targetCost = this.allSingleAgentCosts[agentIndex];
             CbsNode node = this;
-            CbsNode ancestorWithAppropriateMdd = null;
+            CbsNode ancestorWithMddOfSameCost = null;
+            Stack<CbsNode> stack = new Stack<CbsNode>();
             while (node != null)
             {
-                if (node.mddNarrownessValues[agentIndex] != null)
+                if (node.mdds[agentIndex] != null)
                 {
-                    ancestorWithAppropriateMdd = node;
-                    break;
+                    if (node.mdds[agentIndex].cost == targetCost)
+                    {
+                        ancestorWithMddOfSameCost = node;
+                        break;
+                    }
+                    else
+                    {
+                        stack.Clear();
+                        break;
+                    }
                 }
-                if (node.constraint != null &&
-                    this.agentNumToIndex[node.constraint.agentNum] == agentIndex)
-                    break;  // This is where the last contraint on the agent was added.
-                            // Ancestors will have inappropriate MDDs for this agent - no need to check them.
+                stack.Push(node);
                 node = node.prev;
             }
-            if (ancestorWithAppropriateMdd != null)
+            if (ancestorWithMddOfSameCost != null)
             {
-                // Ancestor with appropriate MDD found - copy it down the branch.
-                node = this;
-                while (node != ancestorWithAppropriateMdd)
+                // Copy the MDD down the CT branch, deleting nodes as necessary when constraints
+                // make them invalid.
+                MDD mdd = ancestorWithMddOfSameCost.mdds[agentIndex];
+                Dictionary<int, MDD.LevelNarrowness> mddValues = ancestorWithMddOfSameCost.mddNarrownessValues[agentIndex];
+                while (stack.Count > 0)
                 {
-                    node.mddNarrownessValues[agentIndex] = ancestorWithAppropriateMdd.mddNarrownessValues[agentIndex];
-                    node = node.prev;
+                    CbsNode nodeToGiveAnMdd = stack.Pop();
+                    if (nodeToGiveAnMdd.constraint != null &&
+                        this.agentNumToIndex[nodeToGiveAnMdd.constraint.agentNum] == agentIndex)
+                    {
+                        mdd = new MDD(mdd, nodeToGiveAnMdd.constraint);
+                        mddValues = mdd.getLevelNarrownessValues();
+                        this.cbs.mddsAdapted++;
+                    }
+                    nodeToGiveAnMdd.mdds[agentIndex] = mdd;
+                    nodeToGiveAnMdd.mddNarrownessValues[agentIndex] = mddValues;
                 }
                 return true;
             }
+            else
+                stack.Clear();
             return false;
         }
 
@@ -1476,7 +1499,7 @@ namespace CPF_experiment
             if (this.mddNarrownessValues[agentIndex] == null)
             {
                 if (CopyAppropriateMddFromParent(agentIndex))
-                    return false;  // Not build, only copied from an ancestor
+                    return false;  // Not built, only copied from an ancestor
 
                 // Build the MDD
                 Debug.WriteLine($"Building MDD for agent index {agentIndex}");
