@@ -149,6 +149,7 @@ namespace CPF_experiment
             BEST_FIT_LOOKAHEAD
         }
         private bool mergeCausesRestart;
+        private bool useOldCost;
         public bool replanSameCostWithMdd;
 
         /// <summary>
@@ -175,7 +176,9 @@ namespace CPF_experiment
                                   bool disableTieBreakingByMinOpsEstimate = true,
                                   int lookaheadMaxExpansions = 1,
                                   bool mergeCausesRestart = false,
-                                  bool replanSameCostWithMdd = false)
+                                  bool replanSameCostWithMdd = false,
+                                  bool useOldCost = false
+            )
         {
             this.closedList = new Dictionary<CbsNode, CbsNode>();
             if (heuristic == null)
@@ -202,6 +205,7 @@ namespace CPF_experiment
             this.lookaheadMaxExpansions = lookaheadMaxExpansions;
             this.mergeCausesRestart = mergeCausesRestart;
             this.replanSameCostWithMdd = replanSameCostWithMdd;
+            this.useOldCost = useOldCost;
         }
         
         /// <summary>
@@ -349,6 +353,9 @@ namespace CPF_experiment
 
             if (this.replanSameCostWithMdd)
                 variants += " with replanning same cost paths with MDDs";
+
+            if (this.useOldCost)
+                variants += " with using old path costs";
 
             if (this.openList.GetType() != typeof(OpenList<CbsNode>))
             {
@@ -1660,6 +1667,8 @@ namespace CPF_experiment
                     minNewCost = Math.Max(aCost, bCost);
                 else
                     throw new NotImplementedException("Unsupported cost function");
+                if (this.useOldCost == false)
+                    minNewCost = -1;
                 bool success = child.Replan(conflict.agentAIndex,  // or agentBIndex. Doesn't matter - they're in the same group.
                                             this.minSolutionTimeStep, minPathCost: minNewCost);
 
@@ -1808,9 +1817,17 @@ namespace CPF_experiment
                     int minNewCost = oldCost;
                     if (willCostIncrease == CbsConflict.WillCostIncrease.YES)
                         minNewCost = oldCost + 1;
+
                     int maxNewCost = int.MaxValue;
                     if (willCostIncrease == CbsConflict.WillCostIncrease.NO)
                         maxNewCost = oldCost;
+
+                    if (this.useOldCost == false)
+                    {
+                        minNewCost = -1;
+                        maxNewCost = int.MaxValue;
+                    }
+
                     bool success = child.Replan(conflictingAgentIndex, this.minSolutionTimeStep,  // The node takes the max between minSolutionTimeStep and the max time over all constraints.
                                                 minPathCost: minNewCost, maxPathCost: maxNewCost);
 
