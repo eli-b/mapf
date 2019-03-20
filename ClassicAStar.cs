@@ -86,11 +86,18 @@ namespace CPF_experiment
         /// <summary>
         /// Setup the relevant data structures for a run.
         /// </summary>
-        public virtual void Setup(ProblemInstance problemInstance, int minDepth, Run runner, int minCost, int maxCost)
+        public virtual void Setup(ProblemInstance problemInstance, int minDepth, Run runner,
+                                  int minCost, int maxCost, MDD mdd = null)
         {
             this.instance = problemInstance;
             this.runner = runner;
-            WorldState root = this.CreateSearchRoot(minDepth, minCost);
+            MDDNode mddRoot = null;
+            if (mdd != null)
+            {
+                Debug.Assert(problemInstance.agents.Length == 1, "Using MDDs to find new paths is currently only supported for single agent search");
+                mddRoot = mdd.levels[0].First.Value;
+            }
+            WorldState root = this.CreateSearchRoot(minDepth, minCost, mddRoot);
             root.h = (int)this.heuristic.h(root); // g was already set in the constructor
             this.openList.Add(root);
             this.closedList.Add(root, root);
@@ -152,9 +159,9 @@ namespace CPF_experiment
         /// This will be the first state to be inserted to OPEN.
         /// </summary>
         /// <returns>The root of the search tree</returns>
-        protected virtual WorldState CreateSearchRoot(int minDepth = -1, int minCost = -1)
+        protected virtual WorldState CreateSearchRoot(int minDepth = -1, int minCost = -1, MDDNode mddNode = null)
         {
-            return new WorldState(this.instance.agents, minDepth, minCost);
+            return new WorldState(this.instance.agents, minDepth, minCost, mddNode);
         }
 
         /// <summary>
@@ -630,131 +637,147 @@ namespace CPF_experiment
         protected virtual List<WorldState> ExpandOneAgent(List<WorldState> intermediateNodes, int agentIndex)
         {
             var GeneratedNodes = new List<WorldState>();
-            WorldState childNode;
 
             foreach (var currentNode in intermediateNodes)
             {
                 if (runner.ElapsedMilliseconds() > Constants.MAX_TIME)
                     break;
 
-                // Try all legal moves of the agents
-                foreach (TimedMove agentLocation in currentNode.allAgentsState[agentIndex].lastMove.GetNextMoves())
+                if (currentNode.mddNode == null)
                 {
-                    WorldState origNode = agentIndex == 0? currentNode : currentNode.prevStep;
-                    bool moveIsValid = true;
-                    //moveIsValid = this.IsValid(agentLocation, currentNode.currentMoves, currentNode.makespan + 1, agentIndex, origNode, currentNode);
-                    //if (moveIsValid == false)
-                    //    continue;
-
-                    //----------------Begin pasting isValid method
-                    TimedMove possibleMove = agentLocation;
-                    IReadOnlyDictionary<TimedMove, int> currentMoves = currentNode.currentMoves;
-                    int makespan = currentNode.makespan + 1;
-                    WorldState fromNode = origNode;
-                    WorldState intermediateMode = currentNode;
-                    int agentNum = fromNode.allAgentsState[agentIndex].agent.agentNum;
-
-                    // Check if the proposed move is reserved in the plan of another agent.
-                    // This is used in IndependenceDetection's ImprovedID.
-                    if (this.illegalMoves != null)
+                    // Try all legal moves of the agents
+                    foreach (TimedMove potentialMove in currentNode.allAgentsState[agentIndex].lastMove.GetNextMoves())
                     {
-                        if (possibleMove.IsColliding(illegalMoves))
-                            continue;
-                    } // FIXME: Also checked in instance.IsValid later.
+                        WorldState origNode = agentIndex == 0 ? currentNode : currentNode.prevStep;
+                        //moveIsValid = this.IsValid(potentialMove, currentNode.currentMoves, currentNode.makespan + 1, agentIndex, origNode, currentNode);
+                        //if (moveIsValid == false)
+                        //    continue;
 
-                    if (this.constraints != null)
-                    {
-                        queryConstraint.Init(agentNum, possibleMove);
+                        //----------------Begin pasting isValid method
+                        TimedMove possibleMove = potentialMove;
+                        IReadOnlyDictionary<TimedMove, int> currentMoves = currentNode.currentMoves;  // When agentIndex == 0, this is null (nullified when generating it was done.
+                        int makespan = currentNode.makespan + 1;
+                        WorldState fromNode = origNode;
+                        WorldState intermediateMode = currentNode;
+                        int agentNum = fromNode.allAgentsState[agentIndex].agent.agentNum;
 
-                        if (this.constraints.Contains(queryConstraint))
-                            continue;
-                    }
-
-                    if (this.mustConstraints != null && makespan < this.mustConstraints.Length && // There may be a constraint on the timestep of the generated node
-                        this.mustConstraints[makespan] != null &&
-                        this.mustConstraints[makespan].ContainsKey(agentNum)) // This agent has a must constraint for this time step
-                    {
-                        if (this.mustConstraints[makespan][agentNum].Equals(possibleMove) == false)
-                            continue;
-                    }
-
-                    // If the tile is not free (out of the grid or with an obstacle)
-                    if (this.instance.IsValid(possibleMove) == false)
-                        continue;
-
-                    // Check against all the agents that have already moved to see if current move collides with their move
-                    bool collision;
-
-                    if (this.mstar)
-                    {
-                        bool agentInCollisionSet = fromNode.collisionSets.IsSingle(agentIndex);
-
-                        if (agentInCollisionSet == false) // Only one move allowed
+                        // Check if the proposed move is reserved in the plan of another agent.
+                        // This is used in IndependenceDetection's ImprovedID.
+                        if (this.illegalMoves != null)
                         {
-                            bool hasPlan = true;
+                            if (possibleMove.IsColliding(illegalMoves))
+                                continue;
+                        } // FIXME: Also checked in instance.IsValid later.
 
-                            if (hasPlan)
-                            {
-                                // If this move isn't its individually optimal one according to its planned route, return false.
-                                if (this.instance.GetSingleAgentOptimalMove(fromNode.allAgentsState[agentIndex]).Equals(possibleMove) == false)
-                                    continue;
-                            }
+                        if (this.constraints != null)
+                        {
+                            queryConstraint.Init(agentNum, possibleMove);
+
+                            if (this.constraints.Contains(queryConstraint))
+                                continue;
                         }
 
-                        var collidingWith = possibleMove.GetColliding(currentMoves);
-                        collision = collidingWith.Count != 0;
-
-                        if (collision)
+                        if (this.mustConstraints != null && makespan < this.mustConstraints.Length && // There may be a constraint on the timestep of the generated node
+                            this.mustConstraints[makespan] != null &&
+                            this.mustConstraints[makespan].ContainsKey(agentNum)) // This agent has a must constraint for this time step
                         {
-                            // It is possible that possibleMove collides with two moves from currentMoves, even though currentMoves contains no collisions:
-                            // Agent 0: 0,0 -> 1,0
-                            // Agent 1: 0,1 -> 0,0
-                            // Agent 2: 1,0 -> 0,0
-                            // Arbitrarily choosing the first colliding agent:
-                            int collidingAgentIndex = collidingWith[0];
+                            if (this.mustConstraints[makespan][agentNum].Equals(possibleMove) == false)
+                                continue;
+                        }
 
-                            bool otherAgentInColSet = fromNode.collisionSets.IsSingle(collidingAgentIndex);
+                        // If the tile is not free (out of the grid or with an obstacle)
+                        if (this.instance.IsValid(possibleMove) == false)
+                            continue;
 
-                            // Check if one of the colliding agents isn't in the collision set yet
-                            if (agentInCollisionSet == false ||
-                                otherAgentInColSet == false)
+                        // Check against all the agents that have already moved to see if current move collides with their move
+                        bool collision;
+
+                        if (this.mstar)
+                        {
+                            bool agentInCollisionSet = fromNode.collisionSets.IsSingle(agentIndex);
+
+                            if (agentInCollisionSet == false) // Only one move allowed
                             {
-                                if (this.debug)
-                                    Debug.Print("Agent planned route collides with another move!");
-                                bool success = false;
-                                var conflict = new CbsConflict(
-                                        agentIndex, collidingAgentIndex, possibleMove,
-                                        intermediateMode.allAgentsState[collidingAgentIndex].lastMove, makespan);
-                                if (this.debug)
-                                    Debug.Print(conflict.ToString());
-                                if (success == false)
+                                bool hasPlan = true;
+
+                                if (hasPlan)
                                 {
-                                    this.mstarBackPropagationConflictList.Add(conflict);
+                                    // If this move isn't its individually optimal one according to its planned route, return false.
+                                    if (this.instance.GetSingleAgentOptimalMove(fromNode.allAgentsState[agentIndex]).Equals(possibleMove) == false)
+                                        continue;
+                                }
+                            }
+
+                            var collidingWith = possibleMove.GetColliding(currentMoves);
+                            collision = collidingWith.Count != 0;
+
+                            if (collision)
+                            {
+                                // It is possible that possibleMove collides with two moves from currentMoves,
+                                // even though currentMoves contains no collisions:
+                                // Agent 0: 0,0 -> 1,0
+                                // Agent 1: 0,1 -> 0,0
+                                // Agent 2: 1,0 -> 0,0
+                                // Arbitrarily choosing the first colliding agent:
+                                int collidingAgentIndex = collidingWith[0];
+
+                                bool otherAgentInColSet = fromNode.collisionSets.IsSingle(collidingAgentIndex);
+
+                                // Check if one of the colliding agents isn't in the collision set yet
+                                if (agentInCollisionSet == false ||
+                                    otherAgentInColSet == false)
+                                {
+                                    if (this.debug)
+                                        Debug.Print("Agent planned route collides with another move!");
+                                    bool success = false;
+                                    var conflict = new CbsConflict(
+                                            agentIndex, collidingAgentIndex, possibleMove,
+                                            intermediateMode.allAgentsState[collidingAgentIndex].lastMove, makespan);
+                                    if (this.debug)
+                                        Debug.Print(conflict.ToString());
+                                    if (success == false)
+                                    {
+                                        this.mstarBackPropagationConflictList.Add(conflict);
+                                    }
                                 }
                             }
                         }
+                        else
+                        {
+                            collision = possibleMove.IsColliding(currentMoves);
+                        }
+
+                        if (collision)
+                            continue;
+                        //----------------end paste from isValid
+
+                        WorldState childNode = CreateSearchNode(currentNode);
+                        childNode.allAgentsState[agentIndex].MoveTo(potentialMove);
+
+                        if (agentIndex < currentNode.allAgentsState.Length - 1) // More agents need to move
+                            childNode.currentMoves.Add(childNode.allAgentsState[agentIndex].lastMove, agentIndex);
+                        else // Moved the last agent
+                            childNode.currentMoves = null; // To reduce memory load and lookup times
+
+                        // Set the node's prevStep to its real parent, skipping over the intermediate nodes.
+                        if (agentIndex != 0)
+                            childNode.prevStep = currentNode.prevStep;
+                        
+                        GeneratedNodes.Add(childNode);
                     }
-                    else
+                }
+                else
+                {
+                    foreach (MDDNode childMddNode in currentNode.mddNode.children)
                     {
-                        collision = possibleMove.IsColliding(currentMoves);
+                        WorldState childNode = CreateSearchNode(currentNode);
+                        childNode.allAgentsState[agentIndex].MoveTo(childMddNode.move);
+                        childNode.mddNode = childMddNode;
+                        // No need to set the node's prevStep because we're dealing with a single agent -
+                        // no intermediate nodes.
+                        // TODO: Add that support
+                        GeneratedNodes.Add(childNode);
                     }
-
-                    if (collision)
-                        continue;
-                    //----------------end paste from isValid
-
-                    childNode = CreateSearchNode(currentNode);
-                    childNode.allAgentsState[agentIndex].MoveTo(agentLocation);
-
-                    childNode.prevStep = currentNode.prevStep; // Skip temporary node objects used during expansion process.
-                    if (agentIndex == 0)
-                        childNode.prevStep = currentNode;
-                    if (agentIndex < currentNode.allAgentsState.Length - 1) // More agents need to move
-                        childNode.currentMoves.Add(agentLocation, agentIndex);
-                    else // Moved the last agent
-                        childNode.currentMoves.Clear(); // To reduce memory load and lookup times, even though it's correct to leave the old moves since they're timed.
-
-                    GeneratedNodes.Add(childNode);
                 }
             }
             return GeneratedNodes;

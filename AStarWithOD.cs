@@ -17,9 +17,9 @@ namespace CPF_experiment
         public AStarWithOD(IHeuristicCalculator<WorldState> heuristic = null, bool mStar = false, bool mStarShuffle = false)
             : base(heuristic, mStar, mStarShuffle) { }
 
-        override protected WorldState CreateSearchRoot(int minDepth = -1, int minCost = -1)
+        override protected WorldState CreateSearchRoot(int minDepth = -1, int minCost = -1, MDDNode mddNode = null)
         {
-            return new WorldStateWithOD(this.instance.agents, minDepth, minCost);
+            return new WorldStateWithOD(this.instance.agents, minDepth, minCost, mddNode);
         }
 
         protected override WorldState CreateSearchNode(WorldState from)
@@ -29,9 +29,10 @@ namespace CPF_experiment
 
         public override string GetName() { return base.GetName() + "+OD"; }
 
-        public override void Setup(ProblemInstance problemInstance, int minDepth, Run runner, int minCost = -1, int maxCost = int.MaxValue)
+        public override void Setup(ProblemInstance problemInstance, int minDepth, Run runner,
+                                   int minCost = -1, int maxCost = int.MaxValue, MDD mdd = null)
         {
-            base.Setup(problemInstance, minDepth, runner, minCost, maxCost);
+            base.Setup(problemInstance, minDepth, runner, minCost, maxCost, mdd);
             this.expandedFullStates = 0;
             this.generatedFullStates = 0;
         }

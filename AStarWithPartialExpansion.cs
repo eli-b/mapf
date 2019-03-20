@@ -13,9 +13,9 @@ namespace CPF_experiment
         public AStarWithPartialExpansion(IHeuristicCalculator<WorldState> heuristic = null, bool mstar = false, bool mstarShuffle = false)
             : base(heuristic, mstar, mstarShuffle) { }
 
-        override protected WorldState CreateSearchRoot(int minDepth = -1, int minCost = -1)
+        override protected WorldState CreateSearchRoot(int minDepth = -1, int minCost = -1, MDDNode mddNode = null)
         {
-            return new WorldStateForPartialExpansion(this.instance.agents, minDepth, minCost);
+            return new WorldStateForPartialExpansion(this.instance.agents, minDepth, minCost, mddNode);
         }
 
         protected override WorldState CreateSearchNode(WorldState from)
@@ -25,9 +25,10 @@ namespace CPF_experiment
 
         override public string GetName() { return "EPE" + base.GetName(); }
 
-        public override void Setup(ProblemInstance problemInstance, int minDepth, Run runner, int minCost = -1, int maxCost = int.MaxValue)
+        public override void Setup(ProblemInstance problemInstance, int minDepth, Run runner,
+                                   int minCost = -1, int maxCost = int.MaxValue, MDD mdd = null)
         {
-            base.Setup(problemInstance, minDepth, runner, minCost, maxCost);
+            base.Setup(problemInstance, minDepth, runner, minCost, maxCost, mdd);
             this.expandedFullStates = 0;
         }
 

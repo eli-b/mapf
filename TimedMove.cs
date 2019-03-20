@@ -194,6 +194,8 @@ namespace CPF_experiment
 
         public bool IsColliding(IReadOnlyDictionary<TimedMove, int> timedMovesToAgentID)
         {
+            if (timedMovesToAgentID == null)
+                return false;
             Move.Direction saveDirection = this.direction;
             this.direction = Move.Direction.NO_DIRECTION;
             if (timedMovesToAgentID.ContainsKey(this))

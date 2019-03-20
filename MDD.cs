@@ -143,6 +143,20 @@ namespace CPF_experiment
                 levels = null;
         }
 
+        public MDD(MDD other, CbsConstraint newConstraint)
+            : this(other)
+        {
+            List<MDDNode> toDelete = new List<MDDNode>();
+            foreach (MDDNode mddNode in this.levels[newConstraint.time])
+            {
+                if (newConstraint.move.Equals(mddNode.move))
+                    toDelete.Add(mddNode);
+            }
+            Debug.Assert(toDelete.Count > 0);
+            foreach (MDDNode mddNode in toDelete)
+                mddNode.delete();
+        }
+
         public MDD(MDD other)
         {
             this.problem = other.problem;

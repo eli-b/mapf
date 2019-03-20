@@ -17,6 +17,7 @@ namespace CPF_experiment
         public AgentState[] allAgentsState;
         public WorldState prevStep;
         private int binaryHeapIndex;
+        public MDDNode mddNode;
         /// <summary>
         /// For Independence Detection only
         /// </summary>
@@ -45,6 +46,7 @@ namespace CPF_experiment
         /// <summary>
         /// The last move of all agents that have already moved in this turn.
         /// Used for making sure the next agent move doesn't collide with moves already made.
+        /// Used while generating this node, nullified when done.
         /// </summary>
         public Dictionary<TimedMove, int> currentMoves;
         protected static readonly int NOT_SET = -1;
@@ -71,7 +73,8 @@ namespace CPF_experiment
         /// <param name="allAgentsState"></param>
         /// <param name="minDepth"></param>
         /// <param name="minCost"></param>
-        public WorldState(AgentState[] allAgentsState, int minDepth = -1, int minCost = -1)
+        /// <param name="mddNode"></param>
+        public WorldState(AgentState[] allAgentsState, int minDepth = -1, int minCost = -1, MDDNode mddNode = null)
         {
             this.allAgentsState = allAgentsState.ToArray();
             this.makespan = allAgentsState.Max(state => state.lastMove.time); // We expect to only find at most two G values within the agent group
@@ -82,11 +85,13 @@ namespace CPF_experiment
             this.conflictTimes = new Dictionary<int, List<int>>();
             this.minGoalTimeStep = minDepth;
             this.minGoalCost = minCost;
-            this.currentMoves = new Dictionary<TimedMove, int>();
+            if (mddNode == null)
+                this.currentMoves = new Dictionary<TimedMove, int>();
             this.goalCost = NOT_SET;
             this.goalSingleCosts = null;
             this.singlePlans = null;
             this.hBonus = 0;
+            this.mddNode = mddNode;
         }
 
         /// <summary>
@@ -106,11 +111,18 @@ namespace CPF_experiment
             {
                 this.allAgentsState[i] = new AgentState(cpy.allAgentsState[i]); // Shallow copy - it's still the same lastMove inside. Why a copy?
             }
-            this.currentMoves = new Dictionary<TimedMove, int>(cpy.currentMoves);
+            if (cpy.currentMoves != null)
+                // cpy is an intermediate node
+                this.currentMoves = new Dictionary<TimedMove, int>(dictionary: cpy.currentMoves);
+            else
+                // cpy is a concrete node
+                this.currentMoves = new Dictionary<TimedMove, int>(capacity: cpy.allAgentsState.Length);
             this.goalCost = NOT_SET;
             this.goalSingleCosts = null;
             this.singlePlans = null;
             this.hBonus = 0;
+            this.mddNode = cpy.mddNode;
+            this.prevStep = cpy;
         }
 
         /// <summary>

@@ -64,7 +64,9 @@ namespace CPF_experiment
         /// This can be used to improve the heuristic estimate!
         /// </param>
         /// <param name="maxCost">If known, can speed up the search (no surplus nodes would be generated)</param>
-        void Setup(ProblemInstance problemInstance, int minTimeStep, Run runner, int minCost, int maxCost);
+        /// <param name="mdd">Optional MDD of cost minCost=maxCost</param>
+        void Setup(ProblemInstance problemInstance, int minTimeStep, Run runner, int minCost, int maxCost,
+                   MDD mdd);
         SinglePlan[] GetSinglePlans();
         int[] GetSingleCosts();
         Dictionary<int, int> GetExternalConflictCounts();

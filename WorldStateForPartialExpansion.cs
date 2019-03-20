@@ -39,8 +39,8 @@ namespace CPF_experiment
         /// <param name="minDepth"></param>
         /// <param name="minCost"></param>
         public WorldStateForPartialExpansion(AgentState[] allAgentsState, int minDepth = -1,
-                                             int minCost = -1):
-            base(allAgentsState, minDepth, minCost)
+                                             int minCost = -1, MDDNode mddNode = null):
+            base(allAgentsState, minDepth, minCost, mddNode)
         {
             this.alreadyExpanded = false;
             this.maxDeltaF = 0;

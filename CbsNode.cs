@@ -100,6 +100,12 @@ namespace CPF_experiment
         /// </summary>
         public Dictionary<int, MDD.LevelNarrowness>[] mddNarrownessValues;
 
+        /// <summary>
+        /// FIXME: We're currently saving both the MDDs and their much smaller narrowness values in
+        /// order to have a fair comparison with the past
+        /// </summary>
+        public MDD[] mdds;
+
         public CbsNode(int numberOfAgents, ICbsSolver solver, ICbsSolver singleAgentSolver,
             CBS_LocalConflicts cbs, ushort[] agentsGroupAssignment = null)
         {
@@ -107,6 +113,7 @@ namespace CPF_experiment
             allSingleAgentPlans = new SinglePlan[numberOfAgents];
             allSingleAgentCosts = new int[numberOfAgents];
             mddNarrownessValues = new Dictionary<int, MDD.LevelNarrowness>[numberOfAgents];
+            mdds = new MDD[numberOfAgents];
             countsOfInternalAgentsThatConflict = new int[numberOfAgents];
             conflictCountsPerAgent = new Dictionary<int, int>[numberOfAgents]; // Populated after Solve()
             conflictTimesPerAgent = new Dictionary<int, List<int>>[numberOfAgents]; // Populated after Solve()
@@ -142,10 +149,29 @@ namespace CPF_experiment
         /// <param name="agentToReplan"></param>
         public CbsNode(CbsNode parent, CbsConstraint newConstraint, int agentToReplan)
         {
+            this.cbs = parent.cbs;
             this.allSingleAgentPlans = parent.allSingleAgentPlans.ToArray();
             this.allSingleAgentCosts = parent.allSingleAgentCosts.ToArray();
+            this.mdds = parent.mdds.ToArray();
             this.mddNarrownessValues = parent.mddNarrownessValues.ToArray();
-            this.mddNarrownessValues[agentToReplan] = null;  // This agent has a new constraint, its old MDD isn't relevant anymore.
+
+            // Handle the MDDs for the agent to replan
+            // The cost may increase, so the old MDD might not be relevant anymore.
+            if (this.mdds[agentToReplan] != null &&
+                this.mdds[agentToReplan].levels.Length - 1 > newConstraint.time &&
+                (this.mddNarrownessValues[agentToReplan].ContainsKey(newConstraint.time) == false ||
+                 (this.mddNarrownessValues[agentToReplan][newConstraint.time] == MDD.LevelNarrowness.ONE_LOCATION_MULTIPLE_DIRECTIONS &&
+                 newConstraint.move.direction != Move.Direction.NO_DIRECTION)))
+            {
+                // The same cost can still be achieved - adapt the MDD
+                this.mdds[agentToReplan] = new MDD(this.mdds[agentToReplan], newConstraint);
+                this.mddNarrownessValues[agentToReplan] = this.mdds[agentToReplan].getLevelNarrownessValues();
+            }
+            else
+            {
+                this.mdds[agentToReplan] = null;
+                this.mddNarrownessValues[agentToReplan] = null;
+            }
 
             this.countsOfInternalAgentsThatConflict = parent.countsOfInternalAgentsThatConflict.ToArray();
             this.conflictCountsPerAgent = new Dictionary<int, int>[parent.conflictCountsPerAgent.Length];
@@ -168,7 +194,6 @@ namespace CPF_experiment
             this.replanSize = 1;
             this.solver = parent.solver;
             this.singleAgentSolver = parent.singleAgentSolver;
-            this.cbs = parent.cbs;
             this.minimumVertexCover = (int) ConflictGraph.MinVertexCover.NOT_SET;
         }
 
@@ -182,6 +207,7 @@ namespace CPF_experiment
         {
             this.allSingleAgentPlans = parent.allSingleAgentPlans.ToArray();
             this.allSingleAgentCosts = parent.allSingleAgentCosts.ToArray();
+            this.mdds = parent.mdds.ToArray();
             this.mddNarrownessValues = parent.mddNarrownessValues.ToArray();  // No new constraint was added so all of the parent's MDDs are valid
             this.countsOfInternalAgentsThatConflict = parent.countsOfInternalAgentsThatConflict.ToArray<int>();
             this.conflictCountsPerAgent = new Dictionary<int, int>[parent.conflictCountsPerAgent.Length];
@@ -436,8 +462,12 @@ namespace CPF_experiment
                     minPathTimeStep = Math.Max(minPathTimeStep, maxMustConstraintTimeStep); // Give all must constraints a chance to affect the plan
                 }
             }
-           
-            relevantSolver.Setup(subProblem, minPathTimeStep, this.cbs.runner, minPathCost, maxPathCost);
+
+            MDD mdd = null;
+            if (this.cbs.replanSameCostWithMdd)
+                mdd = this.mdds[agentForReplan];
+
+            relevantSolver.Setup(subProblem, minPathTimeStep, this.cbs.runner, minPathCost, maxPathCost, mdd);
             bool solved = relevantSolver.Solve();
 
             relevantSolver.AccumulateStatistics();
@@ -2191,7 +2221,10 @@ namespace CPF_experiment
             constraints.Join(newConstraints);
             mustConstraints.Join(newMustConstraints);
 
-            relevantSolver.Setup(subProblem, depthToReplan, this.cbs.runner, minPathCost, maxPathCost);
+            MDD mdd = null;
+            if (this.cbs.replanSameCostWithMdd)
+                mdd = this.mdds[agentToReplan];
+            relevantSolver.Setup(subProblem, depthToReplan, this.cbs.runner, minPathCost, maxPathCost, mdd);
             bool solved = relevantSolver.Solve();
 
             relevantSolver.AccumulateStatistics();

@@ -147,6 +147,7 @@ namespace CPF_experiment
             BEST_FIT_LOOKAHEAD
         }
         private bool mergeCausesRestart;
+        public bool replanSameCostWithMdd;
 
         /// <summary>
         /// 
@@ -171,7 +172,8 @@ namespace CPF_experiment
                                   ILazyHeuristic<CbsNode> heuristic = null,
                                   bool disableTieBreakingByMinOpsEstimate = true,
                                   int lookaheadMaxExpansions = 1,
-                                  bool mergeCausesRestart = false)
+                                  bool mergeCausesRestart = false,
+                                  bool replanSameCostWithMdd = false)
         {
             this.closedList = new Dictionary<CbsNode, CbsNode>();
             if (heuristic == null)
@@ -197,6 +199,7 @@ namespace CPF_experiment
             this.disableTieBreakingByMinOpsEstimate = disableTieBreakingByMinOpsEstimate;
             this.lookaheadMaxExpansions = lookaheadMaxExpansions;
             this.mergeCausesRestart = mergeCausesRestart;
+            this.replanSameCostWithMdd = replanSameCostWithMdd;
         }
         
         /// <summary>
@@ -206,8 +209,10 @@ namespace CPF_experiment
         /// <param name="minSolutionTimeStep"></param>
         /// <param name="runner"></param>
         /// <param name="minSolutionCost"></param>
+        /// <param name="maxSolutionCost"></param>
+        /// <param name="mdd">Currently ignored. FIXME: Need to convert to array of MDDs to use.</param>
         public virtual void Setup(ProblemInstance problemInstance, int minSolutionTimeStep, Run runner,
-            int minSolutionCost = -1, int maxSolutionCost = int.MaxValue)
+            int minSolutionCost = -1, int maxSolutionCost = int.MaxValue, MDD mdd = null)
         {
             this.instance = problemInstance;
             this.runner = runner;
@@ -233,6 +238,8 @@ namespace CPF_experiment
             this.minSolutionTimeStep = minSolutionTimeStep;
             this.minSolutionCost = minSolutionCost;
             this.maxSolutionCost = Math.Max(this.maxSolutionCost, maxSolutionCost);
+            if (this.replanSameCostWithMdd)
+                Debug.Assert(this.mergeThreshold == -1, "Using MDDs to replan same-cost paths is currently only supported for single agents");
 
             this.topMost = this.SetGlobals();
 
@@ -337,6 +344,9 @@ namespace CPF_experiment
 
             if (this.mergeCausesRestart == true && mergeThreshold != -1)
                 variants += " with merge&restart";
+
+            if (this.replanSameCostWithMdd)
+                variants += " with replanning same cost paths with MDDs";
 
             if (this.openList.GetType() != typeof(OpenList<CbsNode>))
             {
