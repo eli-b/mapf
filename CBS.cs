@@ -27,6 +27,18 @@ namespace CPF_experiment
         /// </summary>
         public static readonly string CAT = "CBS CAT";
 
+        /// <summary>
+        /// For each agent, map sets of constraints to MDDs
+        /// </summary>
+        public Dictionary<CbsCacheEntry, MDD>[] mddCache;
+
+        /// <summary>
+        /// For each agent, map sets of constraints to a dictionary that
+        /// maps each level (timestep) of its mdd to a narrowness degree.
+        /// Non-narrow levels are omitted.
+        /// </summary>
+        public Dictionary<CbsCacheEntry, Dictionary<int, MDD.LevelNarrowness>>[] mddNarrownessValuesCache;
+
         protected ProblemInstance instance;
         public OpenList<CbsNode> openList;
         /// <summary>
@@ -55,6 +67,7 @@ namespace CPF_experiment
         protected int reversePathMaxBoosts;
         protected int pathMaxPlusBoosts;
         protected int surplusNodesAvoided;
+        public int mddCacheHits;
         // TODO: Count shuffles
         protected int accHLExpanded;
         protected int accHLGenerated;
@@ -75,6 +88,7 @@ namespace CPF_experiment
         protected int accReversePathMaxBoosts;
         protected int accPathMaxPlusBoosts;
         protected int accSurplusNodesAvoided;
+        protected int accMddCacheHits;
 
         public int solutionCost;
         /// <summary>
@@ -151,6 +165,7 @@ namespace CPF_experiment
         private bool mergeCausesRestart;
         private bool useOldCost;
         public bool replanSameCostWithMdd;
+        public bool cacheMdds;
 
         /// <summary>
         /// 
@@ -177,6 +192,7 @@ namespace CPF_experiment
                                   int lookaheadMaxExpansions = 1,
                                   bool mergeCausesRestart = false,
                                   bool replanSameCostWithMdd = false,
+                                  bool cacheMdds = false,
                                   bool useOldCost = false
             )
         {
@@ -205,6 +221,7 @@ namespace CPF_experiment
             this.lookaheadMaxExpansions = lookaheadMaxExpansions;
             this.mergeCausesRestart = mergeCausesRestart;
             this.replanSameCostWithMdd = replanSameCostWithMdd;
+            this.cacheMdds = cacheMdds;
             this.useOldCost = useOldCost;
         }
         
@@ -246,6 +263,17 @@ namespace CPF_experiment
             this.maxSolutionCost = Math.Max(this.maxSolutionCost, maxSolutionCost);
             if (this.replanSameCostWithMdd)
                 Debug.Assert(this.mergeThreshold == -1, "Using MDDs to replan same-cost paths is currently only supported for single agents");
+
+            if (this.cacheMdds)
+            {
+                this.mddCache = new Dictionary<CbsCacheEntry, MDD>[instance.agents.Length];
+                this.mddNarrownessValuesCache = new Dictionary<CbsCacheEntry, Dictionary<int, MDD.LevelNarrowness>>[instance.agents.Length];
+                for (int i = 0; i < instance.agents.Length; i++)
+                {
+                    this.mddCache[i] = new Dictionary<CbsCacheEntry, MDD>();
+                    this.mddNarrownessValuesCache[i] = new Dictionary<CbsCacheEntry, Dictionary<int, MDD.LevelNarrowness>>();
+                }
+            }
 
             this.topMost = this.SetGlobals();
 
@@ -354,6 +382,9 @@ namespace CPF_experiment
             if (this.replanSameCostWithMdd)
                 variants += " with replanning same cost paths with MDDs";
 
+            if (this.cacheMdds)
+                variants += " with caching MDDs";
+
             if (this.useOldCost)
                 variants += " with using old path costs";
 
@@ -396,6 +427,7 @@ namespace CPF_experiment
             this.pathMaxPlusBoosts = 0;
             this.maxSizeGroup = 1;
             this.surplusNodesAvoided = 0;
+            this.mddCacheHits = 0;
         }
 
         public virtual void OutputStatisticsHeader(TextWriter output)
@@ -440,6 +472,8 @@ namespace CPF_experiment
             output.Write(Run.RESULTS_DELIMITER);
             output.Write(this.ToString() + " Surplus Nodes Avoided (HL)");
             output.Write(Run.RESULTS_DELIMITER);
+            output.Write(this.ToString() + " MDD Cache Hits (HL)");
+            output.Write(Run.RESULTS_DELIMITER);
 
             this.solver.OutputStatisticsHeader(output);
             if (Object.ReferenceEquals(this.singleAgentSolver, this.solver) == false)
@@ -470,6 +504,7 @@ namespace CPF_experiment
             Console.WriteLine("Path-Max Plus Boosts (High-Level): {0}", this.pathMaxPlusBoosts);
             Console.WriteLine("Max Group Size (High-Level): {0}", this.maxSizeGroup);
             Console.WriteLine("Surplus Nodes Avoided (High-Level): {0}", this.surplusNodesAvoided);
+            Console.WriteLine("MDD cache hits (High-Level): {0}", this.mddCacheHits);
 
             output.Write(this.highLevelExpanded + Run.RESULTS_DELIMITER);
             output.Write(this.highLevelGenerated + Run.RESULTS_DELIMITER);
@@ -491,6 +526,7 @@ namespace CPF_experiment
             output.Write(this.pathMaxPlusBoosts + Run.RESULTS_DELIMITER);
             output.Write(this.maxSizeGroup + Run.RESULTS_DELIMITER);
             output.Write(this.surplusNodesAvoided + Run.RESULTS_DELIMITER);
+            output.Write(this.mddCacheHits + Run.RESULTS_DELIMITER);
 
             this.solver.OutputAccumulatedStatistics(output);
             if (Object.ReferenceEquals(this.singleAgentSolver, this.solver) == false)
@@ -506,7 +542,7 @@ namespace CPF_experiment
                 int numSolverStats = this.solver.NumStatsColumns;
                 if (Object.ReferenceEquals(this.singleAgentSolver, this.solver) == false)
                     numSolverStats += this.singleAgentSolver.NumStatsColumns;
-                return 20 + numSolverStats + this.openList.NumStatsColumns;
+                return 21 + numSolverStats + this.openList.NumStatsColumns;
             }
         }
 
@@ -544,6 +580,7 @@ namespace CPF_experiment
             this.accPathMaxPlusBoosts = 0;
             this.accMaxSizeGroup = 1;
             this.accSurplusNodesAvoided = 0;
+            this.accMddCacheHits = 0;
 
             this.solver.ClearAccumulatedStatistics();
             if (Object.ReferenceEquals(this.singleAgentSolver, this.solver) == false)
@@ -574,6 +611,7 @@ namespace CPF_experiment
             this.accPathMaxPlusBoosts += this.pathMaxPlusBoosts;
             this.accMaxSizeGroup = Math.Max(this.accMaxSizeGroup, this.maxSizeGroup);
             this.accSurplusNodesAvoided += this.surplusNodesAvoided;
+            this.accMddCacheHits += this.mddCacheHits;
 
             // this.solver statistics are accumulated every time it's used.
 
@@ -601,6 +639,7 @@ namespace CPF_experiment
             Console.WriteLine("{0} Accumulated Path-Max Plus Boosts (High-Level): {1}", this, this.accPathMaxPlusBoosts);
             Console.WriteLine("{0} Max Group Size (High-Level): {1}", this, this.accMaxSizeGroup);
             Console.WriteLine("{0} Accumulated Surplus Nodes Avoided (High-Level): {1}", this, this.accSurplusNodesAvoided);
+            Console.WriteLine("{0} Accumulated MDD cache hits (High-Level): {1}", this, this.accMddCacheHits);
 
             output.Write(this.accHLExpanded + Run.RESULTS_DELIMITER);
             output.Write(this.accHLGenerated + Run.RESULTS_DELIMITER);
@@ -622,6 +661,7 @@ namespace CPF_experiment
             output.Write(this.accPathMaxPlusBoosts + Run.RESULTS_DELIMITER);
             output.Write(this.accMaxSizeGroup + Run.RESULTS_DELIMITER);
             output.Write(this.accSurplusNodesAvoided + Run.RESULTS_DELIMITER);
+            output.Write(this.accMddCacheHits + Run.RESULTS_DELIMITER);
 
             this.solver.OutputAccumulatedStatistics(output);
             if (Object.ReferenceEquals(this.singleAgentSolver, this.solver) == false)

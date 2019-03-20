@@ -1478,6 +1478,12 @@ namespace CPF_experiment
                         mdd = new MDD(mdd, nodeToGiveAnMdd.constraint);
                         mddValues = mdd.getLevelNarrownessValues();
                         this.cbs.mddsAdapted++;
+                        if (this.cbs.cacheMdds)
+                        {
+                            CbsCacheEntry entry = new CbsCacheEntry(nodeToGiveAnMdd, agentIndex);
+                            this.cbs.mddCache[agentIndex][entry] = mdd;
+                            this.cbs.mddNarrownessValuesCache[agentIndex][entry] = mddValues;
+                        }
                     }
                     nodeToGiveAnMdd.mdds[agentIndex] = mdd;
                     nodeToGiveAnMdd.mddNarrownessValues[agentIndex] = mddValues;
@@ -1496,8 +1502,13 @@ namespace CPF_experiment
         /// <returns>Whether an MDD was built</returns>
         public bool buildMddForAgentWithItsCurrentCost(int agentIndex)
         {
-            if (this.mddNarrownessValues[agentIndex] == null)
+            if (this.mddNarrownessValues[agentIndex] != null)
+                return false;
+
+            CbsCacheEntry entry = new CbsCacheEntry(this, agentIndex);
+            if (this.cbs.cacheMdds == false || this.cbs.mddCache[agentIndex].ContainsKey(entry) == false)
             {
+                // Caching not enabled or no cache hit
                 if (CopyAppropriateMddFromParent(agentIndex))
                     return false;  // Not built, only copied from an ancestor
 
@@ -1540,33 +1551,43 @@ namespace CPF_experiment
                     }
                 }
 
-                var mdd = new MDD(agentIndex, problem.agents[agentIndex].agent.agentNum,
+                this.mdds[agentIndex] = new MDD(agentIndex, problem.agents[agentIndex].agent.agentNum,
                     problem.agents[agentIndex].GetMove(), this.allSingleAgentCosts[agentIndex],
                     depth, problem.GetNumOfAgents(), problem,
                     ignoreConstraints: false, supportPruning: false);
-                this.mddNarrownessValues[agentIndex] = mdd.getLevelNarrownessValues();
+                this.mddNarrownessValues[agentIndex] = this.mdds[agentIndex].getLevelNarrownessValues();
+                if (this.cbs.cacheMdds)
+                {
+                    this.cbs.mddCache[agentIndex][entry] = this.mdds[agentIndex];
+                    this.cbs.mddNarrownessValuesCache[agentIndex][entry] = this.mddNarrownessValues[agentIndex];
+                }
+                this.cbs.mddsBuilt++;
+
                 constraints.Separate(newConstraints);
                 if (mustConstraints != null)
                     mustConstraints.Separate(newMustConstraints);
-
-                this.cbs.mddsBuilt++;
-
-                // Copy the MDD up to ancestors where appropriate
-                CbsNode node = this;
-                while (node != null)
-                {
-                    node.mddNarrownessValues[agentIndex] = this.mddNarrownessValues[agentIndex];
-                    if (node.constraint != null &&
-                        this.agentNumToIndex[node.constraint.agentNum] == agentIndex)
-                        break;  // This is where the last contraint on the agent was added.
-                                // Ancestors will have inappropriate MDDs for this agent - no need to check them.
-                    node = node.prev;
-                }
-
-                return true;
             }
             else
-                return false;
+            {
+                // The MDD is in the cache!
+                this.mdds[agentIndex] = this.cbs.mddCache[agentIndex][entry];
+                this.mddNarrownessValues[agentIndex] = this.cbs.mddNarrownessValuesCache[agentIndex][entry];
+                this.cbs.mddCacheHits++;
+            }
+
+            // Copy the MDD up to ancestors where appropriate
+            CbsNode node = this;
+            while (node != null)
+            {
+                node.mddNarrownessValues[agentIndex] = this.mddNarrownessValues[agentIndex];
+                if (node.constraint != null &&
+                    this.agentNumToIndex[node.constraint.agentNum] == agentIndex)
+                    break;  // This is where the last contraint on the agent was added.
+                            // Ancestors will have inappropriate MDDs for this agent - no need to check them.
+                node = node.prev;
+            }
+
+            return true;
         }
 
         private (int groupRepA, int groupRepB, int time) GetFirstConflictDetails()
