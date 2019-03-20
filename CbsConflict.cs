@@ -12,7 +12,7 @@ namespace CPF_experiment
         /// <summary>
         /// If true, conflict is two agents have same dest, from any direction. Otherwise it's an edge conflict.
         /// </summary>
-        public bool vertex;
+        public bool isVertexConflict;
         public WillCostIncrease willCostIncreaseForAgentA;
         public WillCostIncrease willCostIncreaseForAgentB;
 
@@ -31,10 +31,10 @@ namespace CPF_experiment
             this.agentBmove = agentBMove;
             this.timeStep = timeStep;
             if (agentAMove.x == agentBMove.x && agentAMove.y == agentBMove.y) // Same dest, from any direction
-                this.vertex = true;
+                this.isVertexConflict = true;
             else
             {
-                this.vertex = false;
+                this.isVertexConflict = false;
                 Debug.Assert(Constants.ALLOW_HEAD_ON_COLLISION == false, "Creating an edge conflict when head-on collision are allowed");
             }
             this.willCostIncreaseForAgentA = WillCostIncrease.MAYBE;
@@ -56,11 +56,11 @@ namespace CPF_experiment
                 return false;
             if (this.agentBIndex != other.agentBIndex)
                 return false;
-            if (this.vertex != other.vertex)
+            if (this.isVertexConflict != other.isVertexConflict)
                 return false;
             if (this.timeStep != other.timeStep)
                 return false;
-            if (this.vertex)
+            if (this.isVertexConflict)
             { // Compare dests, ignore directions. Enough to compare one agent's move because the other is colliding with it.
                 if (this.agentAmove.x != other.agentAmove.x)
                     return false;
@@ -84,7 +84,7 @@ namespace CPF_experiment
                 return 2 * this.agentAIndex +
                        3 * this.agentBIndex +
                        5 * this.timeStep +
-                       7 * this.vertex.GetHashCode() +
+                       7 * this.isVertexConflict.GetHashCode() +
                        11 * this.agentAmove.GetHashCode() +
                        13 * this.agentBmove.GetHashCode();
             }

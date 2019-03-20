@@ -145,7 +145,7 @@ namespace CPF_experiment
             CbsConstraint con2 = new CbsConstraint(conflict, instance, false);
             CbsConstraint con1 = new CbsConstraint(conflict, instance, true);
             byte stepLength=0;
-            if (conflict.vertex)
+            if (conflict.isVertexConflict)
                 stepLength = 1;
             bool ok1 = false, ok2 = false;
 

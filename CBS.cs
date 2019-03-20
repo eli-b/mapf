@@ -1704,7 +1704,7 @@ namespace CPF_experiment
                                                                                  // because who would conflict with it? An agent with a longer plan? (no such agent)
                                                                                  // An agent with a plan of the same length? (but goals don't collide)
                 ((Constants.sumOfCostsVariant == Constants.SumOfCostsVariant.ORIG &&
-                expansionsState == CbsNode.ExpansionState.NOT_EXPANDED && conflict.vertex == true &&  // An edge conflict at the goal isn't guaranteed
+                expansionsState == CbsNode.ExpansionState.NOT_EXPANDED && conflict.isVertexConflict == true &&  // An edge conflict at the goal isn't guaranteed
                                                                                                       // to increase the cost - the agent might be able to reach the goal from another direction
                  conflict.timeStep >= node.allSingleAgentCosts[conflictingAgentIndex] && // Can't just check whether the node is at its goal - 
                                                                                          // the plan may involve it passing through its goal and returning to it later because of preexisting constraints.
@@ -1716,7 +1716,7 @@ namespace CPF_experiment
                                     // route without increasing the group's cost because
                                     // another agent would be able to take a shorter route.
                (Constants.sumOfCostsVariant == Constants.SumOfCostsVariant.WAITING_AT_GOAL_ALWAYS_FREE &&
-                expansionsState == CbsNode.ExpansionState.NOT_EXPANDED && conflict.vertex == true &&
+                expansionsState == CbsNode.ExpansionState.NOT_EXPANDED && conflict.isVertexConflict == true &&
                 ((conflict.timeStep > planSize - 1 && node.h < 2) ||
                  (conflict.timeStep == planSize - 1 && node.h < 1)) &&  // Otherwise we won't be increasing its h and there would be no reason to delay expansion
                 groupSize == 1))) // Otherwise an agent in the group can be forced to take a longer

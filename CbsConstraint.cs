@@ -42,7 +42,7 @@ namespace CPF_experiment
             this.agentNum = (byte)agentNum;
             this.move = new TimedMove(move, conflict.timeStep);
 
-            if (conflict.vertex)
+            if (conflict.isVertexConflict)
                 this.move.direction = Move.Direction.NO_DIRECTION;
         }
 

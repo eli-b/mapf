@@ -2302,7 +2302,7 @@ namespace CPF_experiment
                 // it might still be a semi-cardinal or cardinal conflict if all of the agent's MDD's nodes at this
                 // time move to the same vertex (from different directions)
                 var conflict = FindConflict(agentIndex, conflictingAgentIndex, conflictTime, groups);
-                bool vertexConflict = conflict.vertex;
+                bool vertexConflict = conflict.isVertexConflict;
                 if (vertexConflict)
                     return true;
                 else
