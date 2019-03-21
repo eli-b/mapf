@@ -466,6 +466,9 @@ namespace CPF_experiment
                 toDelete = nextToDelete;
             }
             myNode.List.Remove(myNode);
+
+            if (this.mdd.levels[this.mdd.levels.Length - 1].Count == 0) // No possible route to goal remains
+                this.mdd.levels = null;
         }
         
         public void deleteIfOrphanOrChildless()
