@@ -485,7 +485,7 @@ namespace CPF_experiment
                 // Reuse optimal solutions to previously solved subproblems
                 if (sumSubGroupA >= costA && sumSubGroupB >= costB)
                 {
-                    ((CostTreeNodeSolverKSimpleMatching)next).setup(costTreeNode, maxGroupChecked);
+                    ((CostTreeNodeSolverKSimpleMatching)next).Setup(costTreeNode, maxGroupChecked);
                     expandedHL++;
                     ans = next.Solve(ID_CAT, CBS_CAT);
                     generatedLL += next.generated;

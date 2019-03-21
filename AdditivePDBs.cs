@@ -41,21 +41,21 @@ namespace CPF_experiment
                      // their index into the WorldState.allAgentsState
                      // array.
 
-                    List<uint> vAgents = new List<uint>();
-                    vAgents.Add(i);
-                    vAgents.Add(i + 1);
+                    List<uint> agentsToConsider = new List<uint>();
+                    agentsToConsider.Add(i);
+                    agentsToConsider.Add(i + 1);
 
                      // Create a new root search node where the state only
                      // includes a subset of the agents of the original search
                      // node. This is done by passing into the state copy
                      // constructor our list of important agents.
 
-                    WorldState tws = new WorldState(s.allAgentsState, vAgents);
+                    WorldState tws = new WorldState(s.allAgentsState, agentsToConsider);
 
                      // Initialize, build, and save the new pattern database.
 
                     EnumeratedPDB pdb = new EnumeratedPDB();
-                    pdb.init(pi, vAgents);
+                    pdb.Init(pi, agentsToConsider);
                     pdb.build();
                     Debug.Write(".");
                     PDBs.Add(pdb);
@@ -68,9 +68,9 @@ namespace CPF_experiment
             if (s.allAgentsState.Length % 2 == 1)
             {
                 SumIndividualCosts pdb = new SumIndividualCosts();
-                List<uint> vAgents = new List<uint>(1);
-                vAgents.Add((uint) s.allAgentsState.Length - 1);
-                pdb.init(pi, vAgents);
+                List<uint> agentsToConsider = new List<uint>(1);
+                agentsToConsider.Add((uint) s.allAgentsState.Length - 1);
+                pdb.Init(pi, agentsToConsider);
                 pdb.build();
                 PDBs.Add(pdb);
             }
@@ -90,7 +90,7 @@ namespace CPF_experiment
         /// </summary>
         /// <param name="pi">The problem instance.</param>
         /// <param name="vAgents">The agents that the pattern database should keep track of.</param>
-        public virtual void init(ProblemInstance pi, List<uint> vAgents) {}
+        public virtual void Init(ProblemInstance pi, List<uint> vAgents) {}
 
         /// <summary>
         /// Simply returns the sum of each of the additive pattern database 

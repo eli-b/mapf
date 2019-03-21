@@ -384,7 +384,7 @@ namespace CPF_experiment
         /// <summary>
         /// Replan for a given agent (when constraints for that agent have changed).
         /// </summary>
-        /// <param name="agentForReplan"></param>
+        /// <param name="agentToReplan"></param>
         /// <param name="minPathTimeStep"></param>
         /// <param name="subGroup">If given, assume CAT is already populated and use this subGroup</param>
         /// <param name="maxPlanSizeOfOtherAgents">
@@ -394,7 +394,7 @@ namespace CPF_experiment
         /// <param name="minPathCost"></param>
         /// <param name="maxPathCost"></param>
         /// <returns>Whether a path was successfully found</returns>
-        public bool Replan(int agentForReplan, int minPathTimeStep, List<AgentState> subGroup = null,
+        public bool Replan(int agentToReplan, int minPathTimeStep, List<AgentState> subGroup = null,
                            int maxPlanSizeOfOtherAgents = -1, int minPathCost = -1,
                            int maxPathCost = int.MaxValue)
         {
@@ -402,7 +402,7 @@ namespace CPF_experiment
             Dictionary_U<TimedMove, int> CAT = (Dictionary_U<TimedMove, int>)problem.parameters[CBS.CAT];
 
             ConflictAvoidanceTable internalCAT = null; // To quiet the compiler
-            int groupNum = this.agentsGroupAssignment[agentForReplan];
+            int groupNum = this.agentsGroupAssignment[agentToReplan];
             bool underSolve = true;
 
             if (subGroup == null)
@@ -466,7 +466,7 @@ namespace CPF_experiment
 
             MDD mdd = null;
             if (this.cbs.replanSameCostWithMdd)
-                mdd = this.mdds[agentForReplan];
+                mdd = this.mdds[agentToReplan];
 
             relevantSolver.Setup(subProblem, minPathTimeStep, this.cbs.runner, minPathCost, maxPathCost, mdd);
             bool solved = relevantSolver.Solve();
@@ -2200,11 +2200,11 @@ namespace CPF_experiment
         /// For CBS IDA* only.
         /// TODO: Consider inheriting from CbsNode and overriding the Replan method instead.
         /// </summary>
-        /// <param name="agentForReplan"></param>
+        /// <param name="agentToReplan"></param>
         /// <param name="depthToReplan"></param>
         /// <param name="minPathCost"></param>
         /// <returns>Whether a path was successfully found</returns>
-        public bool Replan3b(int agentForReplan, int depthToReplan, int minPathCost = -1,
+        public bool Replan3b(int agentToReplan, int depthToReplan, int minPathCost = -1,
                              int maxPathCost = int.MaxValue)
         {
             var internalCAT = new ConflictAvoidanceTable();
@@ -2222,7 +2222,7 @@ namespace CPF_experiment
             }
 
             List<AgentState> subGroup = new List<AgentState>();
-            int groupNum = this.agentsGroupAssignment[agentForReplan];
+            int groupNum = this.agentsGroupAssignment[agentToReplan];
             for (int i = 0; i < agentsGroupAssignment.Length; i++)
             {
                 if (this.agentsGroupAssignment[i] == groupNum)

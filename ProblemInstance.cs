@@ -125,7 +125,7 @@ namespace CPF_experiment
             if (cardinality == null)
                 PrecomputeCardinality();
             else
-                cardinality = cardinality;
+                this.cardinality = cardinality;
         }
         
         /// <summary>

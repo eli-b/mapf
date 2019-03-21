@@ -639,7 +639,7 @@ namespace CPF_experiment
         /// <returns>Whether this is the top-most CBS</returns>
         protected bool SetGlobals()
         {
-            this.equivalenceWasOn = (AgentState.EquivalenceOverDifferentTimes == true);
+            this.equivalenceWasOn = AgentState.EquivalenceOverDifferentTimes == true;
             AgentState.EquivalenceOverDifferentTimes = false;
 
             if (this.instance.parameters.ContainsKey(CBS.CAT) == false) // Top-most CBS solver
@@ -683,7 +683,7 @@ namespace CPF_experiment
             while (openList.Count > 0)
             {
                 // Check if max time has been exceeded
-                if (runner.ElapsedMilliseconds() > Constants.MAX_TIME)
+                if (this.runner.ElapsedMilliseconds() > Constants.MAX_TIME)
                 {
                     this.solutionCost = Constants.TIMEOUT_COST;
                     Console.WriteLine("Out of time");
@@ -1485,8 +1485,7 @@ namespace CPF_experiment
             // Adoption and cardinal-lookahead cycle
             while (true)
             {
-                (adopted, children, reinsertParent) = this.ExpandImpl(
-                    node, adopt: bypassStrategy != BypassStrategy.NONE, adoptBy: null);
+                (adopted, children, reinsertParent) = this.ExpandImpl(node, adopt: bypassStrategy != BypassStrategy.NONE);
 
                 if (this.mergeCausesRestart && (this.closedList.Count == 0)) // HACK: Means a restart was triggered
                     break;

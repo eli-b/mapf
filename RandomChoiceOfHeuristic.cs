@@ -45,10 +45,10 @@ namespace CPF_experiment
                 return this.second.h(s);
         }
 
-        public void init(ProblemInstance pi, List<uint> vAgents)
+        public void Init(ProblemInstance pi, List<uint> agentsToConsider)
         {
-            this.first.init(pi, vAgents);
-            this.second.init(pi, vAgents);
+            this.first.Init(pi, agentsToConsider);
+            this.second.Init(pi, agentsToConsider);
         }
 
         public virtual void OutputStatisticsHeader(TextWriter output)

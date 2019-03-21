@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using System.IO;
 
 namespace CPF_experiment
 {
@@ -15,8 +14,8 @@ namespace CPF_experiment
         /// database pertains to.
         /// </summary>
         /// <param name="pi">The problem instance.</param>
-        /// <param name="vAgents">The agents that the pattern database should keep track of.</param>
-        void init(ProblemInstance pi, List<uint> vAgents);
+        /// <param name="agentsToConsider">The agents that the heuristic should keep track of.</param>
+        void Init(ProblemInstance pi, List<uint> agentsToConsider);
 
         /// <summary>
         /// Return the name of the heuristic, useful for outputing results.

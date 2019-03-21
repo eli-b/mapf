@@ -549,8 +549,6 @@ namespace CPF_experiment
                 if (runner.ElapsedMilliseconds() > Constants.MAX_TIME)
                     return;
 
-                //Debug.Print("Moving {0} agent", agentIndex);
-
                 intermediateNodes = ExpandOneAgent(intermediateNodes, agentIndex);
             }
             var finalGeneratedNodes = intermediateNodes;

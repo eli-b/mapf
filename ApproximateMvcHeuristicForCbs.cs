@@ -160,7 +160,7 @@ namespace CPF_experiment
             return (uint)s.minimumVertexCover;
         }
 
-        public void init(ProblemInstance pi, List<uint> vAgents)
+        public void Init(ProblemInstance pi, List<uint> agents)
         {
 
         }

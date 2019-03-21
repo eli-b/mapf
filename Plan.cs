@@ -418,7 +418,9 @@ namespace CPF_experiment
                     for (int i = 1; i < this.locationAtTimes.Count; i++) // The beginning position isn't a move
                     {
                         Move move = this.locationAtTimes[i];
-                        if (move.x == goal.x && move.y == goal.y && move.direction == Move.Direction.Wait) // Waiting at the goal is free
+                        if (move.x == goal.x &&
+                            move.y == goal.y &&
+                            move.direction == Move.Direction.Wait) // Waiting at the goal is free
                             continue;
                         cost += 1;
                     }

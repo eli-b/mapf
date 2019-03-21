@@ -145,12 +145,12 @@ namespace CPF_experiment
         /// to a call to build the pattern database.
         /// </summary>
         /// <param name="pi">A description of the problem instance.</param>
-        /// <param name="vAgents">The agents that we should be responsible for.
+        /// <param name="agentsToConsider">The agents that we should be responsible for.
         /// Each entry in the list is an index to ProblemInstance.agents
         /// pointing to which agents we care about.</param>
-        public override void init(ProblemInstance pi, List<uint> vAgents)
+        public override void Init(ProblemInstance pi, List<uint> agentsToConsider)
         {
-            base.init(pi, vAgents);
+            base.Init(pi, agentsToConsider);
             computePermutations();
         }
 
@@ -165,13 +165,13 @@ namespace CPF_experiment
             // agents data structure, because during the building process 
             // our state already is a projection.
 
-            WorldState goal = new WorldState(problem.agents, agents);
+            WorldState goal = new WorldState(problem.agents, agentsToConsider);
             foreach (AgentState ags in goal.allAgentsState)
                 ags.SwapCurrentWithGoal();
-            List<uint> vBackup = agents;
-            agents = new List<uint>(goal.allAgentsState.Length);
+            List<uint> vBackup = agentsToConsider;
+            agentsToConsider = new List<uint>(goal.allAgentsState.Length);
             for (uint i = 0; i < goal.allAgentsState.Length; ++i)
-                agents.Add(i);
+                agentsToConsider.Add(i);
 
             // Initialize variables and insert the root node into our queue. We
             // use Byte.MaxValue to symbolize that an entry in our heuristic
@@ -241,7 +241,7 @@ namespace CPF_experiment
                 c.NextLevel();
             }
             c.Clear();
-            agents = vBackup;
+            agentsToConsider = vBackup;
         }
 
         /// <summary>
@@ -254,7 +254,7 @@ namespace CPF_experiment
         {
             var nSingleAgentShortestPath = 0;
             if (offsetFromSingleShortestPath)
-                foreach (var a in agents)
+                foreach (var a in agentsToConsider)
                 {
                     nSingleAgentShortestPath +=
                         this.problem.GetSingleAgentOptimalCost(s.allAgentsState[a]);
@@ -285,18 +285,18 @@ namespace CPF_experiment
             // (ProblemInstance.locations - 2), etc.
 
             uint hash = 0;
-            for (int i = 0; i < agents.Count; ++i)
+            for (int i = 0; i < agentsToConsider.Count; ++i)
             {
                 // Compute the cardinality of the agent. That is, compute j
                 // where the agent is in the jth empty location. This requires
                 // us to keep figure out how many other agents have been placed
                 // in positions previous to our current position.
 
-                int card1 = problem.GetCardinality(s.allAgentsState[agents[i]].lastMove);
+                int card1 = problem.GetCardinality(s.allAgentsState[agentsToConsider[i]].lastMove);
                 int preceding = 0;
                 for (int j = 0; j < i; ++j)
                 {
-                    int nCard2 = problem.GetCardinality(s.allAgentsState[agents[j]].lastMove);
+                    int nCard2 = problem.GetCardinality(s.allAgentsState[agentsToConsider[j]].lastMove);
                     if (nCard2 < card1)
                         ++preceding;
                 }
@@ -366,7 +366,7 @@ namespace CPF_experiment
         /// </summary>
         void computePermutations()
         {
-            permutations = new UInt64[agents.Count];
+            permutations = new UInt64[agentsToConsider.Count];
             permutations[permutations.Length - 1] = 1;
             for(var i = permutations.Length - 2; i >= 0; --i)
                 permutations[i] = permutations[i + 1] * (UInt64) (problem.numLocations - (i + 1));

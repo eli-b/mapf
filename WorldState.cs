@@ -109,7 +109,8 @@ namespace CPF_experiment
             this.allAgentsState = new AgentState[cpy.allAgentsState.Length];
             for (int i = 0; i < allAgentsState.Length; i++)
             {
-                this.allAgentsState[i] = new AgentState(cpy.allAgentsState[i]); // Shallow copy - it's still the same lastMove inside. Why a copy?
+                this.allAgentsState[i] = new AgentState(cpy.allAgentsState[i]);
+                // Shallow copy - it's still the same lastMove inside the AgentState, until we set a new lastMove there.
             }
             if (cpy.currentMoves != null)
                 // cpy is an intermediate node
@@ -136,10 +137,10 @@ namespace CPF_experiment
         /// structures.
         /// </summary>
         /// <param name="allAgentsState">A set of agent states in the original problem.</param>
-        /// <param name="vAgents">A list of indices referring to the subset of agents we want to extract.</param>
-        public WorldState(AgentState[] allAgentsState, List<uint> vAgents)
+        /// <param name="agentIndicesToCopy">A list of indices referring to the subset of agents we want to extract.</param>
+        public WorldState(AgentState[] allAgentsState, List<uint> agentIndicesToCopy)
             // Copy specified agents only
-            : this(vAgents.Select<uint, AgentState>(index => new AgentState(allAgentsState[index])).ToArray<AgentState>())
+            : this(agentIndicesToCopy.Select(index => new AgentState(allAgentsState[index])).ToArray())
         {}
         
         public bool GoalTest()
@@ -247,7 +248,7 @@ namespace CPF_experiment
             Debug.Assert(this.GoalTest(), "Only call for goal nodes!");
 
             if (goalSingleCosts == null) // This is just a proper goal
-                return allAgentsState.Select<AgentState, int>(agent => agent.g).ToArray<int>();
+                return allAgentsState.Select(agent => agent.g).ToArray();
             else
                 return this.goalSingleCosts;
         }
@@ -449,7 +450,7 @@ namespace CPF_experiment
             if (obj == null)
                 return false;
             WorldState that = (WorldState)obj;
-            return this.allAgentsState.SequenceEqual<AgentState>(that.allAgentsState);
+            return this.allAgentsState.SequenceEqual(that.allAgentsState);
         }
 
         /// <summary>

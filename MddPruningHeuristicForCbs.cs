@@ -159,7 +159,7 @@ namespace CPF_experiment
             return this.h(s);
         }
 
-        public void init(ProblemInstance pi, List<uint> vAgents)
+        public void Init(ProblemInstance pi, List<uint> agentsToConsider)
         {
             this.instance = pi;
         }

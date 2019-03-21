@@ -772,8 +772,8 @@ namespace CPF_experiment
                 {
                     for (int i = 0; i < agentsNum; i++)
                     {
-                        goals[agentStates[i].lastMove.x][agentStates[i].lastMove.y] = false; // We're going to move the goal somewhere else
-                                                                                             // Move in a random legal direction:
+                        goals[agentStates[i].lastMove.x][agentStates[i].lastMove.y] = false; // We're going to move the goal somewhere else.
+                        // Move in a random legal direction:
                         while (true)
                         {
                             Move.Direction op = (Move.Direction)rand.Next(0, 5); // TODO: fixme
@@ -820,7 +820,7 @@ namespace CPF_experiment
             for (int i = 0; i < solvers.Count; i++)
             {
                 if (outOfTimeCounters[i] < Constants.MAX_FAIL_COUNT) // After "MAX_FAIL_COUNT" consecutive failures of a given algorithm we stop running it.
-                                                                    // Assuming problem difficulties are non-decreasing, if it consistently failed on several problems it won't suddenly succeed in solving the next problem.
+                                                                     // Assuming problem difficulties are non-decreasing, if it consistently failed on several problems it won't suddenly succeed in solving the next problem.
                 {
                     GC.Collect();
                     GC.WaitForPendingFinalizers();
@@ -880,7 +880,7 @@ namespace CPF_experiment
                         outOfTimeCounters[i] = 0;
 
                         // Validate solution:
-                        if (solutionCost == -1) // Record solution cost
+                        if (solutionCost == -1) // This is the first time the problem is successfully solved
                         {
                             solutionCost = solverSolutionCost;
                             firstSolverToSolveIndex = i;

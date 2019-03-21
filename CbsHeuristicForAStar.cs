@@ -15,7 +15,7 @@ namespace CPF_experiment
     {
         protected CBS cbs;
         protected ProblemInstance instance;
-        protected List<uint> vAgents;
+        protected List<uint> agentsToConsider;
         protected Run runner;
         protected bool validate;
 
@@ -169,7 +169,7 @@ namespace CPF_experiment
             {
                 // Brute-force validation of admissability of estimate:
                 var sic = new SumIndividualCosts();
-                sic.init(this.instance, this.vAgents);
+                sic.Init(this.instance, this.agentsToConsider);
                 var epeastarsic = new AStarWithPartialExpansion(sic);
                 epeastarsic.Setup(sAsProblemInstance, s.makespan, runner);
                 bool epeastarsicSolved = epeastarsic.Solve();
@@ -184,11 +184,11 @@ namespace CPF_experiment
         /// Part of the HeuristicCalculator interface.
         /// </summary>
         /// <param name="pi"></param>
-        /// <param name="vAgents">Only passed to the underlying heuristic. TODO: Consider using in h() too.</param>
-        public void init(ProblemInstance pi, List<uint> vAgents)
+        /// <param name="agentsToConsider">Only passed to the underlying heuristic. TODO: Consider using in h() too.</param>
+        public void Init(ProblemInstance pi, List<uint> agentsToConsider)
         {
             this.instance = pi;
-            this.vAgents = vAgents;
+            this.agentsToConsider = agentsToConsider;
 
             this.cbs.ClearAccumulatedStatistics();
 

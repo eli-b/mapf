@@ -17,7 +17,7 @@ namespace CPF_experiment
         /// the agents we are interested in), but is used during the search effort
         /// in the real problem.
         /// </summary>
-        protected List<uint> agents;
+        protected List<uint> agentsToConsider;
 
         /// <summary>
         /// Initializes the pattern database by storing references to the
@@ -25,12 +25,12 @@ namespace CPF_experiment
         /// database pertains to.
         /// </summary>
         /// <param name="pi">The problem instance.</param>
-        /// <param name="vAgents">The agents that the pattern database should keep track of.</param>
-        public virtual void init(ProblemInstance pi, List<uint> vAgents)
+        /// <param name="agentsToConsider">The agents that the pattern database should keep track of.</param>
+        public virtual void Init(ProblemInstance pi, List<uint> agentsToConsider)
         {
             problem = pi;
-            agents = new List<uint>(vAgents);
-            agents.Sort();
+            this.agentsToConsider = new List<uint>(agentsToConsider);
+            this.agentsToConsider.Sort();
         }
 
         /// <summary>

@@ -271,7 +271,7 @@ namespace CPF_experiment
         public CostTreeNodeSolverKSimpleMatching(ProblemInstance problem, CostTreeNode costNode,
                                                  Run runner, CostTreeSearchSolver solver, int maxGroupChecked)
             : base(problem, costNode, runner, solver) { this.maxGroupChecked = maxGroupChecked; }
-        public void setup(CostTreeNode costNode,int maxGroupChecked)
+        public void Setup(CostTreeNode costNode, int maxGroupChecked)
         {
             base.Setup(costNode);
             this.maxGroupChecked = maxGroupChecked;
