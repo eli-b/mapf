@@ -28,7 +28,7 @@ namespace CPF_experiment
         /// </summary>
         public Dictionary<int, int> cbsInternalConflicts;
         /// <summary>
-        /// Maps from agent num to the time of the first conflict with it
+        /// Maps from agent num to a list of the conflict times with it
         /// </summary>
         public Dictionary<int, List<int>> conflictTimes;
         /// <summary>
@@ -81,7 +81,7 @@ namespace CPF_experiment
             this.CalculateG(); // G not necessarily zero when solving a partially solved problem.
             this.potentialConflictsCount = 0;
             this.cbsInternalConflictsCount = 0;
-            this.cbsInternalConflicts = new Dictionary<int, int>();
+            this.cbsInternalConflicts = new Dictionary<int, int>();  // Unused if not running under CBS
             this.conflictTimes = new Dictionary<int, List<int>>();
             this.minGoalTimeStep = minDepth;
             this.minGoalCost = minCost;
@@ -164,17 +164,17 @@ namespace CPF_experiment
             if (this.makespan < this.minGoalTimeStep)
                 return false;
 
-            return this.h == 0; // That's crazy! A node that is close to the goal might also get h==0.
-                                // Our specific heuristic doesn't behave that way, though.
-                                // Not crazy, just assumes the heuristic is consistent, which has the property that only the goal has h==0.
-                                // SIC really is a consistent heuristic.
-                                // FIXME: Implement a proper goal test and use it when h==0.
+            return this.h == 0; // This assumes the heuristic is consistent,
+                                // or at least has the property of consistent heuristics that only the goal has h==0.
+                                // SIC really is a consistent heuristic, so this is fine for now.
+                                // TODO: Implement a proper goal test and use it when h==0.
         }
 
         protected SinglePlan[] singlePlans;
 
         /// <summary>
         /// Set the optimal solution of this node as a problem instance.
+        /// Currently only used by CbsHeuristicForAStar, if a solution was found while running the heuristic.
         /// </summary>
         /// <param name="solution"></param>
         public virtual void SetSolution(SinglePlan[] solution)
@@ -205,7 +205,11 @@ namespace CPF_experiment
                 return new Plan(this);
         }
 
-        protected int goalCost; // TODO: Get rid of this and just return the sum of the single costs where needed.
+        /// <summary>
+        /// For generalized goal nodes.
+        /// TODO: Get rid of this and just return the sum/max of the single costs where needed?
+        /// </summary>
+        protected int goalCost;
 
         /// <summary>
         /// Returns the optimal cost to the goal from the start through this node.
@@ -233,7 +237,9 @@ namespace CPF_experiment
         }
 
         /// <summary>
-        /// Set the optimal cost from the start to the goal through this node
+        /// Set the optimal cost from the start to the goal through this node.
+        /// Makes this a generalized goal node.
+        /// Currently only used by CbsHeuristicForAStar.
         /// </summary>
         /// <param name="cost"></param>
         public void SetGoalCost(int cost)
@@ -241,6 +247,9 @@ namespace CPF_experiment
             this.goalCost = cost;
         }
 
+        /// <summary>
+        /// For generalized goal nodes
+        /// </summary>
         protected int[] goalSingleCosts;
 
         public int[] GetSingleCosts()
@@ -254,8 +263,9 @@ namespace CPF_experiment
         }
 
         /// <summary>
-        /// Set the optimal cost from the start to the goal through this node for every agent
-        /// 
+        /// Set the optimal cost from the start to the goal through this node for every agent.
+        /// Makes this node a generalized goal node.
+        /// Currently only used by CbsHeuristicForAStar.
         /// </summary>
         /// <param name="costs"></param>
         public void SetSingleCosts(int[] costs)
@@ -490,6 +500,12 @@ namespace CPF_experiment
             }
         }
 
+        /// <summary>
+        /// Currently only used by CbsHeuristicForAStar, where each A* node is converted to a new
+        /// MAPF problem to be solved by CBS (or ICTS, theoretically)
+        /// </summary>
+        /// <param name="initial"></param>
+        /// <returns></returns>
         public virtual ProblemInstance ToProblemInstance(ProblemInstance initial)
         {
             // Notice this is not a subproblem in the number of agents but

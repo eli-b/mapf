@@ -46,6 +46,9 @@ namespace CPF_experiment
         protected int accMstarBackprops;
         protected int accMstarShuffles;
         protected int accSurplusNodesAvoided;
+        /// <summary>
+        /// Holds the cost of the solution when a solution found
+        /// </summary>
         public int totalCost;
         public int numOfAgents;
         protected int maxSolutionCost;
@@ -799,6 +802,7 @@ namespace CPF_experiment
         /// <summary>
         /// Check if the move is valid, i.e. not colliding into walls or other agents.
         /// This method is here instead of in ProblemInstance to enable algorithmic tweaks.
+        /// NOTE: This method is pasted into ExpandOneAgent. Be sure to update anything in both places!
         /// </summary>
         /// <param name="possibleMove">The move to check if possible</param>
         /// <param name="currentMoves"></param>
