@@ -68,6 +68,8 @@ namespace CPF_experiment
         protected int pathMaxPlusBoosts;
         protected int surplusNodesAvoided;
         public int mddCacheHits;
+        public double timePlanningPaths;
+        public double timeBuildingMdds;
         // TODO: Count shuffles
         protected int accHLExpanded;
         protected int accHLGenerated;
@@ -89,6 +91,8 @@ namespace CPF_experiment
         protected int accPathMaxPlusBoosts;
         protected int accSurplusNodesAvoided;
         protected int accMddCacheHits;
+        protected double accTimePlanningPaths;
+        protected double accTimeBuildingMdds;
 
         public int solutionCost;
         /// <summary>
@@ -428,6 +432,8 @@ namespace CPF_experiment
             this.maxSizeGroup = 1;
             this.surplusNodesAvoided = 0;
             this.mddCacheHits = 0;
+            this.timePlanningPaths = 0;
+            this.timeBuildingMdds = 0;
         }
 
         public virtual void OutputStatisticsHeader(TextWriter output)
@@ -474,6 +480,10 @@ namespace CPF_experiment
             output.Write(Run.RESULTS_DELIMITER);
             output.Write(this.ToString() + " MDD Cache Hits (HL)");
             output.Write(Run.RESULTS_DELIMITER);
+            output.Write(this.ToString() + " Time Planning Paths (HL)");
+            output.Write(Run.RESULTS_DELIMITER);
+            output.Write(this.ToString() + " Time Building MDDs (HL)");
+            output.Write(Run.RESULTS_DELIMITER);
 
             this.solver.OutputStatisticsHeader(output);
             if (Object.ReferenceEquals(this.singleAgentSolver, this.solver) == false)
@@ -505,6 +515,8 @@ namespace CPF_experiment
             Console.WriteLine("Max Group Size (High-Level): {0}", this.maxSizeGroup);
             Console.WriteLine("Surplus Nodes Avoided (High-Level): {0}", this.surplusNodesAvoided);
             Console.WriteLine("MDD cache hits (High-Level): {0}", this.mddCacheHits);
+            Console.WriteLine("Time planning paths (High-Level): {0}", this.timePlanningPaths);
+            Console.WriteLine("Time building mdds (High-Level): {0}", this.timeBuildingMdds);
 
             output.Write(this.highLevelExpanded + Run.RESULTS_DELIMITER);
             output.Write(this.highLevelGenerated + Run.RESULTS_DELIMITER);
@@ -527,6 +539,8 @@ namespace CPF_experiment
             output.Write(this.maxSizeGroup + Run.RESULTS_DELIMITER);
             output.Write(this.surplusNodesAvoided + Run.RESULTS_DELIMITER);
             output.Write(this.mddCacheHits + Run.RESULTS_DELIMITER);
+            output.Write(this.timePlanningPaths + Run.RESULTS_DELIMITER);
+            output.Write(this.timeBuildingMdds + Run.RESULTS_DELIMITER);
 
             this.solver.OutputAccumulatedStatistics(output);
             if (Object.ReferenceEquals(this.singleAgentSolver, this.solver) == false)
@@ -542,7 +556,7 @@ namespace CPF_experiment
                 int numSolverStats = this.solver.NumStatsColumns;
                 if (Object.ReferenceEquals(this.singleAgentSolver, this.solver) == false)
                     numSolverStats += this.singleAgentSolver.NumStatsColumns;
-                return 21 + numSolverStats + this.openList.NumStatsColumns;
+                return 23 + numSolverStats + this.openList.NumStatsColumns;
             }
         }
 
@@ -581,6 +595,8 @@ namespace CPF_experiment
             this.accMaxSizeGroup = 1;
             this.accSurplusNodesAvoided = 0;
             this.accMddCacheHits = 0;
+            this.accTimePlanningPaths = 0;
+            this.accTimeBuildingMdds = 0;
 
             this.solver.ClearAccumulatedStatistics();
             if (Object.ReferenceEquals(this.singleAgentSolver, this.solver) == false)
@@ -612,6 +628,8 @@ namespace CPF_experiment
             this.accMaxSizeGroup = Math.Max(this.accMaxSizeGroup, this.maxSizeGroup);
             this.accSurplusNodesAvoided += this.surplusNodesAvoided;
             this.accMddCacheHits += this.mddCacheHits;
+            this.accTimePlanningPaths += this.timePlanningPaths;
+            this.accTimeBuildingMdds += this.timeBuildingMdds;
 
             // this.solver statistics are accumulated every time it's used.
 
@@ -640,6 +658,8 @@ namespace CPF_experiment
             Console.WriteLine("{0} Max Group Size (High-Level): {1}", this, this.accMaxSizeGroup);
             Console.WriteLine("{0} Accumulated Surplus Nodes Avoided (High-Level): {1}", this, this.accSurplusNodesAvoided);
             Console.WriteLine("{0} Accumulated MDD cache hits (High-Level): {1}", this, this.accMddCacheHits);
+            Console.WriteLine("{0} Accumulated time planning paths (High-Level): {1}", this, this.accTimePlanningPaths);
+            Console.WriteLine("{0} Accumulated time building MDDs (High-Level): {1}", this, this.accTimeBuildingMdds);
 
             output.Write(this.accHLExpanded + Run.RESULTS_DELIMITER);
             output.Write(this.accHLGenerated + Run.RESULTS_DELIMITER);
@@ -662,6 +682,8 @@ namespace CPF_experiment
             output.Write(this.accMaxSizeGroup + Run.RESULTS_DELIMITER);
             output.Write(this.accSurplusNodesAvoided + Run.RESULTS_DELIMITER);
             output.Write(this.accMddCacheHits + Run.RESULTS_DELIMITER);
+            output.Write(this.accTimePlanningPaths + Run.RESULTS_DELIMITER);
+            output.Write(this.accTimeBuildingMdds + Run.RESULTS_DELIMITER);
 
             this.solver.OutputAccumulatedStatistics(output);
             if (Object.ReferenceEquals(this.singleAgentSolver, this.solver) == false)

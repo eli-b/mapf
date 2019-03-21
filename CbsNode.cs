@@ -164,9 +164,12 @@ namespace CPF_experiment
                  newConstraint.move.direction != Move.Direction.NO_DIRECTION)))
             {
                 // The same cost can still be achieved - adapt the MDD
+                double startTime = this.cbs.runner.ElapsedMilliseconds();
                 this.mdds[agentToReplan] = new MDD(this.mdds[agentToReplan], newConstraint);
                 this.mddNarrownessValues[agentToReplan] = this.mdds[agentToReplan].getLevelNarrownessValues();
+                double endTime = this.cbs.runner.ElapsedMilliseconds();
                 this.cbs.mddsAdapted++;
+                this.cbs.timeBuildingMdds += endTime - startTime;
             }
             else
             {
@@ -468,8 +471,11 @@ namespace CPF_experiment
             if (this.cbs.replanSameCostWithMdd)
                 mdd = this.mdds[agentToReplan];
 
+            double startTime = this.cbs.runner.ElapsedMilliseconds();
             relevantSolver.Setup(subProblem, minPathTimeStep, this.cbs.runner, minPathCost, maxPathCost, mdd);
             bool solved = relevantSolver.Solve();
+            double endTime = this.cbs.runner.ElapsedMilliseconds();
+            this.cbs.timePlanningPaths += endTime - startTime;
 
             relevantSolver.AccumulateStatistics();
             relevantSolver.ClearStatistics();
@@ -1475,8 +1481,11 @@ namespace CPF_experiment
                     if (nodeToGiveAnMdd.constraint != null &&
                         this.agentNumToIndex[nodeToGiveAnMdd.constraint.agentNum] == agentIndex)
                     {
+                        double startTime = this.cbs.runner.ElapsedMilliseconds();
                         mdd = new MDD(mdd, nodeToGiveAnMdd.constraint);
                         mddValues = mdd.getLevelNarrownessValues();
+                        double endTime = this.cbs.runner.ElapsedMilliseconds();
+                        this.cbs.timeBuildingMdds += endTime - startTime;
                         this.cbs.mddsAdapted++;
                         if (this.cbs.cacheMdds)
                         {
@@ -1551,11 +1560,14 @@ namespace CPF_experiment
                     }
                 }
 
+                double startTime = this.cbs.runner.ElapsedMilliseconds();
                 this.mdds[agentIndex] = new MDD(agentIndex, problem.agents[agentIndex].agent.agentNum,
                     problem.agents[agentIndex].GetMove(), this.allSingleAgentCosts[agentIndex],
                     depth, problem.GetNumOfAgents(), problem,
                     ignoreConstraints: false, supportPruning: false);
                 this.mddNarrownessValues[agentIndex] = this.mdds[agentIndex].getLevelNarrownessValues();
+                double endTime = this.cbs.runner.ElapsedMilliseconds();
+                this.cbs.timeBuildingMdds += endTime - startTime;
                 if (this.cbs.cacheMdds)
                 {
                     this.cbs.mddCache[agentIndex][entry] = this.mdds[agentIndex];
@@ -2268,8 +2280,11 @@ namespace CPF_experiment
             MDD mdd = null;
             if (this.cbs.replanSameCostWithMdd)
                 mdd = this.mdds[agentToReplan];
+            double startTime = this.cbs.runner.ElapsedMilliseconds();
             relevantSolver.Setup(subProblem, depthToReplan, this.cbs.runner, minPathCost, maxPathCost, mdd);
             bool solved = relevantSolver.Solve();
+            double endTime = this.cbs.runner.ElapsedMilliseconds();
+            this.cbs.timePlanningPaths += endTime - startTime;
 
             relevantSolver.AccumulateStatistics();
             relevantSolver.ClearStatistics();
