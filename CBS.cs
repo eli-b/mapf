@@ -1417,7 +1417,7 @@ namespace CPF_experiment
                     CbsNode adoptionCandidate = lookAheadSameCostNodesSerialzed[0];
                     for (int i = 1; i < lookAheadSameCostNodesSerialzed.Count; i++)
                     {
-                        if (lookAheadSameCostNodesSerialzed[i].CompareToIgnoreH(adoptionCandidate) == -1)
+                        if (lookAheadSameCostNodesSerialzed[i].TieBreak(adoptionCandidate) == -1)
                             adoptionCandidate = lookAheadSameCostNodesSerialzed[i];
                     }
                     if (AdoptConditionally(node, adoptionCandidate, parentH))
