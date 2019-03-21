@@ -1779,24 +1779,24 @@ namespace CPF_experiment
             if (this.f > other.f)
                 return 1;
 
-            return this.CompareToIgnoreH(other);
+            return this.TieBreak(other);
         }
 
-        public int CompareToIgnoreH(CbsNode other, bool ignorePartialExpansion = false, bool ignoreDepth = false)
+        public int TieBreak(CbsNode other, bool ignorePartialExpansion = false, bool ignoreDepth = false)
         {
             // Tie breaking:
 
             // Prefer fewer external conflicts, even over goal nodes, as goal nodes with less external conflicts are better.
             // External conflicts are also taken into account by the low level solver to prefer fewer conflicts between fewer agents.
             // This only helps when this CBS is used as a low level solver, of course.
-            if (this.totalConflictsWithExternalAgents < other.totalConflictsWithExternalAgents)
-                return -1;
-            if (this.totalConflictsWithExternalAgents > other.totalConflictsWithExternalAgents)
-                return 1;
-
             if (this.totalExternalAgentsThatConflict < other.totalExternalAgentsThatConflict)
                 return -1;
             if (this.totalExternalAgentsThatConflict > other.totalExternalAgentsThatConflict)
+                return 1;
+
+            if (this.totalConflictsWithExternalAgents < other.totalConflictsWithExternalAgents)
+                return -1;
+            if (this.totalConflictsWithExternalAgents > other.totalConflictsWithExternalAgents)
                 return 1;
             
             // Prefer goal nodes. The elaborate form is to keep the comparison consistent. Without it goalA<goalB and also goalB<goalA.
@@ -1823,16 +1823,19 @@ namespace CPF_experiment
                 if (this.minOpsToSolve > other.minOpsToSolve)
                     return 1;
             }
+            else
+            {
+                if (this.totalInternalAgentsThatConflict < other.totalInternalAgentsThatConflict)
+                    return -1;
+                if (this.totalInternalAgentsThatConflict > other.totalInternalAgentsThatConflict)
+                    return 1;
+            }
 
-            // Prefer fewer internal conflicts if the minOpsToSolve is the same
+            // Prefer fewer internal conflicts if the minOpsToSolve is the same (or turned off)
+            // More conflicts - bigger chance some of them are cardinal (in case they weren't checked already).
             if (this.totalConflictsBetweenInternalAgents < other.totalConflictsBetweenInternalAgents)
                 return -1;
             if (this.totalConflictsBetweenInternalAgents > other.totalConflictsBetweenInternalAgents)
-                return 1;
-
-            if (this.totalInternalAgentsThatConflict < other.totalInternalAgentsThatConflict)
-                return -1;
-            if (this.totalInternalAgentsThatConflict > other.totalInternalAgentsThatConflict)
                 return 1;
 
             // If same number of internal conflicts and agents that conflict - prefer more depth.

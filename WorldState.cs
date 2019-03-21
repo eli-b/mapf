@@ -271,14 +271,18 @@ namespace CPF_experiment
         public virtual int CompareTo(IBinaryHeapItem other)
         {
             WorldState that = (WorldState)other;
-            int thisF = this.h + this.g;
-            int thatF = that.h + that.g;
+            int thisF = this.f;
+            int thatF = that.f;
             if (thisF < thatF)
                 return -1;
             if (thisF > thatF)
                 return 1;
 
-            // Tie breaking:
+            return this.TieBreak(that);
+        }
+
+        public int TieBreak(WorldState that)
+        {
             bool thisIsGoal = this.GoalTest();
             bool thatIsGoal = that.GoalTest();
             if (thisIsGoal == true && thatIsGoal == false) // The elaborate form is necessary to keep the comparison consistent. Otherwise goalA<goalB and goalB<goalA
@@ -293,8 +297,28 @@ namespace CPF_experiment
                 return 1;
 
             // CBS framework conflicts:
-            // It makes sense to prefer nodes that conflict less, and not just nodes that don't conflict at all,
-            // because a 3-way conflict takes more work to resolve than
+            // TODO: Ideally, prefer nodes where the minimum vertex cover of the conflict graph is smaller.
+            //       Compute an MVC of the conflict graph without the node's agents in the CBS node
+            //       before running the low level, and only compare the number of agents the node
+            //       conflicts with that aren't in the MVC.
+            //       Maybe even compute the MVC of the cardinal conflict graph and of the all conflict
+            //       graph separately and tie-break first according to the number of agents we conflict
+            //       with that aren't in the MVC of the conflict graph and then the number of agents
+            //       we conflict with that aren't in the cardinal conflict graph
+            if (this.cbsInternalConflicts != null)
+            {
+                // Prefer nodes that contain conflicts with fewer agents - when a conflict is resolved,
+                // many times other conflicts are resolved automatically thanks to conflict avoidance,
+                // especially if the cost increases.
+                int numberOfConflictingAgents = this.cbsInternalConflicts.Count;
+                int thatNumberOfConflictingAgents = that.cbsInternalConflicts.Count;
+                if (numberOfConflictingAgents < thatNumberOfConflictingAgents)
+                    return -1;
+                if (numberOfConflictingAgents > thatNumberOfConflictingAgents)
+                    return 1;
+            }
+
+            // Prefer nodes with fewer conflicts - the probability that some of them are cardinal is lower
             if (this.cbsInternalConflictsCount < that.cbsInternalConflictsCount)
                 return -1;
             if (this.cbsInternalConflictsCount > that.cbsInternalConflictsCount)
