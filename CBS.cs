@@ -170,6 +170,7 @@ namespace CPF_experiment
         private bool useOldCost;
         public bool replanSameCostWithMdd;
         public bool cacheMdds;
+        public bool useCAT;
 
         /// <summary>
         /// 
@@ -197,7 +198,8 @@ namespace CPF_experiment
                                   bool mergeCausesRestart = false,
                                   bool replanSameCostWithMdd = false,
                                   bool cacheMdds = false,
-                                  bool useOldCost = false
+                                  bool useOldCost = false,
+                                  bool useCAT = true
             )
         {
             this.closedList = new Dictionary<CbsNode, CbsNode>();
@@ -227,6 +229,7 @@ namespace CPF_experiment
             this.replanSameCostWithMdd = replanSameCostWithMdd;
             this.cacheMdds = cacheMdds;
             this.useOldCost = useOldCost;
+            this.useCAT = useCAT;
         }
         
         /// <summary>
@@ -391,6 +394,9 @@ namespace CPF_experiment
 
             if (this.useOldCost)
                 variants += " with using old path costs";
+
+            if (this.useCAT == false)
+                variants += " without a CAT";
 
             if (this.openList.GetType() != typeof(OpenList<CbsNode>))
             {
@@ -704,9 +710,10 @@ namespace CPF_experiment
             this.equivalenceWasOn = AgentState.EquivalenceOverDifferentTimes == true;
             AgentState.EquivalenceOverDifferentTimes = false;
 
-            if (this.instance.parameters.ContainsKey(CBS.CAT) == false) // Top-most CBS solver
+            if (this.instance.parameters.ContainsKey(CBS.CONSTRAINTS) == false) // Top-most CBS solver
             {
-                this.instance.parameters[CBS.CAT] = new Dictionary_U<TimedMove, int>(); // Dictionary_U values are actually lists of ints.
+                if (this.useCAT)
+                    this.instance.parameters[CBS.CAT] = new Dictionary_U<TimedMove, int>(); // Dictionary_U values are actually lists of ints.
                 this.instance.parameters[CBS.CONSTRAINTS] = new HashSet_U<CbsConstraint>();
                 if (this.doMalte && this.instance.parameters.ContainsKey(CBS.MUST_CONSTRAINTS) == false)
                     this.instance.parameters[CBS.MUST_CONSTRAINTS] = new HashSet_U<CbsConstraint>();

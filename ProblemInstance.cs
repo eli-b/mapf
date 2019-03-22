@@ -248,32 +248,17 @@ namespace CPF_experiment
         /// The returned plan wasn't constructed considering a CAT, so it's possible there's an alternative plan with the same cost and less collisions.
         /// </summary>
         /// <param name="agentState"></param>
-        /// <param name="conflictCountPerAgent"></param>
-        /// <param name="conflictTimesPerAgent"></param>
-        /// <returns></returns>
-        public SinglePlan GetSingleAgentOptimalPlan(AgentState agentState,
-                                                    out Dictionary<int, int> conflictCountPerAgent,
-                                                    out Dictionary<int, List<int>> conflictTimesPerAgent)
+        /// <returns>An optimal plan for the agent, ignoring all others</returns>
+        public SinglePlan GetSingleAgentOptimalPlan(AgentState agentState)
         {
             LinkedList<Move> moves = new LinkedList<Move>();
             int agentNum = agentState.agent.agentNum;
-            var conflictCounts = new Dictionary<int, int>();
-            var conflictTimes = new Dictionary<int, List<int>>();
-            IReadOnlyDictionary<TimedMove, List<int>> CAT;
-            if (this.parameters.ContainsKey(CBS.CAT)) // TODO: Add support for IndependenceDetection's CAT
-                CAT = ((IReadOnlyDictionary<TimedMove, List<int>>)this.parameters[CBS.CAT]);
-            else
-                CAT = new Dictionary<TimedMove, List<int>>();
-
             TimedMove current = agentState.lastMove; // The starting position
             int time = current.time;
 
             while (true)
             {
                 moves.AddLast(current);
-
-                // Count conflicts:
-                current.UpdateConflictCounts(CAT, conflictCounts, conflictTimes);
 
                 if (agentState.agent.Goal.Equals(current))
                     break;
@@ -284,8 +269,6 @@ namespace CPF_experiment
                 current = new TimedMove(optimal, time);
             }
 
-            conflictCountPerAgent = conflictCounts;
-            conflictTimesPerAgent = conflictTimes;
             return new SinglePlan(moves, agentNum);
         }
 

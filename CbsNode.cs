@@ -262,7 +262,11 @@ namespace CPF_experiment
             ProblemInstance problem = this.cbs.GetProblemInstance();
             var internalCAT = new ConflictAvoidanceTable();
             HashSet<CbsConstraint> newConstraints = this.GetConstraints(); // Probably empty as this is probably the root of the CT.
-            var CAT = (Dictionary_U<TimedMove, int>)problem.parameters[CBS.CAT];
+
+            // Get external CAT and constraints:
+            object obj = null;
+            problem.parameters.TryGetValue(CBS.CAT, out obj);
+            var CAT = (Dictionary_U<TimedMove, int>)obj;
             var constraints = (HashSet_U<CbsConstraint>)problem.parameters[CBS.CONSTRAINTS];
 
             HashSet_U<CbsConstraint> mustConstraints = null;
@@ -284,7 +288,7 @@ namespace CPF_experiment
             }
 
             constraints.Join(newConstraints);
-            CAT.Join(internalCAT);
+            CAT?.Join(internalCAT);
             if (mustConstraints != null)
                 mustConstraints.Join(newMustConstraints);
             // This mechanism of adding the constraints to the possibly pre-existing constraints allows having
@@ -318,9 +322,18 @@ namespace CPF_experiment
                 {
                     allSingleAgentPlans[i] = new SinglePlan(problem.agents[i]); // All moves up to starting pos
                     allSingleAgentPlans[i].agentNum = problem.agents[this.agentsGroupAssignment[i]].agent.agentNum; // Use the group's representative
-                    SinglePlan optimalPlan = problem.GetSingleAgentOptimalPlan(
-                                    problem.agents[i],
-                                    out this.conflictCountsPerAgent[i], out this.conflictTimesPerAgent[i]);
+                    SinglePlan optimalPlan = problem.GetSingleAgentOptimalPlan(problem.agents[i]);
+                    // Count conflicts:
+                    this.conflictCountsPerAgent[i] = new Dictionary<int, int>();
+                    this.conflictTimesPerAgent[i] = new Dictionary<int, List<int>>();
+                    foreach (var move in optimalPlan.locationAtTimes)
+                    {
+                        var timedMove = (TimedMove)move;  // GetSingleAgentOptimalPlan actually creates a plan with TimedMove instances
+                        if (CAT != null)
+                            timedMove.UpdateConflictCounts(CAT, this.conflictCountsPerAgent[i], this.conflictTimesPerAgent[i]);
+                        else
+                            timedMove.UpdateConflictCounts(internalCAT, this.conflictCountsPerAgent[i], this.conflictTimesPerAgent[i]);
+                    }
                     allSingleAgentPlans[i].ContinueWith(optimalPlan);
                     allSingleAgentCosts[i] = problem.agents[i].g + problem.GetSingleAgentOptimalCost(problem.agents[i]);
                     if (Constants.costFunction == Constants.CostFunction.SUM_OF_COSTS)
@@ -333,7 +346,10 @@ namespace CPF_experiment
                         g = Math.Max(g, (ushort)allSingleAgentCosts[i]);
                     }
 
-                    this.UpdateAtGoalConflictCounts(i, maxPlanSize, CAT);
+                    if (CAT != null)
+                        this.UpdateAtGoalConflictCounts(i, maxPlanSize, CAT);
+                    else
+                        this.UpdateAtGoalConflictCounts(i, maxPlanSize, internalCAT);
                 }
                 else
                 {
@@ -351,7 +367,7 @@ namespace CPF_experiment
                 }
             }
 
-            CAT.Separate(internalCAT);
+            CAT?.Separate(internalCAT);
             constraints.Separate(newConstraints);
             if (mustConstraints != null)
                 mustConstraints.Separate(newMustConstraints);
@@ -402,8 +418,9 @@ namespace CPF_experiment
                            int maxPathCost = int.MaxValue)
         {
             ProblemInstance problem = this.cbs.GetProblemInstance();
-            Dictionary_U<TimedMove, int> CAT = (Dictionary_U<TimedMove, int>)problem.parameters[CBS.CAT];
-
+            object obj;
+            problem.parameters.TryGetValue(CBS.CAT, out obj);
+            var CAT = (Dictionary_U<TimedMove, int>)obj;
             ConflictAvoidanceTable internalCAT = null; // To quiet the compiler
             int groupNum = this.agentsGroupAssignment[agentToReplan];
             bool underSolve = true;
@@ -424,7 +441,7 @@ namespace CPF_experiment
                         internalCAT.AddPlan(allSingleAgentPlans[i]);
                 }
                 
-                CAT.Join(internalCAT);
+                CAT?.Join(internalCAT);
             }
             HashSet<CbsConstraint> newConstraints = this.GetConstraints();
             var constraints = (HashSet_U<CbsConstraint>)problem.parameters[CBS.CONSTRAINTS];
@@ -483,7 +500,7 @@ namespace CPF_experiment
             if (solved == false) // Usually means a timeout occured.
             {
                 if (underSolve == false)
-                    CAT.Separate(internalCAT); // Code dup, but if solved the CAT is needed for a bit longer.
+                    CAT?.Separate(internalCAT); // Code dup, but if solved the CAT is needed for a bit longer.
                 constraints.Separate(newConstraints);
                 if (mustConstraints != null)
                     mustConstraints.Separate(newMustConstraints);
@@ -493,8 +510,29 @@ namespace CPF_experiment
             // Copy the SinglePlans for the solved agent group from the solver to the appropriate places in this.allSingleAgentPlans
             SinglePlan[] singlePlans = relevantSolver.GetSinglePlans();
             int[] singleCosts = relevantSolver.GetSingleCosts();
-            Dictionary<int, int> perAgent = relevantSolver.GetExternalConflictCounts();
-            Dictionary<int, List<int>> conflictTimes = relevantSolver.GetConflictTimes();
+            Dictionary<int, int> perAgent = null;  // To quiet the compiler
+            Dictionary<int, List<int>> conflictTimes = null;
+            if (CAT != null)
+            {
+                perAgent = relevantSolver.GetExternalConflictCounts();
+                conflictTimes = relevantSolver.GetConflictTimes();
+            }
+            else
+            {
+                perAgent = new Dictionary<int, int>();
+                conflictTimes = new Dictionary<int, List<int>>();
+                foreach (var singlePlan in singlePlans)
+                {
+                    foreach (var move in singlePlan.locationAtTimes)
+                    {
+                        var timedMove = (TimedMove)move;  // The solver actually creates a plan with TimedMove instances
+                        if (CAT != null)
+                            timedMove.UpdateConflictCounts(CAT, perAgent, conflictTimes);
+                        else
+                            timedMove.UpdateConflictCounts(internalCAT, perAgent, conflictTimes);
+                    }
+                }
+            }
             for (int i = 0; i < subGroup.Count; i++)
             {
                 int agentNum = subGroup[i].agent.agentNum;
@@ -526,7 +564,11 @@ namespace CPF_experiment
             foreach (var agentNumAndAgentNum in subGroupAgentNums)
             {
                 int i = this.agentNumToIndex[agentNumAndAgentNum.Key];
-                this.UpdateAtGoalConflictCounts(i, maxPlanSizeOfOtherAgents, CAT);
+                if (CAT != null)
+                    this.UpdateAtGoalConflictCounts(i, maxPlanSizeOfOtherAgents, CAT);
+                    // Can't use the null coalescing operator because it requires the operands be of the same type :(
+                else
+                    this.UpdateAtGoalConflictCounts(i, maxPlanSizeOfOtherAgents, internalCAT);
             }
 
             if (underSolve == false)
@@ -550,7 +592,7 @@ namespace CPF_experiment
 
                 this.CountConflicts();
                 this.CalcMinOpsToSolve();
-                CAT.Separate(internalCAT);
+                CAT?.Separate(internalCAT);
             }
 
             constraints.Separate(newConstraints);
