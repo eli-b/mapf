@@ -9,7 +9,8 @@ using ExtensionMethods;
 namespace CPF_experiment
 {
     /// <summary>
-    /// Merges agents if they conflict more times than the given threshold in the CT nodes from the root to the current CT nodes only.
+    /// Merges agents if they conflict more times than the given threshold in the CT nodes
+    /// from the root to the current CT nodes only.
     /// </summary>
     public class CBS : ICbsSolver, IHeuristicSolver<CbsNode>
     {
@@ -1301,7 +1302,7 @@ namespace CPF_experiment
                         this.bypasses++; // Only count one adoption for the entire look ahead subtree branch traversed.
                     }
 
-                    if (node.GoalTest()) // Lookahead found an admissable solution! (The original node to expand wasn't a goal)
+                    if (node.GoalTest()) // Lookahead found an admissible solution! (The original node to expand wasn't a goal)
                     {
                         Debug.WriteLine("Goal found with same cost - stopping lookahead.");
                         this.openList.Add(node);
@@ -1394,7 +1395,7 @@ namespace CPF_experiment
                         this.closedList.Add(child, child); // Temporarily! Just so look ahead expansion can use this data
                         if (child.g == node.g)
                         {
-                            if (child.GoalTest()) // Lookahead found an admissable solution!
+                            if (child.GoalTest()) // Lookahead found an admissible solution!
                             {
                                 Debug.WriteLine("Goal found with same cost - stopping lookahead.");
                                 this.openList.Add(child); // Technically should have just breaked and let node adopt child. This is just a short-cut.
@@ -1516,7 +1517,7 @@ namespace CPF_experiment
                 }
 
                 if (child.f <= this.maxSolutionCost)
-                // Assuming h is an admissable heuristic, no need to generate nodes that won't get us
+                // Assuming h is an admissible heuristic, no need to generate nodes that won't get us
                 // to the goal within the budget
                 {
                     this.highLevelGenerated++;
@@ -1571,7 +1572,7 @@ namespace CPF_experiment
                     this.semiCardinalConflictSplits = origSemiCardinalConflictSplits;
                     this.nonCardinalConflictSplits = origNonCardinalConflictSplits;
 
-                    if (node.GoalTest()) // Adoption found an admissable solution! (The original node to expand wasn't a goal)
+                    if (node.GoalTest()) // Adoption found an admissible solution! (The original node to expand wasn't a goal)
                     {
                         Debug.WriteLine("Bypass found a goal! Inserting it into OPEN.");
                         this.openList.Add(node);
@@ -1799,7 +1800,7 @@ namespace CPF_experiment
                                                                                          // This assumes unit move costs
                  node.h < conflict.timeStep + 1 - node.allSingleAgentCosts[conflictingAgentIndex] && // Otherwise we won't be increasing its h and there would be no reason to delay expansion
                                                                                                      // The agent's new cost will be at least conflict.timeStep + 1, so however much this is more than its current cost 
-                                                                                                     // is an admissable heuristic
+                                                                                                     // is an admissible heuristic
                  groupSize == 1) || // Otherwise an agent in the group can be forced to take a longer
                                     // route without increasing the group's cost because
                                     // another agent would be able to take a shorter route.
@@ -1998,11 +1999,11 @@ namespace CPF_experiment
     /// <summary>
     /// Merges agents if they conflict more times than the given threshold in all the CT.
     /// </summary>
-    public class CBS_GlobalConflicts : CBS
+    public class MACBS_WholeTreeThreshold : CBS
     {
         public int[][] globalConflictsCounter;
 
-        public CBS_GlobalConflicts(ICbsSolver singleAgentSolver, ICbsSolver generalSolver,
+        public MACBS_WholeTreeThreshold(ICbsSolver singleAgentSolver, ICbsSolver generalSolver,
                                    int mergeThreshold = -1,
                                    bool doShuffle = false,
                                    BypassStrategy bypassStrategy = BypassStrategy.NONE,

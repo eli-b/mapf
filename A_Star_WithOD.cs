@@ -7,14 +7,14 @@ namespace CPF_experiment
     /// <summary>
     /// A* implementation with Standley's operator decomposition (OD). See AAAI 2010 paper by IndependenceDetection Scott Standley on Cooperative Pathfinding.
     /// </summary>
-    public class AStarWithOD : ClassicAStar
+    public class A_Star_WithOD : A_Star
     {
         protected int expandedFullStates;
         protected int accExpandedFullStates;
         protected int generatedFullStates;
         protected int accGeneratedFullStates;
 
-        public AStarWithOD(IHeuristicCalculator<WorldState> heuristic = null, bool mStar = false, bool mStarShuffle = false)
+        public A_Star_WithOD(IHeuristicCalculator<WorldState> heuristic = null, bool mStar = false, bool mStarShuffle = false)
             : base(heuristic, mStar, mStarShuffle) { }
 
         override protected WorldState CreateSearchRoot(int minDepth = -1, int minCost = -1, MDDNode mddNode = null)

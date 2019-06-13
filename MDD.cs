@@ -66,7 +66,7 @@ namespace CPF_experiment
             if (ignoreConstraints == false && instance.parameters.ContainsKey(CBS.MUST_CONSTRAINTS) &&
                  ((HashSet_U<CbsConstraint>)instance.parameters[CBS.MUST_CONSTRAINTS]).Count != 0)
             {
-                // TODO: Code dup with ClassicAStar's constructor
+                // TODO: Code dup with A_Star's constructor
                 var musts = (HashSet_U<CbsConstraint>)instance.parameters[CBS.MUST_CONSTRAINTS];
                 mustConstraints = new Dictionary<int, TimedMove>[musts.Max(con => con.GetTimeStep()) + 1]; // To have index MAX, array needs MAX + 1 places.
                 foreach (CbsConstraint con in musts)

@@ -110,14 +110,15 @@
   <ItemGroup>
     <Compile Include="Agent.cs" />
     <Compile Include="AgentState.cs" />
-    <Compile Include="AStarMDD.cs">
+    <Compile Include="A_Star.cs" />
+    <Compile Include="A_Star_MDD.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="AStarWithOD.cs">
+    <Compile Include="A_Star_WithOD.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="AStarWithPartialExpansion.cs" />
-    <Compile Include="AStarWithPartialExpansionBasic.cs" />
+    <Compile Include="EPEA_Star.cs" />
+    <Compile Include="PEA_Star.cs" />
     <Compile Include="CBS.cs" />
     <Compile Include="CbsCacheEntry.cs" />
     <Compile Include="CbsHeuristicForAStar.cs" />
@@ -149,12 +150,11 @@
     <Compile Include="CbsConstraint.cs" />
     <Compile Include="MDD.cs" />
     <Compile Include="HeuristicCalculator.cs" />
-    <Compile Include="ClassicAStar.cs" />
     <Compile Include="Constants.cs" />
     <Compile Include="ISolver.cs" />
     <Compile Include="MddMatchAndPrune.cs" />
     <Compile Include="Plan.cs" />
-    <Compile Include="AStarWithRID.cs" />
+    <Compile Include="A_Star_WithRID.cs" />
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>

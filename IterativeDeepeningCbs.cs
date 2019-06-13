@@ -41,7 +41,7 @@ namespace CPF_experiment
             this.heuristic = heuristic;
             if (currentThreshold < maxThreshold)
             {
-                //this.solver = new CBS_GlobalConflicts(solver, maxThreshold, currentThreshold + 1);
+                //this.solver = new MACBS_WholeTreeThreshold(solver, maxThreshold, currentThreshold + 1);
             }
         }
 

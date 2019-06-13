@@ -700,14 +700,14 @@ namespace CPF_experiment
 
                 }
             }
-            if (this.cbs.GetType() == typeof(CBS_GlobalConflicts) && this.cbs.mergeThreshold != -1)
+            if (this.cbs.GetType() == typeof(MACBS_WholeTreeThreshold) && this.cbs.mergeThreshold != -1)
             {
-                for (int i = 0; i < ((CBS_GlobalConflicts)this.cbs).globalConflictsCounter.Length; i++)
+                for (int i = 0; i < ((MACBS_WholeTreeThreshold)this.cbs).globalConflictsCounter.Length; i++)
                 {
                     Debug.Write($"Agent {i} global historic conflict counts: ");
                     for (int j = 0; j < i; j++)
                     {
-                        Debug.Write($"a{j}:{((CBS_GlobalConflicts)this.cbs).globalConflictsCounter[i][j]} ");
+                        Debug.Write($"a{j}:{((MACBS_WholeTreeThreshold)this.cbs).globalConflictsCounter[i][j]} ");
                     }
                     Debug.WriteLine("");
                 }
@@ -756,9 +756,10 @@ namespace CPF_experiment
         /// So we can just take half the count from that approximation.
         /// 
         /// Notice a merge is like two replans in one, so we might need to take ceil(num_replans/2).
-        /// Luckily, in Cbs_LocalConflicts, a merge is only possible once every B+1 depth steps,
+        /// Luckily, in MA-CBS which considers only conflicts in the same CT branch,
+        /// a merge is only possible once every B+1 depth steps,
         /// because we only count selected conflicts (they're guaranteed to be unequal),
-        /// so we can cap the number of possible merges and substract less.
+        /// so we can cap the number of possible merges and subtract less.
         /// 
         /// In Cbs_GlobalConflicts, we could use the global table to discount some merges.
         /// </summary>
@@ -803,7 +804,7 @@ namespace CPF_experiment
                             int chainSize = this.cbs.mergeThreshold + 1; // Every series of B+1 downwards consecutive nodes may end with a merge.
                             int maxMerges = depthToGoTo / chainSize; // Round down to discount the last unfinished chain.
 
-                            // Count the minimum amount of merges already done and substract it from maxMerges:
+                            // Count the minimum amount of merges already done and subtract it from maxMerges:
                             var groupSizes = new Dictionary<int, int>();
                             for (int i = 0; i < this.agentsGroupAssignment.Length; i++)
                             {
@@ -1932,8 +1933,9 @@ namespace CPF_experiment
             CbsNode current = this;
             while (current.depth > 0) // The root has no constraints
             {
-                if (current.constraint != null && // Next check not enough if "surprise merges" happen (merges taken from adopted child)
-                    current.prev.conflict != null && // Can only happen for temporary lookahead nodes that were created and then later the parent adopted a goal node
+                if (current.constraint != null && // Last check not enough if "surprise merges" happen (merges taken from adopted child)
+                    current.prev.conflict != null && // Can only happen for temporary lookahead nodes that were created and then
+                                                     // later the parent adopted a goal node
                     this.agentsGroupAssignment[current.prev.conflict.agentAIndex] !=
                     this.agentsGroupAssignment[current.prev.conflict.agentBIndex]) // Ignore constraints that deal with conflicts between
                                                                                    // agents that were later merged. They're irrelevant

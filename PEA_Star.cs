@@ -10,7 +10,7 @@ namespace CPF_experiment
     /// The parent is then re-inserted with the lowest f from its discarded children
     /// (Yoshizumi, Miura, and Ishida 2000)
     /// </summary>
-    class AStarWithPartialExpansionBasic : ClassicAStar
+    class PEA_Star : A_Star
     {
         protected int generatedAndDiscarded;
         protected int expandedFullStates;
@@ -24,7 +24,7 @@ namespace CPF_experiment
         public int nextFvalue;
         public int currentFTarget;
 
-        public AStarWithPartialExpansionBasic(IHeuristicCalculator<WorldState> heuristic = null)
+        public PEA_Star(IHeuristicCalculator<WorldState> heuristic = null)
             : base(heuristic) { }
 
         override protected WorldState CreateSearchRoot(int minDepth = -1, int minCost = -1, MDDNode mddNode = null)

@@ -57,7 +57,7 @@ namespace CPF_experiment
         ///// <summary>
         ///// For lazy heuristics
         ///// </summary>
-        //public CBS_LocalConflicts cbsState;
+        //public CBS cbsState;
         /// <summary>
         /// For MStar.
         /// Disjoint sets of agent indices, since only internal agents are considered.

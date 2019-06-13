@@ -7,7 +7,7 @@ namespace CPF_experiment
     /// <summary>
     /// Finds the solution with the least number of conflicts, given a set of MDDs
     /// </summary>
-    class AStarMDD
+    class A_Star_MDD
     {
         MDD[] problem;
         Dictionary<MDDStep, MDDStep> closedList;
@@ -19,7 +19,7 @@ namespace CPF_experiment
         Dictionary<TimedMove, List<int>> ID_CAT;
         Dictionary<TimedMove, List<int>> CBS_CAT;
 
-        public AStarMDD(MDD[] problem, Run runner, Dictionary<TimedMove, List<int>> ID_CAT, Dictionary<TimedMove, List<int>> CBS_CAT)
+        public A_Star_MDD(MDD[] problem, Run runner, Dictionary<TimedMove, List<int>> ID_CAT, Dictionary<TimedMove, List<int>> CBS_CAT)
         {
             this.expanded = 0;
             this.generated = 0;
@@ -49,11 +49,11 @@ namespace CPF_experiment
 
             while (openList.Count > 0)
             {
-                 if (runner.ElapsedMilliseconds() > Constants.MAX_TIME)
+                if (runner.ElapsedMilliseconds() > Constants.MAX_TIME)
                 {
                     return null;
                 }
-                 currentNode = openList.Remove();
+                currentNode = openList.Remove();
                 // Check if node is the goal
                 if (this.GoalTest(currentNode))
                 {

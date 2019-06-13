@@ -125,10 +125,10 @@ namespace CPF_experiment
             var mddPruning = new MddPruningHeuristicForCbs();
             cbs_heuristics.Add(mddPruning);
 
-            var astar = new ClassicAStar(simple);
+            var astar = new A_Star(simple);
             var cbs = new CBS(astar, astar, -1);
-            var astar_with_od = new AStarWithOD(simple);
-            var epea = new AStarWithPartialExpansion(simple);
+            var astar_with_od = new A_Star_WithOD(simple);
+            var epea = new EPEA_Star(simple);
             //var macbsLocal5Epea = new CBS(astar, epea, 5);
             //var macbsLocal50Epea = new CBS(astar, epea, 50);
             //var cbsHeuristicNoSolve1 = new CbsHeuristicForAStar(cbs, this, false, 1);
@@ -161,13 +161,13 @@ namespace CPF_experiment
             solvers = new List<ISolver>();
             //solvers.Add(astar);
 
-            //solvers.Add(new CBS_GlobalConflicts(astar, epea)); // CBS/EPEA*
-            //solvers.Add(new CBS_GlobalConflicts(
+            //solvers.Add(new MACBS_WholeTreeThreshold(astar, epea)); // CBS/EPEA*
+            //solvers.Add(new MACBS_WholeTreeThreshold(
             //    astar, epea, bypassStrategy: CBS.BypassStrategy.FIRST_FIT_LOOKAHEAD)); // CBS/EPEA* with first-fit adoption 1 expansions max
-            //solvers.Add(new CBS_GlobalConflicts(astar, epea,
+            //solvers.Add(new MACBS_WholeTreeThreshold(astar, epea,
             //            bypassStrategy: CBS.BypassStrategy.FIRST_FIT_LOOKAHEAD,
             //            lookaheadMaxExpansions: 256)); // CBS/EPEA* with first-fit adoption 256 expansions max
-            //solvers.Add(new CBS_GlobalConflicts(
+            //solvers.Add(new MACBS_WholeTreeThreshold(
             //    astar, epea, bypassStrategy: CBS.BypassStrategy.FIRST_FIT_LOOKAHEAD,
             //    lookaheadMaxExpansions: int.MaxValue)); // CBS/EPEA* with first-fit adoption infinity expansions max
 
@@ -178,7 +178,7 @@ namespace CPF_experiment
             //soldier: solvers.Add(new CBS(
             //     astar, epea conflictChoice: CBS.ConflictChoice.MOST_CONFLICTING)); // CBS/EPEA* + choosing most conflicting agent's conflict
             //solvers.Add(new IndependenceDetection(singleAgentSolver: astar,
-            //    new CBS_GlobalConflicts(
+            //    new MACBS_WholeTreeThreshold(
             //        singleAgentSolver: astar, generalSolver: epea,
             //        conflictChoice: CBS.ConflictChoice.MOST_CONFLICTING), simple)); // CBS/EPEA* + choosing most conflicting agent's conflict + ID
             //soldier: solvers.Add(new CBS(astar, epea,
@@ -187,38 +187,38 @@ namespace CPF_experiment
             //    conflictChoice: CBS.ConflictChoice.CARDINAL_LOOKAHEAD)); // CBS/EPEA* Cardinal not using MDDs
 
             //soldier: 
-            //solvers.Add(new CBS_GlobalConflicts(astar, epea, 2)); // MA-CBS(2)/EPEA*
-            //solvers.Add(new CBS_GlobalConflicts(astar, epea, 4)); // MA-CBS(4)/EPEA*
-            //solvers.Add(new CBS_GlobalConflicts(astar, epea, 8)); // MA-CBS(8)/EPEA*
-            //solvers.Add(new CBS_GlobalConflicts(astar, epea, 16)); // MA-CBS(16)/EPEA*
-            //solvers.Add(new CBS_GlobalConflicts(astar, epea, 32)); // MA-CBS(32)/EPEA*
-            //solvers.Add(new CBS_GlobalConflicts(astar, epea, 64)); // MA-CBS(64)/EPEA*
-            //solvers.Add(new CBS_GlobalConflicts(astar, epea, 50)); // MA-CBS(50)/EPEA*
-            //solvers.Add(new CBS_GlobalConflicts(astar, epea, 128)); // MA-CBS(128)/EPEA*
-            //solvers.Add(new CBS_GlobalConflicts(astar, epea, 256)); // MA-CBS(256)/EPEA*
+            //solvers.Add(new MACBS_WholeTreeThreshold(astar, epea, 2)); // MA-CBS(2)/EPEA*
+            //solvers.Add(new MACBS_WholeTreeThreshold(astar, epea, 4)); // MA-CBS(4)/EPEA*
+            //solvers.Add(new MACBS_WholeTreeThreshold(astar, epea, 8)); // MA-CBS(8)/EPEA*
+            //solvers.Add(new MACBS_WholeTreeThreshold(astar, epea, 16)); // MA-CBS(16)/EPEA*
+            //solvers.Add(new MACBS_WholeTreeThreshold(astar, epea, 32)); // MA-CBS(32)/EPEA*
+            //solvers.Add(new MACBS_WholeTreeThreshold(astar, epea, 64)); // MA-CBS(64)/EPEA*
+            //solvers.Add(new MACBS_WholeTreeThreshold(astar, epea, 50)); // MA-CBS(50)/EPEA*
+            //solvers.Add(new MACBS_WholeTreeThreshold(astar, epea, 128)); // MA-CBS(128)/EPEA*
+            //solvers.Add(new MACBS_WholeTreeThreshold(astar, epea, 256)); // MA-CBS(256)/EPEA*
 
             //solvers.Add(new IndependenceDetection(astar,
-            //    new CBS_GlobalConflicts(astar, epea, 5), simple)); // MA-CBS(5)/EPEA* + ID.
+            //    new MACBS_WholeTreeThreshold(astar, epea, 5), simple)); // MA-CBS(5)/EPEA* + ID.
             //solvers.Add(new IndependenceDetection(astar,
-            //    new CBS_GlobalConflicts(astar, epea, 10), simple)); // MA-CBS(10)/EPEA* + ID.
+            //    new MACBS_WholeTreeThreshold(astar, epea, 10), simple)); // MA-CBS(10)/EPEA* + ID.
             //solvers.Add(new IndependenceDetection(astar,
-            //    new CBS_GlobalConflicts(astar, epea, 25), simple)); // MA-CBS(25)/EPEA* + ID.
+            //    new MACBS_WholeTreeThreshold(astar, epea, 25), simple)); // MA-CBS(25)/EPEA* + ID.
             //solvers.Add(new IndependenceDetection(astar,
-            //    new CBS_GlobalConflicts(astar, epea, 100), simple)); // MA-CBS(100)/EPEA* + ID.
+            //    new MACBS_WholeTreeThreshold(astar, epea, 100), simple)); // MA-CBS(100)/EPEA* + ID.
             //solvers.Add(new IndependenceDetection(astar,
-            //    new CBS_GlobalConflicts(astar, epea, 150), simple)); // MA-CBS(150)/EPEA* + ID.
+            //    new MACBS_WholeTreeThreshold(astar, epea, 150), simple)); // MA-CBS(150)/EPEA* + ID.
             //solvers.Add(new IndependenceDetection(astar,
-            //    new CBS_GlobalConflicts(astar, epea, 200), simple)); // MA-CBS(200)/EPEA* + ID.
+            //    new MACBS_WholeTreeThreshold(astar, epea, 200), simple)); // MA-CBS(200)/EPEA* + ID.
             //solvers.Add(new IndependenceDetection(astar,
-            //    new CBS_GlobalConflicts(astar, epea, 300), simple)); // MA-CBS(300)/EPEA* + ID.
+            //    new MACBS_WholeTreeThreshold(astar, epea, 300), simple)); // MA-CBS(300)/EPEA* + ID.
             //solvers.Add(new IndependenceDetection(astar,
-            //    new CBS_GlobalConflicts(astar, epea, 500), simple)); // MA-CBS(500)/EPEA* + ID.
+            //    new MACBS_WholeTreeThreshold(astar, epea, 500), simple)); // MA-CBS(500)/EPEA* + ID.
 
             //solvers.Add(new IndependenceDetection(astar,
-            //    new CBS_GlobalConflicts(astar, epea, 5, mergeCausesRestart: true),
+            //    new MACBS_WholeTreeThreshold(astar, epea, 5, mergeCausesRestart: true),
             //    simple)); // MA-CBS(5)/EPEA* + ID + restart
 
-            //solvers.Add(new CBS_GlobalConflicts(astar, epea, 5,
+            //solvers.Add(new MACBS_WholeTreeThreshold(astar, epea, 5,
             //    conflictChoice: CBS.ConflictChoice.MOST_CONFLICTING)); // MA-CBS(5)/EPEA* + choosing most conflicting agent's conflict
             //solvers.Add(new CBS(astar, epea, 5,
             //    conflictChoice: CBS.ConflictChoice.CARDINAL_MDD)); // MA-CBS(5)/EPEA* Cardinal using MDDs
@@ -230,104 +230,104 @@ namespace CPF_experiment
 
             //soldier: solvers.Add(new CBS(astar, epea,
             //    bypassStrategy: CBS.BypassStrategy.FIRST_FIT_LOOKAHEAD)); // CBS/EPEA* + BP1
-            //soldier:solvers.Add(new CBS_GlobalConflicts(astar, epea,
+            //soldier:solvers.Add(new MACBS_WholeTreeThreshold(astar, epea,
             //    bypassStrategy: CBS.BypassStrategy.FIRST_FIT_LOOKAHEAD,
             //    conflictChoice: CBS.ConflictChoice.CARDINAL_MDD)); // CBS/EPEA* + CARDINAL + BP1
 
-            //solvers.Add(new CBS_GlobalConflicts(astar, epea, 
+            //solvers.Add(new MACBS_WholeTreeThreshold(astar, epea, 
             //    bypassStrategy: CBS.BypassStrategy.FIRST_FIT_LOOKAHEAD,
             //    conflictChoice: CBS.ConflictChoice.CARDINAL_MDD)); // CBS + CARDINAL (lookahead) + BP1
 
-            //solvers.Add(new IndependenceDetection(astar, new CBS_GlobalConflicts(astar, epea,
+            //solvers.Add(new IndependenceDetection(astar, new MACBS_WholeTreeThreshold(astar, epea,
             //    bypassStrategy: CBS.BypassStrategy.FIRST_FIT_LOOKAHEAD,
             //    conflictChoice: CBS.ConflictChoice.CARDINAL_MDD), simple)); // CBS + CARDINAL + BP1 + ID
 
-            //solvers.Add(new CBS_GlobalConflicts(astar, epea,
+            //solvers.Add(new MACBS_WholeTreeThreshold(astar, epea,
             //    bypassStrategy: CBS.BypassStrategy.FIRST_FIT_LOOKAHEAD,
             //    conflictChoice: CBS.ConflictChoice.CARDINAL_LOOKAHEAD)); // CBS/EPEA* Cardinal not using MDDs + BP1
 
-            //solvers.Add(new IndependenceDetection(astar, new CBS_GlobalConflicts(
+            //solvers.Add(new IndependenceDetection(astar, new MACBS_WholeTreeThreshold(
             //        astar, epea, 5, false, CBS.BypassStrategy.NONE, false,
             //        CBS.ConflictChoice.FIRST, false, false, int.MaxValue, true),
             //    simple)); // MA-CBS(B)/EPEA* + ID + restart
 
-            //solvers.Add(new CBS_GlobalConflicts(astar, epea, 5, false, CBS.BypassStrategy.NONE, false,
+            //solvers.Add(new MACBS_WholeTreeThreshold(astar, epea, 5, false, CBS.BypassStrategy.NONE, false,
             //    CBS.ConflictChoice.MOST_CONFLICTING, false, false, int.MaxValue, false)); // MA-CBS(5)/EPEA*
             //solvers.Add(new CBS(astar, epea, 5, false, CBS.BypassStrategy.NONE, false,
             //    CBS.ConflictChoice.CARDINAL_MDD, false, false)); // MA-CBS(5)/EPEA* Cardinal using MDDs
             //solvers.Add(new CBS(astar, epea, 5, false, CBS.BypassStrategy.NONE, false,
             //    CBS.ConflictChoice.CARDINAL_LOOKAHEAD, false, false)); // MA-CBS(5)/EPEA* Cardinal not using MDDs
 
-            //solvers.Add(new CBS_GlobalConflicts(astar, epea)); // CBS/EPEA* 
-            //solvers.Add(new CBS_GlobalConflicts(astar, epea,
+            //solvers.Add(new MACBS_WholeTreeThreshold(astar, epea)); // CBS/EPEA* 
+            //solvers.Add(new MACBS_WholeTreeThreshold(astar, epea,
             //    conflictChoice: CBS.ConflictChoice.CARDINAL_MDD)); // CBS/EPEA* + first cardinal
-            //solvers.Add(new CBS_GlobalConflicts(astar, epea,
+            //solvers.Add(new MACBS_WholeTreeThreshold(astar, epea,
             //    conflictChoice: CBS.ConflictChoice.CARDINAL_MDD,
             //    hValueStrategy: CBS.HValueStrategy.GREEDY)); // CBS/EPEA* + greedy h + cardinal
-            //solvers.Add(new CBS_GlobalConflicts(astar, epea,
+            //solvers.Add(new MACBS_WholeTreeThreshold(astar, epea,
             //    conflictChoice: CBS.ConflictChoice.CARDINAL_MDD, heuristic: mvc)); // CBS/EPEA* + h + cardinal without BP
-            //solvers.Add(new CBS_GlobalConflicts(astar, epea, 2,
+            //solvers.Add(new MACBS_WholeTreeThreshold(astar, epea, 2,
             //    bypassStrategy: CBS.BypassStrategy.FIRST_FIT_LOOKAHEAD,
             //    conflictChoice: CBS.ConflictChoice.CARDINAL_MDD, mergeCausesRestart: true)); // MA-CBS(2)/EPEA* + cardinal + BP1 + restart
-            //solvers.Add(new CBS_GlobalConflicts(astar, epea, 4,
+            //solvers.Add(new MACBS_WholeTreeThreshold(astar, epea, 4,
             //    bypassStrategy: CBS.BypassStrategy.FIRST_FIT_LOOKAHEAD,
             //    conflictChoice: CBS.ConflictChoice.CARDINAL_MDD, mergeCausesRestart: true)); // MA-CBS(4)/EPEA* + cardinal + BP1 + restart
-            //solvers.Add(new CBS_GlobalConflicts(astar, epea, 5,
+            //solvers.Add(new MACBS_WholeTreeThreshold(astar, epea, 5,
             //    bypassStrategy: CBS.BypassStrategy.FIRST_FIT_LOOKAHEAD,
             //    conflictChoice: CBS.ConflictChoice.CARDINAL_MDD, mergeCausesRestart: true)); // MA-CBS(5)/EPEA* + cardinal + BP1 + restart
-            //solvers.Add(new CBS_GlobalConflicts(astar, epea, 8,
+            //solvers.Add(new MACBS_WholeTreeThreshold(astar, epea, 8,
             //    bypassStrategy: CBS.BypassStrategy.FIRST_FIT_LOOKAHEAD,
             //    conflictChoice: CBS.ConflictChoice.CARDINAL_MDD, mergeCausesRestart: true)); // MA-CBS(8)/EPEA* + cardinal + BP1 + restart
-            //solvers.Add(new CBS_GlobalConflicts(astar, epea, 16,
+            //solvers.Add(new MACBS_WholeTreeThreshold(astar, epea, 16,
             //    bypassStrategy: CBS.BypassStrategy.FIRST_FIT_LOOKAHEAD,
             //    conflictChoice: CBS.ConflictChoice.CARDINAL_MDD, mergeCausesRestart: true)); // MA-CBS(16)/EPEA* + cardinal + BP1 + restart
-            //solvers.Add(new CBS_GlobalConflicts(astar, epea, 25,
+            //solvers.Add(new MACBS_WholeTreeThreshold(astar, epea, 25,
             //    bypassStrategy: CBS.BypassStrategy.FIRST_FIT_LOOKAHEAD,
             //    conflictChoice: CBS.ConflictChoice.CARDINAL_MDD, mergeCausesRestart: true)); // MA-CBS(25)/EPEA* + cardinal + BP1 + restart, AKA ICBS(25)
-            //solvers.Add(new CBS_GlobalConflicts(astar, epea, 32,
+            //solvers.Add(new MACBS_WholeTreeThreshold(astar, epea, 32,
             //    bypassStrategy: CBS.BypassStrategy.FIRST_FIT_LOOKAHEAD,
             //    conflictChoice: CBS.ConflictChoice.CARDINAL_MDD, mergeCausesRestart: true)); // MA-CBS(32)/EPEA* + cardinal + BP1 + restart
-            //solvers.Add(new CBS_GlobalConflicts(astar, epea, 50,
+            //solvers.Add(new MACBS_WholeTreeThreshold(astar, epea, 50,
             //    bypassStrategy: CBS.BypassStrategy.FIRST_FIT_LOOKAHEAD,
             //    conflictChoice: CBS.ConflictChoice.CARDINAL_MDD, mergeCausesRestart: true)); // MA-CBS(50)/EPEA* + cardinal + BP1 + restart
-            //solvers.Add(new CBS_GlobalConflicts(astar, epea, 64,
+            //solvers.Add(new MACBS_WholeTreeThreshold(astar, epea, 64,
             //    bypassStrategy: CBS.BypassStrategy.FIRST_FIT_LOOKAHEAD,
             //    conflictChoice: CBS.ConflictChoice.CARDINAL_MDD, mergeCausesRestart: true)); // MA-CBS(64)/EPEA* + cardinal + BP1 + restart
-            //solvers.Add(new CBS_GlobalConflicts(astar, epea, 128,
+            //solvers.Add(new MACBS_WholeTreeThreshold(astar, epea, 128,
             //    bypassStrategy: CBS.BypassStrategy.FIRST_FIT_LOOKAHEAD,
             //    conflictChoice: CBS.ConflictChoice.CARDINAL_MDD, mergeCausesRestart: true)); // MA-CBS(128)/EPEA* + cardinal + BP1 + restart
-            //solvers.Add(new CBS_GlobalConflicts(astar, epea, 256,
+            //solvers.Add(new MACBS_WholeTreeThreshold(astar, epea, 256,
             //    bypassStrategy: CBS.BypassStrategy.FIRST_FIT_LOOKAHEAD,
             //    conflictChoice: CBS.ConflictChoice.CARDINAL_MDD, mergeCausesRestart: true)); // MA-CBS(256)/EPEA* + cardinal + BP1 + restart
-            //solvers.Add(new CBS_GlobalConflicts(astar, epea, 512,
+            //solvers.Add(new MACBS_WholeTreeThreshold(astar, epea, 512,
             //    bypassStrategy: CBS.BypassStrategy.FIRST_FIT_LOOKAHEAD,
             //    conflictChoice: CBS.ConflictChoice.CARDINAL_MDD, mergeCausesRestart: true)); // MA-CBS(512)/EPEA* + cardinal + BP1 + restart
-            //solvers.Add(new CBS_GlobalConflicts(astar, epea, 1024,
+            //solvers.Add(new MACBS_WholeTreeThreshold(astar, epea, 1024,
             //    bypassStrategy: CBS.BypassStrategy.FIRST_FIT_LOOKAHEAD,
             //    conflictChoice: CBS.ConflictChoice.CARDINAL_MDD, mergeCausesRestart: true)); // MA-CBS(1024)/EPEA* + cardinal + BP1 + restart
 
-            //solvers.Add(new IndependenceDetection(astar, new CBS_GlobalConflicts(astar, epea, 5
+            //solvers.Add(new IndependenceDetection(astar, new MACBS_WholeTreeThreshold(astar, epea, 5
             //    bypassStrategy: CBS.BypassStrategy.FIRST_FIT_LOOKAHEAD,
             //    conflictChoice: CBS.ConflictChoice.CARDINAL_MDD, mergeCausesRestart: true), simple)); // MA-CBS(5)/EPEA* + cardinal + BP1 + restart + ID
-            //solvers.Add(new IndependenceDetection(astar, new CBS_GlobalConflicts(astar, epea, 10, 
+            //solvers.Add(new IndependenceDetection(astar, new MACBS_WholeTreeThreshold(astar, epea, 10, 
             //    bypassStrategy: CBS.BypassStrategy.FIRST_FIT_LOOKAHEAD,
             //    conflictChoice: CBS.ConflictChoice.CARDINAL_MDD, mergeCausesRestart: true), simple)); // MA-CBS(10)/EPEA* + cardinal + BP1 + restart + ID
-            //solvers.Add(new IndependenceDetection(astar, new CBS_GlobalConflicts(astar, epea, 25,
+            //solvers.Add(new IndependenceDetection(astar, new MACBS_WholeTreeThreshold(astar, epea, 25,
             //    bypassStrategy: CBS.BypassStrategy.FIRST_FIT_LOOKAHEAD,
             //    conflictChoice: CBS.ConflictChoice.CARDINAL_MDD, mergeCausesRestart: true), simple)); // MA-CBS(25)/EPEA* + cardinal + BP1 + restart + ID
-            //solvers.Add(new IndependenceDetection(astar, new CBS_GlobalConflicts(astar, epea, 100,
+            //solvers.Add(new IndependenceDetection(astar, new MACBS_WholeTreeThreshold(astar, epea, 100,
             //    bypassStrategy: CBS.BypassStrategy.FIRST_FIT_LOOKAHEAD,
             //    conflictChoice: CBS.ConflictChoice.CARDINAL_MDD, mergeCausesRestart: true), simple)); // MA-CBS(100)/EPEA* + cardinal + BP1 + restart + ID
-            //solvers.Add(new IndependenceDetection(astar, new CBS_GlobalConflicts(astar, epea, 150,
+            //solvers.Add(new IndependenceDetection(astar, new MACBS_WholeTreeThreshold(astar, epea, 150,
             //    bypassStrategy: CBS.BypassStrategy.FIRST_FIT_LOOKAHEAD,
             //    conflictChoice: CBS.ConflictChoice.CARDINAL_MDD, mergeCausesRestart: true), simple)); // MA-CBS(100)/EPEA* + cardinal + BP1 + restart + ID
-            //solvers.Add(new IndependenceDetection(astar, new CBS_GlobalConflicts(astar, epea, 200,
+            //solvers.Add(new IndependenceDetection(astar, new MACBS_WholeTreeThreshold(astar, epea, 200,
             //    bypassStrategy: CBS.BypassStrategy.FIRST_FIT_LOOKAHEAD,
             //    conflictChoice: CBS.ConflictChoice.CARDINAL_MDD, mergeCausesRestart: true), simple)); // MA-CBS(100)/EPEA* + cardinal + BP1 + restart + ID
-            //solvers.Add(new IndependenceDetection(astar, new CBS_GlobalConflicts(astar, epea, 300,
+            //solvers.Add(new IndependenceDetection(astar, new MACBS_WholeTreeThreshold(astar, epea, 300,
             //    bypassStrategy: CBS.BypassStrategy.FIRST_FIT_LOOKAHEAD,
             //    conflictChoice: CBS.ConflictChoice.CARDINAL_MDD, mergeCausesRestart: true), simple)); // MA-CBS(100)/EPEA* + cardinal + BP1 + restart + ID
-            //solvers.Add(new IndependenceDetection(astar, new CBS_GlobalConflicts(astar, epea, 500,
+            //solvers.Add(new IndependenceDetection(astar, new MACBS_WholeTreeThreshold(astar, epea, 500,
             //    bypassStrategy: CBS.BypassStrategy.FIRST_FIT_LOOKAHEAD,
             //    conflictChoice: CBS.ConflictChoice.CARDINAL_MDD, mergeCausesRestart: true), simple)); // MA-CBS(500)/EPEA* + cardinal + BP1 + restart + ID
 
@@ -335,15 +335,15 @@ namespace CPF_experiment
             //    bypassStrategy: CBS.BypassStrategy.FIRST_FIT_LOOKAHEAD,
             //    conflictChoice: CBS.ConflictChoice.CARDINAL_MDD, mergeCausesRestart: true)); // MA-CBS(5)/EPEA* Cardinal using MDDs + BP1 + restart
 
-            //solvers.Add(new CBS_GlobalConflicts(astar, epea, 5, 
+            //solvers.Add(new MACBS_WholeTreeThreshold(astar, epea, 5, 
             //    bypassStrategy: CBS.BypassStrategy.FIRST_FIT_LOOKAHEAD,
             //    lookaheadMaxExpansions: int.MaxValue)); // MA-CBS(5)/EPEA* with first-fit adoption infinity expansions max
-            //solvers.Add(new IndependenceDetection(astar, new CBS_GlobalConflicts(astar, epea, 5, 
+            //solvers.Add(new IndependenceDetection(astar, new MACBS_WholeTreeThreshold(astar, epea, 5, 
             //    bypassStrategy: CBS.BypassStrategy.FIRST_FIT_LOOKAHEAD), simple)); // MA-CBS(5)/EPEA* with first-fit adoption 1 expansions max + ID
-            //solvers.Add(new CBS_GlobalConflicts(astar, epea, 5,
+            //solvers.Add(new MACBS_WholeTreeThreshold(astar, epea, 5,
             //    bypassStrategy: CBS.BypassStrategy.FIRST_FIT_LOOKAHEAD,
             //    lookaheadMaxExpansions: 256)); // MA-CBS(5)/EPEA* with first-fit adoption 256 expansions max
-            //solvers.Add(new IndependenceDetection(astar, new CBS_GlobalConflicts(astar, epea, 5,
+            //solvers.Add(new IndependenceDetection(astar, new MACBS_WholeTreeThreshold(astar, epea, 5,
             //    bypassStrategy: CBS.BypassStrategy.FIRST_FIT_LOOKAHEAD,
             //    lookaheadMaxExpansions: int.MaxValue), simple)); // MA-CBS(5)/EPEA* with first-fit adoption infinity expansions max + ID
 
@@ -398,125 +398,125 @@ namespace CPF_experiment
             //solvers.Add(new CBS(astar, epea, doMalte: true)); // CBS + Malte
             /*
             //solvers.Add(new CBS(epea, epea, -1));
-            //solvers.Add(new CBS_GlobalConflicts(epea, epea, -1)); // Should be identical since no merging is done.
+            //solvers.Add(new MACBS_WholeTreeThreshold(epea, epea, -1)); // Should be identical since no merging is done.
             //solvers.Add(new CBS(epea, epea, 0));
             solvers.Add(new CBS(astar, epea, 0));
-            //solvers.Add(new CBS_GlobalConflicts(epea, epea, 0));
+            //solvers.Add(new MACBS_WholeTreeThreshold(epea, epea, 0));
             //solvers.Add(new CBS(epea, epea, 1));
-            //solvers.Add(new CBS_GlobalConflicts(epea, epea, 1));
+            //solvers.Add(new MACBS_WholeTreeThreshold(epea, epea, 1));
             //solvers.Add(new CBS(epea, epea, 5));
             solvers.Add(new CBS(astar, epea, 5));
-            //solvers.Add(new CBS_GlobalConflicts(epea, epea, 5));
+            //solvers.Add(new MACBS_WholeTreeThreshold(epea, epea, 5));
             //solvers.Add(new CBS(epea, epea, 10));
             solvers.Add(new CBS(astar, epea, 10));
-            //solvers.Add(new CBS_GlobalConflicts(epea, epea, 10));
+            //solvers.Add(new MACBS_WholeTreeThreshold(epea, epea, 10));
             //solvers.Add(new CBS(epea, epea, 100));
             solvers.Add(new CBS(astar, epea, 100));
-            //solvers.Add(new CBS_GlobalConflicts(epea, epea, 100));
+            //solvers.Add(new MACBS_WholeTreeThreshold(epea, epea, 100));
             //solvers.Add(new CBS(epea, epea, 500));
-            //solvers.Add(new CBS_GlobalConflicts(epea, epea, 500));
+            //solvers.Add(new MACBS_WholeTreeThreshold(epea, epea, 500));
             
             //solvers.Add(new CBS(astar_with_od, astar_with_od, -1));
-            //solvers.Add(new CBS_GlobalConflicts(astar_with_od, astar_with_od, -1)); // Should be identical since no merging is done.
+            //solvers.Add(new MACBS_WholeTreeThreshold(astar_with_od, astar_with_od, -1)); // Should be identical since no merging is done.
             //solvers.Add(new CBS(astar_with_od, astar_with_od, 0));
             solvers.Add(new CBS(astar, astar_with_od, 0));
-            //solvers.Add(new CBS_GlobalConflicts(astar_with_od, astar_with_od, 0));
+            //solvers.Add(new MACBS_WholeTreeThreshold(astar_with_od, astar_with_od, 0));
             //solvers.Add(new CBS(astar_with_od, astar_with_od, 1));
-            //solvers.Add(new CBS_GlobalConflicts(astar_with_od, astar_with_od, 1));
+            //solvers.Add(new MACBS_WholeTreeThreshold(astar_with_od, astar_with_od, 1));
             //solvers.Add(new CBS(astar_with_od, astar_with_od, 5));
             solvers.Add(new CBS(astar, astar_with_od, 5));
-            //solvers.Add(new CBS_GlobalConflicts(astar_with_od, astar_with_od, 5));
+            //solvers.Add(new MACBS_WholeTreeThreshold(astar_with_od, astar_with_od, 5));
             //solvers.Add(new CBS(astar_with_od, astar_with_od, 10));
             solvers.Add(new CBS(astar, astar_with_od, 10));
-            //solvers.Add(new CBS_GlobalConflicts(astar_with_od, astar_with_od, 10));
+            //solvers.Add(new MACBS_WholeTreeThreshold(astar_with_od, astar_with_od, 10));
             //solvers.Add(new CBS(astar_with_od, astar_with_od, 100));
             solvers.Add(new CBS(astar, astar_with_od, 100));
-            //solvers.Add(new CBS_GlobalConflicts(astar_with_od, astar_with_od, 100));
+            //solvers.Add(new MACBS_WholeTreeThreshold(astar_with_od, astar_with_od, 100));
             //solvers.Add(new CBS(astar_with_od, astar_with_od, 500));
-            //solvers.Add(new CBS_GlobalConflicts(astar_with_od, astar_with_od, 500));
+            //solvers.Add(new MACBS_WholeTreeThreshold(astar_with_od, astar_with_od, 500));
             */
-            //solvers.Add(new ClassicAStar(simple, mStar: true)); // rM*! Works
-            //solvers.Add(new ClassicAStar(simple, mStar: true, mStarShuffle: true)); // rM* shuffle! Works
-            //solvers.Add(new ClassicAStar(cbsHeuristic)); // A* with cbsHeuristic
-            //solvers.Add(new AStarWithOD(simple));  // A* + OD
-            //solvers.Add(new AStarWithOD(simple, mStar: true)); // rM*+OD!
-            //solvers.Add(new AStarWithOD(simple, mStar: true, mStar: true)); // rM*+OD shuffle!
-            //solvers.Add(new AStarWithPartialExpansionBasic(simple)); // Works
-            //solvers.Add(new AStarWithPartialExpansionBasic(cbsHeuristic));
-            //soldier: solvers.Add(new AStarWithPartialExpansion(simple)); // Works.
-            //solvers.Add(new AStarWithPartialExpansion(simple, true, false)); // EPErM*
-            //solvers.Add(new AStarWithPartialExpansion(simple, true, true)); // EPErM* shuffle
+            //solvers.Add(new A_Star(simple, mStar: true)); // rM*! Works
+            //solvers.Add(new A_Star(simple, mStar: true, mStarShuffle: true)); // rM* shuffle! Works
+            //solvers.Add(new A_Star(cbsHeuristic)); // A* with cbsHeuristic
+            //solvers.Add(new A_Star_WithOD(simple));  // A* + OD
+            //solvers.Add(new A_Star_WithOD(simple, mStar: true)); // rM*+OD!
+            //solvers.Add(new A_Star_WithOD(simple, mStar: true, mStar: true)); // rM*+OD shuffle!
+            //solvers.Add(new PEA_Star(simple)); // Works
+            //solvers.Add(new PEA_Star(cbsHeuristic));
+            //soldier: solvers.Add(new EPEA_Star(simple)); // Works.
+            //solvers.Add(new EPEA_Star(simple, true, false)); // EPErM*
+            //solvers.Add(new EPEA_Star(simple, true, true)); // EPErM* shuffle
             //soldier: solvers.Add(new CBS(astar, epea, 0)); // EPEA*+(S)ID
 
-            //solvers.Add(new ClassicAStar(cbsHeuristicSolve1));
-            //solvers.Add(new ClassicAStar(cbsHeuristicSolve2));
-            //solvers.Add(new ClassicAStar(cbsHeuristicSolve3));
-            //solvers.Add(new ClassicAStar(cbsHeuristicSolve4));
-            //solvers.Add(new ClassicAStar(cbsHeuristicSolve5));
-            //solvers.Add(new ClassicAStar(cbsHeuristicSolve6));
-            //solvers.Add(new ClassicAStar(cbsHeuristicNoSolve1));
-            //solvers.Add(new ClassicAStar(cbsHeuristicNoSolve2));
-            //solvers.Add(new ClassicAStar(cbsHeuristicNoSolve3));
-            //solvers.Add(new ClassicAStar(cbsHeuristicNoSolve4));
-            //solvers.Add(new ClassicAStar(cbsHeuristicNoSolve5));
-            //solvers.Add(new ClassicAStar(cbsHeuristicNoSolve6));
-            //solvers.Add(new ClassicAStar(sicOrCbsh6));
+            //solvers.Add(new A_Star(cbsHeuristicSolve1));
+            //solvers.Add(new A_Star(cbsHeuristicSolve2));
+            //solvers.Add(new A_Star(cbsHeuristicSolve3));
+            //solvers.Add(new A_Star(cbsHeuristicSolve4));
+            //solvers.Add(new A_Star(cbsHeuristicSolve5));
+            //solvers.Add(new A_Star(cbsHeuristicSolve6));
+            //solvers.Add(new A_Star(cbsHeuristicNoSolve1));
+            //solvers.Add(new A_Star(cbsHeuristicNoSolve2));
+            //solvers.Add(new A_Star(cbsHeuristicNoSolve3));
+            //solvers.Add(new A_Star(cbsHeuristicNoSolve4));
+            //solvers.Add(new A_Star(cbsHeuristicNoSolve5));
+            //solvers.Add(new A_Star(cbsHeuristicNoSolve6));
+            //solvers.Add(new A_Star(sicOrCbsh6));
 
-            //solvers.Add(new AStarWithOD(cbsHeuristicSolve1));
-            //solvers.Add(new AStarWithOD(cbsHeuristicSolve2));
-            //solvers.Add(new AStarWithOD(cbsHeuristicSolve3));
-            //solvers.Add(new AStarWithOD(cbsHeuristicSolve4));
-            //solvers.Add(new AStarWithOD(cbsHeuristicSolve5));
-            //solvers.Add(new AStarWithOD(cbsHeuristicSolve6));
-            //solvers.Add(new AStarWithOD(cbsHeuristicNoSolve1));
-            //solvers.Add(new AStarWithOD(cbsHeuristicNoSolve2));
-            //solvers.Add(new AStarWithOD(cbsHeuristicNoSolve3));
-            //solvers.Add(new AStarWithOD(cbsHeuristicNoSolve4));
-            //solvers.Add(new AStarWithOD(cbsHeuristicNoSolve5));
-            //solvers.Add(new AStarWithOD(cbsHeuristicNoSolve6));
-            //solvers.Add(new AStarWithOD(sicOrCbsh6));
+            //solvers.Add(new A_Star_WithOD(cbsHeuristicSolve1));
+            //solvers.Add(new A_Star_WithOD(cbsHeuristicSolve2));
+            //solvers.Add(new A_Star_WithOD(cbsHeuristicSolve3));
+            //solvers.Add(new A_Star_WithOD(cbsHeuristicSolve4));
+            //solvers.Add(new A_Star_WithOD(cbsHeuristicSolve5));
+            //solvers.Add(new A_Star_WithOD(cbsHeuristicSolve6));
+            //solvers.Add(new A_Star_WithOD(cbsHeuristicNoSolve1));
+            //solvers.Add(new A_Star_WithOD(cbsHeuristicNoSolve2));
+            //solvers.Add(new A_Star_WithOD(cbsHeuristicNoSolve3));
+            //solvers.Add(new A_Star_WithOD(cbsHeuristicNoSolve4));
+            //solvers.Add(new A_Star_WithOD(cbsHeuristicNoSolve5));
+            //solvers.Add(new A_Star_WithOD(cbsHeuristicNoSolve6));
+            //solvers.Add(new A_Star_WithOD(sicOrCbsh6));
 
-            ClassicAStar solver;
+            A_Star solver;
             // dynamic not rational lazy A*+OD/CBS/A*/SIC:
-            //solver = new AStarWithOD(simple);
+            //solver = new A_Star_WithOD(simple);
             //var dynamicLazyOpenList1 = new DynamicLazyOpenList(solver, dynamicLazyCbsh, this);
             //solver.openList = dynamicLazyOpenList1;
             //solvers.Add(solver);
 
             // dynamic rational lazy A*+OD/CBS/A*/SIC:
-            //solver = new AStarWithOD(simple);
+            //solver = new A_Star_WithOD(simple);
             //var dynamicRationalLazyOpenList1 = new DynamicRationalLazyOpenList(solver, dynamicLazyCbsh, this);
             //solver.openList = dynamicRationalLazyOpenList1;
             //solvers.Add(solver);
 
             // dynamic rational lazy MA-CBS-local-5/A*+OD/MA-CBS-local-5/EPEA*/SIC:
-            //solver = new AStarWithOD(simple);
+            //solver = new A_Star_WithOD(simple);
             //var dynamicRationalLazyOpenList3 = new DynamicRationalLazyOpenList(solver, dynamicLazyMacbsLocal5EpeaH, this);
             //solver.openList = dynamicRationalLazyOpenList3;
             //solvers.Add(new CBS(astar, solver, 5));
 
-            //solvers.Add(new AStarWithPartialExpansion(cbsHeuristicSolve1));
-            //solvers.Add(new AStarWithPartialExpansion(cbsHeuristicSolve2));
-            //solvers.Add(new AStarWithPartialExpansion(cbsHeuristicSolve3));
-            //solvers.Add(new AStarWithPartialExpansion(cbsHeuristicSolve4));
-            //solvers.Add(new AStarWithPartialExpansion(cbsHeuristicSolve5));
-            //solvers.Add(new AStarWithPartialExpansion(cbsHeuristicSolve6));
-            //solvers.Add(new AStarWithPartialExpansion(cbsHeuristicNoSolve1));
-            //solvers.Add(new AStarWithPartialExpansion(cbsHeuristicNoSolve2));
-            //solvers.Add(new AStarWithPartialExpansion(cbsHeuristicNoSolve3));
-            //solvers.Add(new AStarWithPartialExpansion(cbsHeuristicNoSolve4));
-            //solvers.Add(new AStarWithPartialExpansion(cbsHeuristicNoSolve5));
-            //solvers.Add(new AStarWithPartialExpansion(cbsHeuristicNoSolve6));
-            //solvers.Add(new AStarWithPartialExpansion(sicOrCbsh6));
+            //solvers.Add(new EPEA_Star(cbsHeuristicSolve1));
+            //solvers.Add(new EPEA_Star(cbsHeuristicSolve2));
+            //solvers.Add(new EPEA_Star(cbsHeuristicSolve3));
+            //solvers.Add(new EPEA_Star(cbsHeuristicSolve4));
+            //solvers.Add(new EPEA_Star(cbsHeuristicSolve5));
+            //solvers.Add(new EPEA_Star(cbsHeuristicSolve6));
+            //solvers.Add(new EPEA_Star(cbsHeuristicNoSolve1));
+            //solvers.Add(new EPEA_Star(cbsHeuristicNoSolve2));
+            //solvers.Add(new EPEA_Star(cbsHeuristicNoSolve3));
+            //solvers.Add(new EPEA_Star(cbsHeuristicNoSolve4));
+            //solvers.Add(new EPEA_Star(cbsHeuristicNoSolve5));
+            //solvers.Add(new EPEA_Star(cbsHeuristicNoSolve6));
+            //solvers.Add(new EPEA_Star(sicOrCbsh6));
 
             // dynamic not rational lazy EPEA*/CBS/A*/SIC:
-            //solver = new AStarWithPartialExpansion(simple);
+            //solver = new EPEA_Star(simple);
             //var dynamicLazyOpenList2 = new DynamicLazyOpenList(solver, dynamicLazyCbsh, this);
             //solver.openList = dynamicLazyOpenList2;
             //solvers.Add(solver);
 
             // dynamic rational lazy EPEA*/CBS/A*/SIC:
-            //solver = new AStarWithPartialExpansion(simple);
+            //solver = new EPEA_Star(simple);
             //var dynamicRationalLazyOpenList2 = new DynamicRationalLazyOpenList(solver, dynamicLazyCbsh, this);
             //solver.openList = dynamicRationalLazyOpenList2;
             //solvers.Add(solver);
@@ -524,13 +524,13 @@ namespace CPF_experiment
             /*
              * soldiers:
             // MA-CBS-local-5 / dynamic rational lazy EPEA* / MA-CBS-local-50 / EPEA* / SIC:
-            solver = new AStarWithPartialExpansion(simple);
+            solver = new EPEA_Star(simple);
             var dynamicRationalLazyOpenList4 = new DynamicRationalLazyOpenList(solver, dynamicLazyMacbsLocal50EpeaH, this);
             solver.openList = dynamicRationalLazyOpenList4;
             solvers.Add(new CBS(astar, solver, 5));
 
             // dynamic rational lazy EPEA* / MA-CBS-local-5 / EPEA* / SIC + (S)ID:
-            solver = new AStarWithPartialExpansion(simple);
+            solver = new EPEA_Star(simple);
             var dynamicRationalLazyOpenList6 = new DynamicRationalLazyOpenList(solver, dynamicLazyMacbsLocal5EpeaH, this);
             solver.openList = dynamicRationalLazyOpenList6;
             solvers.Add(new CBS(astar, solver, 0));
@@ -539,7 +539,7 @@ namespace CPF_experiment
             /*
             //soldier: but can't handle 50 agents
             // dynamic rational lazy EPEA* / MA-CBS-local-5 / EPEA* / SIC:
-            solver = new AStarWithPartialExpansion(simple);
+            solver = new EPEA_Star(simple);
             var dynamicRationalLazyOpenList8 = new DynamicRationalLazyOpenList(solver, dynamicLazyMacbsLocal5EpeaH, this);
             solver.openList = dynamicRationalLazyOpenList8;
             solvers.Add(solver);
@@ -561,32 +561,32 @@ namespace CPF_experiment
             //solvers.Add(new CostTreeSearchOldMatching(3));
             //solvers.Add(new CostTreeSearchRepeatedMatch(3));
 
-            //solvers.Add(new IndependenceDetection(new AStarWithPartialExpansion()));
-            //solvers.Add(new IndependenceDetection(new CBS_GlobalConflicts(new AStarWithPartialExpansion(), 1, 1)));
-            //solvers.Add(new IndependenceDetection(new CBS_GlobalConflicts(new AStarWithPartialExpansion(), 5, 5)));
-            //solvers.Add(new IndependenceDetection(new CBS_GlobalConflicts(new AStarWithPartialExpansion(), 10, 10)));
-            //solvers.Add(new IndependenceDetection(new CBS_GlobalConflicts(new AStarWithPartialExpansion(), 100, 100)));
-            //solvers.Add(new IndependenceDetection(new CBS_GlobalConflicts(new AStarWithPartialExpansion(), 500, 500)));
-            //solvers.Add(new IndependenceDetection(new CBS_GlobalConflicts(new ClassicAStar())));
+            //solvers.Add(new IndependenceDetection(new EPEA_Star()));
+            //solvers.Add(new IndependenceDetection(new MACBS_WholeTreeThreshold(new EPEA_Star(), 1, 1)));
+            //solvers.Add(new IndependenceDetection(new MACBS_WholeTreeThreshold(new EPEA_Star(), 5, 5)));
+            //solvers.Add(new IndependenceDetection(new MACBS_WholeTreeThreshold(new EPEA_Star(), 10, 10)));
+            //solvers.Add(new IndependenceDetection(new MACBS_WholeTreeThreshold(new EPEA_Star(), 100, 100)));
+            //solvers.Add(new IndependenceDetection(new MACBS_WholeTreeThreshold(new EPEA_Star(), 500, 500)));
+            //solvers.Add(new IndependenceDetection(new MACBS_WholeTreeThreshold(new A_Star())));
 
-            //solvers.Add(new IndependenceDetection(new CBS_GlobalConflicts(new ClassicAStar(), 1, 1)));
-            //solvers.Add(new IndependenceDetection(new CBS_GlobalConflicts(new ClassicAStar(), 5, 5)));
-            //solvers.Add(new IndependenceDetection(new CBS_GlobalConflicts(new ClassicAStar(), 10, 10)));
-            //solvers.Add(new IndependenceDetection(new CBS_GlobalConflicts(new ClassicAStar(), 100, 100)));
-            //solvers.Add(new IndependenceDetection(new CBS_GlobalConflicts(new ClassicAStar(), 500, 500)));
+            //solvers.Add(new IndependenceDetection(new MACBS_WholeTreeThreshold(new A_Star(), 1, 1)));
+            //solvers.Add(new IndependenceDetection(new MACBS_WholeTreeThreshold(new A_Star(), 5, 5)));
+            //solvers.Add(new IndependenceDetection(new MACBS_WholeTreeThreshold(new A_Star(), 10, 10)));
+            //solvers.Add(new IndependenceDetection(new MACBS_WholeTreeThreshold(new A_Star(), 100, 100)));
+            //solvers.Add(new IndependenceDetection(new MACBS_WholeTreeThreshold(new A_Star(), 500, 500)));
 
-            //solvers.Add(new IndependenceDetection(new AStarWithPartialExpansionBasic()));
-            //solvers.Add(new IndependenceDetection(new AStarWithPartialExpansion()));
-            //solvers.Add(new IndependenceDetection(new ClassicAStar()));
+            //solvers.Add(new IndependenceDetection(new PEA_Star()));
+            //solvers.Add(new IndependenceDetection(new EPEA_Star()));
+            //solvers.Add(new IndependenceDetection(new A_Star()));
             //solvers.Add(new IndependenceDetection());
 
-            //solvers.Add(new CBS_IDA(new ClassicAStar())); // Don't run! Uses must conds
+            //solvers.Add(new CBS_IDA(new A_Star())); // Don't run! Uses must conds
 
-            //solvers.Add(new CBS_GlobalConflicts(new ClassicAStar())); // Works
+            //solvers.Add(new MACBS_WholeTreeThreshold(new A_Star())); // Works
 
-            //solvers.Add(new CBS_NoDD(new ClassicAStar()));
-            //solvers.Add(new CBS_NoDDb3(new ClassicAStar()));
-            //solvers.Add(new CBS_GlobalConflicts(new ClassicAStar(), 1, 1)); // Run this!
+            //solvers.Add(new CBS_NoDD(new A_Star()));
+            //solvers.Add(new CBS_NoDDb3(new A_Star()));
+            //solvers.Add(new MACBS_WholeTreeThreshold(new A_Star(), 1, 1)); // Run this!
 
             outOfTimeCounters = new int[solvers.Count];
             for (int i = 0; i < outOfTimeCounters.Length; i++)
@@ -812,7 +812,7 @@ namespace CPF_experiment
 
             // Initializing all heuristics, whereever they're used
             for (int i = 0; i < astar_heuristics.Count; i++)
-                astar_heuristics[i].init(instance, agentList);
+                astar_heuristics[i].Init(instance, agentList);
 
             int solutionCost = -1;
             int firstSolverToSolveIndex = -1;
@@ -828,12 +828,12 @@ namespace CPF_experiment
                     //if (i != 2)
                     //    continue;
                     //if (i == 1)
-                    //    ((ClassicAStar)solvers[i]).debug = true;
+                    //    ((A_Star)solvers[i]).debug = true;
                     //if (i == 4)
                     //    ((CBS)solvers[i]).debug = true;
                     //if (i == 4)
                     //    ((CBS)((IndependenceDetection)solvers[i]).groupSolver).debug = true;
-                    if (solvers[i].GetType() == typeof(CBS) || solvers[i].GetType() == typeof(CBS_GlobalConflicts))
+                    if (solvers[i].GetType() == typeof(CBS) || solvers[i].GetType() == typeof(MACBS_WholeTreeThreshold))
                     {
                         if (((CBS)solvers[i]).mergeThreshold == 314159) // MAGIC NUMBER WHICH MAKES US ADJUST B according to map
                         {
@@ -850,7 +850,7 @@ namespace CPF_experiment
                         (solvers[i].GetType() == typeof(IndependenceDetection) &&
                          ((IndependenceDetection)solvers[i]).groupSolver.GetType() == typeof(CBS)) ||
                         (solvers[i].GetType() == typeof(IndependenceDetection) &&
-                         ((IndependenceDetection)solvers[i]).groupSolver.GetType() == typeof(CBS_GlobalConflicts))
+                         ((IndependenceDetection)solvers[i]).groupSolver.GetType() == typeof(MACBS_WholeTreeThreshold))
                        )
                     {
                         if (((CBS)((IndependenceDetection)solvers[i]).groupSolver).mergeThreshold == 314159) // MAGIC NUMBER SEE ABOVE

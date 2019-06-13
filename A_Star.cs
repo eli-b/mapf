@@ -7,9 +7,10 @@ using System.Diagnostics;
 namespace CPF_experiment
 {   
     /// <summary>
-    /// This is an implementation of the classic A* algorithm for the MAPF problem.
+    /// This is an implementation of the A* algorithm for the MAPF problem.
+    /// It r
     /// </summary>
-    public class ClassicAStar : ICbsSolver, IMStarSolver, IHeuristicSolver<WorldState>
+    public class A_Star : ICbsSolver, IMStarSolver, IHeuristicSolver<WorldState>
     {
         protected ProblemInstance instance;
         protected IHeuristicCalculator<WorldState> heuristic;
@@ -73,7 +74,7 @@ namespace CPF_experiment
         /// <summary>
         /// Default constructor.
         /// </summary>
-        public ClassicAStar(IHeuristicCalculator<WorldState> heuristic = null, bool mStar = false, bool mStarShuffle = false)
+        public A_Star(IHeuristicCalculator<WorldState> heuristic = null, bool mStar = false, bool mStarShuffle = false)
         {
             this.closedList = new Dictionary<WorldState, WorldState>();
             this.openList = new OpenList<WorldState>(this);
@@ -87,7 +88,7 @@ namespace CPF_experiment
         }
 
         /// <summary>
-        /// Setup the relevant data structures for a run.
+        /// Setup the relevant data structures for a run under CBS.
         /// </summary>
         public virtual void Setup(ProblemInstance problemInstance, int minDepth, Run runner,
                                   int minCost, int maxCost, MDD mdd = null)
@@ -134,9 +135,9 @@ namespace CPF_experiment
                 ((HashSet_U<CbsConstraint>)problemInstance.parameters[CBS.CONSTRAINTS]).Count != 0)
                  this.constraints = (HashSet_U<CbsConstraint>)problemInstance.parameters[CBS.CONSTRAINTS];
  
-             if (problemInstance.parameters.ContainsKey(CBS.MUST_CONSTRAINTS) &&
-                 ((HashSet_U<CbsConstraint>)problemInstance.parameters[CBS.MUST_CONSTRAINTS]).Count != 0)
-             {
+            if (problemInstance.parameters.ContainsKey(CBS.MUST_CONSTRAINTS) &&
+                ((HashSet_U<CbsConstraint>)problemInstance.parameters[CBS.MUST_CONSTRAINTS]).Count != 0)
+            {
                  var musts = (HashSet_U<CbsConstraint>)problemInstance.parameters[CBS.MUST_CONSTRAINTS];
                  this.mustConstraints = new Dictionary<int, TimedMove>[musts.Max<CbsConstraint>(con => con.GetTimeStep()) + 1]; // To have index MAX, array needs MAX + 1 places.
                  foreach (CbsConstraint con in musts)
@@ -146,15 +147,15 @@ namespace CPF_experiment
                          this.mustConstraints[timeStep] = new Dictionary<int, TimedMove>();
                      this.mustConstraints[timeStep][con.agentNum] = con.move;
                  }
-             }
+            }
 
-             if (this.mstar)
-             {
-                 root.backPropagationSet = new HashSet<WorldState>();
-                 root.collisionSets = new DisjointSets<int>();
+            if (this.mstar)
+            {
+                root.backPropagationSet = new HashSet<WorldState>();
+                root.collisionSets = new DisjointSets<int>();
 
-                 this.mstarBackPropagationConflictList = new List<CbsConflict>();
-             }
+                this.mstarBackPropagationConflictList = new List<CbsConflict>();
+            }
         }
 
         /// <summary>
@@ -413,7 +414,7 @@ namespace CPF_experiment
                 {
                     totalCost = Constants.TIMEOUT_COST;
                     Console.WriteLine("Out of time");
-                    this.solutionDepth = openList.Peek().g + openList.Peek().h - initialEstimate; // A minimum estimate, assuming h is admissable
+                    this.solutionDepth = openList.Peek().g + openList.Peek().h - initialEstimate; // A minimum estimate, assuming h is admissible
                     this.Clear();
                     return false;
                 }
@@ -458,8 +459,8 @@ namespace CPF_experiment
                 //}
 
                 if (this.mstar == false && // Backpropagation can cause the root to be re-expanded after many more expensive nodes were expanded.
-                    (Constants.costFunction == Constants.CostFunction.SUM_OF_COSTS || this.GetType() != typeof(AStarWithOD)) &&  // A*+OD on makespan can have final nodes with lower F than intermediate nodes because the move cost is
-                                                                                                                                 // attributed to the first agent and its gains may show up in a later agent's h
+                    (Constants.costFunction == Constants.CostFunction.SUM_OF_COSTS || this.GetType() != typeof(A_Star_WithOD)) &&  // A*+OD on makespan can have final nodes with lower F than intermediate nodes because the move cost is
+                                                                                                                                   // attributed to the first agent and its gains may show up in a later agent's h
                     (this.openList is DynamicLazyOpenList<WorldState>) == false && // When the open list has just one node, application of the heuristic is skipped altogether.
                     (this.openList is DynamicRationalLazyOpenList) == false        // This can cause decreasing F values.
                     )
@@ -1026,7 +1027,7 @@ namespace CPF_experiment
         protected virtual bool ProcessGeneratedNode(WorldState currentNode)
         {
             if (currentNode.f <= this.maxSolutionCost)
-            // Assuming h is an admissable heuristic, no need to generate nodes that won't get us to the goal
+            // Assuming h is an admissible heuristic, no need to generate nodes that won't get us to the goal
             // within the budget
             {
                 if (instance.parameters.ContainsKey(IndependenceDetection.CONFLICT_AVOIDANCE))
@@ -1182,27 +1183,6 @@ namespace CPF_experiment
 
                 if (wasInClosedList == false || removedFromClosedList)
                 {
-                    //if (this.instance.agents.Length > 2)
-                    //{
-                    //    int a = 3;
-                    //    int b = (a + 2) * 2;
-
-                    //    int x1, x2, x3, y1, y2, y3;
-                    //    x1 = 5; y1 = 3;
-                    //    x2 = 2; y2 = 4;
-                    //    x3 = 2; y3 = 2;
-                    //    if (currentNode.allAgentsState[0].lastMove.x == x1 &&
-                    //        currentNode.allAgentsState[0].lastMove.y == y1 &&
-                    //        currentNode.allAgentsState[1].lastMove.x == x2 &&
-                    //        currentNode.allAgentsState[1].lastMove.y == y2 &&
-                    //        currentNode.allAgentsState[2].lastMove.x == x3 &&
-                    //        currentNode.allAgentsState[2].lastMove.y == y3)
-                    //    {
-                    //        int c = 3;
-                    //        int d = 3 * c;
-                    //    }
-                    //}
-
                     this.closedList.Add(currentNode, currentNode);
                     this.generated++; // Reopened nodes are also recounted here.
                     this.openList.Add(currentNode);
@@ -1252,16 +1232,16 @@ namespace CPF_experiment
         //    HashSet_U<CbsConstraint> constraints = null;
         //    HashSet<CbsConstraint> newConstraints = null;
         //    int oldMaxCost = int.MaxValue;
-        //    if (this.instance.parameters.ContainsKey(CBS_LocalConflicts.CONSTRAINTS))
-        //        constraints = (HashSet_U<CbsConstraint>)this.instance.parameters[CBS_LocalConflicts.CONSTRAINTS];
+        //    if (this.instance.parameters.ContainsKey(CBS.CONSTRAINTS))
+        //        constraints = (HashSet_U<CbsConstraint>)this.instance.parameters[CBS.CONSTRAINTS];
         //    else
         //    {
         //        constraints = new HashSet_U<CbsConstraint>();
-        //        this.instance.parameters[CBS_LocalConflicts.CONSTRAINTS] = constraints;
+        //        this.instance.parameters[CBS.CONSTRAINTS] = constraints;
         //    }
 
-        //    if (this.instance.parameters.ContainsKey(CBS_LocalConflicts.CAT) == false)
-        //        this.instance.parameters[CBS_LocalConflicts.CAT] = new Dictionary_U<TimedMove, int>(); // Indicate TO CBS that another level is running above it
+        //    if (this.instance.parameters.ContainsKey(CBS.CAT) == false)
+        //        this.instance.parameters[CBS.CAT] = new Dictionary_U<TimedMove, int>(); // Indicate TO CBS that another level is running above it
 
         //    if (this.debug)
         //    {
@@ -1290,7 +1270,7 @@ namespace CPF_experiment
 
         //    constraints.Separate(newConstraints);
         //    this.instance.parameters[IndependenceDetection.MAXIMUM_COST_KEY] = oldMaxCost;
-        //    this.instance.parameters.Remove(CBS_LocalConflicts.CAT);
+        //    this.instance.parameters.Remove(CBS.CAT);
 
         //    return success;
         //}
@@ -1301,8 +1281,8 @@ namespace CPF_experiment
         //    thisAgentOnly[0] = node.allAgentsState[agentIndex];
         //    var subProblem = this.instance.Subproblem(thisAgentOnly);
 
-        //    ClassicAStar astar = new ClassicAStar(this.heuristic);
-        //    ICbsSolver solver = new CBS_LocalConflicts(astar, astar); // Uses a precomputed solution if possible
+        //    A_Star astar = new A_Star(this.heuristic);
+        //    ICbsSolver solver = new CBS(astar, astar); // Uses a precomputed solution if possible
         //    solver.Setup(subProblem, this.runner);
         //    bool success = solver.Solve();
 

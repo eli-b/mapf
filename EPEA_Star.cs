@@ -5,12 +5,12 @@ using System;
 
 namespace CPF_experiment
 {
-    class AStarWithPartialExpansion : ClassicAStar 
+    class EPEA_Star : A_Star 
     {
         protected int expandedFullStates;
         protected int accExpandedFullStates;
 
-        public AStarWithPartialExpansion(IHeuristicCalculator<WorldState> heuristic = null, bool mstar = false, bool mstarShuffle = false)
+        public EPEA_Star(IHeuristicCalculator<WorldState> heuristic = null, bool mstar = false, bool mstarShuffle = false)
             : base(heuristic, mstar, mstarShuffle) { }
 
         override protected WorldState CreateSearchRoot(int minDepth = -1, int minCost = -1, MDDNode mddNode = null)

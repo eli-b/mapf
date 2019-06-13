@@ -206,7 +206,7 @@ namespace CPF_experiment
                 return null;
 
             this.solver.passed++;
-            AStarMDD findSolution = new AStarMDD(allMDDs, runner, ID_CAT, CBS_CAT);
+            A_Star_MDD findSolution = new A_Star_MDD(allMDDs, runner, ID_CAT, CBS_CAT);
             
             SinglePlan[] ans = findSolution.Solve();
             this.generated = findSolution.generated;
@@ -254,7 +254,7 @@ namespace CPF_experiment
             for (int i = 0; i < allMDDs.Length; i++)
                 if (allMDDs[i].levels == null)
                     return null;
-            AStarMDD findSolution = new AStarMDD(allMDDs, runner, ID_CAT, CBS_CAT);
+            A_Star_MDD findSolution = new A_Star_MDD(allMDDs, runner, ID_CAT, CBS_CAT);
             SinglePlan[] ans = findSolution.Solve();
             generated = findSolution.generated;
             expanded = findSolution.expanded;
@@ -279,7 +279,7 @@ namespace CPF_experiment
         public override SinglePlan[] Solve(Dictionary<TimedMove, List<int>> ID_CAT,
                                            Dictionary<TimedMove, List<int>> CBS_CAT)
         {
-            AStarMDD findSolution;
+            A_Star_MDD findSolution;
             SinglePlan[] subCheck;
             MDD[] match;
             MddMatchAndPrune matcher = new MddMatchAndPrune(runner, this);
@@ -302,7 +302,7 @@ namespace CPF_experiment
                         //matcher.initialize(match);
 
                         //if (matcher.pruneMDDs() == false)
-                        findSolution = new AStarMDD(match, runner, ID_CAT, CBS_CAT);
+                        findSolution = new A_Star_MDD(match, runner, ID_CAT, CBS_CAT);
 
                         subCheck = findSolution.Solve();
                         if (subCheck == null || subCheck[0] == null)
@@ -327,7 +327,7 @@ namespace CPF_experiment
                             //matcher.initialize(match);
 
                             //if (matcher.pruneMDDs() == false)
-                            findSolution = new AStarMDD(match, runner, ID_CAT, CBS_CAT);
+                            findSolution = new A_Star_MDD(match, runner, ID_CAT, CBS_CAT);
 
                             subCheck = findSolution.Solve();
                             if (subCheck == null || subCheck[0] == null)
@@ -356,7 +356,7 @@ namespace CPF_experiment
                                 //matcher.initialize(match);
 
                                 //if (matcher.pruneMDDs() == false)
-                                findSolution = new AStarMDD(match, runner, ID_CAT, CBS_CAT);
+                                findSolution = new A_Star_MDD(match, runner, ID_CAT, CBS_CAT);
 
                                 subCheck = findSolution.Solve();
                                 if (subCheck == null || subCheck[0] == null)
@@ -373,7 +373,7 @@ namespace CPF_experiment
             this.solver.passed++;
             if (allMDDs[0].levels == null)
                 return null;
-            findSolution = new AStarMDD(allMDDs, runner, ID_CAT, CBS_CAT);
+            findSolution = new A_Star_MDD(allMDDs, runner, ID_CAT, CBS_CAT);
             SinglePlan[] ans = findSolution.Solve();
             generated = findSolution.generated;
             expanded = findSolution.expanded;
@@ -450,7 +450,7 @@ namespace CPF_experiment
             this.solver.passed++;
             if (allMDDs[0].levels == null)
                 return null;
-            AStarMDD findSolution = new AStarMDD(allMDDs, runner, ID_CAT, CBS_CAT);
+            A_Star_MDD findSolution = new A_Star_MDD(allMDDs, runner, ID_CAT, CBS_CAT);
             SinglePlan[] ans = findSolution.Solve();
             generated = findSolution.generated;
             expanded = findSolution.expanded;

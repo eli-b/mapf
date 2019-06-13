@@ -2,9 +2,10 @@
 namespace CPF_experiment
 {
     /// <summary>
-    /// This Solver runs A* but from time to time tries to solve completely the expanded node, by using Standley's independent detection.
+    /// This Solver runs A* but from time to time tries to solve completely the expanded node
+    /// using Standley's independence detection.
     /// </summary>
-    class AStarWithRID : AStarWithOD
+    class A_Star_WithRID : A_Star_WithOD
     {
 
         override public string GetName() { return "A*+RID"; }

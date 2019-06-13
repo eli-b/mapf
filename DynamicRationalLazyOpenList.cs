@@ -79,7 +79,7 @@ namespace CPF_experiment
             }
 
             // There are alternatives to the lowest cost node in the open list, try to postpone expansion of it:
-            float branchingFactor = ((ClassicAStar)this.user).GetEffectiveBranchingFactor(); // We know the solver is an A* variant.
+            float branchingFactor = ((A_Star)this.user).GetEffectiveBranchingFactor(); // We know the solver is an A* variant.
             const double binaryHeapTau = 0.073359375; // microseconds. From empirical experiments with this infra on my computer.
             double logN = Math.Log(this.heap.Count, 2); // Removals from and insertions to the queue cost practically zero.
             double t0 = binaryHeapTau * logN; // TODO: Measure this directly?

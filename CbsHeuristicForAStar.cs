@@ -107,7 +107,7 @@ namespace CPF_experiment
                         sicEstimate = (int) SumIndividualCosts.h(s, this.instance);
                     Debug.Assert(((CbsNode)this.cbs.openList.Peek()).g - s.g == (int)sicEstimate,
                                     "Total cost of CBS root not same as SIC + g");
-                    // Notice we're substracting s.g, not sAsProblemInstance.g.
+                    // Notice we're subtracting s.g, not sAsProblemInstance.g.
                     // Must constraints we put may have forced some moves,
                     // and we shouldn't count them as part of the estimate.
                 }
@@ -170,7 +170,7 @@ namespace CPF_experiment
                 // Brute-force validation of admissability of estimate:
                 var sic = new SumIndividualCosts();
                 sic.Init(this.instance, this.agentsToConsider);
-                var epeastarsic = new AStarWithPartialExpansion(sic);
+                var epeastarsic = new EPEA_Star(sic);
                 epeastarsic.Setup(sAsProblemInstance, s.makespan, runner);
                 bool epeastarsicSolved = epeastarsic.Solve();
                 if (epeastarsicSolved)
