@@ -626,7 +626,7 @@ namespace CPF_experiment
             Debug.WriteLine("");
             Debug.WriteLine("");
             Debug.WriteLine($"Node hash: {this.GetHashCode()}");
-            Debug.WriteLine($"Total cost so far: {this.g}");
+            Debug.WriteLine($"g: {this.g}");
             Debug.WriteLine($"h: {this.h}");
             Debug.WriteLine($"Min estimated ops needed: {this.minOpsToSolve}");
             Debug.WriteLine($"Expansion state: {this.agentAExpansion}, {this.agentBExpansion}");

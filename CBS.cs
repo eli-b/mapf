@@ -763,6 +763,7 @@ namespace CPF_experiment
                     return false;
                 }
 
+                Debug.WriteLine("Getting the next node from OPEN");
                 CbsNode currentNode = openList.Remove();
 
                 if (currentNode.f > this.maxSolutionCost)  // A late heuristic application may have increased the node's cost
@@ -783,15 +784,10 @@ namespace CPF_experiment
                 // there would be no point in pushing their node back at that point,
                 // as we would've already made the split by then.
 
-                this.addToGlobalConflictCount(currentNode.GetConflict()); // TODO: Make CBS_GlobalConflicts use nodes that do this automatically after choosing a conflict
+                this.addToGlobalConflictCount(currentNode.GetConflict()); // TODO: Make MACBS_WholeTreeThreshold use nodes that do this automatically after choosing a conflict
 
+                Debug.WriteLine("Expanding node: ");
                 currentNode.DebugPrint();
-
-                // Shuffle stage:
-                if (this.doShuffle)
-                {
-                    this.Shuffle(currentNode);
-                }
 
                 // Update nodesExpandedWithGoalCost statistic
                 if (currentNode.g > currentCost) // Needs to be here because the goal may have a cost unseen before
@@ -837,7 +833,7 @@ namespace CPF_experiment
                 if (maxExpandedNodeF < currentNode.f)
                 {
                     maxExpandedNodeF = currentNode.f;
-                    Debug.Print("New max F: {0}", maxExpandedNodeF);
+                    Debug.WriteLine("New max F: {0}", maxExpandedNodeF);
                 }
 
                 // Check conditions that stop the search before a goal is found
@@ -877,197 +873,6 @@ namespace CPF_experiment
         protected virtual bool ShouldMerge(CbsNode node)
         {
             return node.ShouldMerge(mergeThreshold);
-        }
-
-        /// <summary>
-        /// TODO: Count the shuffles.
-        /// TODO: Consider choosing a different conflict to work on if that current one couldn't be solved with a shuffle.
-        ///       It isn't so easy, because just choosing another conflict won't work - a shuffle that changed nothing would revert to the old conflict automatically.
-        /// </summary>
-        /// <param name="currentNode"></param>
-        protected void Shuffle(CbsNode currentNode)
-        {
-            if (currentNode.agentAExpansion != CbsNode.ExpansionState.NOT_EXPANDED || currentNode.agentBExpansion != CbsNode.ExpansionState.NOT_EXPANDED)
-                return; // Partially expanded node was already shuffled before
-
-            bool conflictChanged = false;
-            int lastReshuffledAgent = -1; // To quiet the compiler
-            int beforeLastReshuffledAgent = -1; // To quiet the compiler
-
-            while (currentNode.GoalTest() == false)
-            {
-                CbsConflict conflict;
-                int groupRepresentative;
-                int internalConflictCountBefore;
-                int externalConflictCountBefore;
-                bool success;
-                int internalConflictCountAfter;
-                int externalConflictCountAfter;
-                bool agentAPlanChanged = false;
-                CbsConflict lastConflict = currentNode.GetConflict();
-
-                conflict = currentNode.GetConflict();
-                if (
-                    ( // This is the root, and we're just starting to work on it
-                     conflictChanged == false &&
-                     currentNode.prev == null
-                    ) ||
-                    ( // Check that the first agent in the conflict wasn't just replanned or merged - shuffling in that case would necessarily have the same result since the low level is deterministic
-                     conflictChanged == false &&
-                     currentNode.prev != null &&
-                     (
-                      (currentNode.constraint == null && // This node is the result of a merge (since it isn't the root)
-                       currentNode.prev.GetGroup(currentNode.prev.GetConflict().agentAIndex).Contains(conflict.agentAIndex) == false &&
-                       currentNode.prev.GetGroup(currentNode.prev.GetConflict().agentBIndex).Contains(conflict.agentAIndex) == false // Agent A in this node's conflict wasn't just merged
-                      ) || 
-                      (currentNode.constraint != null && // This node is the result of a replan
-                       conflict.agentAIndex != currentNode.agentNumToIndex[currentNode.constraint.agentNum] // Agent A wasn't just replanned
-                      )
-                     )
-                    ) ||
-                    ( // Check that the first agent in the conflict wasn't just reshuffled
-                     conflictChanged == true &&
-                     lastReshuffledAgent != conflict.agentAIndex
-                    )
-                   )
-                {
-                    // Are infinite improvement loops possible (a1 improves by screwing a2 and vice versa)? I don't think so, because we're looking for strictly better solutions.
-                    Debug.WriteLine("");
-                    Debug.WriteLine("Shuffling the first agent...");
-
-                    groupRepresentative = currentNode.agentsGroupAssignment[conflict.agentAIndex];
-                    internalConflictCountBefore = currentNode.countsOfInternalAgentsThatConflict[groupRepresentative];
-                    externalConflictCountBefore = currentNode.totalExternalAgentsThatConflict;
-                    SinglePlan agentAPlanBefore = currentNode.allSingleAgentPlans[conflict.agentAIndex];
-                    success = currentNode.Replan(conflict.agentAIndex, this.minSolutionTimeStep);
-                    // TODO: Pass minPathCost correctly, also cap the path cost to the same value
-                    if (success == false) // Usually means a timeout occured
-                        break;
-                    beforeLastReshuffledAgent = lastReshuffledAgent;
-                    lastReshuffledAgent = conflict.agentAIndex;
-                    internalConflictCountAfter = currentNode.countsOfInternalAgentsThatConflict[groupRepresentative];
-                    externalConflictCountAfter = currentNode.totalExternalAgentsThatConflict;
-
-                    if ((internalConflictCountAfter > internalConflictCountBefore) ||
-                        (internalConflictCountAfter == internalConflictCountBefore) && (externalConflictCountAfter >= externalConflictCountBefore))
-                    {
-                        Debug.WriteLine($"Shuffling the first agent didn't help: " +
-                                        $"internal before={internalConflictCountBefore} " +
-                                        $"internal after={internalConflictCountAfter} " +
-                                        $"external before={externalConflictCountBefore} " +
-                                        $"external after={externalConflictCountAfter}");
-                        // Notice the shuffle can't increase the number of conflicts as the low level tries to minimize it,
-                        // and the current configuration of paths is possible.
-                    }
-                    else
-                    {
-                        Debug.WriteLine($"Shuffling the left agent helped! " +
-                                        $"internal before={internalConflictCountBefore} " +
-                                        $"internal after={internalConflictCountAfter} " +
-                                        $"external before={externalConflictCountBefore} " +
-                                        $"external after={externalConflictCountAfter}");
-                        currentNode.DebugPrint();
-                    }
-                    if (currentNode.GetConflict() == null ||
-                        currentNode.GetConflict().Equals(lastConflict) == false) // Shuffling can help even without changing the conflict, by resolving unselected conflicts
-                    {
-                        Debug.WriteLine("Conflict changed - restarting shuffle");
-                        //currentNode.Print();
-                        conflictChanged = true;
-                        continue;
-                    }
-
-                    agentAPlanChanged = agentAPlanBefore == currentNode.allSingleAgentPlans[conflict.agentAIndex]; // Can also happen if there was no improvement
-                }
-                else
-                {
-                    Debug.WriteLine("Skipping shuffling of first agent - it was just replanned, merged or reshuffled");
-                }
-
-
-
-                if (
-                    agentAPlanChanged == true || // Then even if agentB was replanned/merged/shuffled recently, agent B is going to see a new CAT
-                    ( // This is the root, and we're just starting to work on it
-                     conflictChanged == false &&
-                     currentNode.prev == null
-                    ) ||
-                    ( // Check that the first agent in the conflict wasn't just replanned or merged - shuffling in that case would necessarily have the same result since the low level is deterministic
-                     conflictChanged == false &&
-                     currentNode.prev != null &&
-                     (
-                      (currentNode.constraint == null && // This node is the result of a merge (since it isn't the root)
-                       currentNode.prev.GetGroup(currentNode.prev.GetConflict().agentAIndex).Contains(conflict.agentBIndex) == false &&
-                       currentNode.prev.GetGroup(currentNode.prev.GetConflict().agentBIndex).Contains(conflict.agentBIndex) == false // Agent A in this node's conflict wasn't just merged
-                      ) ||
-                      (currentNode.constraint != null && // This node is the result of a replan
-                       conflict.agentBIndex != currentNode.agentNumToIndex[currentNode.constraint.agentNum] // Agent B wasn't just replanned
-                      )
-                     )
-                    ) ||
-                    ( // Check that the first agent in the conflict wasn't just reshuffled
-                     conflictChanged == true &&
-                     beforeLastReshuffledAgent != conflict.agentBIndex
-                    )
-                   )
-                {
-                    Debug.WriteLine("");
-                    Debug.WriteLine("Shuffling the second agent...");
-
-                    conflict = currentNode.GetConflict();
-                    groupRepresentative = currentNode.agentsGroupAssignment[conflict.agentBIndex];
-                    internalConflictCountBefore = currentNode.countsOfInternalAgentsThatConflict[groupRepresentative];
-                    externalConflictCountBefore = currentNode.totalExternalAgentsThatConflict;
-                    success = currentNode.Replan(conflict.agentBIndex, this.minSolutionTimeStep);
-                    // TODO: Pass minPathCost correctly, also cap the path cost to the same value
-                    if (success == false) // Usually means a timeout occured
-                        break;
-                    beforeLastReshuffledAgent = lastReshuffledAgent;
-                    lastReshuffledAgent = conflict.agentBIndex;
-                    internalConflictCountAfter = currentNode.countsOfInternalAgentsThatConflict[groupRepresentative];
-                    externalConflictCountAfter = currentNode.totalExternalAgentsThatConflict;
-
-                    if ((internalConflictCountAfter > internalConflictCountBefore) ||
-                        (internalConflictCountAfter == internalConflictCountBefore) && (externalConflictCountAfter >= externalConflictCountBefore))
-                    {
-                        Debug.WriteLine($"Shuffling the second agent didn't help: " +
-                                        $"internal before={internalConflictCountBefore} " +
-                                        $"internal after={internalConflictCountAfter} " +
-                                        $"external before={externalConflictCountBefore} " +
-                                        $"external after={externalConflictCountAfter}");
-                    }
-                    else
-                    {
-                        Debug.WriteLine($"Shuffling the second agent helped! " +
-                                        $"internal before={internalConflictCountBefore} " +
-                                        $"internal after={internalConflictCountAfter} " +
-                                        $"external before={externalConflictCountBefore} " +
-                                        $"external after={externalConflictCountAfter}");
-                        currentNode.DebugPrint();
-                    }
-
-                }
-                else
-                {
-                    Debug.WriteLine("Skipping shuffling of second agent - it was just replanned, " +
-                                    "merged or reshuffled and the first agent's shuffle didn't " +
-                                    "change the first agent's plan"); // So the second agent will see the exact same CAT
-                }
-
-                if (currentNode.GetConflict() == null ||
-                    currentNode.GetConflict().Equals(lastConflict) == false)
-                {
-                    Debug.WriteLine("Conflict changed - restarting shuffle");
-                    //currentNode.Print();
-                    conflictChanged = true;
-                    continue;
-                }
-                else
-                {
-                    Debug.WriteLine("Still the exact same conflict - stop shuffling");
-                    break;
-                }
-            }
         }
 
         public virtual void Reset()
@@ -1244,7 +1049,7 @@ namespace CPF_experiment
                     lookAheadOpenList.Add(node);
 
                     if (lookAheadOpenList.Count != 0)
-                        Debug.Print("Starting lookahead:");
+                        Debug.WriteLine("Starting lookahead:");
                     IList<CbsNode> lookAheadChildren;
                     bool lookAheadReinsertParent;
                     int expansions = 0;
@@ -1365,7 +1170,7 @@ namespace CPF_experiment
                 node.parentAlreadyLookedAheadOf = true;
 
                 if (lookAheadOpenList.Count != 0)
-                    Debug.Print("Starting lookahead:");
+                    Debug.WriteLine("Starting lookahead:");
                 IList<CbsNode> lookAheadChildren;
                 bool lookAheadReinsertParent;
                 while (lookAheadOpenList.Count != 0)
@@ -1451,7 +1256,7 @@ namespace CPF_experiment
                             children = new List<CbsNode>(); // Children will be generated when this node comes out of the open list
 
                             if (this.debug)
-                                Debug.Print("Reinserting node into the open list with h=1, since the goal wasn't found with the same cost under it.");
+                                Debug.WriteLine("Reinserting node into the open list with h=1, since the goal wasn't found with the same cost under it.");
                         }
                         else
                         {
@@ -1696,7 +1501,7 @@ namespace CPF_experiment
         public virtual void Expand(CbsNode node)
         {
             if (this.bypassStrategy == BypassStrategy.BEST_FIT_LOOKAHEAD && node.parentAlreadyLookedAheadOf)
-                Debug.Print("Not looking ahead from this node, one of its ancestors of the same cost was already looked ahead of");
+                Debug.WriteLine("Not looking ahead from this node, one of its ancestors of the same cost was already looked ahead of");
 
             if (this.conflictChoice == ConflictChoice.FIRST || this.conflictChoice == ConflictChoice.MOST_CONFLICTING_SMALLEST_AGENTS) // Then just choose a conflict once and stick with it.
             {
@@ -1959,6 +1764,7 @@ namespace CPF_experiment
                 return true;
             }
             Debug.WriteLine("Did not adopt.");
+            Debug.WriteLine("");
             return false;
         }
 

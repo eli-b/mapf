@@ -495,7 +495,7 @@ namespace CPF_experiment
                 if (this.mstar == false)
                 {
                     if (this.debug)
-                        Debug.Print("");
+                        Debug.WriteLine("");
                     //Expand(currentNode);
                 }
                 else
@@ -625,7 +625,7 @@ namespace CPF_experiment
             }
 
             if (this.debug)
-                Debug.Print("\n");
+                Debug.WriteLine("\n");
         }
         
         /// <summary>
@@ -730,13 +730,13 @@ namespace CPF_experiment
                                     otherAgentInColSet == false)
                                 {
                                     if (this.debug)
-                                        Debug.Print("Agent planned route collides with another move!");
+                                        Debug.WriteLine("Agent planned route collides with another move!");
                                     bool success = false;
                                     var conflict = new CbsConflict(
                                             agentIndex, collidingAgentIndex, possibleMove,
                                             intermediateMode.allAgentsState[collidingAgentIndex].lastMove, makespan);
                                     if (this.debug)
-                                        Debug.Print(conflict.ToString());
+                                        Debug.WriteLine(conflict.ToString());
                                     if (success == false)
                                     {
                                         this.mstarBackPropagationConflictList.Add(conflict);
@@ -877,9 +877,9 @@ namespace CPF_experiment
 
                     //    if (this.debug)
                     //    {
-                    //        Debug.Print("Agent {0} plan:", agentIndex);
-                    //        //Debug.Print(this.mstarPlanBasesToTheirPlans[fromNode.individualMStarPlanBases[agentIndex]][agentIndex].ToString());
-                    //        Debug.Print(fromNode.individualMStarPlans[agentIndex].ToString());
+                    //        Debug.WriteLine("Agent {0} plan:", agentIndex);
+                    //        //Debug.WriteLine(this.mstarPlanBasesToTheirPlans[fromNode.individualMStarPlanBases[agentIndex]][agentIndex].ToString());
+                    //        Debug.WriteLine(fromNode.individualMStarPlans[agentIndex].ToString());
                     //    }
                     //}
 
@@ -919,13 +919,13 @@ namespace CPF_experiment
                         otherAgentInColSet == false)
                     {
                         if (this.debug)
-                            Debug.Print("Agent planned route collides with another move!");
+                            Debug.WriteLine("Agent planned route collides with another move!");
                         bool success = false;
                         var conflict = new CbsConflict(
                                 agentIndex, collidingAgentIndex, possibleMove,
                                 intermediateMode.allAgentsState[collidingAgentIndex].lastMove, makespan);
                         if (this.debug)
-                            Debug.Print(conflict.ToString());
+                            Debug.WriteLine(conflict.ToString());
                         //if (this.doMstarShuffle && agentInCollisionSet == false)
                         //{
                         //    ++this.mstarShuffles;
@@ -937,15 +937,15 @@ namespace CPF_experiment
                         //        this.reinsertIntoOpenList(planStart);
                         //        if (this.debug)
                         //        {
-                        //            Debug.Print("Agent {0} new plan:", agentIndex);
-                        //            //Debug.Print(this.mstarPlanBasesToTheirPlans[fromNode.individualMStarPlanBases[agentIndex]][agentIndex].ToString());
-                        //            Debug.Print(fromNode.individualMStarPlans[agentIndex].ToString());
+                        //            Debug.WriteLine("Agent {0} new plan:", agentIndex);
+                        //            //Debug.WriteLine(this.mstarPlanBasesToTheirPlans[fromNode.individualMStarPlanBases[agentIndex]][agentIndex].ToString());
+                        //            Debug.WriteLine(fromNode.individualMStarPlans[agentIndex].ToString());
                         //        }
                         //    }
                         //    else
                         //    {
                         //        if (this.debug)
-                        //            Debug.Print("Replanning Agent {0} for the same cost failed", agentIndex);
+                        //            Debug.WriteLine("Replanning Agent {0} for the same cost failed", agentIndex);
                         //    }
                         //}
                         //if (this.doMstarShuffle && success == false && otherAgentInColSet == false)
@@ -959,15 +959,15 @@ namespace CPF_experiment
                         //        this.reinsertIntoOpenList(planStart);
                         //        if (this.debug)
                         //        {
-                        //            Debug.Print("Agent {0} new plan:", collidingAgentIndex);
-                        //            //Debug.Print(this.mstarPlanBasesToTheirPlans[fromNode.individualMStarPlanBases[collidingAgentIndex]][collidingAgentIndex].ToString());
-                        //            Debug.Print(fromNode.individualMStarPlans[collidingAgentIndex].ToString());
+                        //            Debug.WriteLine("Agent {0} new plan:", collidingAgentIndex);
+                        //            //Debug.WriteLine(this.mstarPlanBasesToTheirPlans[fromNode.individualMStarPlanBases[collidingAgentIndex]][collidingAgentIndex].ToString());
+                        //            Debug.WriteLine(fromNode.individualMStarPlans[collidingAgentIndex].ToString());
                         //        }
                         //    }
                         //    else
                         //    {
                         //        if (this.debug)
-                        //            Debug.Print("Replanning Agent {0} for the same cost failed", collidingAgentIndex);
+                        //            Debug.WriteLine("Replanning Agent {0} for the same cost failed", collidingAgentIndex);
                         //    }
                         //}
                         if (success == false)
@@ -1188,13 +1188,13 @@ namespace CPF_experiment
                     this.openList.Add(currentNode);
                     currentNode.expandedCountWhenGenerated = this.expanded;
                     if (this.debug)
-                        Debug.Print($"Generated node {currentNode}");
+                        Debug.WriteLine($"Generated node {currentNode}");
                     return true;
                 }
                 else
                 {
                     if (this.debug)
-                        Debug.Print($"NOT generating node {currentNode}. It already exists.");
+                        Debug.WriteLine($"NOT generating node {currentNode}. It already exists.");
                 }
 
                 // What if in open list? This implementation immediately puts _generated_ nodes in the closed list,
@@ -1245,7 +1245,7 @@ namespace CPF_experiment
 
         //    if (this.debug)
         //    {
-        //        Debug.Print("Planning for agent index: " + agentIndex + " in node: " + node);
+        //        Debug.WriteLine("Planning for agent index: " + agentIndex + " in node: " + node);
         //    }
             
         //    newConstraints = this.mstarPlanBasesToTheirConstraints[node][agentIndex];
@@ -1255,10 +1255,10 @@ namespace CPF_experiment
 
         //    if (this.debug)
         //    {
-        //        Debug.Print("Constraints: ");
+        //        Debug.WriteLine("Constraints: ");
         //        foreach (var constraint in newConstraints)
         //        {
-        //            Debug.Print(constraint.ToString());
+        //            Debug.WriteLine(constraint.ToString());
         //        }
         //    }
             
@@ -1311,7 +1311,7 @@ namespace CPF_experiment
         void RMStarCollisionBackPropagation(CbsConflict conflict, WorldState fromNode)
         {
             if (this.debug)
-                Debug.Print("Back prop!!");
+                Debug.WriteLine("Back prop!!");
             var queue = new Queue<WorldState>();
             queue.Enqueue(fromNode);
 
@@ -1341,7 +1341,7 @@ namespace CPF_experiment
         void RMStarCollisionBackPropagation(DisjointSets<int> colSets, WorldState fromNode)
         {
             if (this.debug)
-                Debug.Print("Back prop!!");
+                Debug.WriteLine("Back prop!!");
             var queue = new Queue<WorldState>();
             queue.Enqueue(fromNode);
 
