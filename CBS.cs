@@ -148,7 +148,6 @@ namespace CPF_experiment
         /// Used to know when to clear problem parameters.
         /// </summary>
         public bool topMost;
-        public bool doShuffle;
         public BypassStrategy bypassStrategy;
         public bool doMalte;
         public ConflictChoice conflictChoice;
@@ -179,7 +178,6 @@ namespace CPF_experiment
         /// <param name="singleAgentSolver"></param>
         /// <param name="generalSolver"></param>
         /// <param name="mergeThreshold"></param>
-        /// <param name="doShuffle"></param>
         /// <param name="bypassStrategy"></param>
         /// <param name="doMalte"></param>
         /// <param name="conflictChoice"></param>
@@ -189,7 +187,6 @@ namespace CPF_experiment
         /// <param name="mergeCausesRestart"></param>
         public CBS(ICbsSolver singleAgentSolver, ICbsSolver generalSolver,
                                   int mergeThreshold = -1,
-                                  bool doShuffle = false,
                                   BypassStrategy bypassStrategy = BypassStrategy.NONE,
                                   bool doMalte = false,
                                   ConflictChoice conflictChoice = ConflictChoice.FIRST,
@@ -211,7 +208,6 @@ namespace CPF_experiment
             this.mergeThreshold = mergeThreshold;
             this.solver = generalSolver;
             this.singleAgentSolver = singleAgentSolver;
-            this.doShuffle = doShuffle;
             this.bypassStrategy = bypassStrategy;
             this.doMalte = doMalte;
             this.conflictChoice = conflictChoice;
@@ -350,8 +346,6 @@ namespace CPF_experiment
             else
                 lowLevelSolvers = $"(single:{singleAgentSolver} multi:{solver})";
             string variants = "";
-            if (this.doShuffle)
-                variants += " with shuffle";
             if (this.bypassStrategy == BypassStrategy.FIRST_FIT_LOOKAHEAD)
             {
                 if (this.lookaheadMaxExpansions != int.MaxValue)
@@ -1811,7 +1805,6 @@ namespace CPF_experiment
 
         public MACBS_WholeTreeThreshold(ICbsSolver singleAgentSolver, ICbsSolver generalSolver,
                                    int mergeThreshold = -1,
-                                   bool doShuffle = false,
                                    BypassStrategy bypassStrategy = BypassStrategy.NONE,
                                    bool doMalte = false,
                                    ConflictChoice conflictChoice = ConflictChoice.FIRST,
@@ -1819,7 +1812,7 @@ namespace CPF_experiment
                                    bool disableTieBreakingByMinOpsEstimate = false,
                                    int lookaheadMaxExpansions = 1,
                                    bool mergeCausesRestart = false)
-            : base(singleAgentSolver, generalSolver, mergeThreshold, doShuffle,
+            : base(singleAgentSolver, generalSolver, mergeThreshold,
                    bypassStrategy, doMalte, conflictChoice, heuristic,
                    disableTieBreakingByMinOpsEstimate, lookaheadMaxExpansions,
                    mergeCausesRestart)
