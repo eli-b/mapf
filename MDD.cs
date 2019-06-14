@@ -285,13 +285,26 @@ namespace CPF_experiment
 
             for (int i = 1; i < levels.Length; i++)
             {
-                foreach (var node in levels[i])
+                LinkedListNode<MDDNode> linkedListNode = levels[i].First;
+                while (linkedListNode != null && linkedListNode.List != null)
                 {
+                    var node = linkedListNode.Value;
+                    linkedListNode = linkedListNode.Next;  // Must be before any potential deletions!
+//                    if (linkedListNode.Value.isDeleted) // Previous level marked this MDDNode for deletion. Delete it and continue to the next.
+//                    {
+//                        LinkedListNode<MDDNode> tempToSetCoexisting = linkedListNode;
+//                        linkedListNode = linkedListNode.Next;
+//                        levels[i].Remove(tempToSetCoexisting);
+//                        continue;
+//                    }
+                    
                     var coexistingForNode = new HashSet<MDDNode>();
-
+                    
                     // Go over all the node's parents and test their coexisting nodes' children for coexistance with this node
-                    foreach (var parent in node.parents)
+                    LinkedListNode<MDDNode> parentLinkedListNode = node.parents.First;
+                    while (parentLinkedListNode != null)
                     {
+                        var parent = parentLinkedListNode.Value;
                         bool validParent = false;
                         foreach (MDDNode parentCoexistingNode in parent.coexistingNodesFromOtherMdds[other.mddNum])
                         {
@@ -313,6 +326,8 @@ namespace CPF_experiment
                                 }
                             }
                         }
+
+                        parentLinkedListNode = parentLinkedListNode.Next;  // Must be before any potential deletions!
                         if (!validParent)
                         {
                             node.removeParent(parent); // And continue up the levels if necessary
@@ -416,7 +431,7 @@ namespace CPF_experiment
         public MDD mdd;
         LinkedListNode<MDDNode> myNode;
         public bool startOrGoal;
-        public bool isBeingDeleted; // Not actually needed
+        public bool isDeleted;
         public bool legal;  // For AstarMDD
 
         /// <summary>
@@ -446,8 +461,9 @@ namespace CPF_experiment
 
         public void delete()
         {
-            Debug.Assert(this.isBeingDeleted == false, "This is unexpected");
-            this.isBeingDeleted = true;
+            if (isDeleted)
+                return;
+            this.isDeleted = true;
             LinkedListNode<MDDNode> toDelete = parents.First;
             LinkedListNode<MDDNode> nextToDelete;
             while (toDelete != null)
@@ -473,7 +489,7 @@ namespace CPF_experiment
         
         public void deleteIfOrphanOrChildless()
         {
-            Debug.Assert(this.isBeingDeleted == false, "unexpected");
+            Debug.Assert(this.isDeleted == false, "unexpected");
             if (!this.startOrGoal)
             {
                 if (parents.Count == 0 || children.Count == 0)
