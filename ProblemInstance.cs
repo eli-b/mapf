@@ -300,15 +300,26 @@ namespace CPF_experiment
         /// Imports a problem instance from a given file
         /// </summary>
         /// <param name="filePath"></param>
+        /// <param name="mapFilePath"></param>
         /// <returns></returns>
-        public static ProblemInstance Import(string filePath)
+        public static ProblemInstance Import(string filePath, string mapFilePath = null)
         {
             if (filePath.EndsWith(".agents"))
             {
                 string fileName = Path.GetFileNameWithoutExtension(filePath);
-                int instanceId = int.Parse(fileName.Split('_').Last());
-                string mapfileName = fileName.Substring(0, fileName.IndexOf('_') + 1 + 1) + ".map";  // FIXME: only supports singl
-                string mapFilePath = Path.Combine(Path.GetDirectoryName(filePath), "..", "maps", mapfileName);
+                int instanceId = 0;
+                string mapfileName;
+                if (mapFilePath == null)
+                {
+                    mapfileName = fileName.Substring(0, fileName.IndexOf('_') + 1 + 1) + ".map"; // FIXME: only supports singl
+                    mapFilePath = Path.Combine(Path.GetDirectoryName(filePath), "..", "maps", mapfileName);
+                    instanceId = int.Parse(fileName.Split('_').Last());
+                }
+                else
+                {
+                    mapfileName = Path.GetFileNameWithoutExtension(mapFilePath);
+                }
+
                 bool[][] grid;
                 string line;
                 string[] lineParts;
@@ -338,7 +349,7 @@ namespace CPF_experiment
                 }
 
                 AgentState[] states;
-                using (TextReader input = new StreamReader(mapFilePath))
+                using (TextReader input = new StreamReader(filePath))
                 {
                     // Read the number of agents
                     line = input.ReadLine();
@@ -348,7 +359,6 @@ namespace CPF_experiment
                     states = new AgentState[numOfAgents];
                     AgentState state;
                     Agent agent;
-                    int agentNum;
                     int goalX;
                     int goalY;
                     int startX;
@@ -357,12 +367,11 @@ namespace CPF_experiment
                     {
                         line = input.ReadLine();
                         lineParts = line.Split(EXPORT_DELIMITER);
-                        agentNum = int.Parse(lineParts[0]);
-                        goalX = int.Parse(lineParts[1]);
-                        goalY = int.Parse(lineParts[2]);
-                        startX = int.Parse(lineParts[3]);
-                        startY = int.Parse(lineParts[4]);
-                        agent = new Agent(goalX, goalY, agentNum);
+                        goalX = int.Parse(lineParts[0]);
+                        goalY = int.Parse(lineParts[1]);
+                        startX = int.Parse(lineParts[2]);
+                        startY = int.Parse(lineParts[3]);
+                        agent = new Agent(goalX, goalY, i);
                         state = new AgentState(startX, startY, agent);
                         states[i] = state;
                     }
