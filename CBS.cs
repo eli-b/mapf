@@ -181,7 +181,7 @@ namespace CPF_experiment
         /// <param name="bypassStrategy"></param>
         /// <param name="doMalte"></param>
         /// <param name="conflictChoice"></param>
-        /// <param name="heuristic"></param>
+        /// <param name="heuristic">Assumed to be expensive to compute. Used as late as possible</param>
         /// <param name="disableTieBreakingByMinOpsEstimate"></param>
         /// <param name="lookaheadMaxExpansions"></param>
         /// <param name="mergeCausesRestart"></param>
@@ -768,7 +768,10 @@ namespace CPF_experiment
                     // are monotonically increasing.
                     // TODO: Pass maxSolutionCost to the DynamicLazyOpenList so it can inform the 
                     //       heuristic not to try to improve its estimate to make the node's f more
-                    //       than 1 + maxSolutionCost
+                    //       than 1 + maxSolutionCost.
+                    //       OTOH, DynamicLazyOpenList only tries to increase the cost by 1 over the
+                    //       current minimum, and it would never reach maxSolutionCost + 1 to try to
+                    //       go above it.
                 }
 
 
@@ -913,7 +916,10 @@ namespace CPF_experiment
                 else
                 {
                     // TODO: What if planning a path for the merged agents finds a path with the same
-                    // cost as the sum of their current paths and no other conflicts exist
+                    // cost as the sum of their current paths and no other conflicts exist? Should just
+                    // adopt this solution and get a goal node.
+                    // TODO: Use the minimum F in OPEN as a heuristic for the new root!
+                    // TODO: Save the cost of the group in a table, and use it as a heuristic in the future!
                     child = new CbsNode(this.instance.agents.Length, this.solver,
                                         this.singleAgentSolver, this, node.agentsGroupAssignment);  // This will be the new root node
                     child.MergeGroups(node.agentsGroupAssignment[conflict.agentAIndex],
@@ -1579,7 +1585,7 @@ namespace CPF_experiment
             CbsNode.ExpansionState expansionsState = doLeftChild ? node.agentAExpansion : node.agentBExpansion;
             CbsNode.ExpansionState otherChildExpansionsState = doLeftChild ? node.agentBExpansion : node.agentAExpansion;
             string agentSide = doLeftChild? "left" : "right";
-            int planSize = node.allSingleAgentPlans[conflictingAgentIndex].GetSize();
+            int planSize = node.allSingleAgentPlans[conflictingAgentIndex].GetSize();  // Used to check if the conflict occurs while the agent is at its goal
             int groupSize = node.GetGroupSize(conflictingAgentIndex);
             CbsConflict.WillCostIncrease willCostIncrease = doLeftChild ? node.conflict.willCostIncreaseForAgentA : node.conflict.willCostIncreaseForAgentB;
 
@@ -1750,7 +1756,8 @@ namespace CPF_experiment
                 this.conflictsBypassed += node.totalConflictsWithExternalAgents + node.totalConflictsBetweenInternalAgents
                                                       - adoptionCandidate.totalConflictsWithExternalAgents - adoptionCandidate.totalConflictsBetweenInternalAgents;
                 node.AdoptSolutionOf(adoptionCandidate);
-                node.h = nodeOrigH; // Cancel partial expansion h boost
+                node.h = nodeOrigH; // Cancel partial expansion h boost. This wasn't a cardinal conflict, so h could only have been from a partial expansion.
+                                    // FIXME: when semi-cardinal and non-cardinal conflicts start contributing to h, this won't be correct
 
                 Debug.WriteLine("Child has same cost as parent and a better solution - child solution adopted by parent! (other generated children and partial expansions cancelled)");
                 Debug.WriteLine("Node new details:");

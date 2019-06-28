@@ -19,6 +19,7 @@ namespace CPF_experiment
         private static readonly char EXPORT_DELIMITER = ',';
 
         public static readonly string GRID_NAME_KEY = "Grid Name";
+        public static readonly string INSTANCE_NAME_KEY = "Instance Name";
 
         /// <summary>
         /// This contains extra data of this problem instance (used for special problem instances, e.g. subproblems of a bigger problem instance).
@@ -245,7 +246,7 @@ namespace CPF_experiment
         }
 
         /// <summary>
-        /// The returned plan wasn't constructed considering a CAT, so it's possible there's an alternative plan with the same cost and less collisions.
+        /// Note: The returned plan wasn't constructed considering a CAT, so it's possible there's an alternative plan with the same cost and less collisions.
         /// </summary>
         /// <param name="agentState"></param>
         /// <returns>An optimal plan for the agent, ignoring all others</returns>
@@ -306,12 +307,12 @@ namespace CPF_experiment
         {
             if (filePath.EndsWith(".agents"))
             {
-                string fileName = Path.GetFileNameWithoutExtension(filePath);
+                string fileNameWithoutExtension = Path.GetFileNameWithoutExtension(filePath);
                 int instanceId = 0;
                 string mapfileName;
                 if (mapFilePath == null)
                 {
-                    mapfileName = fileName.Substring(0, fileName.IndexOf('_') + 1 + 1) + ".map"; // FIXME: only supports singl
+                    string mapfileName = fileNameWithoutExtension.Substring(0, length: fileNameWithoutExtension.LastIndexOf('_')) + ".map";  // Passing a length parameter is like specifying a non-inclusive end index
                     mapFilePath = Path.Combine(Path.GetDirectoryName(filePath), "..", "maps", mapfileName);
                     instanceId = int.Parse(fileName.Split('_').Last());
                 }
@@ -382,13 +383,114 @@ namespace CPF_experiment
                 instance.Init(states, grid);
                 instance.instanceId = instanceId;
                 instance.parameters[ProblemInstance.GRID_NAME_KEY] = mapfileName;
+                instance.parameters[ProblemInstance.INSTANCE_NAME_KEY] = fileNameWithoutExtension + ".agents";
                 instance.ComputeSingleAgentShortestPaths();
                 return instance;
             }
             else if (filePath.EndsWith(".scen"))
             {
-                // TODO
-                return null;
+                string fileNameWithoutExtension = Path.GetFileNameWithoutExtension(filePath);
+                int instanceId = int.Parse(fileNameWithoutExtension.Split('-').Last());
+                string mapfileName = fileNameWithoutExtension.Substring(0, length: fileNameWithoutExtension.LastIndexOf('-'));  // Passing a length parameter is like specifying a non-inclusive end index
+                string mapFilePath = Path.Combine(Path.GetDirectoryName(filePath), "..", "..", "maps", mapfileName);
+                bool[][] grid;
+                string line;
+                string[] lineParts;
+                int maxX;
+                int maxY;
+                using (TextReader input = new StreamReader(mapFilePath))
+                {
+                    // Read grid dimensions
+                    line = input.ReadLine();
+                    Debug.Assert(line.StartsWith("type octile"));
+                    line = input.ReadLine();
+                    lineParts = line.Split(' ');
+                    Debug.Assert(lineParts.Length == 2);
+                    Debug.Assert(lineParts[0].Equals("height"));
+                    maxY = int.Parse(lineParts[1]);  // The height is the number of rows
+                    line = input.ReadLine();
+                    lineParts = line.Split(' ');
+                    Debug.Assert(lineParts.Length == 2);
+                    Debug.Assert(lineParts[0].Equals("width"));
+                    maxX = int.Parse(lineParts[1]);  // The width is the number of columns
+                    grid = new bool[maxY][];
+
+                    line = input.ReadLine();
+                    Debug.Assert(line.StartsWith("map"));
+
+                    char cell;
+                    // Read grid
+                    for (int i = 0; i < maxY; i++)
+                    {
+                        grid[i] = new bool[maxX];
+                        line = input.ReadLine();
+                        for (int j = 0; j < maxX; j++)
+                        {
+                            cell = line.ElementAt(j);
+                            if (cell == '@' || cell == 'O' || cell == 'T' || cell == 'W' /* Water isn't traversable from land */)
+                                grid[i][j] = true;
+                            else
+                                grid[i][j] = false;
+                        }
+                    }
+                }
+
+                List<AgentState> stateList = new List<AgentState>();
+                using (TextReader input = new StreamReader(filePath))
+                {
+                    // Read the format version number
+                    line = input.ReadLine();
+                    lineParts = line.Split(' ');
+                    Debug.Assert(lineParts[0].Equals("version"));
+                    int version = int.Parse(lineParts[1]);
+                    Debug.Assert(version == 1, "Only version 1 is currently supported");
+
+                    // Read the agents' start and goal states
+                    AgentState state;
+                    Agent agent;
+                    int agentNum = 0;
+                    int block;
+                    int goalX;
+                    int goalY;
+                    int startX;
+                    int startY;
+                    string mapFileName;
+                    int mapRows;
+                    int mapCols;
+                    double optimalCost;  // Assuming diagonal moves are allowed and cost sqrt(2)
+                    while (true)
+                    {
+                        line = input.ReadLine();
+                        if (string.IsNullOrWhiteSpace(line))
+                            break;
+                        lineParts = line.Split('\t');
+                        block = int.Parse(lineParts[0]);
+                        mapFileName = lineParts[1];
+                        mapRows = int.Parse(lineParts[2]);
+                        Debug.Assert(mapRows == maxX);
+                        mapCols = int.Parse(lineParts[3]);
+                        Debug.Assert(mapRows == maxY);
+
+                        startY = int.Parse(lineParts[4]);
+                        startX = int.Parse(lineParts[5]);
+                        goalY = int.Parse(lineParts[6]);
+                        goalX = int.Parse(lineParts[7]);
+                        optimalCost = double.Parse(lineParts[8]);
+                        agent = new Agent(goalX, goalY, agentNum);
+                        state = new AgentState(startX, startY, agent);
+                        stateList.Add(state);
+                        agentNum++;
+                    }
+                }
+
+                // Generate the problem instance
+                ProblemInstance instance = new ProblemInstance();
+                instance.Init(stateList.ToArray(), grid);
+                instance.instanceId = instanceId;
+                instance.parameters[ProblemInstance.GRID_NAME_KEY] = mapfileName;
+                instance.parameters[ProblemInstance.INSTANCE_NAME_KEY] = fileNameWithoutExtension + ".scen";
+                instance.ComputeSingleAgentShortestPaths();
+                return instance;
             }
             else  // Combined map and scenario, no suffix
             {
@@ -470,6 +572,7 @@ namespace CPF_experiment
                     instance.Init(states, grid);
                     instance.instanceId = instanceId;
                     instance.parameters[ProblemInstance.GRID_NAME_KEY] = gridName;
+                    instance.parameters[ProblemInstance.INSTANCE_NAME_KEY] = Path.GetFileName(filePath);
                     instance.ComputeSingleAgentShortestPaths();
                     return instance;
                 }
