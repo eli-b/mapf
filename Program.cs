@@ -333,7 +333,48 @@ namespace CPF_experiment
                 me.RunDragonAgeExperimentSet(instances, Program.mazeMapPaths); // Obstacle percents and grid sizes built-in to the maps.
             else if (runSpecific == true)
             {
-                me.RunInstance("Instance-5-15-6-13");
+                ProblemInstance instance;
+                try
+                {
+                    if (args[0].EndsWith(".dll"))
+                        instance = ProblemInstance.Import(args[2], args[1]);
+                    else
+                        instance = ProblemInstance.Import(args[1], args[0]);
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine($"Bad problem instance {args[1]}. Error: {e.Message}");
+                    return;
+                }
+                Run runner = new Run();  // instantiates stuff unnecessarily
+                runner.startTime = runner.ElapsedMillisecondsTotal();
+                
+                IHeuristicCalculator<WorldState> lowLevelHeuristic = new SumIndividualCosts();
+                List<uint> agentList = Enumerable.Range(0, instance.agents.Length).Select(x=> (uint)x).ToList(); // FIXME: Must the heuristics really receive a list of uints?
+                lowLevelHeuristic.Init(instance, agentList);
+                ICbsSolver lowLevel = new A_Star(lowLevelHeuristic);
+                ILazyHeuristic<CbsNode> highLevelHeuristic = new MvcHeuristicForCbs();
+                highLevelHeuristic.Init(instance, agentList);
+//                ISolver solver = new CBS(lowLevel, lowLevel,
+//                    bypassStrategy: CBS.BypassStrategy.FIRST_FIT_LOOKAHEAD,
+//                    conflictChoice: CBS.ConflictChoice.CARDINAL_MDD,
+//                    heuristic: highLevelHeuristic,
+//                    cacheMdds: true,
+//                    useOldCost: true,
+//                    replanSameCostWithMdd: true
+//                );
+                //ISolver solver = new IndependenceDetection(lowLevel, new EPEA_Star(lowLevelHeuristic));
+                //ISolver solver = new IndependenceDetection(lowLevel, new CostTreeSearchSolverOldMatching(3));
+                ISolver solver = new IndependenceDetection(lowLevel, new A_Star_WithOD(lowLevelHeuristic));
+                solver.Setup(instance, runner);
+                bool solved = solver.Solve();
+                if (solved == false)
+                {
+                    Console.WriteLine("Failed to solve");
+                    return;
+                }
+                Plan plan = solver.GetPlan();
+                plan.PrintPlan();
                 //me.RunInstance("Instance-5-15-3-792");
                 //me.RunInstance("Instance-5-15-3-792-4rows");
                 //me.RunInstance("Instance-5-15-3-792-3rows");
@@ -342,6 +383,7 @@ namespace CPF_experiment
                 //me.RunInstance("corridor2");
                 //me.RunInstance("corridor3");
                 //me.RunInstance("corridor4");
+                return;
             }
 
             // A function to be used by Eric's PDB code
