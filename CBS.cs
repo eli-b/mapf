@@ -1591,7 +1591,7 @@ namespace CPF_experiment
             CbsNode.ExpansionState expansionsState = doLeftChild ? node.agentAExpansion : node.agentBExpansion;
             CbsNode.ExpansionState otherChildExpansionsState = doLeftChild ? node.agentBExpansion : node.agentAExpansion;
             string agentSide = doLeftChild? "left" : "right";
-            int planSize = node.allSingleAgentPlans[conflictingAgentIndex].GetSize();
+            int planSize = node.allSingleAgentPlans[conflictingAgentIndex].GetSize();  // Used to check if the conflict occurs while the agent is at its goal
             int groupSize = node.GetGroupSize(conflictingAgentIndex);
             CbsConflict.WillCostIncrease willCostIncrease = doLeftChild ? node.conflict.willCostIncreaseForAgentA : node.conflict.willCostIncreaseForAgentB;
 
