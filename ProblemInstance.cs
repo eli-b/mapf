@@ -245,7 +245,7 @@ namespace CPF_experiment
         }
 
         /// <summary>
-        /// The returned plan wasn't constructed considering a CAT, so it's possible there's an alternative plan with the same cost and less collisions.
+        /// Note: The returned plan wasn't constructed considering a CAT, so it's possible there's an alternative plan with the same cost and less collisions.
         /// </summary>
         /// <param name="agentState"></param>
         /// <returns>An optimal plan for the agent, ignoring all others</returns>

@@ -38,6 +38,9 @@ namespace CPF_experiment
         /// </summary>
         public const bool ALLOW_HEAD_ON_COLLISION = false;
 
+        /// <summary>
+        /// FIXME: Diagonal move support should count their cost as sqrt(2)
+        /// </summary>
         public const bool ALLOW_DIAGONAL_MOVE = false;
         public static readonly int NUM_ALLOWED_DIRECTIONS = ALLOW_DIAGONAL_MOVE ? Move.NUM_DIRECTIONS : Move.NUM_NON_DIAG_MOVES;
 

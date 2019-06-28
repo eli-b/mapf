@@ -320,7 +320,7 @@ namespace CPF_experiment
                     agentGroupHasMustConstraints == false &&
                     subGroup.Count == 1) // Top-most CBS with no must constraints on this agent. Shortcut available (that doesn't consider the CAT, though)
                 {
-                    allSingleAgentPlans[i] = new SinglePlan(problem.agents[i]); // All moves up to starting pos
+                    allSingleAgentPlans[i] = new SinglePlan(problem.agents[i]); // All moves up to starting pos, if any
                     allSingleAgentPlans[i].agentNum = problem.agents[this.agentsGroupAssignment[i]].agent.agentNum; // Use the group's representative
                     SinglePlan optimalPlan = problem.GetSingleAgentOptimalPlan(problem.agents[i]);
                     // Count conflicts:
@@ -401,7 +401,7 @@ namespace CPF_experiment
         }
 
         /// <summary>
-        /// Replan for a given agent (when constraints for that agent have changed).
+        /// Replan for a given agent (when constraints for that agent have changed, or its group was enlarged).
         /// </summary>
         /// <param name="agentToReplan"></param>
         /// <param name="minPathTimeStep"></param>
@@ -716,7 +716,7 @@ namespace CPF_experiment
             if (plan.GetSize() < 200)
                 Debug.WriteLine(plan);
             else
-                Debug.WriteLine("Plan is too long to print");
+                Debug.WriteLine($"Plan is too long to print ({plan.GetSize()} steps)");
             Debug.WriteLine("");
             Debug.WriteLine("");
         }
@@ -751,9 +751,11 @@ namespace CPF_experiment
         /// To calculate the minimum number of replans to solve, 
         /// what we want is the size of the minimum vertex cover of the conflict graph.
         /// Sadly, it's an NP-hard problem. Its decision variant is NP-complete.
-        /// Happily, it has a 2-approximation: Just choose both endpoints of each uncovered edge repeatedly until no uncovered edges are lef.
+        /// Happily, it has a 2-approximation: Just choose both endpoints of each uncovered edge
+        /// repeatedly until no uncovered edges are left. So we can just take half the count from
+        /// that approximation.
         /// 
-        /// So we can just take half the count from that approximation.
+        /// TODO: the graph is small enough that we can try to solve optimally.
         /// 
         /// Notice a merge is like two replans in one, so we might need to take ceil(num_replans/2).
         /// Luckily, in MA-CBS which considers only conflicts in the same CT branch,
@@ -789,11 +791,13 @@ namespace CPF_experiment
                     }
                 }
 
-                int minReplansToSolve = (int)Math.Ceiling(((double)vertexCover.Count) / 2); // We have a 2-approximation of the cover -
-                // half that is at least half the value we're trying to approximate.
+                int minReplansToSolve = vertexCover.Count / 2; // We have a 2-approximation of the size of the cover -
+                                                               // half that is at least half the value we're trying to approximate.
+                                                               // (The size of the approximation is always even)
                 //if (this.cbs.debug)
                 //    Debug.WriteLine("min replans lower estimate: " + minReplansToSolve);
                 if (this.cbs.mergeThreshold != -1) // Merges possible, account for them
+                                                   // This assumes the current merging strategy is used.
                 {
                     if (this.cbs.GetType() == typeof(CBS))
                     {
@@ -1745,7 +1749,7 @@ namespace CPF_experiment
         }
 
         /// <summary>
-        /// Uses the group assignments and the constraints.
+        /// Uses the group assignments and the constraints (ignoring their order).
         /// Irrelevant constraints stemming from conflicts between merged agents are ignored.
         /// </summary>
         /// <returns></returns>
