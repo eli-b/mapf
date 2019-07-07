@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace CPF_experiment
+namespace mapf
 {
     public class ConflictGraph
     {

@@ -2,7 +2,7 @@
 using System.IO;
 using System.Linq;
 
-namespace CPF_experiment
+namespace mapf
 {
     /// <summary>
     /// This class forms a wrapper around problem.GetSingleAgentOptimalCost().

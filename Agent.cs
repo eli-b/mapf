@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace CPF_experiment
+namespace mapf
 {
     [Serializable] public class Agent
     {

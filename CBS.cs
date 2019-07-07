@@ -6,7 +6,7 @@ using System.Linq;
 
 using ExtensionMethods;
 
-namespace CPF_experiment
+namespace mapf
 {
     /// <summary>
     /// Merges agents if they conflict more times than the given threshold in the CT nodes

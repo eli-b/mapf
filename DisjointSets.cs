@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace CPF_experiment
+namespace mapf
 {
     public class DisjointSetItem
     {

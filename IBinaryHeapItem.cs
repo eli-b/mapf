@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace CPF_experiment
+namespace mapf
 {
     /// <summary>
     /// represents items that are stored in the binary heap

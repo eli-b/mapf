@@ -1,7 +1,7 @@
 ﻿using System;
 using System.IO;
 
-namespace CPF_experiment
+namespace mapf
 {
     public interface IStatisticsCsvWriter
     {

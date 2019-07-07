@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 
-namespace CPF_experiment
+namespace mapf
 {
     /// <summary>
     /// This class tries to find a solution to a problem instance of a given cost. 

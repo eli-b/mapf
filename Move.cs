@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 
-namespace CPF_experiment
+namespace mapf
 {
     /// <summary>
     /// This class represents a single move of an agent. 

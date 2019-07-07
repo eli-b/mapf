@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Diagnostics;
 
-namespace CPF_experiment
+namespace mapf
 {   
     /// <summary>
     /// This is an implementation of the A* algorithm for the MAPF problem.

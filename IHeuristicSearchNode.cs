@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace CPF_experiment
+namespace mapf
 {
     public interface IHeuristicSearchNode
     {

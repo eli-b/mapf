@@ -1,5 +1,5 @@
 ﻿
-namespace CPF_experiment
+namespace mapf
 {
     class Constants
     {

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace CPF_experiment
+namespace mapf
 {
     [Serializable] public class AgentState : IComparable<IBinaryHeapItem>, IBinaryHeapItem
     {
@@ -45,7 +45,7 @@ namespace CPF_experiment
             this.agent = copy.agent;
             this.h = copy.h;
             this.arrivalTime = copy.arrivalTime;
-            this.lastMove = copy.lastMove;
+            this.lastMove = copy.lastMove; //new TimedMove(copy.lastMove); // Can we just do this.lastMove = copy.lastMove? I think we can now, since MoveTo replaces the move
             //this.prev = copy;
             this.g = copy.g;
         }

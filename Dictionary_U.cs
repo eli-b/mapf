@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 
-namespace CPF_experiment
+namespace mapf
 {
     /// <summary>
     /// This class represents a union of Dictionaries, which each map <typeparamref name="K"/>

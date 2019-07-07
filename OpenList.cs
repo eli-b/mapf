@@ -4,7 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.IO;
 
-namespace CPF_experiment
+namespace mapf
 {
     /// <summary>
     /// Supporting O(1) insertion and removal of items that compare equal to the top of the heap.

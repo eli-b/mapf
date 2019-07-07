@@ -1,5 +1,5 @@
 ﻿
-namespace CPF_experiment
+namespace mapf
 {
     /// <summary>
     /// This class represents a conflict between two groups of agents in Trevor Standley's

@@ -2,7 +2,7 @@
 using System.IO;
 using System.Collections.Generic;
 
-namespace CPF_experiment
+namespace mapf
 {
     class RandomChoiceOfHeuristic<State> : IHeuristicCalculator<State>
     {

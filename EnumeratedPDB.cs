@@ -4,7 +4,7 @@ using System.IO;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Diagnostics;
 
-namespace CPF_experiment
+namespace mapf
 {
 
     /// <summary>

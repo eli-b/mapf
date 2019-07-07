@@ -2,7 +2,7 @@
 using System.IO;
 using System.Collections.Generic;
 
-namespace CPF_experiment
+namespace mapf
 {
     [Serializable]
     class PDB : IHeuristicCalculator<WorldState>

@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace CPF_experiment
+namespace mapf
 {
     /// <summary>
     /// Finds the solution with the least number of conflicts, given a set of MDDs

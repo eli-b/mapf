@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace CPF_experiment
+namespace mapf
 {
     /// <summary>
     /// This class represents a state in the A* search with operator decomposition,

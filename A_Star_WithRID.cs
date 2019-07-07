@@ -1,5 +1,5 @@
 ﻿
-namespace CPF_experiment
+namespace mapf
 {
     /// <summary>
     /// This Solver runs A* but from time to time tries to solve completely the expanded node

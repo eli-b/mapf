@@ -4,7 +4,7 @@ using System.Linq;
 using System.IO;
 using System.Diagnostics;
 
-namespace CPF_experiment
+namespace mapf
 {
     /// <summary>
     /// Runs David Silver's Cooperative A* (CA*).

@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-namespace CPF_experiment
+namespace mapf
 {
     /// <summary>
     /// A binary heap, useful for sorting data and priority queues.

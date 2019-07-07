@@ -3,7 +3,7 @@ using System.Linq;
 using System.IO;
 using System;
 
-namespace CPF_experiment
+namespace mapf
 {
     class EPEA_Star : A_Star 
     {

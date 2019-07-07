@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace CPF_experiment
+namespace mapf
 {
     class ConflictAvoidanceTable : IReadOnlyDictionary<TimedMove, List<int>>
     {

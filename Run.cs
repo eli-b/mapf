@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 
-namespace CPF_experiment
+namespace mapf
 {
     /// <summary>
     /// This class is responsible for running the experiments.

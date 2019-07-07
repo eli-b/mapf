@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 
-namespace CPF_experiment
+namespace mapf
 {
     public class CbsConstraint : IComparable
     {

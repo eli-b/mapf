@@ -2,7 +2,7 @@
 using System.Diagnostics;
 using System.IO;
 
-namespace CPF_experiment
+namespace mapf
 {
     public class AdditivePDBs : IHeuristicCalculator<WorldState>
     {

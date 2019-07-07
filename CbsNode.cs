@@ -5,7 +5,7 @@ using System.Diagnostics;
 
 using ExtensionMethods;
 
-namespace CPF_experiment
+namespace mapf
 {
     [DebuggerDisplay("hash = {GetHashCode()}, f = {f}, g = {g}, h = {h}")]
     public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristicSearchNode

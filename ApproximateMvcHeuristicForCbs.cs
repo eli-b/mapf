@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Diagnostics;
 
-namespace CPF_experiment
+namespace mapf
 {
     /// <summary>
     /// Uses the half the size of the 2-approximation of the MVC of the cardinal conflict graph as a

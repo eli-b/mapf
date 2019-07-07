@@ -4,7 +4,7 @@ using System.Linq;
 using System.IO;
 using System.Diagnostics;
 
-namespace CPF_experiment
+namespace mapf
 {
     /// <summary>
     /// This class represents a cooperative pathfinding problem instance. This includes:
@@ -309,16 +309,16 @@ namespace CPF_experiment
             {
                 string fileNameWithoutExtension = Path.GetFileNameWithoutExtension(filePath);
                 int instanceId = 0;
-                string mapfileName;
+                string mapfileNameWithoutExtension;
                 if (mapFilePath == null)
                 {
-                    string mapfileName = fileNameWithoutExtension.Substring(0, length: fileNameWithoutExtension.LastIndexOf('_')) + ".map";  // Passing a length parameter is like specifying a non-inclusive end index
-                    mapFilePath = Path.Combine(Path.GetDirectoryName(filePath), "..", "maps", mapfileName);
-                    instanceId = int.Parse(fileName.Split('_').Last());
+                    mapfileNameWithoutExtension = fileNameWithoutExtension.Substring(0, length: fileNameWithoutExtension.LastIndexOf('_')) + ".map";  // Passing a length parameter is like specifying a non-inclusive end index
+                    mapFilePath = Path.Combine(Path.GetDirectoryName(filePath), "..", "maps", mapfileNameWithoutExtension);
+                    instanceId = int.Parse(filePath.Split('_').Last());
                 }
                 else
                 {
-                    mapfileName = Path.GetFileNameWithoutExtension(mapFilePath);
+                    mapfileNameWithoutExtension = Path.GetFileNameWithoutExtension(mapFilePath);
                 }
 
                 bool[][] grid;
@@ -382,7 +382,7 @@ namespace CPF_experiment
                 ProblemInstance instance = new ProblemInstance();
                 instance.Init(states, grid);
                 instance.instanceId = instanceId;
-                instance.parameters[ProblemInstance.GRID_NAME_KEY] = mapfileName;
+                instance.parameters[ProblemInstance.GRID_NAME_KEY] = mapfileNameWithoutExtension;
                 instance.parameters[ProblemInstance.INSTANCE_NAME_KEY] = fileNameWithoutExtension + ".agents";
                 instance.ComputeSingleAgentShortestPaths();
                 return instance;
@@ -392,7 +392,7 @@ namespace CPF_experiment
                 string fileNameWithoutExtension = Path.GetFileNameWithoutExtension(filePath);
                 int instanceId = int.Parse(fileNameWithoutExtension.Split('-').Last());
                 string mapfileName = fileNameWithoutExtension.Substring(0, length: fileNameWithoutExtension.LastIndexOf('-'));  // Passing a length parameter is like specifying a non-inclusive end index
-                string mapFilePath = Path.Combine(Path.GetDirectoryName(filePath), "..", "..", "maps", mapfileName);
+                mapFilePath = Path.Combine(Path.GetDirectoryName(filePath), "..", "..", "maps", mapfileName);
                 bool[][] grid;
                 string line;
                 string[] lineParts;

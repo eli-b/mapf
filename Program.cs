@@ -5,7 +5,7 @@ using System.Text;
 using System.Diagnostics;
 using System.IO;
 
-namespace CPF_experiment
+namespace mapf
 {
     /// <summary>
     /// This is the entry point of the application. 

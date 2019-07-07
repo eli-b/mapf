@@ -4,7 +4,7 @@ using System.Linq;
 using System.IO;
 using System.Diagnostics;
 
-namespace CPF_experiment
+namespace mapf
 {
     /// <summary>
     /// This open list invokes an expensive-to-compute heuristic on items before they're removed,

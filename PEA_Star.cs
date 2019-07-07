@@ -3,7 +3,7 @@ using System.Linq;
 using System.IO;
 using System;
 
-namespace CPF_experiment
+namespace mapf
 {
     /// <summary>
     /// Only keeps generated nodes that have the same f as the parent.

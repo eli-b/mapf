@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Diagnostics;
 
-namespace CPF_experiment
+namespace mapf
 {
     /// <summary>
     /// Represents a plan for a set of agents.

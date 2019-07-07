@@ -4,7 +4,7 @@ using System.IO;
 using System.Diagnostics;
 
 
-namespace CPF_experiment
+namespace mapf
 {
     /// <summary>
     /// Is the CBS open list ever large enough to warrant this?

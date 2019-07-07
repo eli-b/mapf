@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics;
 
-namespace CPF_experiment
+namespace mapf
 {
     public class CbsConflict
     {

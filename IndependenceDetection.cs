@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Diagnostics;
 
-namespace CPF_experiment
+namespace mapf
 {
     class IndependenceDetection : ISolver
     {

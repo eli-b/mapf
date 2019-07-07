@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 
-namespace CPF_experiment
+namespace mapf
 {
     /// <summary>
     /// Runs a bounded CBS to get an lower estimate of the cost from a given A* node to the goal.

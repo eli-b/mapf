@@ -3,7 +3,7 @@ using System.Linq;
 using System.Collections.Generic;
 using System.Diagnostics;
 
-namespace CPF_experiment
+namespace mapf
 {
     /// <summary>
     /// Describes a node in the A* search space.

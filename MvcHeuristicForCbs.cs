@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Diagnostics;
 
-namespace CPF_experiment
+namespace mapf
 {
     class MvcHeuristicForCbs : ILazyHeuristic<CbsNode>
     {

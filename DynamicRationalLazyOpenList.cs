@@ -4,7 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 
-namespace CPF_experiment
+namespace mapf
 {
     public class DynamicRationalLazyOpenList : OpenList<WorldState>
     {
