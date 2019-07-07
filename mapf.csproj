@@ -126,10 +126,8 @@
     <Compile Include="CbsConflict.cs" />
     <Compile Include="ConflictGraph.cs" />
     <Compile Include="DisjointSets.cs" />
-    <Compile Include="GreedyMaximalMatchingHeuristicForCbs.cs" />
     <Compile Include="IHeuristicSearchNode.cs" />
     <Compile Include="IterativeDeepeningCbs.cs" />
-    <Compile Include="Location.cs" />
     <Compile Include="MddPruningHeuristicForCbs.cs" />
     <Compile Include="ApproximateMvcHeuristicForCbs.cs" />
     <Compile Include="MvcHeuristicForCbs.cs" />
