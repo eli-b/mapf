@@ -5,7 +5,8 @@ using System.IO;
 namespace mapf
 {
     /// <summary>
-    /// A* implementation with Standley's operator decomposition (OD). See AAAI 2010 paper by IndependenceDetection Scott Standley on Cooperative Pathfinding.
+    /// A* implementation with Standley's operator decomposition (OD).
+    /// See AAAI 2010 paper by Trevor Standley on Cooperative Pathfinding.
     /// </summary>
     public class A_Star_WithOD : A_Star
     {
