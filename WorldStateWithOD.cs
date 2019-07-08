@@ -84,6 +84,15 @@ namespace mapf
             for (int i = 0; i < solution.Length; ++i)
                 this.singlePlans[i].ContinueWith(solution[i]);
         }
+        
+        public override string ToString()
+        {
+            string ans = base.ToString();
+            if (this.agentTurn == 0)
+                return ans;
+            else
+                return $"Partial node {ans}, agent turn: {this.agentTurn}";
+        }
 
         /// <summary>
         /// Returns a hash value for the given state (used in Hash based data structures).
