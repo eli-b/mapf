@@ -81,8 +81,8 @@ namespace mapf
             this.CalculateG(); // G not necessarily zero when solving a partially solved problem.
             this.potentialConflictsCount = 0;
             this.cbsInternalConflictsCount = 0;
-            this.cbsInternalConflicts = new Dictionary<int, int>();  // Unused if not running under CBS
-            this.conflictTimes = new Dictionary<int, List<int>>();
+            this.cbsInternalConflicts = new Dictionary<int, int>();  // Unused if not running under CBS, and we can't tell at this point easily
+            this.conflictTimes = new Dictionary<int, List<int>>();  // Unused if not running under CBS, and we can't tell at this point easily
             this.minGoalTimeStep = minDepth;
             this.minGoalCost = minCost;
             if (mddNode == null)
@@ -315,7 +315,8 @@ namespace mapf
             //       graph separately and tie-break first according to the number of agents we conflict
             //       with that aren't in the MVC of the conflict graph and then the number of agents
             //       we conflict with that aren't in the cardinal conflict graph
-            if (this.cbsInternalConflicts != null)
+            if (this.cbsInternalConflicts != null && that.cbsInternalConflicts != null)
+                // Currently even when not under ID or CBS, the root node has this.cbsInternalConflicts != null 
             {
                 // Prefer nodes that contain conflicts with fewer agents - when a conflict is resolved,
                 // many times other conflicts are resolved automatically thanks to conflict avoidance,
