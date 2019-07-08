@@ -78,7 +78,8 @@ namespace mapf
 
                 childNode.agentTurn = childAgentTurn;
 
-                // Makespan increases only if this is the move of the first agent
+                // Makespan increases only if this is the move of the first agent. This makes sure that under a makespan
+                // cost function, partial nodes have a correct cost and can even serve as goal nodes.
                 if (parent.agentTurn != 0)
                     childNode.makespan--; // Cancel the increment in base
             }

@@ -35,17 +35,17 @@ namespace mapf
         /// <returns>The PDB entry for the given state.</returns>
         public override uint h(WorldState s)
         {
-            uint nHeuristic = 0;
-            foreach (AgentState state in s.allAgentsState)
-            {
-                nHeuristic += (uint)this.problem.GetSingleAgentOptimalCost(state);
-            }
-            return nHeuristic;
+            return h(s, this.problem);
         }
 
         public static uint h(WorldState s, ProblemInstance instance)
         {
-            return (uint) s.allAgentsState.Sum(state => instance.GetSingleAgentOptimalCost(state));
+            uint nHeuristic = 0;
+            foreach (AgentState state in s.allAgentsState)
+            {
+                nHeuristic += (uint)instance.GetSingleAgentOptimalCost(state);
+            }
+            return nHeuristic;
         }
 
         public override string ToString()
@@ -112,21 +112,37 @@ namespace mapf
         /// <returns>The PDB entry for the given state.</returns>
         public override uint h(WorldState s)
         {
-            uint maxHeuristic = 0;
-            foreach (AgentState state in s.allAgentsState)
-            {
-                uint heuristic = (uint)this.problem.GetSingleAgentOptimalCost(state);
-                if (heuristic > maxHeuristic)
-                {
-                    maxHeuristic = heuristic;
-                }
-            }
-            return maxHeuristic;
+            return h(s, this.problem);
         }
 
         public static uint h(WorldState s, ProblemInstance instance)
         {
-            return (uint)s.allAgentsState.Max(state => instance.GetSingleAgentOptimalCost(state));
+            uint maxHeuristic = 0;
+            int agentIndexWithMaxEstimate = 0;
+            int i = 0;
+            foreach (AgentState state in s.allAgentsState)
+            {
+                uint heuristic = (uint)instance.GetSingleAgentOptimalCost(state);
+                if (heuristic > maxHeuristic)
+                {
+                    maxHeuristic = heuristic;
+                    agentIndexWithMaxEstimate = i;
+                }
+
+                i++;
+            }
+
+            if (s.GetType() == typeof(WorldStateWithOD))
+            {
+                var sWithOD = (WorldStateWithOD) s;
+                if (sWithOD.agentTurn != 0 && sWithOD.agentTurn <= agentIndexWithMaxEstimate)
+                    maxHeuristic--;  // Make the F of nodes non-decreasing. Otherwise the child node where the agent
+                                     // with the max estimate finally moves, and moves along its shortest path to the
+                                     // goal (decreasing the heuristic), will have a lower F than its parent (because
+                                     // the cost of the node is already updated after the first agent moves). 
+            }
+            
+            return maxHeuristic;
         }
 
         public override string ToString()

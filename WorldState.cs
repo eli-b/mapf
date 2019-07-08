@@ -375,7 +375,10 @@ namespace mapf
             {
                 g = makespan;  // Let's hope makespan var is correct
             }
-            
+            else
+            {
+                throw new Exception($"Unsupported cost function {Constants.costFunction}");
+            }
         }
 
         /// <summary>
