@@ -129,8 +129,7 @@ namespace mapf
                 this.illegalMoves = null;
 
             // Store CBS parameters
-            this.maxSolutionCost = Math.Max(this.maxSolutionCost, maxCost);
-
+            this.maxSolutionCost = Math.Min(this.maxSolutionCost, maxCost);
             if (problemInstance.parameters.ContainsKey(CBS.CONSTRAINTS) &&
                 ((HashSet_U<CbsConstraint>)problemInstance.parameters[CBS.CONSTRAINTS]).Count != 0)
                  this.constraints = (HashSet_U<CbsConstraint>)problemInstance.parameters[CBS.CONSTRAINTS];
