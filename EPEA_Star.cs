@@ -2,6 +2,7 @@
 using System.Linq;
 using System.IO;
 using System;
+using System.Diagnostics;
 
 namespace mapf
 {
@@ -10,8 +11,17 @@ namespace mapf
         protected int expandedFullStates;
         protected int accExpandedFullStates;
 
-        public EPEA_Star(IHeuristicCalculator<WorldState> heuristic = null, bool mstar = false, bool mstarShuffle = false)
-            : base(heuristic, mstar, mstarShuffle) { }
+        public EPEA_Star(IHeuristicCalculator<WorldState> heuristic = null, bool mstar = false,
+            bool mstarShuffle = false)
+            : base(heuristic, mstar, mstarShuffle)
+        {
+            if (Constants.costFunction == Constants.CostFunction.MAKESPAN ||
+                Constants.costFunction == Constants.CostFunction.MAKESPAN_THEN_SUM_OF_COSTS
+                )
+            {
+                Debug.Assert(false, "Makespan support isn't implemented at the moment. Use A*+OD for now.");
+            }
+        }
 
         override protected WorldState CreateSearchRoot(int minDepth = -1, int minCost = -1, MDDNode mddNode = null)
         {
