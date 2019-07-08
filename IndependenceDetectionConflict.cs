@@ -9,18 +9,18 @@ namespace mapf
     {
         public IndependenceDetectionAgentsGroup group1;
         public IndependenceDetectionAgentsGroup group2;
-        public int timeOfConflict;
+        public int time;
 
         public override string ToString()
         {
-            return "conflict in time " + timeOfConflict + " between " + group1 + " and " + group2;
+            return "conflict in time " + time + " between " + group1 + " and " + group2;
         }
 
         public IndependenceDetectionConflict(IndependenceDetectionAgentsGroup group1, IndependenceDetectionAgentsGroup group2, int time)
         {
             this.group1 = group1;
             this.group2 = group2;
-            timeOfConflict = time;
+            this.time = time;
         }
         public override bool Equals(object obj)
         {
@@ -28,7 +28,7 @@ namespace mapf
                 return false;
             IndependenceDetectionConflict other = (IndependenceDetectionConflict)obj;
             if (this.group1.Equals(other.group1) && this.group2.Equals(other.group2))
-                return true; // Ignoring timeOfConflict, not ignoring order of groups.
+                return true; // Ignoring time, not ignoring order of groups.
             return false;
         }
 

@@ -60,7 +60,6 @@ namespace mapf
             this.runner = runner;
             this.totalCost = 0;
             this.ClearStatistics();
-            //this.accMaxGroupSize = 1;
             this.conflictAvoidance = new Dictionary<TimedMove, List<int>>();
             this.allConflicts = new HashSet<IndependenceDetectionConflict>();
             this.allGroups = new LinkedList<IndependenceDetectionAgentsGroup>();
@@ -79,11 +78,19 @@ namespace mapf
         /// </summary>
         public Plan CalculateJointPlan() 
         {
-            IndependenceDetectionAgentsGroup[] sortedGroups = this.allGroups.ToArray();
-            Array.Sort(sortedGroups,
-                (x, y) => x.allAgentsState[0].agent.agentNum.CompareTo(y.allAgentsState[0].agent.agentNum));
-            IEnumerable<Plan> plans = sortedGroups.Select(group => group.GetPlan());
-            return new Plan(plans);
+            var singlePlans = new SinglePlan[this.instance.GetNumOfAgents()];
+            foreach (var group in this.allGroups)
+            {
+                var groupPlan = group.GetPlan();
+                int i = 0;
+                foreach (var agentState in group.allAgentsState)
+                {
+                    singlePlans[agentState.agent.agentNum] = new SinglePlan(groupPlan, i, agentState.agent.agentNum);
+                    i++;
+                }
+                    
+            }
+            return new Plan(singlePlans);
         }
 
         public Plan GetPlan()
@@ -177,7 +184,7 @@ namespace mapf
             output.Write(this.accExpanded + Run.RESULTS_DELIMITER);
             output.Write(this.accGenerated + Run.RESULTS_DELIMITER);
 
-            Console.WriteLine("{0} Accumualted Max Group (Low-Level): {1}", this, this.accMaxGroupSize);
+            Console.WriteLine("{0} Accumulated Max Group (Low-Level): {1}", this, this.accMaxGroupSize);
             Console.WriteLine("{0} Accumulated Min Group (Low-Level): {1}", this, this.accMinGroupSize);
 
             output.Write(this.accMaxGroupSize + Run.RESULTS_DELIMITER);
@@ -211,7 +218,8 @@ namespace mapf
         /// <returns>A conflict object with data about the found conflict, or null if no conflict exists</returns>
         public IndependenceDetectionConflict FindConflictingGroups()
         {
-            if (this.allGroups.Count == 1) return null;
+            if (this.allGroups.Count == 1)
+                return null;
             
             // Find the longest plan among all the groups
             int maxPlanSize = this.allGroups.Select(group => group.GetPlan().GetSize()).Max();
@@ -240,7 +248,7 @@ namespace mapf
         }
 
         /// <summary>
-        /// Search for an optimal solution using the Simple Independence Detection algorithm in Trevor Standley's paper.
+        /// Search for an optimal solution using the Simple Independence Detection algorithm from Trevor Standley's paper.
         /// </summary>
         /// <param name="runner"></param>
         /// <returns></returns>
@@ -282,35 +290,79 @@ namespace mapf
             while (true)
             {
                 IndependenceDetectionConflict conflict = FindConflictingGroups();
-                // If there are no conflicts - can finish the run
+                // If there are no conflicts - can return the current plan
                 if (conflict == null)
                     break;
                 
-                // Try to solve the current conflict by replanning one of the groups
-                if (this.allConflicts.Contains(conflict) == false)
+                if (this.allConflicts.Contains(conflict) == false)  // We haven't already tried to resolve this conflict
+                                                                    // without merging the groups 
                 {
-                    // Add to all conflicts to prevent trying to replan this conflict again
+                    // Try to solve the current conflict by re-planning one of the groups
+                    if (this.debug)
+                    {
+                        Debug.WriteLine($"Trying to find an alternative path that avoids {conflict}");
+                    }
+                    
+                    // Prevent trying to resolve this conflict this way again
                     this.allConflicts.Add(conflict);
 
-                    // Add plan of group2 to illegal moves table and replan group1 with equal cost
-                    if ((conflict.timeOfConflict < conflict.group1.GetPlan().GetSize() - 1) ||
-                        (conflict.group1.allAgentsState.Length > 1)) // Otherwise the conflict is while a single agent is at its goal, no chance of an alternate path with the same cost that avoids the conflict
+                    // Add the plan of group2 to the illegal moves table and re-plan group1 with equal cost
+                    if ((conflict.time < conflict.group1.GetPlan().GetSize() - 1) ||
+                        (conflict.group1.allAgentsState.Length > 1)) // Otherwise the conflict is while a single agent
+                                                                     // is at its goal, no chance of an alternate path
+                                                                     // with the same cost that avoids the conflict
                     {
+                        if (this.debug)
+                        {
+                            Debug.WriteLine($"Trying to find an alternative path that avoids a conflict for group 1.");
+                            Debug.WriteLine($"Old plan:");
+                            conflict.group1.GetPlan().PrintPlan();
+                        }
                         conflict.group1.removeGroupFromCAT(conflictAvoidance);
                         bool resolved = conflict.group1.ReplanUnderConstraints(conflict.group2.GetPlan(), runner);
                         conflict.group1.addGroupToCAT(conflictAvoidance, maxSolutionCostFound);
                         if (resolved == true)
+                        {
+                            if (this.debug)
+                            {
+                                Debug.WriteLine($"Found an alternative path that avoids a conflict for group 1:");
+                                conflict.group1.GetPlan().PrintPlan();
+                            }
                             continue;
+                        }
+
+                        if (this.debug)
+                        {
+                            Debug.WriteLine($"Couldn't find an alternative path that avoids a conflict for group 1");
+                        }
                     }
-                    // Add plan of group1 to illegal moves table and replan group2 with equal cost
-                    if ((conflict.timeOfConflict < conflict.group2.GetPlan().GetSize() - 1) ||
+                    
+                    // Add the plan of group1 to the illegal moves table and re-plan group2 with equal cost
+                    if ((conflict.time < conflict.group2.GetPlan().GetSize() - 1) ||
                         (conflict.group2.allAgentsState.Length > 1))
                     {
+                        if (this.debug)
+                        {
+                            Debug.WriteLine($"Trying to find an alternative path that avoids a conflict for group 2");
+                            Debug.WriteLine($"Old plan:");
+                            conflict.group2.GetPlan().PrintPlan();
+                        }
                         conflict.group2.removeGroupFromCAT(conflictAvoidance);
                         bool resolved = conflict.group2.ReplanUnderConstraints(conflict.group1.GetPlan(), runner);
                         conflict.group2.addGroupToCAT(conflictAvoidance, maxSolutionCostFound);
                         if (resolved == true)
+                        {
+                            if (this.debug)
+                            {
+                                Debug.WriteLine($"Found an alternative path that avoids a conflict for group 2:");
+                                conflict.group2.GetPlan().PrintPlan();
+                            }
                             continue;
+                        }
+                        if (this.debug)
+                        {
+                            Debug.WriteLine($"Couldn't find an alternative path that avoids a conflict for group 2");
+                        }
                     }
                 }
 
@@ -321,18 +373,25 @@ namespace mapf
                 conflict.group1.removeGroupFromCAT(conflictAvoidance);
                 conflict.group2.removeGroupFromCAT(conflictAvoidance);
                 if (this.debug)
-                    Debug.WriteLine("Merging " + conflict);
+                {
+                    Debug.WriteLine($"Merging the agent groups that participate in {conflict}. " +
+                                      $"Group1 plan before the merge: ");
+                    conflict.group1.GetPlan().PrintPlan();
+                    Debug.WriteLine($"Group2 plan before the merge: ");
+                    conflict.group2.GetPlan().PrintPlan();
+                }
+
                 IndependenceDetectionAgentsGroup compositeGroup = this.JoinGroups(conflict);
 
                 compositeGroup.instance.parameters[CONFLICT_AVOIDANCE] = conflictAvoidance;
 
-                // Solve composite group with A*
+                // Solve composite group with the underlying group solver
                 bool solved = compositeGroup.Solve(runner);
 
                 if (compositeGroup.solutionCost > maxSolutionCostFound)
                     maxSolutionCostFound = compositeGroup.solutionCost;
 
-                //add group to conflict avoidance table
+                // Add the new group to conflict avoidance table
                 compositeGroup.addGroupToCAT(conflictAvoidance, maxSolutionCostFound);
                 allGroups.AddFirst(compositeGroup);
 
@@ -344,7 +403,7 @@ namespace mapf
 
                 if (solved == false)
                 {
-                    this.totalCost = compositeGroup.solutionCost; // Should be some error code from Constants
+                    this.totalCost = Constants.NO_SOLUTION_COST;
                     return false;
                 }
             }
@@ -407,10 +466,7 @@ namespace mapf
                 this.plan = null;
             }
 
-            Console.WriteLine();
-            Console.WriteLine(this.allGroups.Count + " - Independent Groups");
-            Console.WriteLine(this.maxGroupSize + " - Size Of Largest ID Group");
-            Console.WriteLine();
+            // TODO: Add a statistic for the number of groups
             return solved;
         }
 
@@ -503,7 +559,7 @@ namespace mapf
             AgentState[] joinedAgentStates = new AgentState[allAgentsState.Length + other.allAgentsState.Length];
             this.allAgentsState.CopyTo(joinedAgentStates, 0);
             other.allAgentsState.CopyTo(joinedAgentStates, this.allAgentsState.Length);
-            Array.Sort<AgentState>(joinedAgentStates, (x, y) => x.agent.agentNum.CompareTo(y.agent.agentNum));
+            Array.Sort(joinedAgentStates, (x, y) => x.agent.agentNum.CompareTo(y.agent.agentNum));  // Technically could be a merge
 
             return new IndependenceDetectionAgentsGroup(this.instance, joinedAgentStates, this.singleAgentSolver, this.groupSolver);
         }
@@ -549,10 +605,10 @@ namespace mapf
             int oldCost = this.solutionCost;
             Plan oldPlan = this.plan;
             HashSet<TimedMove> reserved = new HashSet<TimedMove>();
-            plan.AddPlanToHashSet(reserved, Math.Max(plan.GetSize(), this.plan.GetSize()) - 1); // TODO: Why -1?
+            plan.AddPlanToHashSet(reserved, Math.Max(plan.GetSize(), this.plan.GetSize()));
 
             this.instance.parameters[IndependenceDetection.ILLEGAL_MOVES_KEY] = reserved;
-            this.instance.parameters[IndependenceDetection.MAXIMUM_COST_KEY] = solutionCost;
+            this.instance.parameters[IndependenceDetection.MAXIMUM_COST_KEY] = solutionCost;  // TODO: add IIndependenceDetectionSolver to ISolver.cs with a Setup method that takes a maxCost
             bool success = this.Solve(runner);
             this.instance.parameters.Remove(IndependenceDetection.ILLEGAL_MOVES_KEY);
             this.instance.parameters.Remove(IndependenceDetection.MAXIMUM_COST_KEY);

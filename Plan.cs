@@ -180,6 +180,7 @@ namespace mapf
         /// NOT the cost, which:
         /// A) could depend on steps taken before solving started,
         /// B) is 1 smaller than the size (a plan that starts at the goal costs zero)
+        /// C) under sum-of-costs, is the sum of the agent costs
         /// Useful only for iteration over the relevant part of the plan.
         /// </summary>
         /// <returns>The size of the plan, assuming is doesn't end with steps where all agents WAIT at the goal (which should be discounted).</returns>
@@ -241,7 +242,7 @@ namespace mapf
 
         public HashSet<TimedMove> AddPlanToHashSet(HashSet<TimedMove> addTo, int until)
         {
-            for (int i = 1; i <= until; i++)
+            for (int i = 1; i < until; i++)  // i = 1 because we assume start positions don't overlap
             {
                 List<Move> step = this.GetLocationsAt(i);
                 foreach (Move move in step)
@@ -278,11 +279,11 @@ namespace mapf
         }
 
         /// <summary>
-        /// Not used
+        /// Get a SinglePlan from a Plan
         /// </summary>
         /// <param name="plan"></param>
-        /// <param name="agentIndex"></param>
-        /// <param name="agentNum"></param>
+        /// <param name="agentIndex">In this plan</param>
+        /// <param name="agentNum">To put in the returned SinglePlan</param>
         public SinglePlan(Plan plan, int agentIndex, int agentNum)
         {
             this.agentNum = agentNum;
