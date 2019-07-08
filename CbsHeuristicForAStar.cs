@@ -63,7 +63,13 @@ namespace mapf
         /// <returns></returns>
         public uint h(WorldState s)
         {
-            int sicEstimate = (int) SumIndividualCosts.h(s, this.instance);  // FIXME: Support the makespan variant. Every place where SumIndividualCosts appears needs to be fixed.
+            int sicEstimate;
+            if (Constants.costFunction == Constants.CostFunction.SUM_OF_COSTS)
+                sicEstimate = (int) SumIndividualCosts.h(s, this.instance);
+            else if (Constants.costFunction == Constants.CostFunction.MAKESPAN || Constants.costFunction == Constants.CostFunction.MAKESPAN_THEN_SUM_OF_COSTS)
+                sicEstimate = (int) MaxIndividualCosts.h(s, this.instance);
+            else
+                throw new Exception($"Unsupported cost function {Constants.costFunction}");
             if (sicEstimate == 0)  // Only the goal has an estimate of zero
                 return 0;
             int targetCost = s.g + sicEstimate + this.minAboveSic; // Ariel's idea - using SIC directly here to calc the target
@@ -104,7 +110,15 @@ namespace mapf
                 if (this.cbs.openList.Count > 0 && this.cbs.topMost)
                 {
                     if (sicEstimate == -1)
-                        sicEstimate = (int) SumIndividualCosts.h(s, this.instance);
+                    {
+                        if (Constants.costFunction == Constants.CostFunction.SUM_OF_COSTS)
+                            sicEstimate = (int) SumIndividualCosts.h(s, this.instance);
+                        else if (Constants.costFunction == Constants.CostFunction.MAKESPAN || Constants.costFunction == Constants.CostFunction.MAKESPAN_THEN_SUM_OF_COSTS)
+                            sicEstimate = (int) MaxIndividualCosts.h(s, this.instance);
+                        else
+                            throw new Exception($"Unsupported cost function {Constants.costFunction}");
+                    }
+
                     Debug.Assert(((CbsNode)this.cbs.openList.Peek()).g - s.g == (int)sicEstimate,
                                     "Total cost of CBS root not same as SIC + g");
                     // Notice we're subtracting s.g, not sAsProblemInstance.g.
@@ -148,8 +162,15 @@ namespace mapf
             this.cbs.ClearStatistics();
 
             if (this.cbs.solutionCost < 0) // A timeout is legitimately possible if very little time was left to begin with,
-                                        // and a no solution failure may theoretically be possible too.
-                return SumIndividualCosts.h(s, this.instance);
+                                           // and a no solution failure may theoretically be possible too.
+            {
+                if (Constants.costFunction == Constants.CostFunction.SUM_OF_COSTS)
+                    return SumIndividualCosts.h(s, this.instance);
+                else if (Constants.costFunction == Constants.CostFunction.MAKESPAN || Constants.costFunction == Constants.CostFunction.MAKESPAN_THEN_SUM_OF_COSTS)
+                    return MaxIndividualCosts.h(s, this.instance);
+                else
+                    throw new Exception($"Unsupported cost function {Constants.costFunction}");
+            }
 
             Debug.Assert(this.cbs.solutionCost >= s.g,
                          $"CBS total cost {this.cbs.solutionCost} is smaller than starting problem's initial cost {s.g}."); // = is allowed since even though this isn't a goal node (otherwise this function won't be called),
@@ -167,14 +188,21 @@ namespace mapf
             
             if (validate)
             {
-                // Brute-force validation of admissability of estimate:
-                var sic = new SumIndividualCosts();
-                sic.Init(this.instance, this.agentsToConsider);
-                var epeastarsic = new EPEA_Star(sic);
+                // Brute-force validation of admissibility of estimate:
+                IHeuristicCalculator<WorldState> heuristic;
+                if (Constants.costFunction == Constants.CostFunction.SUM_OF_COSTS)
+                    heuristic = new SumIndividualCosts();
+                else if (Constants.costFunction == Constants.CostFunction.MAKESPAN || Constants.costFunction == Constants.CostFunction.MAKESPAN_THEN_SUM_OF_COSTS)
+                    heuristic = new MaxIndividualCosts();
+                else
+                    throw new Exception($"Unsupported cost function {Constants.costFunction}");
+                
+                heuristic.Init(this.instance, this.agentsToConsider);
+                var epeastarsic = new EPEA_Star(heuristic);
                 epeastarsic.Setup(sAsProblemInstance, s.makespan, runner);
                 bool epeastarsicSolved = epeastarsic.Solve();
                 if (epeastarsicSolved)
-                    Debug.Assert(epeastarsic.totalCost - s.g >= this.cbs.solutionCost - s.g, "Inadmissable!!");
+                    Debug.Assert(epeastarsic.totalCost - s.g >= this.cbs.solutionCost - s.g, "Inadmissible!!");
             }
 
             return cbsEstimate;
