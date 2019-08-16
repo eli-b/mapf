@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Diagnostics;
 using System.IO;
 
@@ -168,17 +167,22 @@ namespace mapf
         }
 
         protected static readonly string[] daoMapPaths = {
-            Path.Combine("..", "..", "dao_maps", "den520d.map"),
-            Path.Combine("..", "..", "dao_maps", "ost003d.map"),
-            Path.Combine("..", "..", "dao_maps", "brc202d.map")
+            Path.Combine("..", "..", "maps", "den520d.map"),
+            Path.Combine("..", "..", "maps", "ost003d.map"),
+            Path.Combine("..", "..", "maps", "brc202d.map")
         };
 
         protected static readonly string[] mazeMapPaths = {
-            Path.Combine("..", "..", "mazes_width1_maps", "maze512-1-6.map"),
-            Path.Combine("..", "..", "mazes_width1_maps", "maze512-1-2.map"),
-            Path.Combine("..", "..", "mazes_width1_maps", "maze512-1-9.map")
+            Path.Combine("..", "..", "maps", "maze512-1-6.map"),
+            Path.Combine("..", "..", "maps", "maze512-1-2.map"),
+            Path.Combine("..", "..", "maps", "maze512-1-9.map")
         };
-        
+
+        protected static readonly string[] scenDirs = {
+            Path.Combine("..", "..", "scen", "scen-even"),
+            Path.Combine("..", "..", "scen", "scen-random")
+        };
+
         /// <summary>
         /// Dragon Age experiment
         /// </summary>
@@ -302,12 +306,14 @@ namespace mapf
 
             Program.onlyReadInstances = false;
 
-            int instances = 99;
+            int instances = 100;
 
-            bool runGrids = true;
+            bool runGrids = false;
             bool runDragonAge = false;
             bool runMazesWidth1 = false;
             bool runSpecific = false;
+            bool runPaperProblems = false;
+            bool runPaperProblemsIncrementally = false;  // Turn on for CA*
 
             if (runGrids == true)
             {
@@ -384,6 +390,52 @@ namespace mapf
                 //me.RunInstance("corridor3");
                 //me.RunInstance("corridor4");
                 return;
+            }
+            else if (runPaperProblems)
+            {
+                foreach (var dirName in scenDirs)
+                {
+                    foreach (var scenPath in Directory.GetFiles(dirName))
+                    {
+                        var problem = ProblemInstance.Import(scenPath);
+                        foreach (var numAgents in Enumerable.Range(1, problem.agents.Length))
+                        {
+                            var subProblem = problem.Subproblem(problem.agents.Take(numAgents).ToArray());
+                            // don't create a subproblem, just feed time adding one agent and report the sum of times so far
+                            Run runner = new Run();
+                            using (runner)
+                            {
+                                bool resultsFileExisted = File.Exists(RESULTS_FILE_NAME);
+                                runner.OpenResultsFile(RESULTS_FILE_NAME);
+                                if (resultsFileExisted == false)
+                                    runner.PrintResultsFileHeader();
+                                bool success = runner.SolveGivenProblem(subProblem);
+                                if (success == false)
+                                    break;
+                            }
+                        }
+                    }
+                }
+            }
+            else if (runPaperProblemsIncrementally)
+            {
+                foreach (var dirName in scenDirs)
+                {
+                    foreach (var scenPath in Directory.GetFiles(dirName))
+                    {
+                        var problem = ProblemInstance.Import(scenPath);
+                        CooperativeAStar castar = new CooperativeAStar();
+                        Run runner = new Run();
+                        using (runner)
+                        {
+                            bool resultsFileExisted = File.Exists(RESULTS_FILE_NAME);
+                            runner.OpenResultsFile(RESULTS_FILE_NAME);
+                            if (resultsFileExisted == false)
+                                runner.PrintResultsFileHeader();
+                            runner.SolveGivenProblemIncrementally(problem);
+                        }
+                    }
+                }
             }
 
             // A function to be used by Eric's PDB code
