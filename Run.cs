@@ -32,7 +32,7 @@ namespace mapf
         /// <summary>
         /// Indicates the starting time in ms for timing the different algorithms.
         /// </summary>
-        private double startTime;
+        public double startTime;
 
         /// <summary>
         /// This holds an open stream to the results file.
@@ -1137,7 +1137,7 @@ namespace mapf
         }
 
         private Stopwatch watch;
-        private double ElapsedMillisecondsTotal()
+        public double ElapsedMillisecondsTotal()
         {
             return this.watch.Elapsed.TotalMilliseconds;
         }

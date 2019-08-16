@@ -143,7 +143,7 @@ namespace mapf
             {
                 foreach (MDDNode node in allMDDs[i].levels[level])
                 {
-                    Debug.Assert(node.isBeingDeleted == false);
+                    Debug.Assert(node.isDeleted == false);
 
                     for (int d = 0; d < 5; d++)
                         parentsToDelete[d] = null;
