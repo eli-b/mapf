@@ -954,7 +954,7 @@ namespace mapf
 
                 Console.WriteLine("Time In milliseconds: {0}", elapsedTime);
 
-                this.PrintStatistics(instance, cooperativeAStar, elapsedTime + instance.shortestPathComputeTime, seed: 123);
+                this.PrintStatistics(instance, cooperativeAStar, elapsedTime + instance.shortestPathComputeTime);
 
                 Console.WriteLine();
 
