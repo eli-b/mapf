@@ -392,7 +392,8 @@ namespace mapf
                 string fileNameWithoutExtension = Path.GetFileNameWithoutExtension(filePath);
                 int instanceId = int.Parse(fileNameWithoutExtension.Split('-').Last());
                 string mapfileName = fileNameWithoutExtension.Substring(0, length: fileNameWithoutExtension.LastIndexOf('-'));  // Passing a length parameter is like specifying a non-inclusive end index
-                mapFilePath = Path.Combine(Path.GetDirectoryName(filePath), "..", "..", "maps", mapfileName);
+                if (mapFilePath == null)
+                    mapFilePath = Path.Combine(Path.GetDirectoryName(filePath), "..", "..", "..", "maps", mapfileName);
                 bool[][] grid;
                 string line;
                 string[] lineParts;
@@ -469,7 +470,7 @@ namespace mapf
                         mapRows = int.Parse(lineParts[2]);
                         Debug.Assert(mapRows == maxX);
                         mapCols = int.Parse(lineParts[3]);
-                        Debug.Assert(mapRows == maxY);
+                        Debug.Assert(mapCols == maxY);
 
                         startY = int.Parse(lineParts[4]);
                         startX = int.Parse(lineParts[5]);
