@@ -136,17 +136,16 @@ namespace mapf
         /// <param name="level"></param>
         private void pruneLevel(int level)
         {
-            MDDNode[] parentsToDelete = new MDDNode[5];
             int parentI;
 
             for (int i = 0; i < allMDDs.Length; i++)
             {
+                if (allMDDs[i].levels == null)
+                    continue;
+                
                 foreach (MDDNode node in allMDDs[i].levels[level])
                 {
-                    Debug.Assert(node.isDeleted == false);
-
-                    for (int d = 0; d < 5; d++)
-                        parentsToDelete[d] = null;
+                    MDDNode[] parentsToDelete = new MDDNode[5];
 
                     parentI = 0;
                     foreach (MDDNode parent in node.parents)
