@@ -297,6 +297,83 @@ namespace mapf
             return this.grid[0].Length;
         }
 
+        private static bool[][] readMapFile(string mapFilePath)
+        {
+            using (TextReader input = new StreamReader(mapFilePath))
+            {
+                // Read grid dimensions
+                string line = input.ReadLine();
+                if (line == "type octile")
+                    return readBenchmarkMap(input, line);
+                else
+                    return readLironMap(input, line);
+            }
+        }
+
+        private static bool[][] readBenchmarkMap(TextReader input, string line)
+        {
+            bool[][] grid;
+            string[] lineParts;
+            int maxX, maxY;
+            // Read grid dimensions
+            line = input.ReadLine();
+            lineParts = line.Split(' ');
+            Debug.Assert(lineParts.Length == 2);
+            Debug.Assert(lineParts[0].Equals("height"));
+            maxY = int.Parse(lineParts[1]);  // The height is the number of rows
+            line = input.ReadLine();
+            lineParts = line.Split(' ');
+            Debug.Assert(lineParts.Length == 2);
+            Debug.Assert(lineParts[0].Equals("width"));
+            maxX = int.Parse(lineParts[1]);  // The width is the number of columns
+            grid = new bool[maxY][];
+
+            line = input.ReadLine();
+            Debug.Assert(line.StartsWith("map"));
+
+            char cell;
+            // Read grid
+            for (int i = 0; i < maxY; i++)
+            {
+                grid[i] = new bool[maxX];
+                line = input.ReadLine();
+                for (int j = 0; j < maxX; j++)
+                {
+                    cell = line.ElementAt(j);
+                    if (cell == '@' || cell == 'O' || cell == 'T' || cell == 'W' /* Water isn't traversable from land */)
+                        grid[i][j] = true;
+                    else
+                        grid[i][j] = false;
+                }
+            }
+            return grid;
+        }
+
+
+        private static bool[][] readLironMap(TextReader input, string line) {
+            string[] lineParts;
+            lineParts = line.Split(',');
+            int maxX = int.Parse(lineParts[0]);
+            int maxY = int.Parse(lineParts[1]);
+            bool[][] grid = new bool[maxX][];
+            char cell;
+            // Read grid
+            for (int i = 0; i < maxX; i++)
+            {
+                grid[i] = new bool[maxY];
+                line = input.ReadLine();
+                for (int j = 0; j < maxY; j++)
+                {
+                    cell = line.ElementAt(j);
+                    if (cell == '1')
+                        grid[i][j] = true;
+                    else
+                        grid[i][j] = false;
+                }
+            }
+            return grid;
+        }
+
         /// <summary>
         /// Imports a problem instance from a given file
         /// </summary>
@@ -309,46 +386,26 @@ namespace mapf
             {
                 string fileNameWithoutExtension = Path.GetFileNameWithoutExtension(filePath);
                 int instanceId = 0;
+                try
+                {
+                    instanceId = int.Parse(filePath.Split('_').Last());
+                }
+                catch (Exception) {}
                 string mapfileNameWithoutExtension;
                 if (mapFilePath == null)
                 {
                     mapfileNameWithoutExtension = fileNameWithoutExtension.Substring(0, length: fileNameWithoutExtension.LastIndexOf('_')) + ".map";  // Passing a length parameter is like specifying a non-inclusive end index
                     mapFilePath = Path.Combine(Path.GetDirectoryName(filePath), "..", "maps", mapfileNameWithoutExtension);
-                    instanceId = int.Parse(filePath.Split('_').Last());
                 }
                 else
                 {
                     mapfileNameWithoutExtension = Path.GetFileNameWithoutExtension(mapFilePath);
                 }
 
-                bool[][] grid;
+                bool[][] grid = readMapFile(mapFilePath);
+
                 string line;
                 string[] lineParts;
-                using (TextReader input = new StreamReader(mapFilePath))
-                {
-                    // Read grid dimensions
-                    line = input.ReadLine();
-                    lineParts = line.Split(',');
-                    int maxX = int.Parse(lineParts[0]);
-                    int maxY = int.Parse(lineParts[1]);
-                    grid = new bool[maxX][];
-                    char cell;
-                    // Read grid
-                    for (int i = 0; i < maxX; i++)
-                    {
-                        grid[i] = new bool[maxY];
-                        line = input.ReadLine();
-                        for (int j = 0; j < maxY; j++)
-                        {
-                            cell = line.ElementAt(j);
-                            if (cell == '1')
-                                grid[i][j] = true;
-                            else
-                                grid[i][j] = false;
-                        }
-                    }
-                }
-
                 AgentState[] states;
                 using (TextReader input = new StreamReader(filePath))
                 {
@@ -394,48 +451,11 @@ namespace mapf
                 string mapfileName = fileNameWithoutExtension.Substring(0, length: fileNameWithoutExtension.LastIndexOf('-'));  // Passing a length parameter is like specifying a non-inclusive end index
                 if (mapFilePath == null)
                     mapFilePath = Path.Combine(Path.GetDirectoryName(filePath), "..", "..", "..", "maps", mapfileName);
-                bool[][] grid;
+                
+                bool[][] grid = readMapFile(mapFilePath);
+
                 string line;
                 string[] lineParts;
-                int maxX;
-                int maxY;
-                using (TextReader input = new StreamReader(mapFilePath))
-                {
-                    // Read grid dimensions
-                    line = input.ReadLine();
-                    Debug.Assert(line.StartsWith("type octile"));
-                    line = input.ReadLine();
-                    lineParts = line.Split(' ');
-                    Debug.Assert(lineParts.Length == 2);
-                    Debug.Assert(lineParts[0].Equals("height"));
-                    maxY = int.Parse(lineParts[1]);  // The height is the number of rows
-                    line = input.ReadLine();
-                    lineParts = line.Split(' ');
-                    Debug.Assert(lineParts.Length == 2);
-                    Debug.Assert(lineParts[0].Equals("width"));
-                    maxX = int.Parse(lineParts[1]);  // The width is the number of columns
-                    grid = new bool[maxY][];
-
-                    line = input.ReadLine();
-                    Debug.Assert(line.StartsWith("map"));
-
-                    char cell;
-                    // Read grid
-                    for (int i = 0; i < maxY; i++)
-                    {
-                        grid[i] = new bool[maxX];
-                        line = input.ReadLine();
-                        for (int j = 0; j < maxX; j++)
-                        {
-                            cell = line.ElementAt(j);
-                            if (cell == '@' || cell == 'O' || cell == 'T' || cell == 'W' /* Water isn't traversable from land */)
-                                grid[i][j] = true;
-                            else
-                                grid[i][j] = false;
-                        }
-                    }
-                }
-
                 List<AgentState> stateList = new List<AgentState>();
                 using (TextReader input = new StreamReader(filePath))
                 {
@@ -468,9 +488,9 @@ namespace mapf
                         block = int.Parse(lineParts[0]);
                         mapFileName = lineParts[1];
                         mapRows = int.Parse(lineParts[2]);
-                        Debug.Assert(mapRows == maxX);
+                        Debug.Assert(mapRows == grid.GetLength(0));
                         mapCols = int.Parse(lineParts[3]);
-                        Debug.Assert(mapCols == maxY);
+                        Debug.Assert(mapCols == grid.GetLength(1));
 
                         startY = int.Parse(lineParts[4]);
                         startX = int.Parse(lineParts[5]);
