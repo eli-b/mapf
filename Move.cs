@@ -322,7 +322,7 @@ namespace mapf
 
         public override string ToString()
         {
-            return "(" + this.x + "," + this.y + ")"; // not describing the direction
+            return $"({this.x},{this.y})"; // not describing the direction
         }
     }    
 }

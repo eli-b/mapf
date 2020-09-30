@@ -20,7 +20,7 @@ namespace mapf
         }
         public override string ToString()
         {
-            return "Agent-" + agentNum + " Goal-" + Goal;
+            return $"Agent-{agentNum} Goal-{Goal}";
         }
 
         public override bool Equals(object other_obj)

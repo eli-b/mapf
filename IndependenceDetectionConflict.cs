@@ -13,7 +13,7 @@ namespace mapf
 
         public override string ToString()
         {
-            return "conflict in time " + time + " between " + group1 + " and " + group2;
+            return $"conflict in time {time} between {group1} and {group2}";
         }
 
         public IndependenceDetectionConflict(IndependenceDetectionAgentsGroup group1, IndependenceDetectionAgentsGroup group2, int time)

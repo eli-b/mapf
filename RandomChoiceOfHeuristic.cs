@@ -29,7 +29,7 @@ namespace mapf
 
         public override string ToString()
         {
-            return "RandomChoiceOfHeuristic(" + this.p + ":" + this.first + " " + (1 - this.p) + ":" + this.second + ")";
+            return $"RandomChoiceOfHeuristic({this.p}:{this.first} {1 - this.p}:{this.second})";
         }
 
         public string GetName()

@@ -199,7 +199,7 @@ namespace mapf
 
         public override string ToString()
         {
-            return "step-" + lastMove.time + " position " + this.lastMove;
+            return $"step-{lastMove.time} position {this.lastMove}";
         }
     }
 }

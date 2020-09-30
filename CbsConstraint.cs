@@ -117,7 +117,7 @@ namespace mapf
         
         public override string ToString()
         {
-            return move.ToString() + "-" + move.direction.ToString().PadRight(12) + " time=" + move.time + " agentNum " + agentNum + "";
+            return $"{move}-{move.direction,-12} time={move.time} agentNum {agentNum}";
         }
 
         /// <summary>
