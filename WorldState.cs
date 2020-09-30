@@ -18,6 +18,8 @@ namespace mapf
         public WorldState prevStep;
         private int binaryHeapIndex;
         public MDDNode mddNode;
+        public int generated;
+
         /// <summary>
         /// For Independence Detection only
         /// </summary>
@@ -398,16 +400,14 @@ namespace mapf
 
         public override string ToString()
         {
-            string ans = "makespan: " + makespan + ", h: " + h + ", g: " + g;
-            ans += " ";
+            var builder = new System.Text.StringBuilder($"{generated} f:{f} makespan: {makespan} h: {h} g: {g} ");
             foreach (AgentState temp in allAgentsState)
             {
-                //ans +="\n agent " + temp.agent.agentNum + ": " + temp.lastMove;
-                //ans += " agent " + temp.agent.agentNum + ": " + temp.lastMove;
-                ans += "|" + temp.lastMove;
+                builder.Append("|");
+                builder.Append(temp.lastMove);
             }
-            ans += "|";
-            return ans;
+            builder.Append("|");
+            return builder.ToString();
         }
 
         /// <summary>

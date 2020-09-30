@@ -94,7 +94,7 @@ namespace mapf
         public override string ToString()
         {
             //return base.ToString() + "\nTarget delta F = " + this.targetDeltaF;
-            return base.ToString() + " with target delta F = " + this.targetDeltaF;
+            return $"{base.ToString()} (target deltaF: {this.targetDeltaF})";
         }
 
         public delegate bool ValidityChecker(TimedMove move, IReadOnlyDictionary<TimedMove, int> currentMoves, int makespan, int agentIndex, WorldState node, WorldState intermediateNode);

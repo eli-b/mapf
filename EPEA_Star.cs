@@ -125,7 +125,10 @@ namespace mapf
                 // Re-insert node into open list
                 openList.Add(node);
                 if (this.debug)
-                    Console.WriteLine("Re-inserting the node into the open list with higher h");
+                {
+                    Debug.WriteLine($"Re-inserting node {node.generated} into the open list (with targetDeltaF: {node.targetDeltaF})");
+                    Debug.WriteLine("");
+                }
             }
             else
                 node.Clear();

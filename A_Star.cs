@@ -107,6 +107,7 @@ namespace mapf
             this.closedList.Add(root, root);
             this.ClearPrivateStatistics();
             this.generated++; // The root
+            root.generated = generated;
             this.totalCost = 0;
             this.singleCosts = null;
             this.solution = null;
@@ -429,7 +430,6 @@ namespace mapf
 
                 if (debug)
                 {
-                    Debug.WriteLine("");
                     Debug.WriteLine($"Expanding node: {currentNode}");
                 }
 
@@ -493,8 +493,6 @@ namespace mapf
                 // Expand
                 if (this.mstar == false)
                 {
-                    if (this.debug)
-                        Debug.WriteLine("");
                     //Expand(currentNode);
                 }
                 else
@@ -624,7 +622,7 @@ namespace mapf
             }
 
             if (this.debug)
-                Debug.WriteLine("\n");
+                Debug.WriteLine("");
         }
         
         /// <summary>
@@ -1184,6 +1182,7 @@ namespace mapf
                 {
                     this.closedList.Add(currentNode, currentNode);
                     this.generated++; // Reopened nodes are also recounted here.
+                    currentNode.generated = this.generated;
                     this.openList.Add(currentNode);
                     currentNode.expandedCountWhenGenerated = this.expanded;
                     if (this.debug)
