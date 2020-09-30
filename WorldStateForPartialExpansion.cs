@@ -77,20 +77,6 @@ namespace mapf
             this.fLookup = null;
         }
 
-        public override int CompareTo(IBinaryHeapItem other)
-        {
-            this.h += this.targetDeltaF;
-            WorldStateForPartialExpansion otherNode = (WorldStateForPartialExpansion)other;
-            otherNode.h += otherNode.targetDeltaF;
-
-            int res = base.CompareTo(other);
-
-            this.h -= this.targetDeltaF;
-            otherNode.h -= otherNode.targetDeltaF;
-
-            return res;
-        }
-
         public override string ToString()
         {
             //return base.ToString() + "\nTarget delta F = " + this.targetDeltaF;
