@@ -3,7 +3,7 @@ namespace mapf
 {
     class Constants
     {
-        public static int MAX_TIME = 300000;
+        public static int MAX_TIME = 60000;
 
         /// <summary>
         /// The cost that is set to the algorithms when all the states have been expanded and no goal was found 
@@ -28,11 +28,7 @@ namespace mapf
         /// <summary>
         /// Max Consecutive failures before an algorithm is omitted from the list of tested algorithms
         /// </summary>
-        public const int MAX_FAIL_COUNT = 40;
-        /// <summary>
-        /// This determines whether the ICTS should search for a solution with lowest conflicts for the ID framework
-        /// </summary>
-        public static bool EXHAUSTIVE_ICTS = false;
+        public const int MAX_FAIL_COUNT = 10;
         /// <summary>
         /// Allow head-on collisions
         /// </summary>

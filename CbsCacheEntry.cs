@@ -12,7 +12,7 @@ namespace mapf
         {
             this.cbsNode = cbsNode;
             this.agentIndex = agentIndex;
-            Debug.Assert(cbsNode.cbs.mergeThreshold == -1, "When agents are merged it affects their paths without explicit constraints");
+            Trace.Assert(cbsNode.cbs.mergeThreshold == -1, "When agents are merged it affects their paths without explicit constraints");
         }
 
         public override int GetHashCode()

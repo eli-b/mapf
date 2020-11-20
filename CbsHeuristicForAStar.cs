@@ -8,7 +8,7 @@ namespace mapf
     /// <summary>
     /// Runs a bounded CBS to get an lower estimate of the cost from a given A* node to the goal.
     /// TODO: This class can actually be generalized to SolverHeuristic and be used as a brute-force estimator.
-    ///       The only CBS things in it are the targetCost, the Debug.Assert that the root costs exactly like SIC's
+    ///       The only CBS things in it are the targetCost, the Trace.Assert that the root costs exactly like SIC's
     ///       estimate, and the statistics.
     /// </summary>
     class CbsHeuristicForAStar : IHeuristicCalculator<WorldState>
@@ -105,7 +105,7 @@ namespace mapf
                                Math.Max(s.makespan,  // This forces must-constraints to be upheld when dealing with A*+OD nodes,
                                                      // at the cost of forcing every agent to move when a goal could be found earlier with all must constraints upheld.
                                         s.minGoalTimeStep), // No point in finding shallower goal nodes
-                               this.runner);
+                               this.runner, null, null, null);
                 
                 if (this.cbs.openList.Count > 0 && this.cbs.topMost)
                 {
@@ -119,7 +119,7 @@ namespace mapf
                             throw new Exception($"Unsupported cost function {Constants.costFunction}");
                     }
 
-                    Debug.Assert(((CbsNode)this.cbs.openList.Peek()).g - s.g == (int)sicEstimate,
+                    Trace.Assert(((CbsNode)this.cbs.openList.Peek()).g - s.g == (int)sicEstimate,
                                     "Total cost of CBS root not same as SIC + g");
                     // Notice we're subtracting s.g, not sAsProblemInstance.g.
                     // Must constraints we put may have forced some moves,
@@ -172,7 +172,7 @@ namespace mapf
                     throw new Exception($"Unsupported cost function {Constants.costFunction}");
             }
 
-            Debug.Assert(this.cbs.solutionCost >= s.g,
+            Trace.Assert(this.cbs.solutionCost >= s.g,
                          $"CBS total cost {this.cbs.solutionCost} is smaller than starting problem's initial cost {s.g}."); // = is allowed since even though this isn't a goal node (otherwise this function won't be called),
                                                                                                                          // a non-goal node can have h==0 if a minimum depth is specified, and all agents have reached their
                                                                                                                          // goal in this node, but the depth isn't large enough.
@@ -202,7 +202,7 @@ namespace mapf
                 epeastarsic.Setup(sAsProblemInstance, s.makespan, runner);
                 bool epeastarsicSolved = epeastarsic.Solve();
                 if (epeastarsicSolved)
-                    Debug.Assert(epeastarsic.totalCost - s.g >= this.cbs.solutionCost - s.g, "Inadmissible!!");
+                    Trace.Assert(epeastarsic.totalCost - s.g >= this.cbs.solutionCost - s.g, "Inadmissible!!");
             }
 
             return cbsEstimate;

@@ -318,18 +318,18 @@ namespace mapf
             // Read grid dimensions
             line = input.ReadLine();
             lineParts = line.Split(' ');
-            Debug.Assert(lineParts.Length == 2);
-            Debug.Assert(lineParts[0].Equals("height"));
+            Trace.Assert(lineParts.Length == 2);
+            Trace.Assert(lineParts[0].Equals("height"));
             maxY = int.Parse(lineParts[1]);  // The height is the number of rows
             line = input.ReadLine();
             lineParts = line.Split(' ');
-            Debug.Assert(lineParts.Length == 2);
-            Debug.Assert(lineParts[0].Equals("width"));
+            Trace.Assert(lineParts.Length == 2);
+            Trace.Assert(lineParts[0].Equals("width"));
             maxX = int.Parse(lineParts[1]);  // The width is the number of columns
             grid = new bool[maxY][];
 
             line = input.ReadLine();
-            Debug.Assert(line.StartsWith("map"));
+            Trace.Assert(line.StartsWith("map"));
 
             char cell;
             // Read grid
@@ -339,7 +339,7 @@ namespace mapf
                 line = input.ReadLine();
                 for (int j = 0; j < maxX; j++)
                 {
-                    cell = line.ElementAt(j);
+                    cell = line[j];
                     if (cell == '@' || cell == 'O' || cell == 'T' || cell == 'W' /* Water isn't traversable from land */)
                         grid[i][j] = true;
                     else
@@ -364,7 +364,7 @@ namespace mapf
                 line = input.ReadLine();
                 for (int j = 0; j < maxY; j++)
                 {
-                    cell = line.ElementAt(j);
+                    cell = line[j];
                     if (cell == '1')
                         grid[i][j] = true;
                     else
@@ -462,9 +462,9 @@ namespace mapf
                     // Read the format version number
                     line = input.ReadLine();
                     lineParts = line.Split(' ');
-                    Debug.Assert(lineParts[0].Equals("version"));
+                    Trace.Assert(lineParts[0].Equals("version"));
                     int version = int.Parse(lineParts[1]);
-                    Debug.Assert(version == 1, "Only version 1 is currently supported");
+                    Trace.Assert(version == 1, "Only version 1 is currently supported");
 
                     // Read the agents' start and goal states
                     AgentState state;
@@ -488,9 +488,9 @@ namespace mapf
                         block = int.Parse(lineParts[0]);
                         mapFileName = lineParts[1];
                         mapRows = int.Parse(lineParts[2]);
-                        Debug.Assert(mapRows == grid.GetLength(0));
+                        Trace.Assert(mapRows == grid.GetLength(0));
                         mapCols = int.Parse(lineParts[3]);
-                        Debug.Assert(mapCols == grid.GetLength(1));
+                        Trace.Assert(mapCols == grid.GetLength(1));
 
                         startY = int.Parse(lineParts[4]);
                         startX = int.Parse(lineParts[5]);
@@ -533,7 +533,7 @@ namespace mapf
                     }
 
                     // First/second line is Grid:
-                    Debug.Assert(line.StartsWith("Grid:"));
+                    Trace.Assert(line.StartsWith("Grid:"));
 
                     // Read grid dimensions
                     line = input.ReadLine();
@@ -549,7 +549,7 @@ namespace mapf
                         line = input.ReadLine();
                         for (int j = 0; j < maxY; j++)
                         {
-                            cell = line.ElementAt(j);
+                            cell = line[j];
                             if (cell == '@' || cell == 'O' || cell == 'T' || cell == 'W' /* Water isn't traversable from land */)
                                 grid[i][j] = true;
                             else
@@ -559,7 +559,7 @@ namespace mapf
 
                     // Next line is Agents:
                     line = input.ReadLine();
-                    Debug.Assert(line.StartsWith("Agents:"));
+                    Trace.Assert(line.StartsWith("Agents:"));
 
                     // Read the number of agents
                     line = input.ReadLine();
@@ -680,7 +680,6 @@ namespace mapf
         /// <summary>
         /// Check if the tile is valid, i.e. in the grid and without an obstacle.
         /// NOT checking the direction. A Move could be declared valid even if it came to an edge tile from outside the grid!
-        /// NOT checking if the move is illegal
         /// </summary>
         /// <param name="aMove"></param>
         /// <returns>True if the given location is a valid grid location with no obstacles</returns>
@@ -698,13 +697,6 @@ namespace mapf
         {
             if (IsValidTile(toCheck.x, toCheck.y) == false)
                 return false;
-
-            if (parameters.ContainsKey(IndependenceDetection.ILLEGAL_MOVES_KEY))
-            {
-                var reserved = (HashSet<TimedMove>)parameters[IndependenceDetection.ILLEGAL_MOVES_KEY];
-
-                return (toCheck.IsColliding(reserved) == false);
-            } // FIXME: Should this be here?
 
             return true;
         }

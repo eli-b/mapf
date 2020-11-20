@@ -12,7 +12,7 @@ namespace mapf
     /// It is similar to Python's collections.ChainMap, but 1) read-only, 2) a combined list of V
     /// elements is returned instead of just the first match.
     /// </summary>
-    [DebuggerDisplay("count =  {Count}")]
+    [DebuggerDisplay("count = {Count}")]
     [Serializable]
     public class Dictionary_U<K, V> : IReadOnlyDictionary<K, List<V>>
     {
@@ -32,6 +32,7 @@ namespace mapf
                     yield return item;
                 }
             }
+            // FIXME: This can yield the same key multiple times
         }
 
         public IEnumerator<KeyValuePair<K, List<V>>> GetEnumerator()
@@ -43,6 +44,7 @@ namespace mapf
                     yield return item;
                 }
             }
+            // FIXME: This can yield the same key multiple times
         }
 
         /// <summary>
@@ -62,6 +64,7 @@ namespace mapf
                     }
                 }
             }
+            // FIXME: This can yield the same key multiple times
         }
 
         /// <summary>
@@ -88,7 +91,7 @@ namespace mapf
         /// Gets a combined list of the values mapped to the specified key in the combined dictionaries.
         /// </summary>
         /// <param name="key">The key to locate.</param>
-        /// <returns>A combined list of the values mapped to the specified key in combined dictionaries.</returns>
+        /// <returns>A combined list of the values mapped to the specified key in the combined dictionaries.</returns>
         /// <exception cref="System.ArgumentNullException">key is null.</exception>
         /// <exception cref="System.Collections.Generic.KeyNotFoundException">key is not found.</exception>
         public List<V> this[K key]
@@ -146,7 +149,7 @@ namespace mapf
         }
 
         /// <summary>
-        /// Remove all dictionaries from the union
+        /// Remove all dictionaries from the union. Does not clear them.
         /// </summary>
         public void Clear()
         {

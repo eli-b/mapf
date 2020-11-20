@@ -19,13 +19,15 @@ namespace mapf
                 Constants.costFunction == Constants.CostFunction.MAKESPAN_THEN_SUM_OF_COSTS
                 )
             {
-                Debug.Assert(false, "Makespan support isn't implemented at the moment. Use A*+OD for now.");
+                Trace.Assert(false, "Makespan support isn't implemented at the moment. Use A*+OD for now.");
             }
         }
 
         override protected WorldState CreateSearchRoot(int minDepth = -1, int minCost = -1, MDDNode mddNode = null)
         {
-            return new WorldStateForPartialExpansion(this.instance.agents, minDepth, minCost, mddNode);
+            var root =  new WorldStateForPartialExpansion(this.instance.agents, minDepth, minCost, mddNode);
+            root.sic = (int)SumIndividualCosts.h(root, this.instance);
+            return root;
         }
 
         protected override WorldState CreateSearchNode(WorldState from)
@@ -36,9 +38,12 @@ namespace mapf
         override public string GetName() { return "EPE" + base.GetName(); }
 
         public override void Setup(ProblemInstance problemInstance, int minDepth, Run runner,
+                                   ConflictAvoidanceTable CAT = null,
+                                   ISet<CbsConstraint> constraints = null, ISet<CbsConstraint> positiveConstraints = null,
                                    int minCost = -1, int maxCost = int.MaxValue, MDD mdd = null)
         {
-            base.Setup(problemInstance, minDepth, runner, minCost, maxCost, mdd);
+            base.Setup(problemInstance, minDepth, runner, CAT, constraints, positiveConstraints,
+                       minCost, maxCost, mdd);
             this.expandedFullStates = 0;
         }
 
@@ -68,60 +73,50 @@ namespace mapf
                     return;
                 }
             }
-                
-            //Debug.Print("Expanding node " + node);
-
             // If this node was already expanded, notice its h was updated, so the deltaF refers to its original H
 
-            base.Expand(node);
-
-            if (node.IsAlreadyExpanded() == false)
+            do
             {
-                // Node was cleared during expansion.
-                // It's unnecessary and unsafe to continue to prepare it for the next partial expansion.
-                return;
-                // TODO: Is there a prettier way to do this?
-            }
+                if (debug)
+                    Debug.WriteLine($"Generating children with target deltaF={node.targetDeltaF}. Actual delta F may be lower because the parent node may have various H boosts.");
+                base.Expand(node);
+                // base.Expand computes every child's h value from scratch, even though we could compute it incrementally from intermediate nodes
 
-            //if (wasAlreadyExpanded)
-            //{
-            //    // Only doing it after expansion so that the children get the higher h
-            //    node.h -= node.targetDeltaF; // This way we retain any BPMX or other h boosts, allowing the new targetDeltaF to fully add to the base h
-            //    node.hBonus -= node.targetDeltaF;
-            //}
-            // FIXME: Why is this commented out? It was the only use of wasAlreadyExpanded, so if
-            //        removing the above is correct, also remove wasAlreadyExpanded.
+                if (node.IsAlreadyExpanded() == false)
+                {
+                    // Node was cleared during expansion.
+                    // It's unnecessary and unsafe to continue to prepare it for the next partial expansion.
+                    return;
+                    // TODO: Is there a prettier way to do this?
+                }
 
-            node.targetDeltaF++; // This delta F was exhausted
-            node.remainingDeltaF = node.targetDeltaF;
-
-            while (node.hasMoreChildren() && node.hasChildrenForCurrentDeltaF() == false)
-            {
-                node.targetDeltaF++;
-                node.remainingDeltaF = node.targetDeltaF; // Just for the following hasChildrenForCurrentDeltaF call.
-            }
-
-            if (node.hasMoreChildren() && node.hasChildrenForCurrentDeltaF() && node.h + node.g + node.targetDeltaF <= this.maxSolutionCost)
-            {
-                // Increment H before re-insertion into open list
-                //int sicEstimate = (int)SumIndividualCosts.h(node, this.instance); // Re-compute even if the heuristic used is SIC since this may be a second expansion
-                //if (node.h < sicEstimate + node.targetDeltaF)
-                //if (node.h < node.h + node.targetDeltaF)
+                //if (wasAlreadyExpanded)
                 //{
-                //    // Assuming the heuristic used doesn't give a lower estimate than SIC for each and every one of the node's children,
-                //    // (an ok assumption since SIC is quite basic, no heuristic we use is ever worse than it)
-                //    // then the current target deltaF is really exhausted, since the deltaG is always correct,
-                //    // and the deltaH predicted by SIC is less than or equal to the finalDeltaH.
-                //    // So if the heuristic gives the same estimate as SIC for this node
-                //    // (and that mainly happens when SIC happens to give a perfect estimate),
-                //    // we can increment the node's h to SIC+targetDeltaH
-
-                //    //int newH = sicEstimate + node.targetDeltaF;
-                //    int newH = node.h + node.targetDeltaF;
-                //    node.hBonus += newH - node.h;
-                //    node.h = newH;
+                //    // Only doing it after expansion so that the children get the higher h
+                //    node.h -= node.targetDeltaF; // This way we retain any BPMX or other h boosts, allowing the new targetDeltaF to fully add to the base h
+                //    node.hBonus -= node.targetDeltaF;
                 //}
-                
+                // FIXME: Why is this commented out? It was the only use of wasAlreadyExpanded, so if
+                //        removing the above is correct, also remove wasAlreadyExpanded.
+
+                // This node's target delta F was exhausted - increment it until a target delta F with actual children is found
+                do
+                {
+                    node.targetDeltaF++;
+                    node.remainingDeltaF = node.targetDeltaF; // Just for the following hasChildrenForCurrentDeltaF call.
+                } while (node.hasMoreChildren() && node.hasChildrenForCurrentDeltaF() == false);
+            } while (node.hasMoreChildren() && node.g + node.sic + node.targetDeltaF <= node.minGoalCost);  // Generate more children immediately if we have a lower bound on the solution depth
+
+            if (node.hasMoreChildren() && node.hasChildrenForCurrentDeltaF() && node.g + node.sic + node.targetDeltaF <= this.maxSolutionCost)
+            {
+                // Assuming the heuristic used doesn't give a lower estimate than SIC for each and every one of the node's children,
+                // (an ok assumption since SIC is quite basic, no heuristic we use is ever worse than it)
+                // then the current target deltaF is really exhausted, since the deltaG is always correct,
+                // and the deltaH predicted by SIC is less than or equal to the finalDeltaH.
+                // So if the heuristic gives the same estimate as SIC for this node
+                // (and that mainly happens when SIC happens to give a perfect estimate),
+                // we can increment the node's f to g+SIC+targetDeltaH
+
                 // Re-insert node into open list
                 openList.Add(node);
                 if (this.debug)
@@ -131,7 +126,10 @@ namespace mapf
                 }
             }
             else
+            {
                 node.Clear();
+                //TODO: Think about this.surplusNodesAvoided. Can it be correctly incremented?
+            }
         }
 
         protected override List<WorldState> ExpandOneAgent(List<WorldState> intermediateNodes, int agentIndex)
@@ -160,6 +158,9 @@ namespace mapf
 
             var node = (WorldStateForPartialExpansion)currentNode;
             node.ClearExpansionData();
+            node.sic = (int)SumIndividualCosts.h(node, this.instance);
+            // We defer calling the expensive calcSingleAgentDeltaFs to when the node is expanded, which means we might only then find out the node's current
+            // target deltaF=0 is not possibe.
             return ret;
         }
 

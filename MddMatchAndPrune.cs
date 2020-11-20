@@ -116,10 +116,10 @@ namespace mapf
             {
                 for (int i = 0; i < toExpand.allPositions.Length; i++)
                 {
-                    this.nodeSolver.solver.edgesMatrix[i,
+                    ((CostTreeSearchWithEdgesMatrix)this.nodeSolver.solver).edgesMatrix[i,
                                                        parent.allPositions[i].getVertexIndex(),
                                                        (int) Move.Direction.Wait] =
-                        this.nodeSolver.solver.edgesMatrixCounter + 1;
+                        ((CostTreeSearchWithEdgesMatrix)this.nodeSolver.solver).edgesMatrixCounter + 1;
                 }
                 if (closedList.ContainsKey(parent) == false)
                 {
@@ -151,10 +151,10 @@ namespace mapf
                     foreach (MDDNode parent in node.parents)
                     {
                         //if not legal
-                        int edge = this.nodeSolver.solver.edgesMatrix[i,
+                        int edge = ((CostTreeSearchWithEdgesMatrix)this.nodeSolver.solver).edgesMatrix[i,
                                                                       parent.getVertexIndex(),
                                                                       (int)node.move.direction /*or parent.move.direction, I'm not sure*/];
-                        if (edge != this.nodeSolver.solver.edgesMatrixCounter + 1)
+                        if (edge != ((CostTreeSearchWithEdgesMatrix)this.nodeSolver.solver).edgesMatrixCounter + 1)
                         {
                             parentsToDelete[parentI] = parent;
                             this.conflicted[i] = true;
@@ -181,7 +181,7 @@ namespace mapf
             if (success == false)
                 return false;
 
-            Debug.Assert(openList.Count == 0);
+            Trace.Assert(openList.Count == 0);
    
             MddMatchAndPruneState current = goal;
             int currentLevel = goal.stateLevel;
@@ -196,7 +196,7 @@ namespace mapf
                 {
                     pruneLevel(currentLevel);
                     currentLevel--;
-                    this.nodeSolver.solver.edgesMatrixCounter++;
+                    ((CostTreeSearchWithEdgesMatrix)this.nodeSolver.solver).edgesMatrixCounter++;
                     closedList.Clear();
                 }
                 reverseExpand(current);

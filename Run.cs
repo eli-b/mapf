@@ -706,19 +706,19 @@ namespace mapf
                 string line;
 
                 line = input.ReadLine();
-                Debug.Assert(line.StartsWith("type octile"));
+                Trace.Assert(line.StartsWith("type octile"));
 
                 // Read grid dimensions
                 line = input.ReadLine();
                 lineParts = line.Split(' ');
-                Debug.Assert(lineParts[0].StartsWith("height"));
+                Trace.Assert(lineParts[0].StartsWith("height"));
                 int maxX = int.Parse(lineParts[1]);
                 line = input.ReadLine();
                 lineParts = line.Split(' ');
-                Debug.Assert(lineParts[0].StartsWith("width"));
+                Trace.Assert(lineParts[0].StartsWith("width"));
                 int maxY = int.Parse(lineParts[1]);
                 line = input.ReadLine();
-                Debug.Assert(line.StartsWith("map"));
+                Trace.Assert(line.StartsWith("map"));
                 bool[][] grid = new bool[maxX][];
                 char cell;
                 for (int i = 0; i < maxX; i++)
@@ -727,7 +727,7 @@ namespace mapf
                     line = input.ReadLine();
                     for (int j = 0; j < maxY; j++)
                     {
-                        cell = line.ElementAt(j);
+                        cell = line[j];
                         if (cell == '@' || cell == 'O' || cell == 'T' || cell == 'W' /* Water isn't traversable from land */)
                             grid[i][j] = true;
                         else
@@ -885,14 +885,18 @@ namespace mapf
                         {
                             solutionCost = solverSolutionCost;
                             firstSolverToSolveIndex = i;
+
+                            plan.Check(instance);
                         }
                         else // Problem solved before
                         {
-                            Debug.Assert(solutionCost == solverSolutionCost,
+                            plan.Check(instance);
+
+                            Trace.Assert(solutionCost == solverSolutionCost,
                                 $"{solvers[firstSolverToSolveIndex]} solution cost is different than that of {solvers[i]}"); // Assuming algs are supposed to find an optimal solution, this is an error.
-                            //Debug.Assert(solvers[0].GetExpanded() == solvers[i].GetExpanded(), "Different Expanded");
-                            //Debug.Assert(solvers[0].GetGenerated() == solvers[i].GetGenerated(), "Different Generated");
-                            //Debug.Assert(solvers[0].GetSolutionDepth() == solvers[i].GetSolutionDepth(), "Depth Bug " + solvers[i]);
+                            //Trace.Assert(solvers[0].GetExpanded() == solvers[i].GetExpanded(), "Different Expanded");
+                            //Trace.Assert(solvers[0].GetGenerated() == solvers[i].GetGenerated(), "Different Generated");
+                            //Trace.Assert(solvers[0].GetSolutionDepth() == solvers[i].GetSolutionDepth(), "Depth Bug " + solvers[i]);
                         }
 
                         Console.WriteLine("+SUCCESS+ (:");
@@ -999,6 +1003,7 @@ namespace mapf
             if (solved)
             {
                 Console.WriteLine("Total cost: {0}", solver.GetSolutionCost());
+                Console.WriteLine("Makespan: {0}", solver.GetPlan().GetSize() - 1);
                 Console.WriteLine("Solution depth: {0}", solver.GetSolutionDepth());
             }
             else
@@ -1045,8 +1050,6 @@ namespace mapf
                 this.resultsWriter.Write(solver + " Solution Cost");
                 this.resultsWriter.Write(Run.RESULTS_DELIMITER);
                 solver.OutputStatisticsHeader(this.resultsWriter);
-                this.resultsWriter.Write(solver + " Max Group");
-                this.resultsWriter.Write(Run.RESULTS_DELIMITER);
                 this.resultsWriter.Write(solver + " Solution Depth");
                 this.resultsWriter.Write(Run.RESULTS_DELIMITER);
 
@@ -1079,8 +1082,6 @@ namespace mapf
             this.resultsWriter.Write(solver.GetSolutionCost() + RESULTS_DELIMITER);
             // Algorithm specific cols:
             solver.OutputStatistics(this.resultsWriter);
-            // Max Group col:
-            this.resultsWriter.Write(solver.GetMaxGroupSize() + RESULTS_DELIMITER);
             // Solution Depth col:
             this.resultsWriter.Write(solver.GetSolutionDepth() + RESULTS_DELIMITER);
             //this.resultsWriter.Flush();
@@ -1122,8 +1123,6 @@ namespace mapf
             // Algorithm specific cols:
             for (int i = 0; i < solver.NumStatsColumns; ++i)
                 this.resultsWriter.Write("irrelevant" + RESULTS_DELIMITER);
-            // Max Group col:
-            this.resultsWriter.Write("irrelevant" + RESULTS_DELIMITER);
             // Solution Depth col:
             this.resultsWriter.Write("irrelevant" + RESULTS_DELIMITER);
         }

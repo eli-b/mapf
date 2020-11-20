@@ -10,7 +10,7 @@ namespace mapf
     /// This is an implementation of the A* algorithm for the MAPF problem.
     /// It r
     /// </summary>
-    public class A_Star : ICbsSolver, IMStarSolver, IHeuristicSolver<WorldState>
+    public class A_Star : ICbsSolver, IMStarSolver, IHeuristicSolver<WorldState>, IIndependenceDetectionSolver
     {
         protected ProblemInstance instance;
         protected IHeuristicCalculator<WorldState> heuristic;
@@ -53,8 +53,9 @@ namespace mapf
         public int totalCost;
         public int numOfAgents;
         protected int maxSolutionCost;
-        protected HashSet<TimedMove> illegalMoves;
-        protected HashSet_U<CbsConstraint> constraints;
+        protected ConflictAvoidanceTable CAT;
+        protected ISet<TimedMove> illegalMoves;
+        protected ISet<CbsConstraint> constraints;
         /// <summary>
         /// An array of dictionaries that map constrained timesteps to must constraints.
         /// </summary>
@@ -91,18 +92,22 @@ namespace mapf
         /// Setup the relevant data structures for a run under CBS.
         /// </summary>
         public virtual void Setup(ProblemInstance problemInstance, int minDepth, Run runner,
-                                  int minCost, int maxCost, MDD mdd = null)
+                                  ConflictAvoidanceTable CAT = null,
+                                  ISet<CbsConstraint> constraints = null, ISet<CbsConstraint> positiveConstraints = null,
+                                  int minCost = -1, int maxCost = int.MaxValue, MDD mdd = null)
         {
             this.instance = problemInstance;
             this.runner = runner;
             MDDNode mddRoot = null;
             if (mdd != null)
             {
-                Debug.Assert(problemInstance.agents.Length == 1, "Using MDDs to find new paths is currently only supported for single agent search");
+                Trace.Assert(problemInstance.agents.Length == 1, "Using MDDs to find new paths is currently only supported for single agent search");
                 mddRoot = mdd.levels[0].First.Value;
             }
             WorldState root = this.CreateSearchRoot(minDepth, minCost, mddRoot);
             root.h = (int)this.heuristic.h(root); // g was already set in the constructor
+            if (root.f < minCost)
+                root.h = minCost - root.g;
             this.openList.Add(root);
             this.closedList.Add(root, root);
             this.ClearPrivateStatistics();
@@ -117,30 +122,13 @@ namespace mapf
             this.solutionDepth = -1;
             this.numOfAgents = problemInstance.agents.Length;
 
-            // Store parameters used by the Independence Detection algorithm
-            if (problemInstance.parameters.ContainsKey(IndependenceDetection.MAXIMUM_COST_KEY))
-                this.maxSolutionCost = (int)problemInstance.parameters[IndependenceDetection.MAXIMUM_COST_KEY];
-            else
-                this.maxSolutionCost = int.MaxValue;
-
-            if (problemInstance.parameters.ContainsKey(IndependenceDetection.ILLEGAL_MOVES_KEY) &&
-                ((HashSet<TimedMove>)problemInstance.parameters[IndependenceDetection.ILLEGAL_MOVES_KEY]).Count != 0)
-                this.illegalMoves = (HashSet<TimedMove>)(problemInstance.parameters[IndependenceDetection.ILLEGAL_MOVES_KEY]);
-            else
-                this.illegalMoves = null;
-
-            // Store CBS parameters
-            this.maxSolutionCost = Math.Min(this.maxSolutionCost, maxCost);
-            if (problemInstance.parameters.ContainsKey(CBS.CONSTRAINTS) &&
-                ((HashSet_U<CbsConstraint>)problemInstance.parameters[CBS.CONSTRAINTS]).Count != 0)
-                 this.constraints = (HashSet_U<CbsConstraint>)problemInstance.parameters[CBS.CONSTRAINTS];
- 
-            if (problemInstance.parameters.ContainsKey(CBS.MUST_CONSTRAINTS) &&
-                ((HashSet_U<CbsConstraint>)problemInstance.parameters[CBS.MUST_CONSTRAINTS]).Count != 0)
+            this.maxSolutionCost = maxCost;
+            this.CAT = CAT;
+            this.constraints = constraints;
+            if (positiveConstraints != null)
             {
-                 var musts = (HashSet_U<CbsConstraint>)problemInstance.parameters[CBS.MUST_CONSTRAINTS];
-                 this.mustConstraints = new Dictionary<int, TimedMove>[musts.Max<CbsConstraint>(con => con.GetTimeStep()) + 1]; // To have index MAX, array needs MAX + 1 places.
-                 foreach (CbsConstraint con in musts)
+                 this.mustConstraints = new Dictionary<int, TimedMove>[positiveConstraints.Max(con => con.GetTimeStep()) + 1]; // To have index MAX, array needs MAX + 1 places.
+                 foreach (CbsConstraint con in positiveConstraints)
                  {
                      int timeStep = con.GetTimeStep();
                      if (this.mustConstraints[timeStep] == null)
@@ -402,7 +390,7 @@ namespace mapf
         /// <returns>True if solved</returns>
         public virtual bool Solve()
         {
-            int initialEstimate = openList.Peek().h; // g=0 initially
+            int initialEstimate = (int) this.heuristic.h(openList.Peek()); // g=0 initially. Recomputing the heuristic to drop the boost from minCost info.
 
             int lastF = -1;
             WorldState lastNode = null;
@@ -430,7 +418,7 @@ namespace mapf
 
                 if (debug)
                 {
-                    Debug.WriteLine($"Expanding node: {currentNode}");
+                    Debug.WriteLine($"Expanding node {currentNode}");
                 }
 
                 //if (this.instance.agents.Length > 2)
@@ -461,10 +449,11 @@ namespace mapf
                     (this.openList is DynamicLazyOpenList<WorldState>) == false && // When the open list has just one node,
                                                                                    // application of the expensive heuristic is skipped altogether.
                                                                                    // This can cause decreasing F values.
-                    (this.openList is DynamicRationalLazyOpenList) == false        
-                    )
-                    Debug.Assert(currentNode.f >= lastF,
-                                 $"A* node with decreasing F: {currentNode.f} < {lastF}.");
+                    (this.openList is DynamicRationalLazyOpenList) == false &&
+                    currentNode.minGoalCost == -1  // If we were given a minGoalCost (by ID, for example), then at some point we're going to use up the boost to the h-value we gave the root
+                   )
+                    if (currentNode.f < lastF)
+                        Trace.Assert(false, $"A* node with decreasing F: {currentNode.f} < {lastF}.");
                 else
                 {
                     // TODO: Record the max F. Assert that the goal's F isn't smaller than it.
@@ -483,7 +472,7 @@ namespace mapf
                     this.singleCosts = currentNode.GetSingleCosts();
                     this.solution = currentNode.GetPlan();
                     this.singlePlans = currentNode.GetSinglePlans();
-                    this.conflictCounts = currentNode.cbsInternalConflicts; // TODO: Technically, could be IndependenceDetection's count. Merge them.
+                    this.conflictCounts = currentNode.conflictCounts;
                     this.conflictTimes = currentNode.conflictTimes;
                     this.solutionDepth = this.totalCost - initialEstimate;
                     this.Clear();
@@ -542,8 +531,7 @@ namespace mapf
         /// <param name="node"></param>
         public virtual void Expand(WorldState node)
         {
-            var intermediateNodes = new List<WorldState>();
-            intermediateNodes.Add(node);
+            var intermediateNodes = new List<WorldState>() { node };
 
             for (int agentIndex = 0; agentIndex < this.instance.agents.Length ; ++agentIndex)
             {
@@ -666,8 +654,9 @@ namespace mapf
                         {
                             if (possibleMove.IsColliding(illegalMoves))
                                 continue;
-                        } // FIXME: Also checked in instance.IsValid later.
+                        }
 
+                        // Check if there's a CBS negative constraint on the proposed move
                         if (this.constraints != null)
                         {
                             queryConstraint.Init(agentNum, possibleMove);
@@ -676,6 +665,7 @@ namespace mapf
                                 continue;
                         }
 
+                        // Check if there's a CBS positive constraint on the proposed move 
                         if (this.mustConstraints != null && makespan < this.mustConstraints.Length && // There may be a constraint on the timestep of the generated node
                             this.mustConstraints[makespan] != null &&
                             this.mustConstraints[makespan].ContainsKey(agentNum)) // This agent has a must constraint for this time step
@@ -684,7 +674,7 @@ namespace mapf
                                 continue;
                         }
 
-                        // If the tile is not free (out of the grid or with an obstacle)
+                        // Check if the tile is not free (out of the grid or with an obstacle)
                         if (this.instance.IsValid(possibleMove) == false)
                             continue;
 
@@ -743,6 +733,7 @@ namespace mapf
                         }
                         else
                         {
+                            // Check if the proposed move collides with moves already made
                             collision = possibleMove.IsColliding(currentMoves);
                         }
 
@@ -806,8 +797,8 @@ namespace mapf
         /// <param name="currentMoves"></param>
         /// <param name="makespan"></param>
         /// <param name="agentIndex"></param>
-        /// <param name="fromNode"></param>
-        /// <param name="intermediateMode"></param>
+        /// <param name="fromNode">To get the agentNum from the agentIndex. TODO: consider just passing the agentNum</param>
+        /// <param name="intermediateMode">For M* stuff</param>
         /// <returns>true, if the move is possible.</returns>
         protected virtual bool IsValid(TimedMove possibleMove,
                                        IReadOnlyDictionary<TimedMove, int> currentMoves, int makespan,
@@ -821,8 +812,9 @@ namespace mapf
             {
                 if (possibleMove.IsColliding(illegalMoves))
                     return false;
-            } // FIXME: Also checked in instance.IsValid later.
+            }
 
+            // Check if there's a CBS negative constraint on the proposed move
             if (this.constraints != null)
             {
                 this.queryConstraint.Init(agentNum, possibleMove);
@@ -831,6 +823,7 @@ namespace mapf
                     return false;
             }
 
+            // Check if there's a CBS positive constraint on the proposed move 
             if (this.mustConstraints != null && makespan < this.mustConstraints.Length && // There may be a constraint on the timestep of the generated node
                 this.mustConstraints[makespan] != null &&
                 this.mustConstraints[makespan].ContainsKey(agentNum)) // This agent has a must constraint for this time step
@@ -839,7 +832,7 @@ namespace mapf
                     return false;
             }
 
-            // If the tile is not free (out of the grid or with an obstacle)
+            // Check if the tile is not free (out of the grid or with an obstacle)
             if (this.instance.IsValid(possibleMove) == false)
                 return false;
 
@@ -976,6 +969,7 @@ namespace mapf
             }
             else
             {
+                // Check if the proposed move collides with moves already made
                 collision = possibleMove.IsColliding(currentMoves);
             }
                 
@@ -1012,7 +1006,39 @@ namespace mapf
 
         public void Setup(ProblemInstance problemInstance, Run runner)
         {
-            this.Setup(problemInstance, -1, runner, -1, int.MaxValue);
+            this.Setup(problemInstance, -1, runner);
+        }
+
+        /// <summary>
+        /// For new ID groups
+        /// </summary>
+        /// <param name="problemInstance"></param>
+        /// <param name="runner"></param>
+        /// <param name="CAT"></param>
+        /// <param name="parentGroup1Cost"></param>
+        /// <param name="parentGroup2Cost"></param>
+        /// <param name="parentGroup1Size"></param>
+        public void Setup(ProblemInstance problemInstance, Run runner, ConflictAvoidanceTable CAT,
+                          int parentGroup1Cost, int parentGroup2Cost, int parentGroup1Size)
+        {
+            this.Setup(problemInstance, -1, runner, CAT,
+                       minCost: parentGroup1Cost + parentGroup2Cost);
+            // TODO: We can do more with the info
+        }
+
+        /// <summary>
+        /// For replanning ID groups to resolve a conflict
+        /// </summary>
+        /// <param name="problemInstance"></param>
+        /// <param name="runner"></param>
+        /// <param name="CAT"></param>
+        /// <param name="targetCost">/// </param>
+        /// <param name="illegalMoves"></param>
+        public void Setup(ProblemInstance problemInstance, Run runner, ConflictAvoidanceTable CAT,
+                          int targetCost, ISet<TimedMove> illegalMoves)
+        {
+            this.illegalMoves = illegalMoves;
+            this.Setup(problemInstance, -1, runner, CAT, minCost: targetCost, maxCost: targetCost);
         }
 
         /// <summary>
@@ -1027,39 +1053,17 @@ namespace mapf
             // Assuming h is an admissible heuristic, no need to generate nodes that won't get us to the goal
             // within the budget
             {
-                if (instance.parameters.ContainsKey(IndependenceDetection.CONFLICT_AVOIDANCE))
+                if (this.CAT != null)
                 {
                     // Accumulating the conflicts count from parent to child
                     // We're counting conflicts along the entire path, so the parent's conflicts count is added to the child's:
-                    currentNode.cbsInternalConflicts = new Dictionary<int, int>(currentNode.prevStep.cbsInternalConflicts);
+                    currentNode.conflictCounts = new Dictionary<int, int>(currentNode.prevStep.conflictCounts);
                     currentNode.conflictTimes = new Dictionary<int, List<int>>();
                     foreach (var kvp in currentNode.prevStep.conflictTimes)
                         currentNode.conflictTimes[kvp.Key] = new List<int>(kvp.Value);
 
-                    currentNode.UpdateConflictCounts(
-                        (IReadOnlyDictionary<TimedMove, List<int>>)instance.parameters[IndependenceDetection.CONFLICT_AVOIDANCE]);
-                    // We're counting conflicts along the entire path, so the parent's conflicts count
-                    // is added to the child's.
-
-                    currentNode.potentialConflictsCount = currentNode.cbsInternalConflicts.Count;
-
-                    // FIXME: The above code duplication with the CBS CAT. Some of the vars above are actually from CBS now.
-                }
-
-                if (instance.parameters.ContainsKey(CBS.CAT))
-                {
-                    // Accumulating the conflicts count from parent to child.
-                    // We're counting conflicts along the entire path, so the parent's conflicts count is added to the child's:
-                    currentNode.cbsInternalConflicts = new Dictionary<int,int>(currentNode.prevStep.cbsInternalConflicts);
-                    currentNode.conflictTimes = new Dictionary<int, List<int>>();
-                    foreach (var kvp in currentNode.prevStep.conflictTimes)
-                        currentNode.conflictTimes[kvp.Key] = new List<int>(kvp.Value);
-
-                    currentNode.UpdateConflictCounts(
-                        (IReadOnlyDictionary<TimedMove, List<int>>)instance.parameters[CBS.CAT]);
-
-                    // Count one for every agent the path conflicts with any number of times:
-                    currentNode.cbsInternalConflictsCount = currentNode.cbsInternalConflicts.Count;
+                    currentNode.IncrementConflictCounts(this.CAT);  // We're counting conflicts along the entire path, so the parent's conflicts count
+                                                                 // is added to the child's.
                 }
 
                 if (this.mstar)
@@ -1150,8 +1154,8 @@ namespace mapf
                         inClosed.targetDeltaF = inClosedTargetDeltaFBackup;
                     }
 
-                    if (compareVal == -1 || // This node has smaller f, or preferred due to other consideration.
-                        // Since we equalised their h, a smaller f means smaller g.
+                    if (compareVal == -1 || // This node has smaller f, or preferred due to another consideration.
+                                            // Since we equalised their h, a smaller f means smaller g.
                         (this.mstar && this.doMstarShuffle && currentNode.g == inClosedList.g)) // Enables re-trying a node with different paths for the agents
                     {
                         this.reopened++;
@@ -1191,8 +1195,9 @@ namespace mapf
                 }
                 else
                 {
-                    if (this.debug)
-                        Debug.WriteLine($"NOT generating node {currentNode}. It already exists.");
+                    //if (this.debug)
+                    //    Debug.WriteLine($"NOT generating node {currentNode}. It already exists.");
+                    return false;
                 }
 
                 // What if in open list? This implementation immediately puts _generated_ nodes in the closed list,
@@ -1200,8 +1205,11 @@ namespace mapf
                 // That actually makes a lot of sense: membership tests in heaps are expensive, and in hashtables are cheap.
                 // This way we only need to _search_ the open list if we encounter a node that was already visited.
             }
-            this.surplusNodesAvoided++;
-            return false;
+            else
+            {
+                this.surplusNodesAvoided++;
+                return false;
+            }
         }
 
         ///// <summary>
@@ -1372,7 +1380,6 @@ namespace mapf
         public int GetGenerated() { return generated; }
         public int GetAccumulatedExpanded() { return accExpanded; }
         public int GetAccumulatedGenerated() { return accGenerated; }
-        public int GetMaxGroupSize() { return numOfAgents; }
 
         public virtual float GetEffectiveBranchingFactor()
         {

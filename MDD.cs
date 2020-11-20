@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.CompilerServices;
 
 namespace mapf
 {
@@ -41,8 +43,8 @@ namespace mapf
         /// <param name="ignoreConstraints"></param>
         /// <param name="supportPruning"></param>
         public MDD(int mddNum, int agentNum, Move start_pos, int cost, int numOfLevels, int numOfAgents,
-                   ProblemInstance instance, bool ignoreConstraints = false, bool supportPruning = true)
-        {
+                   ProblemInstance instance, bool ignoreConstraints = false, bool supportPruning = true, ISet<TimedMove> reserved = null)
+        {  // numOfLevels >= cost
             this.problem = instance;
             this.mddNum = mddNum;
             this.agentNum = agentNum;
@@ -51,7 +53,7 @@ namespace mapf
             this.levels = new LinkedList<MDDNode>[numOfLevels + 1];
             this.supportPruning = supportPruning;
 
-            HashSet_U<CbsConstraint> constraints = null; 
+            ISet<CbsConstraint> constraints = null; 
             Dictionary<int, TimedMove>[] mustConstraints = null;
 
             if (ignoreConstraints == false && instance.parameters.ContainsKey(CBS.CONSTRAINTS) &&
@@ -60,7 +62,7 @@ namespace mapf
                 this.queryConstraint = new CbsConstraint();
                 this.queryConstraint.queryInstance = true;
 
-                constraints = (HashSet_U<CbsConstraint>)instance.parameters[CBS.CONSTRAINTS];
+                constraints = (ISet<CbsConstraint>)instance.parameters[CBS.CONSTRAINTS];
             }
 
             if (ignoreConstraints == false && instance.parameters.ContainsKey(CBS.MUST_CONSTRAINTS) &&
@@ -100,7 +102,8 @@ namespace mapf
                 // Go over each MDDNode in this level
                 foreach (MDDNode currentMddNode in levels[i]) // Since we're not deleting nodes in this method, we can use the simpler iteration method :)
                 {
-                    List<MDDNode> children = this.GetAllChildren(currentMddNode, heuristicBound, numOfAgents, constraints, mustConstraints);
+                    List<MDDNode> children = this.GetAllChildren(currentMddNode, heuristicBound, numOfAgents,
+                                                                 constraints, mustConstraints, reserved);
                     if (children.Count == 0) // Heuristic wasn't perfect because of constraints, illegal moves or other reasons
                         toDelete.Add(currentMddNode);
 
@@ -134,10 +137,6 @@ namespace mapf
             {
                 remove.delete();
             }
-
-            // Make sure the goal was reached - imperfect heuristics, constraints or illegal moves can cause this to be false.
-            if (levels[numOfLevels].Count == 0) // No possible route to goal was found
-                levels = null;
         }
 
         public MDD(MDD other, CbsConstraint newConstraint)
@@ -149,9 +148,26 @@ namespace mapf
                 if (newConstraint.move.Equals(mddNode.move))
                     toDelete.Add(mddNode);
             }
-            Debug.Assert(toDelete.Count > 0);
+            Trace.Assert(toDelete.Count > 0);
             foreach (MDDNode mddNode in toDelete)
                 mddNode.delete();
+        }
+
+        public MDD(MDD other, ISet<TimedMove> reserved) : this(other)
+        {
+            ISet<int> times_of_reservations = reserved.Select(move => move.time).ToHashSet();
+            var toDelete = new List<MDDNode>();
+            foreach (int time in times_of_reservations)
+            {
+                foreach (MDDNode mddNode in this.levels[time])
+                {
+                    if (mddNode.move.IsColliding(reserved))
+                        toDelete.Add(mddNode);
+                }
+                foreach (MDDNode mddNode in toDelete)
+                    mddNode.delete();
+                toDelete.Clear();
+            }
         }
 
         public MDD(MDD other)
@@ -230,14 +246,17 @@ namespace mapf
         /// <param name="numOfAgents">The number of agents in the MDD node</param>
         /// <param name="constraints"></param>
         /// <param name="mustConstraints"></param>
+        /// <param name="reserved"></param>
         /// <returns>A list of relevant MDD nodes</returns>
         private List<MDDNode> GetAllChildren(MDDNode parent, int heuristicBound, int numOfAgents,
-            HashSet_U<CbsConstraint> constraints, Dictionary<int, TimedMove>[] mustConstraints)
+                                             ISet<CbsConstraint> constraints, Dictionary<int, TimedMove>[] mustConstraints,
+                                             ISet<TimedMove> reserved)
         {
             var children = new List<MDDNode>();
             foreach (TimedMove move in parent.move.GetNextMoves())
             {
                 if (this.problem.IsValid(move) &&
+                    (reserved == null || move.IsColliding(reserved) == false) &&
                     this.problem.GetSingleAgentOptimalCost(this.agentNum, move) <= heuristicBound) // Only nodes that can reach the goal
                                                                                                    // in the given cost according to the heuristic.
                 {
@@ -312,6 +331,10 @@ namespace mapf
                                         if (coexistingForNode.Add(childOfParentCoexistingNode))
                                             matchCounter++;
                                     }
+                                }
+                                else
+                                {
+
                                 }
                             }
                         }
@@ -421,7 +444,6 @@ namespace mapf
         LinkedListNode<MDDNode> myNode;
         public bool startOrGoal;
         public bool isBeingDeleted;
-        public bool legal;  // For AstarMDD
 
         /// <summary>
         /// 
@@ -443,19 +465,29 @@ namespace mapf
                 coexistingNodesFromOtherMdds = new HashSet<MDDNode>[numOfAgents];
                 for (int i = 0; i < numOfAgents; i++)
                 {
-                    coexistingNodesFromOtherMdds[i] = new HashSet<MDDNode>();
+                    coexistingNodesFromOtherMdds[i] = new HashSet<MDDNode>(5);  // Each level is small
                 }
             }
         }
 
         public void delete()
         {
-            if (isBeingDeleted)
+            if (this.isBeingDeleted)
                 return;
             this.isBeingDeleted = true;
+
+            // Remove this node from its MDD level
+            var myLevel = myNode.List;  // Once a node is removed from a list it no longer has access to it
+            myNode.List.Remove(myNode);
+            if (this.mdd.levels != null && myLevel.Count == 0)  // This node's level of the MDD is now empty
+            {
+                this.mdd.levels = null;  // Signal that the process of deleting nodes can be stopped early
+                return;
+            }
+
             LinkedListNode<MDDNode> toDeleteFrom = parents.First;
             LinkedListNode<MDDNode> nextToDeleteFrom;
-            while (toDeleteFrom != null)
+            while (toDeleteFrom != null && this.mdd.levels != null)
             {
                 nextToDeleteFrom = toDeleteFrom.Next;
                 toDeleteFrom.Value.children.Remove(this);
@@ -463,22 +495,18 @@ namespace mapf
                 toDeleteFrom = nextToDeleteFrom;
             }
             toDeleteFrom = children.First;
-            while (toDeleteFrom != null)
+            while (toDeleteFrom != null && this.mdd.levels != null)
             {
                 nextToDeleteFrom = toDeleteFrom.Next;
                 toDeleteFrom.Value.parents.Remove(this);
                 toDeleteFrom.Value.deleteIfOrphanOrChildless();
                 toDeleteFrom = nextToDeleteFrom;
             }
-            myNode.List.Remove(myNode);
-
-            if (this.mdd.levels != null && this.mdd.levels[this.mdd.levels.Length - 1].Count == 0) // No possible route to goal remains
-                this.mdd.levels = null;
         }
         
         public void deleteIfOrphanOrChildless()
         {
-            Debug.Assert(this.isBeingDeleted == false, "unexpected");
+            Trace.Assert(this.isBeingDeleted == false, "unexpected");
             if (!this.startOrGoal)
             {
                 if (parents.Count == 0 || children.Count == 0)
@@ -507,7 +535,7 @@ namespace mapf
         /// <returns></returns>
         public bool IsCoexistingWithOtherMDDs(MDDNode toCheck, int otherAgentIndex)
         {
-            Debug.Assert(toCheck.mdd.getMddNum() == otherAgentIndex, "unexpected");
+            Trace.Assert(toCheck.mdd.getMddNum() == otherAgentIndex, "unexpected");
             for (int i = this.mdd.getMddNum() + 1 ; i < otherAgentIndex; i++)
             {
                 bool ans = false;
@@ -545,7 +573,7 @@ namespace mapf
         
         public void SetCoexistingNodes(HashSet<MDDNode> coexistingNodes, int mddNum)
         {
-            Debug.Assert(coexistingNodes.All(node => node.mdd.getMddNum() == mddNum), "unexpected");
+            Trace.Assert(coexistingNodes.All(node => node.mdd.getMddNum() == mddNum), "unexpected");
             this.coexistingNodesFromOtherMdds[mddNum] = coexistingNodes;
         }
         

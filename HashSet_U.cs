@@ -9,9 +9,9 @@ namespace mapf
     // <summary>
     // This class represents a union of HashSets.
     // </summary>
-    [DebuggerDisplay("count =  {Count}")]
+    [DebuggerDisplay("count = {Count}")]
     [Serializable]
-    public class HashSet_U<T> : ICollection<T>  // No IReadOnlySet in C# :(
+    public class HashSet_U<T> : ISet<T>
     {
         List<HashSet<T>> Data;
         public HashSet_U()
@@ -19,7 +19,12 @@ namespace mapf
             this.Data = new List<HashSet<T>>();
         }
 
-        public void Add(T value)
+        bool ISet<T>.Add(T value)
+        {
+            throw new Exception("Illegal Operation");
+        }
+
+        void ICollection<T>.Add(T value)
         {
             throw new Exception("Illegal Operation");
         }
@@ -30,6 +35,56 @@ namespace mapf
         }
 
         public bool Remove(T item)
+        {
+            throw new Exception("Illegal Operation");
+        }
+
+        public void ExceptWith(IEnumerable<T> other)
+        {
+            throw new Exception("Illegal Operation");
+        }
+
+        public void IntersectWith(IEnumerable<T> other)
+        {
+            throw new Exception("Illegal Operation");
+        }
+
+        public bool IsProperSubsetOf(IEnumerable<T> other)
+        {
+            throw new Exception("Illegal Operation");
+        }
+
+        public bool IsProperSupersetOf(IEnumerable<T> other)
+        {
+            throw new Exception("Illegal Operation");
+        }
+
+        public bool IsSubsetOf(IEnumerable<T> other)
+        {
+            throw new Exception("Illegal Operation");
+        }
+
+        public bool IsSupersetOf(IEnumerable<T> other)
+        {
+            throw new Exception("Illegal Operation");
+        }
+
+        public bool Overlaps(IEnumerable<T> other)
+        {
+            throw new Exception("Illegal Operation");
+        }
+
+        public bool SetEquals(IEnumerable<T> other)
+        {
+            throw new Exception("Illegal Operation");
+        }
+
+        public void SymmetricExceptWith(IEnumerable<T> other)
+        {
+            throw new Exception("Illegal Operation");
+        }
+
+        public void UnionWith(IEnumerable<T> other)
         {
             throw new Exception("Illegal Operation");
         }

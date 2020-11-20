@@ -35,7 +35,7 @@ namespace mapf
             else
             {
                 this.isVertexConflict = false;
-                Debug.Assert(Constants.ALLOW_HEAD_ON_COLLISION == false, "Creating an edge conflict when head-on collision are allowed");
+                Trace.Assert(Constants.ALLOW_HEAD_ON_COLLISION == false, "Creating an edge conflict when head-on collision are allowed");
             }
             this.willCostIncreaseForAgentA = WillCostIncrease.MAYBE;
             this.willCostIncreaseForAgentB = WillCostIncrease.MAYBE;

@@ -70,11 +70,6 @@ namespace mapf
             return this.generated;
         }
 
-        public int GetMaxGroupSize()
-        {
-            return 1;
-        }
-
         public long GetMemoryUsed()
         {
             return Process.GetCurrentProcess().VirtualMemorySize64;

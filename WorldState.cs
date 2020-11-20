@@ -20,15 +20,11 @@ namespace mapf
         public MDDNode mddNode;
         public int generated;
 
-        /// <summary>
-        /// For Independence Detection only
-        /// </summary>
-        public int potentialConflictsCount;
-        public int cbsInternalConflictsCount;
+        public int sumConflictCounts;
         /// <summary>
         /// Maps from agent num to the number of times the path up to this node collides with that agent
         /// </summary>
-        public Dictionary<int, int> cbsInternalConflicts;
+        public Dictionary<int, int> conflictCounts;
         /// <summary>
         /// Maps from agent num to a list of the conflict times with it
         /// </summary>
@@ -81,9 +77,8 @@ namespace mapf
             this.allAgentsState = allAgentsState.ToArray();
             this.makespan = allAgentsState.Max(state => state.lastMove.time); // We expect to only find at most two G values within the agent group
             this.CalculateG(); // G not necessarily zero when solving a partially solved problem.
-            this.potentialConflictsCount = 0;
-            this.cbsInternalConflictsCount = 0;
-            this.cbsInternalConflicts = new Dictionary<int, int>();  // Unused if not running under CBS, and we can't tell at this point easily
+            this.sumConflictCounts = 0;
+            this.conflictCounts = new Dictionary<int, int>();  // Unused if not running under CBS, and we can't tell at this point easily
             this.conflictTimes = new Dictionary<int, List<int>>();  // Unused if not running under CBS, and we can't tell at this point easily
             this.minGoalTimeStep = minDepth;
             this.minGoalCost = minCost;
@@ -105,7 +100,7 @@ namespace mapf
             this.makespan = cpy.makespan;
             this.g = cpy.g;
             this.h = cpy.h;
-            // The potentialConflictsCount, conflictTimes, cbsInternalConflicts and cbsInternalConflictsCount are only copied later if necessary.
+            // The conflictTimes, conflictCounts and sumConflictCounts are only copied later if necessary.
             this.minGoalTimeStep = cpy.minGoalTimeStep;
             this.minGoalCost = cpy.minGoalCost;
             this.allAgentsState = new AgentState[cpy.allAgentsState.Length];
@@ -219,7 +214,7 @@ namespace mapf
         /// <returns></returns>
         public int GetGoalCost()
         {
-            Debug.Assert(this.GoalTest(), "Only call for goal nodes!");
+            Trace.Assert(this.GoalTest(), "Only call for goal nodes!");
 
             if (goalCost == NOT_SET) // This is just a proper goal
             {
@@ -256,7 +251,7 @@ namespace mapf
 
         public int[] GetSingleCosts()
         {
-            Debug.Assert(this.GoalTest(), "Only call for goal nodes!");
+            Trace.Assert(this.GoalTest(), "Only call for goal nodes!");
 
             if (goalSingleCosts == null) // This is just a proper goal
                 return allAgentsState.Select(agent => agent.g).ToArray();
@@ -302,13 +297,6 @@ namespace mapf
             if (thatIsGoal == true && thisIsGoal == false)
                 return 1;
 
-            // Independence Detection framework conflicts:
-            if (this.potentialConflictsCount < that.potentialConflictsCount)
-                return -1;
-            if (this.potentialConflictsCount > that.potentialConflictsCount)
-                return 1;
-
-            // CBS framework conflicts:
             // TODO: Ideally, prefer nodes where the minimum vertex cover of the conflict graph is smaller.
             //       Compute an MVC of the conflict graph without the node's agents in the CBS node
             //       before running the low level, and only compare the number of agents the node
@@ -317,14 +305,14 @@ namespace mapf
             //       graph separately and tie-break first according to the number of agents we conflict
             //       with that aren't in the MVC of the conflict graph and then the number of agents
             //       we conflict with that aren't in the cardinal conflict graph
-            if (this.cbsInternalConflicts != null && that.cbsInternalConflicts != null)
-                // Currently even when not under ID or CBS, the root node has this.cbsInternalConflicts != null 
+            if (this.conflictCounts != null && that.conflictCounts != null)
+                // Currently even when not under ID or CBS, the root node has this.conflictCounts != null 
             {
                 // Prefer nodes that contain conflicts with fewer agents - when a conflict is resolved,
                 // many times other conflicts are resolved automatically thanks to conflict avoidance,
                 // especially if the cost increases.
-                int numberOfConflictingAgents = this.cbsInternalConflicts.Count;
-                int thatNumberOfConflictingAgents = that.cbsInternalConflicts.Count;
+                int numberOfConflictingAgents = this.conflictCounts.Count;
+                int thatNumberOfConflictingAgents = that.conflictCounts.Count;
                 if (numberOfConflictingAgents < thatNumberOfConflictingAgents)
                     return -1;
                 if (numberOfConflictingAgents > thatNumberOfConflictingAgents)
@@ -332,9 +320,9 @@ namespace mapf
             }
 
             // Prefer nodes with fewer conflicts - the probability that some of them are cardinal is lower
-            if (this.cbsInternalConflictsCount < that.cbsInternalConflictsCount)
+            if (this.sumConflictCounts < that.sumConflictCounts)
                 return -1;
-            if (this.cbsInternalConflictsCount > that.cbsInternalConflictsCount)
+            if (this.sumConflictCounts > that.sumConflictCounts)
                 return 1;
 
             // //M-Star: prefer nodes with smaller collision sets:
@@ -400,7 +388,7 @@ namespace mapf
 
         public override string ToString()
         {
-            var builder = new System.Text.StringBuilder($"{generated} f:{f} makespan: {makespan} h: {h} g: {g} ");
+            var builder = new System.Text.StringBuilder($"{generated} f:{f} makespan:{makespan} h:{h} g:{g} ");
             foreach (AgentState temp in allAgentsState)
             {
                 builder.Append("|");
@@ -461,7 +449,7 @@ namespace mapf
 
         /// <summary>
         /// Only the agent states are used in the hash.
-        /// The g, makespan, h, potentialConflictsCount, cbsInternalConflictsCount and others are ignored, as neccesary.
+        /// The g, makespan, h, potentialConflictsCount, sumConflictCounts and others are ignored, as neccesary.
         /// </summary>
         /// <returns></returns>
         public override int GetHashCode()
@@ -479,7 +467,7 @@ namespace mapf
 
         /// <summary>
         /// Only the AgentStates are compared.
-        /// g, makespan, h, potentialConflictsCount, cbsInternalConflictsCount and others are ignored, as necessary.
+        /// g, makespan, h, potentialConflictsCount, sumConflictCounts and others are ignored, as necessary.
         /// </summary>
         /// <param name="obj"></param>
         /// <returns></returns>
@@ -494,14 +482,18 @@ namespace mapf
         /// <summary>
         /// Counts the number of times this node collides with each agent move in the conflict avoidance table.
         /// </summary>
-        /// <param name="conflictAvoidance"></param>
+        /// <param name="CAT"></param>
         /// <returns></returns>
-        public virtual void UpdateConflictCounts(IReadOnlyDictionary<TimedMove, List<int>> conflictAvoidance)
+        public virtual void IncrementConflictCounts(ConflictAvoidanceTable CAT)
         {
             for (int i = 0; i < this.allAgentsState.Length; i++)
             {
-                this.allAgentsState[i].lastMove.UpdateConflictCounts(conflictAvoidance, this.cbsInternalConflicts, this.conflictTimes);
+                this.allAgentsState[i].lastMove.IncrementConflictCounts(CAT, this.conflictCounts, this.conflictTimes);
             }
+            if (CAT.avoidanceGoal == ConflictAvoidanceTable.AvoidanceGoal.MINIMIZE_CONFLICTS)
+                this.sumConflictCounts = this.conflictCounts.Sum(pair => pair.Value);
+            else if (CAT.avoidanceGoal == ConflictAvoidanceTable.AvoidanceGoal.MINIMIZE_CONFLICTING_GROUPS)
+                this.sumConflictCounts = this.conflictCounts.Keys.Count;  // Not really the "sum" in this case
         }
 
         /// <summary>

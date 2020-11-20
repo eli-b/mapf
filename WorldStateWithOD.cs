@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 
 namespace mapf
 {
@@ -197,14 +198,15 @@ namespace mapf
         /// </summary>
         /// <param name="conflictAvoidance"></param>
         /// <returns></returns>
-        public override void UpdateConflictCounts(IReadOnlyDictionary<TimedMove, List<int>> conflictAvoidance)
+        public override void IncrementConflictCounts(ConflictAvoidanceTable conflictAvoidance)
         {
             int lastAgentToMove = agentTurn - 1;
             if (agentTurn == 0)
                 lastAgentToMove = allAgentsState.Length - 1;
 
-            allAgentsState[lastAgentToMove].lastMove.UpdateConflictCounts(conflictAvoidance,
-                                                                          this.cbsInternalConflicts, this.conflictTimes);
+            allAgentsState[lastAgentToMove].lastMove.IncrementConflictCounts(conflictAvoidance,
+                                                                          this.conflictCounts, this.conflictTimes);
+            this.sumConflictCounts = this.conflictCounts.Sum(pair => pair.Value);
         }
     }
 }

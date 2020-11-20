@@ -1,15 +1,24 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
+using System.Runtime.CompilerServices;
 
 namespace ExtensionMethods
 {
     public static class MyExtensions
     {
+        public static IEnumerable<(int, T)> Enumerate<T>(this IEnumerable<T> input, int start = 0)
+        {
+            int i = start;
+            foreach (var t in input)
+                yield return (i++, t);
+        }
+
         public static int IndexOfMax<T>(this IEnumerable<T> sequence)
             where T : IComparable<T>
         {
-            T maxValue = default(T); // Immediately overwritten anyway
+            T maxValue = default; // Immediately overwritten anyway
             int ans = 0;
             int index = 0;
             foreach (T value in sequence)
@@ -28,7 +37,7 @@ namespace ExtensionMethods
         public static int IndexOfMax<T, R>(this IEnumerable<T> sequence, Func<T, R> mapping)
             where R : IComparable<R>
         {
-            R maxValue = default(R); // Immediately overwritten anyway
+            R maxValue = default; // Immediately overwritten anyway
             int ans = 0;
             int index = 0;
             foreach (T value in sequence)
@@ -56,8 +65,8 @@ namespace ExtensionMethods
         public static T MaxByKeyFunc<T, R>(this IEnumerable<T> sequence, Func<T, R> mapping)
             where R : IComparable<R>
         {
-            R maxValue = default(R); // Immediately overwritten anyway
-            T ans = default(T);
+            R maxValue = default; // Immediately overwritten anyway
+            T ans = default;
             int index = 0;
             foreach (T value in sequence)
             {
@@ -82,7 +91,7 @@ namespace ExtensionMethods
             where T : IComparable<T>
         {
             var ans = new List<int>(4);
-            T maxValue = default(T); // Immediately overwritten anyway
+            T maxValue = default; // Immediately overwritten anyway
 
             int index = 0;
             foreach (T value in sequence)
@@ -105,7 +114,7 @@ namespace ExtensionMethods
             where R : IComparable<R>
         {
             var ans = new List<int>(4);
-            R maxRes = default(R); // Immediately overwritten anyway
+            R maxRes = default; // Immediately overwritten anyway
 
             int index = 0;
             foreach (T value in sequence)
@@ -129,7 +138,7 @@ namespace ExtensionMethods
             where T : IComparable<T>
         {
             var ans = new List<T>();
-            T maxVal = default(T); // Immediately overwritten anyway
+            T maxVal = default; // Immediately overwritten anyway
 
             foreach (T item in sequence)
             {
@@ -150,7 +159,7 @@ namespace ExtensionMethods
             where R : IComparable<R>
         {
             var ans = new List<T>();
-            R maxResult = default(R); // Immediately overwritten anyway
+            R maxResult = default; // Immediately overwritten anyway
 
             foreach (T item in sequence)
             {
@@ -172,7 +181,7 @@ namespace ExtensionMethods
             where V : IComparable<V>
         {
             var ans = new List<K>();
-            V maxValue = default(V); // Immediately overwritten anyway
+            V maxValue = default; // Immediately overwritten anyway
 
             foreach (KeyValuePair<K, V> kvp in mapping)
             {

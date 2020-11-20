@@ -80,9 +80,9 @@ namespace mapf
             if (this.agentNum != other.agentNum)
                 return false;
 
-            Debug.Assert(this.queryInstance == false || other.queryInstance == false); // At most one of the instances is a query
-            Debug.Assert(this.queryInstance == false || this.move.direction != Move.Direction.NO_DIRECTION); // Must query regarding a specific direction
-            Debug.Assert(other.queryInstance == false || other.move.direction != Move.Direction.NO_DIRECTION); // Must query regarding a specific direction
+            Trace.Assert(this.queryInstance == false || other.queryInstance == false); // At most one of the instances is a query
+            Trace.Assert(this.queryInstance == false || this.move.direction != Move.Direction.NO_DIRECTION); // Must query regarding a specific direction
+            Trace.Assert(other.queryInstance == false || other.move.direction != Move.Direction.NO_DIRECTION); // Must query regarding a specific direction
             if (this.queryInstance || other.queryInstance) // This way if the constraint is a vertex constraint than it will be equal to a query containing a move from any direction to that position,
                                                            // and if it is an edge constraint than it will only be equal to queries containing a move from that specific direction to that position.
                 return this.move.Equals(other.move);

@@ -272,7 +272,7 @@ namespace mapf
         /// </summary>
         /// <param name="timedMovesToAgentNumLists"></param>
         /// <returns></returns>
-        public List<int> GetColliding(IReadOnlyDictionary<TimedMove, List<int>> timedMovesToAgentNumLists)
+        public IReadOnlyList<int> GetColliding(ConflictAvoidanceTable timedMovesToAgentNumLists)
         {
             List<int> ans = null;
             Move.Direction saveDirection = this.direction;
@@ -287,8 +287,9 @@ namespace mapf
                 if (timedMovesToAgentNumLists.ContainsKey(this))
                 {
                     if (ans == null)
-                        ans = new List<int>(timedMovesToAgentNumLists[this].Count + 3);  // Why +3? Just preemptively taking more space?
-                    ans.AddRange(timedMovesToAgentNumLists[this]);
+                        ans = new List<int>(timedMovesToAgentNumLists[this]);
+                    else
+                        ans.AddRange(timedMovesToAgentNumLists[this]);
                 }
             }
             this.direction = saveDirection;
@@ -299,8 +300,9 @@ namespace mapf
                 if (timedMovesToAgentNumLists.ContainsKey(this)) // Check direction too now
                 {
                     if (ans == null)
-                        ans = new List<int>(timedMovesToAgentNumLists[this].Count);
-                    ans.AddRange(timedMovesToAgentNumLists[this]);
+                        ans = new List<int>(timedMovesToAgentNumLists[this]);
+                    else
+                        ans.AddRange(timedMovesToAgentNumLists[this]);
                 }
                 this.setOppositeMove();
             }
@@ -311,18 +313,20 @@ namespace mapf
                 return TimedMove.emptyList;
         }
 
-        public void UpdateConflictCounts(IReadOnlyDictionary<TimedMove, List<int>> conflictAvoidance,
-                                         Dictionary<int, int> conflictCounts, Dictionary<int, List<int>> conflictTimes)
+        public void IncrementConflictCounts(ConflictAvoidanceTable conflictAvoidance,
+                                            Dictionary<int, int> conflictCounts, Dictionary<int, List<int>> conflictTimes)
         {
-            List<int> colliding = this.GetColliding(conflictAvoidance);
+            IReadOnlyList<int> colliding = this.GetColliding(conflictAvoidance);
             foreach (int agentNum in colliding)
             {
                 if (conflictCounts.ContainsKey(agentNum) == false)
-                    conflictCounts[agentNum] = 0;
-                conflictCounts[agentNum] += 1;
+                    conflictCounts[agentNum] = 1;
+                else
+                    conflictCounts[agentNum] += 1;
                 if (conflictTimes.ContainsKey(agentNum) == false)
-                    conflictTimes[agentNum] = new List<int>(4);
-                conflictTimes[agentNum].Add(this.time);
+                    conflictTimes[agentNum] = new List<int>(4) { this.time };
+                else
+                    conflictTimes[agentNum].Add(this.time);
             }
         }
     }

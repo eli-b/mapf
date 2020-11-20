@@ -1,15 +1,40 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 
 namespace mapf
 {
-    class ConflictAvoidanceTable : IReadOnlyDictionary<TimedMove, List<int>>
+    public class ConflictAvoidanceTable
     {
-        Dictionary<TimedMove, List<int>> timedMovesToAgentNumList = new Dictionary<TimedMove,List<int>>();
-        Dictionary<Move, (int time, int agentNum)> atGoalWaitsToTimeAndAgentNum = new Dictionary<Move, (int time, int agentNum)>(); // No need for a list of agent nums because goals can't collide :)
+        Dictionary<TimedMove, List<int>> timedMovesToAgentNumList;
+        Dictionary<Move, (int time, int agentNum)> atGoalWaitsToTimeAndAgentNum; // No need for a list of agent nums because goals can't collide :)
 
+        public enum AvoidanceGoal
+        {
+            MINIMIZE_CONFLICTS,
+            MINIMIZE_CONFLICTING_GROUPS
+        };
+        public AvoidanceGoal avoidanceGoal = AvoidanceGoal.MINIMIZE_CONFLICTS;
+
+        public ConflictAvoidanceTable()
+        {
+            this.Clear();
+        }
+
+        public int GetMaxPlanSize()
+        {
+            if (atGoalWaitsToTimeAndAgentNum.Count > 0)
+                return atGoalWaitsToTimeAndAgentNum.Values.Max(tuple => tuple.time) - 1;  // The first WAIT at goal we record is one time step after reaching it
+            else
+                return 0;
+        }
+
+        public void Clear()
+        {
+            timedMovesToAgentNumList = new Dictionary<TimedMove, List<int>>();
+            atGoalWaitsToTimeAndAgentNum = new Dictionary<Move, (int time, int agentNum)>();
+            NumPlans = 0;
+        }
+        
         public void AddPlan(SinglePlan plan)
         {
             int planSize = plan.GetSize();
@@ -18,44 +43,50 @@ namespace mapf
                 Move temp = plan.GetLocationAt(i);
                 TimedMove step;
                 if (temp.GetType() == typeof(TimedMove))
-                    step = (TimedMove) temp;
-                else
-                    step = new TimedMove(temp, i); // TODO: Avoid creating new objects when possible. Make the method return correctly timed moves.
+                    step = (TimedMove)temp;
+                else  // It's a Move object
+                {
+                    queryTimedMove.setup(temp, i);
+                    step = queryTimedMove;
+                }
                 if (this.timedMovesToAgentNumList.ContainsKey(step) == false)
-                    this.timedMovesToAgentNumList[step] = new List<int>(1); // THIS IS ON THE HOT PATH! ~11% of time is passed on this line!
-                this.timedMovesToAgentNumList[step].Add(plan.agentNum);
+                {
+                    if (ReferenceEquals(step, queryTimedMove))  // Need a separate object that would serve as the key
+                        step = new TimedMove(step);
+                    this.timedMovesToAgentNumList[step] = new List<int>() { plan.agentNum };
+                }
+                else
+                    this.timedMovesToAgentNumList[step].Add(plan.agentNum);
             }
 
             Move lastMove = plan.GetLocationAt(planSize - 1);
-            Move goal = new Move(lastMove.x, lastMove.y, Move.Direction.Wait);
-            this.atGoalWaitsToTimeAndAgentNum.Add(goal, (planSize, plan.agentNum));
+            var goal = new Move(lastMove.x, lastMove.y, Move.Direction.Wait);
+            this.atGoalWaitsToTimeAndAgentNum[goal] = (planSize, plan.agentNum);
+            ++NumPlans;
         }
 
-        /// <summary>
-        /// Gets an enumerable collection that contains the keys in the read-only dictionary
-        /// </summary>
-        /// <returns>An enumerable collection that contains the keys in the read-only dictionary</returns>
-        public IEnumerable<TimedMove> Keys
+        public void RemovePlan(SinglePlan plan)
         {
-            get
+            int planSize = plan.GetSize();
+            for (int i = 0; i < planSize; i++)
             {
-                throw new NotImplementedException(); // How would I know how many waits in the goal to return?
-            }
-        }
-
-        /// <summary>
-        /// Gets an enumerable collection that contains the values in the read-only dictionary
-        /// </summary>
-        /// <returns>An enumerable collection that contains the values in the read-only dictionary</returns>
-        public IEnumerable<List<int>> Values
-        {
-            get
-            {
-                foreach (List<int> agentNumList in timedMovesToAgentNumList.Values)
+                Move temp = plan.GetLocationAt(i);
+                TimedMove step;
+                if (temp.GetType() == typeof(TimedMove))
+                    step = (TimedMove)temp;
+                else  // It's a Move object
                 {
-                    yield return agentNumList;
+                    queryTimedMove.setup(temp, i);
+                    step = queryTimedMove;
                 }
+                this.timedMovesToAgentNumList[step].Remove(plan.agentNum);
+                // TODO: Add asserts that check the plan was indeed in the CAT
             }
+
+            Move lastMove = plan.GetLocationAt(planSize - 1);
+            queryMove.setup(lastMove.x, lastMove.y, Move.Direction.Wait);
+            this.atGoalWaitsToTimeAndAgentNum.Remove(queryMove);
+            --NumPlans;
         }
 
         /// <summary>
@@ -65,7 +96,7 @@ namespace mapf
         /// <returns>The element that has the specified key in the read-only dictionary</returns>
         /// <exception cref="System.ArgumentNullException">key is null</exception>
         /// <exception cref="System.Collections.Generic.KeyNotFoundException">The property is retrieved and key is not found</exception>
-        public List<int> this[TimedMove key]
+        public IReadOnlyList<int> this[TimedMove key]
         {
             get
             {
@@ -83,8 +114,9 @@ namespace mapf
                     if (key.time >= timeAndAgentNum.time)
                     {
                         if (ans == null)
-                            ans = new List<int>(1);
-                        ans.Add(timeAndAgentNum.agentNum);
+                            ans = new List<int>() { timeAndAgentNum.agentNum };
+                        else
+                            ans.Add(timeAndAgentNum.agentNum);
                     }
                 }
 
@@ -98,6 +130,7 @@ namespace mapf
         private static readonly List<int> emptyList = new List<int>(0);
 
         private Move queryMove = new Move();
+        private TimedMove queryTimedMove = new TimedMove();
 
         /// <summary>
         /// Determines whether the read-only dictionary contains an element that has
@@ -136,7 +169,7 @@ namespace mapf
         /// true if the object that implements the System.Collections.Generic.IReadOnlyDictionary&lt;TKey,TValue&gt;
         /// interface contains an element that has the specified key; otherwise, false.
         /// </returns>
-        public bool TryGetValue(TimedMove key, out List<int> value)
+        public bool TryGetValue(TimedMove key, out IReadOnlyList<int> value)
         {
             if (this.ContainsKey(key))
             {
@@ -150,22 +183,6 @@ namespace mapf
             }
         }
 
-        public IEnumerator<KeyValuePair<TimedMove, List<int>>> GetEnumerator()
-        {
-            throw new NotImplementedException(); // Don't know how many waits at the goal to return
-        }
-
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            throw new NotImplementedException(); // Don't know how many waits at the goal to return
-        }
-
-        public int Count
-        {
-            get
-            {
-                throw new NotImplementedException(); // Don't know how many waits at the goal we contain
-            }
-        }
+        public int NumPlans { get; private set; }
     }
 }

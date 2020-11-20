@@ -222,13 +222,13 @@ namespace mapf
                             foreach (var a in i.allAgentsState)
                                 nSingleAgentShortestPath += this.problem.GetSingleAgentOptimalCost(a);
                             int nDifference = i.g - nSingleAgentShortestPath;
-                            Debug.Assert(nDifference >= 0);
-                            Debug.Assert(nDifference < Byte.MaxValue);
+                            Trace.Assert(nDifference >= 0);
+                            Trace.Assert(nDifference < Byte.MaxValue);
                             nCandidateValue = (Byte)nDifference;
                         }
                         else
                         {
-                            Debug.Assert(i.g < Byte.MaxValue);
+                            Trace.Assert(i.g < Byte.MaxValue);
                             nCandidateValue = (Byte)i.g;
                         }
                         if (nCandidateValue < table[nHash])

@@ -31,9 +31,12 @@ namespace mapf
         public override string GetName() { return base.GetName() + "+OD"; }
 
         public override void Setup(ProblemInstance problemInstance, int minDepth, Run runner,
+                                   ConflictAvoidanceTable CAT = null,
+                                   ISet<CbsConstraint> constraints = null, ISet<CbsConstraint> positiveConstraints = null,
                                    int minCost = -1, int maxCost = int.MaxValue, MDD mdd = null)
         {
-            base.Setup(problemInstance, minDepth, runner, minCost, maxCost, mdd);
+            base.Setup(problemInstance, minDepth, runner, CAT, constraints, positiveConstraints,
+                       minCost, maxCost, mdd);
             this.expandedFullStates = 0;
             this.generatedFullStates = 0;
         }

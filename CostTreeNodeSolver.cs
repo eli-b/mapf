@@ -7,7 +7,7 @@ namespace mapf
     /// This class tries to find a solution to a problem instance of a given cost. 
     /// (this is used in the CostTreeSearchSolver)
     /// </summary>
-    abstract class CostTreeNodeSolver
+    abstract class CostTreeNodeSolver : IConflictReporting
     {
         protected MDD[] allMDDs;
         int maxCost;
@@ -19,7 +19,7 @@ namespace mapf
         protected ProblemInstance problem;
         public CostTreeSearchSolver solver;
 
-        public int caViolations;
+        public int conflictsNotAvoided;
 
         public int matchCounter; // For debugging
 
@@ -39,15 +39,16 @@ namespace mapf
         /// <param name="solver"></param>
         /// <param name="agentNums"></param>
         /// <param name="costsNode">Of all the agents, not just the ones selected</param>
+        /// <param name="reserved"></param>
         public CostTreeNodeSolver(ProblemInstance problem, Run runner, CostTreeSearchSolver solver,
-                                  int[] agentNums, CostTreeNode costsNode)
+                                  int[] agentNums, CostTreeNode costsNode, ISet<TimedMove> reserved)
         {
             this.runner = runner;
             this.problem = problem;
             this.solver = solver;
             this.allMDDs = new MDD[agentNums.Length];
 
-            this.Setup(agentNums, costsNode);
+            this.Setup(agentNums, costsNode, reserved);
         }
 
         /// <summary>
@@ -58,13 +59,13 @@ namespace mapf
         /// <param name="runner"></param>
         /// <param name="solver"></param>
         public CostTreeNodeSolver(ProblemInstance problem, CostTreeNode costNode, Run runner,
-                                  CostTreeSearchSolver solver) // Make sure agent numbers are in the correct order
+                                  CostTreeSearchSolver solver, ISet<TimedMove> reserved) // Make sure agent numbers are in the correct order
             : this(problem, runner, solver)
         {
-            this.Setup(costNode);
+            this.Setup(costNode, reserved);
         }
 
-        public virtual void Setup(CostTreeNode costsNode)
+        public virtual void Setup(CostTreeNode costsNode, ISet<TimedMove> reserved)
         {
             this.startingPos = problem.agents;
             this.totalCost = costsNode.costs.Sum();
@@ -73,14 +74,14 @@ namespace mapf
             for (int i = 0; i < this.allMDDs.Length; i++)
             {
                 this.allMDDs[i] = new MDD(i, startingPos[i].agent.agentNum, startingPos[i].lastMove,
-                                     costsNode.costs[i], maxCost, startingPos.Length, problem);
+                                          costsNode.costs[i], maxCost, startingPos.Length, problem, reserved: reserved);
             }
             this.expanded = 0;
             this.generated = 0;
             this.matchCounter = 0;
         }
 
-        public virtual void Setup(int[] agentNums, CostTreeNode costsNode)
+        public virtual void Setup(int[] agentNums, CostTreeNode costsNode, ISet<TimedMove> reserved)
         {
             this.startingPos = new AgentState[agentNums.Length];
             int index = 0;
@@ -96,7 +97,7 @@ namespace mapf
             for (int i = 0; i < this.allMDDs.Length; i++)
             {
                 this.allMDDs[i] = new MDD(agentNums[i], startingPos[i].agent.agentNum, startingPos[i].lastMove,
-                                     costsNode.costs[i], maxCost, startingPos.Length, problem);
+                                     costsNode.costs[i], maxCost, startingPos.Length, problem, reserved: reserved);
             }
             this.expanded = 0;
             this.generated = 0;
@@ -107,10 +108,22 @@ namespace mapf
         /// Tries to find a solution for the agents with the given cost.
         /// </summary>
         /// <returns>The solution if found or null otherwise</returns>
-        public abstract SinglePlan[] Solve(Dictionary<TimedMove, List<int>> ID_CAT,
-                                           Dictionary<TimedMove, List<int>> CBS_CAT);
+        public abstract SinglePlan[] Solve(ConflictAvoidanceTable CAT);
 
         public int getGenerated() { return generated; }
+
+        protected Dictionary<int, int> conflictCounts;
+        protected Dictionary<int, List<int>> conflictTimes;
+
+        public Dictionary<int, int> GetExternalConflictCounts()
+        {
+            return conflictCounts;
+        }
+
+        public Dictionary<int, List<int>> GetConflictTimes()
+        {
+            return conflictTimes;
+        }
     }
 
 
@@ -181,12 +194,13 @@ namespace mapf
         int syncSize;
         public CostTreeNodeSolverOldMatching(ProblemInstance problem, Run runner, CostTreeSearchSolver solver)
             : base(problem, runner, solver) { }
-        public CostTreeNodeSolverOldMatching(ProblemInstance problem, CostTreeNode costNode, Run runner, CostTreeSearchSolver solver, int syncSize)
-            : base(problem, costNode, runner, solver) { this.syncSize = syncSize; }
+        public CostTreeNodeSolverOldMatching(ProblemInstance problem, CostTreeNode costNode, Run runner, CostTreeSearchSolver solver,
+                                             int syncSize, ISet<TimedMove> reserved)
+            : base(problem, costNode, runner, solver, reserved) { this.syncSize = syncSize; }
         
-        public void Setup(CostTreeNode costNode, int syncSize)
+        public void Setup(CostTreeNode costNode, int syncSize, ISet<TimedMove> reserved)
         {
-            base.Setup(costNode);
+            base.Setup(costNode, reserved);
             this.syncSize = syncSize;
         }
 
@@ -194,24 +208,24 @@ namespace mapf
         /// Prunes the individual agent MDDs and, if possible, matches them to return a non-conflicting configuration of
         /// paths of the given costs.
         /// </summary>
-        /// <param name="ID_CAT"></param>
-        /// <param name="CBS_CAT"></param>
+        /// <param name="CAT"></param>
         /// <returns>
         /// null if no solution is found.
         /// </returns>
-        public override SinglePlan[] Solve(Dictionary<TimedMove, List<int>> ID_CAT,
-                                           Dictionary<TimedMove, List<int>> CBS_CAT)
+        public override SinglePlan[] Solve(ConflictAvoidanceTable CAT)
         {
             if (this.Prune()) // Everything was pruned
                 return null;
 
-            this.solver.passed++;
-            A_Star_MDD findSolution = new A_Star_MDD(allMDDs, runner, ID_CAT, CBS_CAT);
+            this.solver.survivedPruningHL++;
+            A_Star_MDDs findSolution = new A_Star_MDDs(allMDDs, runner, CAT);
             
             SinglePlan[] ans = findSolution.Solve();
             this.generated = findSolution.generated;
             this.expanded = findSolution.expanded;
-            this.caViolations = findSolution.conflictCount;
+            this.conflictsNotAvoided = findSolution.conflictCount;
+            this.conflictCounts = findSolution.GetExternalConflictCounts();
+            this.conflictTimes = findSolution.GetConflictTimes();
             return ans;
         }
 
@@ -225,7 +239,7 @@ namespace mapf
             {
                 for (int j = i + 1; j < allMDDs.Length; j++)
                 {
-                    (MDD.PruningDone pruningDone, int matchCounterIncrement) = allMDDs[i].SyncMDDs(allMDDs[j], this.syncSize == 3);
+                    (MDD.PruningDone pruningDone, int matchCounterIncrement) = allMDDs[i].SyncMDDs(allMDDs[j], this.syncSize == 3 && this.allMDDs.Length > 2);
                     this.matchCounter += matchCounterIncrement;
 
                     if (pruningDone == MDD.PruningDone.EVERYTHING)
@@ -242,23 +256,25 @@ namespace mapf
     {
         public CostTreeNodeSolverDDBF(ProblemInstance problem, Run runner, CostTreeSearchSolver solver)
             : base(problem, runner, solver) { }
-        public CostTreeNodeSolverDDBF(ProblemInstance problem, CostTreeNode costNode, Run runner, CostTreeSearchSolver solver)
-            : base(problem, costNode, runner, solver) { }
-        public override void Setup(CostTreeNode costNode)
+        public CostTreeNodeSolverDDBF(ProblemInstance problem, CostTreeNode costNode, Run runner, CostTreeSearchSolver solver,
+                                      ISet<TimedMove> reserved)
+            : base(problem, costNode, runner, solver, reserved) { }
+        public override void Setup(CostTreeNode costNode, ISet<TimedMove> reserved)
         {
-            base.Setup(costNode);
+            base.Setup(costNode, reserved);
         }
-        public override SinglePlan[] Solve(Dictionary<TimedMove, List<int>> ID_CAT,
-                                           Dictionary<TimedMove, List<int>> CBS_CAT)
+        public override SinglePlan[] Solve(ConflictAvoidanceTable CAT)
         {
             for (int i = 0; i < allMDDs.Length; i++)
                 if (allMDDs[i].levels == null)
                     return null;
-            A_Star_MDD findSolution = new A_Star_MDD(allMDDs, runner, ID_CAT, CBS_CAT);
+            A_Star_MDDs findSolution = new A_Star_MDDs(allMDDs, runner, CAT);
             SinglePlan[] ans = findSolution.Solve();
             generated = findSolution.generated;
             expanded = findSolution.expanded;
-            caViolations = findSolution.conflictCount;
+            conflictsNotAvoided = findSolution.conflictCount;
+            conflictCounts = findSolution.GetExternalConflictCounts();
+            conflictTimes = findSolution.GetConflictTimes();
             return ans;
         }
     }
@@ -269,17 +285,17 @@ namespace mapf
         public CostTreeNodeSolverKSimpleMatching(ProblemInstance problem, Run runner, CostTreeSearchSolver solver)
             : base(problem, runner, solver) { }
         public CostTreeNodeSolverKSimpleMatching(ProblemInstance problem, CostTreeNode costNode,
-                                                 Run runner, CostTreeSearchSolver solver, int maxGroupChecked)
-            : base(problem, costNode, runner, solver) { this.maxGroupChecked = maxGroupChecked; }
-        public void Setup(CostTreeNode costNode, int maxGroupChecked)
+                                                 Run runner, CostTreeSearchSolver solver, int maxGroupChecked,
+                                                 ISet<TimedMove> reserved)
+            : base(problem, costNode, runner, solver, reserved) { this.maxGroupChecked = maxGroupChecked; }
+        public void Setup(CostTreeNode costNode, int maxGroupChecked, ISet<TimedMove> reserved)
         {
-            base.Setup(costNode);
+            base.Setup(costNode, reserved);
             this.maxGroupChecked = maxGroupChecked;
         }
-        public override SinglePlan[] Solve(Dictionary<TimedMove, List<int>> ID_CAT,
-                                           Dictionary<TimedMove, List<int>> CBS_CAT)
+        public override SinglePlan[] Solve(ConflictAvoidanceTable CAT)
         {
-            A_Star_MDD findSolution;
+            A_Star_MDDs findSolution;
             SinglePlan[] subCheck;
             MDD[] match;
             MddMatchAndPrune matcher = new MddMatchAndPrune(runner, this);
@@ -302,7 +318,7 @@ namespace mapf
                         //matcher.initialize(match);
 
                         //if (matcher.pruneMDDs() == false)
-                        findSolution = new A_Star_MDD(match, runner, ID_CAT, CBS_CAT);
+                        findSolution = new A_Star_MDDs(match, runner, CAT);
 
                         subCheck = findSolution.Solve();
                         if (subCheck == null || subCheck[0] == null)
@@ -327,7 +343,7 @@ namespace mapf
                             //matcher.initialize(match);
 
                             //if (matcher.pruneMDDs() == false)
-                            findSolution = new A_Star_MDD(match, runner, ID_CAT, CBS_CAT);
+                            findSolution = new A_Star_MDDs(match, runner, CAT);
 
                             subCheck = findSolution.Solve();
                             if (subCheck == null || subCheck[0] == null)
@@ -356,7 +372,7 @@ namespace mapf
                                 //matcher.initialize(match);
 
                                 //if (matcher.pruneMDDs() == false)
-                                findSolution = new A_Star_MDD(match, runner, ID_CAT, CBS_CAT);
+                                findSolution = new A_Star_MDDs(match, runner, CAT);
 
                                 subCheck = findSolution.Solve();
                                 if (subCheck == null || subCheck[0] == null)
@@ -370,14 +386,16 @@ namespace mapf
                     }
                 }
             }
-            this.solver.passed++;
+            this.solver.survivedPruningHL++;
             if (allMDDs[0].levels == null)
                 return null;
-            findSolution = new A_Star_MDD(allMDDs, runner, ID_CAT, CBS_CAT);
+            findSolution = new A_Star_MDDs(allMDDs, runner, CAT);
             SinglePlan[] ans = findSolution.Solve();
             generated = findSolution.generated;
             expanded = findSolution.expanded;
-            caViolations = findSolution.conflictCount;
+            conflictsNotAvoided = findSolution.conflictCount;
+            conflictCounts = findSolution.GetExternalConflictCounts();
+            conflictTimes = findSolution.GetConflictTimes();
             return ans;
         }
     }
@@ -388,15 +406,15 @@ namespace mapf
         public CostTreeNodeSolverRepeatedMatching(ProblemInstance problem, Run runner, CostTreeSearchSolver solver)
             : base(problem, runner, solver) { }
         public CostTreeNodeSolverRepeatedMatching(ProblemInstance problem, CostTreeNode costNode,
-                                                  Run runner, CostTreeSearchSolver solver, int syncSize)
-            : base(problem, costNode, runner, solver) { this.syncSize = syncSize; }
-        public void setup(CostTreeNode costNode, int syncSize)
+                                                  Run runner, CostTreeSearchSolver solver, int syncSize,
+                                                  ISet<TimedMove> reserved)
+            : base(problem, costNode, runner, solver, reserved) { this.syncSize = syncSize; }
+        public void setup(CostTreeNode costNode, int syncSize, ISet<TimedMove> reserved)
         {
-            base.Setup(costNode);
+            base.Setup(costNode, reserved);
             this.syncSize = syncSize;
         }
-        public override SinglePlan[] Solve(Dictionary<TimedMove, List<int>> ID_CAT,
-                                           Dictionary<TimedMove, List<int>> CBS_CAT)
+        public override SinglePlan[] Solve(ConflictAvoidanceTable CAT)
         {
             MDD[] match = new MDD[2];
             bool Converging = true;
@@ -447,14 +465,14 @@ namespace mapf
                     }
                 }
             }
-            this.solver.passed++;
+            this.solver.survivedPruningHL++;
             if (allMDDs[0].levels == null)
                 return null;
-            A_Star_MDD findSolution = new A_Star_MDD(allMDDs, runner, ID_CAT, CBS_CAT);
+            A_Star_MDDs findSolution = new A_Star_MDDs(allMDDs, runner, CAT);
             SinglePlan[] ans = findSolution.Solve();
             generated = findSolution.generated;
             expanded = findSolution.expanded;
-            caViolations = findSolution.conflictCount;
+            conflictsNotAvoided = findSolution.conflictCount;
             return ans;
         }
     }
