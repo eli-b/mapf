@@ -87,7 +87,7 @@ namespace mapf
             int targetTimes2 = 2 * target;
 
             // Populate the cardinal conflict graph
-            foreach (var agentIndex in Enumerable.Range(0, s.allSingleAgentPlans.Length))
+            foreach (var agentIndex in Enumerable.Range(0, s.singleAgentPlans.Length))
             {
                 if (s.conflictTimesPerAgent[agentIndex].Count == 0)
                     continue;  // Agent has no conflicts

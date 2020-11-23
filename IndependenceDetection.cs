@@ -11,19 +11,6 @@ namespace mapf
 {
     class IndependenceDetection : ISolver
     {
-        // The key of the illegal moves table in the ProblemInstance (used in ImprovedID())
-        public static string ILLEGAL_MOVES_KEY = "ID-reserved";
-        // The key of the maximal solution cost of the agent group in the ProblemInstance (used in ImprovedID())
-        public static string MAX_COST_KEY = "ID-max-cost";
-        // The key of the conflict avoidance table
-        //public static string CONFLICT_AVOIDANCE = "ID-ConflictAvoidance";
-        // The key for the size of the first parent group (used in ImprovedID())
-        //public static string PARENT_GROUP_1_SIZE = "ID-parent-group-1-size";
-        // The key for the cost of the first parent group (used in ImprovedID())
-        //public static string PARENT_GROUP_1_COST = "ID-parent-group-1-cost";
-        // The key for the cost of the second parent group (used in ImprovedID())
-        //public static string PARENT_GROUP_2_COST = "ID-parent-group-2-cost";
-
         protected LinkedList<IndependenceDetectionAgentsGroup> allGroups;
         /// <summary>
         /// For each group in the problem instance, maps group nums it conflicts with to the number of conflicts betweem them.

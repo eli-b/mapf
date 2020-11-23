@@ -1024,6 +1024,7 @@ namespace mapf
             this.Setup(problemInstance, -1, runner, CAT,
                        minCost: parentGroup1Cost + parentGroup2Cost);
             // TODO: We can do more with the info
+            // FIXME: Support a makespan cost function
         }
 
         /// <summary>

@@ -270,9 +270,9 @@ namespace mapf
         /// Gets a dictionary mapping TimedMoves to the agents that already made them
         /// and returns a list of agents this TimedMove collides with.
         /// </summary>
-        /// <param name="timedMovesToAgentNumLists"></param>
+        /// <param name="CAT"></param>
         /// <returns></returns>
-        public IReadOnlyList<int> GetColliding(ConflictAvoidanceTable timedMovesToAgentNumLists)
+        public IReadOnlyList<int> GetColliding(ConflictAvoidanceTable CAT)
         {
             List<int> ans = null;
             Move.Direction saveDirection = this.direction;
@@ -284,12 +284,12 @@ namespace mapf
             foreach (var direction in directions) // TEMP FIX! Need to get rid of the whole NO_DIRECTION SHTICK! It breaks transitivity!
             {
                 this.direction = direction;
-                if (timedMovesToAgentNumLists.ContainsKey(this))
+                if (CAT.ContainsKey(this))
                 {
                     if (ans == null)
-                        ans = new List<int>(timedMovesToAgentNumLists[this]);
+                        ans = new List<int>(CAT[this]);
                     else
-                        ans.AddRange(timedMovesToAgentNumLists[this]);
+                        ans.AddRange(CAT[this]);
                 }
             }
             this.direction = saveDirection;
@@ -297,12 +297,12 @@ namespace mapf
             if (Constants.ALLOW_HEAD_ON_COLLISION == false)
             {
                 this.setOppositeMove();
-                if (timedMovesToAgentNumLists.ContainsKey(this)) // Check direction too now
+                if (CAT.ContainsKey(this)) // Check direction too now
                 {
                     if (ans == null)
-                        ans = new List<int>(timedMovesToAgentNumLists[this]);
+                        ans = new List<int>(CAT[this]);
                     else
-                        ans.AddRange(timedMovesToAgentNumLists[this]);
+                        ans.AddRange(CAT[this]);
                 }
                 this.setOppositeMove();
             }

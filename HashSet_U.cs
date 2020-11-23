@@ -13,10 +13,10 @@ namespace mapf
     [Serializable]
     public class HashSet_U<T> : ISet<T>
     {
-        List<HashSet<T>> Data;
+        List<ISet<T>> Data;
         public HashSet_U()
         {
-            this.Data = new List<HashSet<T>>();
+            this.Data = new List<ISet<T>>();
         }
 
         bool ISet<T>.Add(T value)
@@ -134,12 +134,12 @@ namespace mapf
             Data.Clear();
         }
 
-        public void Join(HashSet<T> other)
+        public void Join(ISet<T> other)
         {
             Data.Add(other);
         }
 
-        public void Separate(HashSet<T> other)
+        public void Separate(ISet<T> other)
         {
             Data.Remove(other);
         }
@@ -164,7 +164,7 @@ namespace mapf
         public int Count
         {
             get { 
-                return this.Data.Sum<HashSet<T>>(set => set.Count);
+                return this.Data.Sum(set => set.Count);
             }
         }
 

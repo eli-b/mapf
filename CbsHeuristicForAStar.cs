@@ -100,14 +100,15 @@ namespace mapf
             if (resume == false)
             {
                 this.cbs.Clear();
-                sAsProblemInstance = s.ToProblemInstance(this.instance);
+                (ProblemInstance problemInstance, ISet<CbsConstraint> positiveConstraints) = s.ToProblemInstance(this.instance);
+                sAsProblemInstance = problemInstance;
                 this.cbs.Setup(sAsProblemInstance,
                                Math.Max(s.makespan,  // This forces must-constraints to be upheld when dealing with A*+OD nodes,
                                                      // at the cost of forcing every agent to move when a goal could be found earlier with all must constraints upheld.
                                         s.minGoalTimeStep), // No point in finding shallower goal nodes
-                               this.runner, null, null, null);
+                               this.runner, null, null, positiveConstraints);
                 
-                if (this.cbs.openList.Count > 0 && this.cbs.topMost)
+                if (this.cbs.openList.Count > 0 && this.cbs.externalCAT == null)
                 {
                     if (sicEstimate == -1)
                     {

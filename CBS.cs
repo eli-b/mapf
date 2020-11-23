@@ -13,20 +13,6 @@ namespace mapf
     public class CBS : ICbsSolver, IHeuristicSolver<CbsNode>, IIndependenceDetectionSolver
     {
         /// <summary>
-        /// The key of the constraints list used for each CBS node
-        /// </summary>
-        public static readonly string CONSTRAINTS = "constraints";
-        /// <summary>
-        /// The key of the must constraints list used for each CBS node
-        /// </summary>
-        public static readonly string MUST_CONSTRAINTS = "must constraints";
-        /// <summary>
-        /// The key of the internal CAT for CBS, used to favor A* nodes that have fewer conflicts with other routes during tie-breaking.
-        /// Also used to indicate that CBS is running.
-        /// </summary>
-        public static readonly string CAT = "CBS CAT";
-
-        /// <summary>
         /// For each agent, map sets of constraints to MDDs
         /// </summary>
         public Dictionary<CbsCacheEntry, MDD>[] mddCache;
@@ -102,6 +88,8 @@ namespace mapf
         public Run runner;
         protected CbsNode goalNode;
         protected Plan solution;
+        protected Dictionary<int, int> externalConflictCounts;
+        protected Dictionary<int, List<int>> externalConflictTimes;
         /// <summary>
         /// Nodes with a higher F aren't generated. As a result, goal nodes with a higher cost
         /// won't be found.
@@ -142,10 +130,6 @@ namespace mapf
         protected int minSolutionTimeStep;
         protected int maxSizeGroup;
         protected int accMaxSizeGroup;
-        /// <summary>
-        /// Used to know when to clear problem parameters.
-        /// </summary>
-        public bool topMost;
         public BypassStrategy bypassStrategy;
         public bool doMalte;
         public ConflictChoice conflictChoice;
@@ -169,6 +153,14 @@ namespace mapf
         public bool replanSameCostWithMdd;
         public bool cacheMdds;
         public bool useCAT;
+
+        public ConflictAvoidanceTable externalCAT;
+        public ISet<CbsConstraint> externalConstraints;
+        /// <summary>
+        /// Note that in this implementation, positive constraints currenly don't act as negative constraints for all other agents, regretably.
+        /// They only rule out every other location for the agent at that time step.
+        /// </summary>
+        public ISet<CbsConstraint> externalPositiveConstraints;
 
         /// <summary>
         /// 
@@ -239,7 +231,10 @@ namespace mapf
         public void Setup(ProblemInstance problemInstance, Run runner, ConflictAvoidanceTable CAT,
                           int parentGroup1Cost, int parentGroup2Cost, int parentGroup1Size)
         {
-            this.Setup(problemInstance, -1, runner, CAT, null, null, parentGroup1Cost + parentGroup2Cost);
+            this.Setup(problemInstance, -1, runner, CAT, null, null, parentGroup1Cost + parentGroup2Cost);  // TODO: Support a makespan cost function
+            // I think we don't want to merge the agents in each group. We'd be left with two large meta-agents,
+            // and in CBS one conflict isn't a reason to merge agents. The groups are arbitrarily large so we can't
+            // even increment their conflict counts toward the merge threshold.
         }
 
         /// <summary>
@@ -253,6 +248,10 @@ namespace mapf
         public void Setup(ProblemInstance problemInstance, Run runner, ConflictAvoidanceTable CAT,
                           int targetCost, ISet<TimedMove> illegalMoves)
         {
+            // Turn the set of reserved/illegal moves into constraints for every agent. Not the prettiest solution.
+            // TODO: Instead, maybe add the agents in the reservation table into the problem instance, and add positive
+            //       constraints for them along their entire path. Would require changing IIndependenceDetectionSolver.Setup
+            //       to specify the agents the reserved moves belong to.
             var constraints = new HashSet<CbsConstraint>(illegalMoves.Count * problemInstance.agents.Length);
             foreach (var illegalMove in illegalMoves)
             {
@@ -274,8 +273,8 @@ namespace mapf
         /// <param name="maxSolutionCost"></param>
         /// <param name="mdd">Currently ignored. FIXME: Need to convert to array of MDDs to use.</param>
         public virtual void Setup(ProblemInstance problemInstance, int minSolutionTimeStep, Run runner,
-            ConflictAvoidanceTable CAT, ISet<CbsConstraint> constraints,
-            ISet<CbsConstraint> positiveConstraints,
+            ConflictAvoidanceTable externalCAT, ISet<CbsConstraint> externalConstraints,
+            ISet<CbsConstraint> externalPositiveConstraints,
             int minSolutionCost = -1, int maxSolutionCost = int.MaxValue, MDD mdd = null)
         {
             this.instance = problemInstance;
@@ -291,12 +290,6 @@ namespace mapf
             this.milliCap = int.MaxValue;
             this.goalNode = null;
             this.solution = null;
-
-            // Independence Detection parameters
-            if (problemInstance.parameters.ContainsKey(IndependenceDetection.MAX_COST_KEY))
-                this.maxSolutionCost = (int)problemInstance.parameters[IndependenceDetection.MAX_COST_KEY];
-            else
-                this.maxSolutionCost = int.MaxValue;
 
             // CBS parameters
             this.minSolutionTimeStep = minSolutionTimeStep;
@@ -316,21 +309,23 @@ namespace mapf
                 }
             }
 
-            if (constraints == null) // Top-most CBS solver
+            this.externalCAT = externalCAT;
+            CAT_U CAT = null;
+            if (this.useCAT)
             {
-                if (this.useCAT)
-                    CAT = new CAT_U();
-                constraints = new HashSet_U<CbsConstraint>();
-                if (this.doMalte)
-                    positiveConstraints = new HashSet_U<CbsConstraint>();
-                this.topMost = true;
+                CAT = new CAT_U();
+                if (externalCAT != null)
+                    CAT.Join(externalCAT);
             }
-            else
-                this.topMost = false;
+
+            this.externalConstraints = externalConstraints;
+            this.externalPositiveConstraints = externalPositiveConstraints;
+            if (externalPositiveConstraints == null && this.doMalte)
+                externalPositiveConstraints = new HashSet<CbsConstraint>();
 
             this.SetGlobals();
 
-            CbsNode root = new CbsNode(instance.agents.Length, this.solver, this.singleAgentSolver, this); // Problem instance and various strategy data is all passed under 'this'.
+            CbsNode root = new CbsNode(instance.agents.Length, this.solver, this.singleAgentSolver, this);  // Problem instance and various strategy data is all passed under 'this'.
             // Solve the root node
             bool solved = root.Solve(minSolutionTimeStep);
 
@@ -617,12 +612,9 @@ namespace mapf
 
         public virtual void ClearStatistics()
         {
-            if (this.topMost)
-            {
-                this.solver.ClearAccumulatedStatistics(); // Is this correct? Or is it better not to do it?
-                if (Object.ReferenceEquals(this.singleAgentSolver, this.solver) == false)
-                    this.singleAgentSolver.ClearAccumulatedStatistics();
-            }
+            this.solver.ClearAccumulatedStatistics(); // Is this correct? Or is it better not to do it?
+            if (Object.ReferenceEquals(this.singleAgentSolver, this.solver) == false)
+                this.singleAgentSolver.ClearAccumulatedStatistics();
             this.ClearPrivateStatistics();
             this.openList.ClearStatistics();
         }
@@ -756,23 +748,13 @@ namespace mapf
         /// <returns></returns>
         protected void SetGlobals()
         {
-            this.equivalenceWasOn = AgentState.EquivalenceOverDifferentTimes == true;
+            this.equivalenceWasOn = AgentState.EquivalenceOverDifferentTimes;
             AgentState.EquivalenceOverDifferentTimes = false;
         }
 
         protected void CleanGlobals()
         {
-            if (this.equivalenceWasOn)
-                AgentState.EquivalenceOverDifferentTimes = true;
-            if (this.topMost) // Clear problem parameters. Done for clarity only, since the Union structures are expected to be empty at this point.
-            {
-                this.instance.parameters.Remove(CBS.CAT);
-                this.instance.parameters.Remove(CBS.CONSTRAINTS);
-                // Don't remove must constraints:
-                // A) It usually wasn't CBS that added them (they're only used for Malte's variant).
-                // B) Must constraints only appear in temporary problems. There's no danger of leaking them to other solvers.
-                // C) We don't have the information to re-create them later.
-            }
+            AgentState.EquivalenceOverDifferentTimes = this.equivalenceWasOn;
         }
 
         public bool Solve()
@@ -825,7 +807,7 @@ namespace mapf
 
                 this.addToGlobalConflictCount(currentNode.GetConflict()); // TODO: Make MACBS_WholeTreeThreshold use nodes that do this automatically after choosing a conflict
 
-                Debug.WriteLine("Expanding node: ");
+                Debug.WriteLine("Expanding node: (or returning its solution, if it's a goal node)");
                 currentNode.DebugPrint();
 
                 // Update nodesExpandedWithGoalCost statistic
@@ -843,7 +825,7 @@ namespace mapf
                 if (currentNode.GoalTest())
                 {
                     Trace.Assert(currentNode.g >= maxExpandedNodeF,
-                                 $"CBS goal node found with lower cost than the max cost node ever expanded: {currentNode.g} < {maxExpandedNodeF}");
+                                 $"CBS goal node found with lower cost than the max cost node ever expanded ({currentNode.g} < {maxExpandedNodeF})");
                     // This is subtle, but MA-CBS may expand nodes in a non non-decreasing order:
                     // If a non-optimal constraint is expanded upon and we decide to merge the agents,
                     // the resulting node can have a lower cost than before, since we ignore the non-optimal constraint
@@ -930,8 +912,7 @@ namespace mapf
         /// <param name="reinsertParent">If it was only partially expanded</param>
         /// <param name="adoptBy">If not given, adoption is done by expanded node</param>
         /// <returns>true if adopted - need to rerun this method, ignoring the returned children from this call, bacause adoption was performed</returns>
-        protected (bool adopted, IList<CbsNode> children, bool reinsertParent) ExpandImpl(
-            CbsNode node, bool adopt, CbsNode adoptBy = null)
+        protected (bool adopted, IList<CbsNode> children, bool reinsertParent) ExpandImpl(CbsNode node, bool adopt, CbsNode adoptBy = null)
         {
             CbsConflict conflict = node.GetConflict();
             var children = new List<CbsNode>();
@@ -1627,7 +1608,7 @@ namespace mapf
             CbsNode.ExpansionState expansionsState = doLeftChild ? node.agentAExpansion : node.agentBExpansion;
             CbsNode.ExpansionState otherChildExpansionsState = doLeftChild ? node.agentBExpansion : node.agentAExpansion;
             string agentSide = doLeftChild? "left" : "right";
-            int planSize = node.allSingleAgentPlans[conflictingAgentIndex].GetSize();  // Used to check if the conflict occurs while the agent is at its goal
+            int planSize = node.singleAgentPlans[conflictingAgentIndex].GetSize();  // Used to check if the conflict occurs while the agent is at its goal
             int groupSize = node.GetGroupSize(conflictingAgentIndex);
             CbsConflict.WillCostIncrease willCostIncrease = doLeftChild ? node.conflict.willCostIncreaseForAgentA : node.conflict.willCostIncreaseForAgentB;
 
@@ -1642,10 +1623,10 @@ namespace mapf
                 ((Constants.sumOfCostsVariant == Constants.SumOfCostsVariant.ORIG &&
                 expansionsState == CbsNode.ExpansionState.NOT_EXPANDED && conflict.isVertexConflict == true &&  // An edge conflict at the goal isn't guaranteed
                                                                                                       // to increase the cost - the agent might be able to reach the goal from another direction
-                 conflict.timeStep >= node.allSingleAgentCosts[conflictingAgentIndex] && // Can't just check whether the node is at its goal - 
+                 conflict.timeStep >= node.singleAgentCosts[conflictingAgentIndex] && // Can't just check whether the node is at its goal - 
                                                                                          // the plan may involve it passing through its goal and returning to it later because of preexisting constraints.
                                                                                          // This assumes unit move costs
-                 node.h < conflict.timeStep + 1 - node.allSingleAgentCosts[conflictingAgentIndex] && // Otherwise we won't be increasing its h and there would be no reason to delay expansion
+                 node.h < conflict.timeStep + 1 - node.singleAgentCosts[conflictingAgentIndex] && // Otherwise we won't be increasing its h and there would be no reason to delay expansion
                                                                                                      // The agent's new cost will be at least conflict.timeStep + 1, so however much this is more than its current cost 
                                                                                                      // is an admissible heuristic
                  groupSize == 1) || // Otherwise an agent in the group can be forced to take a longer
@@ -1688,7 +1669,7 @@ namespace mapf
                 // since we're banning the goal at conflict.timeStep, it must at least do conflict.timeStep+1 steps
                 if (Constants.sumOfCostsVariant == Constants.SumOfCostsVariant.ORIG)
                 {
-                    node.h = Math.Max(node.h, (ushort)(conflict.timeStep + 1 - node.allSingleAgentCosts[conflictingAgentIndex]));
+                    node.h = Math.Max(node.h, (ushort)(conflict.timeStep + 1 - node.singleAgentCosts[conflictingAgentIndex]));
                     // Technically, we've already made sure above we're going to increase the node's h,
                     // This is just to make the line look correct without reading the complex if statement above.
                 }
@@ -1760,10 +1741,10 @@ namespace mapf
                     if (child.g < node.g && groupSize == 1) // Catch the error early
                     {
                         child.DebugPrint();
-                        Debug.WriteLine("Child plan: (cost {0})", child.allSingleAgentCosts[conflictingAgentIndex]);
-                        child.allSingleAgentPlans[conflictingAgentIndex].DebugPrint();
-                        Debug.WriteLine("Parent plan: (cost {0})", node.allSingleAgentCosts[conflictingAgentIndex]);
-                        node.allSingleAgentPlans[conflictingAgentIndex].DebugPrint();
+                        Debug.WriteLine("Child plan: (cost {0})", child.singleAgentCosts[conflictingAgentIndex]);
+                        child.singleAgentPlans[conflictingAgentIndex].DebugPrint();
+                        Debug.WriteLine("Parent plan: (cost {0})", node.singleAgentCosts[conflictingAgentIndex]);
+                        node.singleAgentPlans[conflictingAgentIndex].DebugPrint();
                         Trace.Assert(false, $"Single agent node with lower cost than parent! {child.g} < {node.g}");
                     }
 
@@ -1826,12 +1807,12 @@ namespace mapf
         
         public SinglePlan[] GetSinglePlans()
         {
-            return goalNode.allSingleAgentPlans;
+            return goalNode.singleAgentPlans;
         }
 
         public virtual int[] GetSingleCosts()
         {
-            return goalNode.allSingleAgentCosts;
+            return goalNode.singleAgentCosts;
         }
 
         public int GetHighLevelExpanded() { return highLevelExpanded; }

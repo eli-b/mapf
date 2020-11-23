@@ -83,11 +83,11 @@ namespace mapf
                            // 0 just signals we couldn't raise the h enough.
             }
 
-            ConflictGraph CardinallyConflictingAgents = new ConflictGraph(s.allSingleAgentPlans.Length);
+            ConflictGraph CardinallyConflictingAgents = new ConflictGraph(s.singleAgentPlans.Length);
             ISet<int>[] groups = s.GetGroups();
 
             // Populate the cardinal conflict graph
-            foreach (var agentIndex in Enumerable.Range(0, s.allSingleAgentPlans.Length))
+            foreach (var agentIndex in Enumerable.Range(0, s.singleAgentPlans.Length))
             {
                 if (s.conflictTimesPerAgent[agentIndex].Count == 0)
                     continue;  // Agent has no conflicts

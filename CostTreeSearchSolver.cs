@@ -91,7 +91,7 @@ namespace mapf
             this.costParentGroupB = parentGroup2Cost;
             this.sizeParentGroupA = parentGroup1Size;
 
-            Setup(problemInstance, 0, runner, CAT, minCost: parentGroup1Cost + parentGroup2Cost, maxCost: int.MaxValue);
+            Setup(problemInstance, 0, runner, CAT, minCost: parentGroup1Cost + parentGroup2Cost, maxCost: int.MaxValue);  // TODO: Support a makespan cost function
         }
 
         /// <summary>

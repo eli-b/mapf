@@ -43,7 +43,8 @@ namespace mapf
         /// <param name="ignoreConstraints"></param>
         /// <param name="supportPruning"></param>
         public MDD(int mddNum, int agentNum, Move start_pos, int cost, int numOfLevels, int numOfAgents,
-                   ProblemInstance instance, bool ignoreConstraints = false, bool supportPruning = true, ISet<TimedMove> reserved = null)
+                   ProblemInstance instance, bool ignoreConstraints = false, bool supportPruning = true, ISet<TimedMove> reserved = null,
+                   ISet<CbsConstraint> constraints = null, ISet<CbsConstraint> positiveConstraints = null)
         {  // numOfLevels >= cost
             this.problem = instance;
             this.mddNum = mddNum;
@@ -53,25 +54,19 @@ namespace mapf
             this.levels = new LinkedList<MDDNode>[numOfLevels + 1];
             this.supportPruning = supportPruning;
 
-            ISet<CbsConstraint> constraints = null; 
             Dictionary<int, TimedMove>[] mustConstraints = null;
 
-            if (ignoreConstraints == false && instance.parameters.ContainsKey(CBS.CONSTRAINTS) &&
-                    ((HashSet_U<CbsConstraint>)instance.parameters[CBS.CONSTRAINTS]).Count != 0)
+            if (ignoreConstraints == false && constraints != null && constraints.Count != 0)
             {
                 this.queryConstraint = new CbsConstraint();
                 this.queryConstraint.queryInstance = true;
-
-                constraints = (ISet<CbsConstraint>)instance.parameters[CBS.CONSTRAINTS];
             }
 
-            if (ignoreConstraints == false && instance.parameters.ContainsKey(CBS.MUST_CONSTRAINTS) &&
-                 ((HashSet_U<CbsConstraint>)instance.parameters[CBS.MUST_CONSTRAINTS]).Count != 0)
+            if (ignoreConstraints == false && positiveConstraints != null && positiveConstraints.Count != 0)
             {
                 // TODO: Code dup with A_Star's constructor
-                var musts = (HashSet_U<CbsConstraint>)instance.parameters[CBS.MUST_CONSTRAINTS];
-                mustConstraints = new Dictionary<int, TimedMove>[musts.Max(con => con.GetTimeStep()) + 1]; // To have index MAX, array needs MAX + 1 places.
-                foreach (CbsConstraint con in musts)
+                mustConstraints = new Dictionary<int, TimedMove>[positiveConstraints.Max(con => con.GetTimeStep()) + 1]; // To have index MAX, array needs MAX + 1 places.
+                foreach (CbsConstraint con in positiveConstraints)
                 {
                     int timeStep = con.GetTimeStep();
                     if (mustConstraints[timeStep] == null)
@@ -231,6 +226,7 @@ namespace mapf
             {
                 goal.startOrGoal = true;
             }
+            this.queryConstraint = other.queryConstraint;
         }
 
         /// <summary>
@@ -260,7 +256,7 @@ namespace mapf
                     this.problem.GetSingleAgentOptimalCost(this.agentNum, move) <= heuristicBound) // Only nodes that can reach the goal
                                                                                                    // in the given cost according to the heuristic.
                 {
-                    if (constraints != null)
+                    if (constraints != null && constraints.Count != 0)
                     {
                         queryConstraint.Init(agentNum, move);
 

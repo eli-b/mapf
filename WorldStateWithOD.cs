@@ -39,7 +39,7 @@ namespace mapf
             this.agentTurn = 0;
         }
 
-        public override ProblemInstance ToProblemInstance(ProblemInstance initial)
+        public override (ProblemInstance, ISet<CbsConstraint>) ToProblemInstance(ProblemInstance initial)
         {
             WorldState state = this;
             if (this.agentTurn != 0)
@@ -50,22 +50,16 @@ namespace mapf
             }
 
             ProblemInstance subproblem = initial.Subproblem(state.allAgentsState); // Can't use base's method because we're operating on a different object
-
+            var positiveConstraints = new HashSet<CbsConstraint>();
             if (this.agentTurn != 0)
             {
-                subproblem.parameters = new Dictionary<string,object>(subproblem.parameters); // Use a copy to not pollute general problem instance with the must constraints
-                if (subproblem.parameters.ContainsKey(CBS.MUST_CONSTRAINTS) == false)
-                    subproblem.parameters[CBS.MUST_CONSTRAINTS] = new HashSet_U<CbsConstraint>();
-                var mustConstraints = (HashSet_U<CbsConstraint>)subproblem.parameters[CBS.MUST_CONSTRAINTS];
-                var newMustConstraints = new HashSet<CbsConstraint>();
                 for (int i = 0; i < this.agentTurn; ++i)
                 {
-                    newMustConstraints.Add(new CbsConstraint(this.allAgentsState[i].agent.agentNum, this.allAgentsState[i].lastMove));
+                    positiveConstraints.Add(new CbsConstraint(this.allAgentsState[i].agent.agentNum, this.allAgentsState[i].lastMove));
                 }
-                mustConstraints.Join(newMustConstraints);
             }
 
-            return subproblem;
+            return (subproblem, positiveConstraints);
         }
 
         /// <summary>
