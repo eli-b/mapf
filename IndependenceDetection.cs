@@ -538,6 +538,8 @@ namespace mapf
                         conflict.group1.removeGroupFromCAT(conflictAvoidanceTable);
                         bool resolved = conflict.group1.ReplanUnderConstraints(conflict.group2.GetPlan(), runner, this.conflictAvoidanceTable);
                         ++resolutionAttempts;
+                        this.expanded += conflict.group1.expanded;
+                        this.generated += conflict.group1.generated;
                         if (resolved == true)
                         {
                             if (this.debug)
@@ -596,6 +598,8 @@ namespace mapf
                         conflict.group2.removeGroupFromCAT(conflictAvoidanceTable);
                         bool resolved = conflict.group2.ReplanUnderConstraints(conflict.group1.GetPlan(), runner, this.conflictAvoidanceTable);
                         ++resolutionAttempts;
+                        this.expanded += conflict.group2.expanded;
+                        this.generated += conflict.group2.generated;
                         if (resolved == true)
                         {
                             if (this.debug)
@@ -985,6 +989,10 @@ namespace mapf
         {
             int oldCost = this.solutionCost;
             Plan oldPlan = this.plan;
+            int[] oldCosts = this.singleCosts;
+            int oldSolutionDepth = this.solutionDepth;
+            Dictionary<int, int> oldConflictCounts = this.conflictCounts;
+            Dictionary<int, List<int>> oldConflictTimes = this.conflictTimes;
             HashSet<TimedMove> reserved = new HashSet<TimedMove>();
             planToAvoid.AddPlanToHashSet(reserved, Math.Max(planToAvoid.GetSize(), this.plan.GetSize()));
 
@@ -1014,6 +1022,10 @@ namespace mapf
             {
                 this.solutionCost = oldCost;
                 this.plan = oldPlan;
+                this.singleCosts = oldCosts;
+                this.solutionDepth = oldSolutionDepth;
+                this.conflictCounts = oldConflictCounts;
+                this.conflictTimes = oldConflictTimes;
             }
             return solved;
         }
