@@ -14,10 +14,12 @@ namespace mapf
         protected LinkedList<IndependenceDetectionAgentsGroup> allGroups;
         /// <summary>
         /// For each group in the problem instance, maps group nums it conflicts with to the number of conflicts betweem them.
+        /// (Indices that aren't group nums are null)
         /// </summary>
         public Dictionary<int, int>[] conflictCountsPerGroup;
         /// <summary>
-        /// For each group in the problem instance, maps group nums of groups it collides with to the time of their first collision.
+        /// For each group in the problem instance, maps group nums of groups it collides with to the times they conflict.
+        /// (Indices that aren't group nums are null)
         /// </summary>
         public Dictionary<int, List<int>>[] conflictTimesPerGroup;
         /// <summary>
@@ -57,11 +59,19 @@ namespace mapf
         private int solutionDepth;
         private ConflictAvoidanceTable conflictAvoidanceTable;
         private int maxSolutionCostFound;
+        private ConflictAvoidanceTable.AvoidanceGoal avoidanceGoal;
 
-        public IndependenceDetection(IIndependenceDetectionSolver singleAgentSolver, IIndependenceDetectionSolver groupSolver)
+        public IndependenceDetection(IIndependenceDetectionSolver singleAgentSolver, IIndependenceDetectionSolver groupSolver,
+                                     ConflictChoice conflictChoice = ConflictChoice.MOST_CONFLICTING_SMALLEST_AGENTS,
+                                     bool provideGroupCostsToSolver = true,
+                                     ConflictAvoidanceTable.AvoidanceGoal avoidanceGoal = ConflictAvoidanceTable.AvoidanceGoal.MINIMIZE_CONFLICTING_GROUPS  // The effect of a conflict between two groups is total in ID - they're either fully merged or try to fully avoid each other's plan
+                                     )
         {
             this.singleAgentSolver = singleAgentSolver;
             this.groupSolver = groupSolver;
+            this.conflictChoice = conflictChoice;
+            this.provideGroupCostsToSolver = provideGroupCostsToSolver;
+            this.avoidanceGoal = avoidanceGoal;
         }
 
         public void Clear()
@@ -83,7 +93,7 @@ namespace mapf
             this.totalCost = 0;
             this.ClearStatistics();
             this.conflictAvoidanceTable = new ConflictAvoidanceTable();
-            this.conflictAvoidanceTable.avoidanceGoal = ConflictAvoidanceTable.AvoidanceGoal.MINIMIZE_CONFLICTING_GROUPS;  // The effect of a conflict between two groups is total in ID - they're either fully merged or try to fully avoid each other's plan
+            this.conflictAvoidanceTable.avoidanceGoal = this.avoidanceGoal;
             this.resolutionAttemptedFirstGroup = new HashSet<IndependenceDetectionConflict>();
             this.resolutionAttemptedSecondGroup = new HashSet<IndependenceDetectionConflict>();
             this.allGroups = new LinkedList<IndependenceDetectionAgentsGroup>();
@@ -92,8 +102,9 @@ namespace mapf
             {
                 this.allGroups.AddLast(new IndependenceDetectionAgentsGroup(
                                             this.instance, new AgentState[1] { agentStartState },
-                                            this.singleAgentSolver, this.groupSolver)
+                                            this.singleAgentSolver, this.groupSolver, this)
                 );
+                this.conflictAvoidanceTable.agentSizes[agentStartState.agent.agentNum] = 1;
             }
             conflictCountsPerGroup = new Dictionary<int, int>[instance.GetNumOfAgents()];
             conflictTimesPerGroup = new Dictionary<int, List<int>>[instance.GetNumOfAgents()];
@@ -105,7 +116,7 @@ namespace mapf
             countsOfGroupsThatConflict = new int[instance.GetNumOfAgents()];
         }
 
-        public virtual String GetName() { return groupSolver.GetName() + "+ID"; }
+        public virtual String GetName() { return $"{groupSolver.GetName()}+ID({conflictChoice})"; }
 
         /// <summary>
         /// Calculate the full plan for all the agents that has been found by the algorithm
@@ -260,9 +271,11 @@ namespace mapf
         public enum ConflictChoice : byte
         {
             FIRST = 0,
+            SMALLEST_RESULTING_GROUP,
+            LARGEST_RESULTING_GROUP,
             MOST_CONFLICTING_SMALLEST_AGENTS
         }
-        public ConflictChoice conflictChoice = ConflictChoice.MOST_CONFLICTING_SMALLEST_AGENTS;  // TODO: set it in the constructor.
+        public ConflictChoice conflictChoice;
 
         /// <summary>
         /// Simulates the execution of the plans found for the different groups. 
@@ -281,6 +294,14 @@ namespace mapf
             {
                 return this.ChooseFirstConflict();
             }
+            else if (this.conflictChoice == IndependenceDetection.ConflictChoice.SMALLEST_RESULTING_GROUP)
+            {
+                return this.ChooseConflictOfMostConflictingSmallestResultingGroup();
+            }
+            else if (this.conflictChoice == IndependenceDetection.ConflictChoice.LARGEST_RESULTING_GROUP)
+            {
+                return this.ChooseConflictOfLargestResultingGroup();
+            }
             else if (this.conflictChoice == IndependenceDetection.ConflictChoice.MOST_CONFLICTING_SMALLEST_AGENTS)
             {
                 return this.ChooseConflictOfMostConflictingSmallestAgents();
@@ -294,7 +315,7 @@ namespace mapf
             foreach (var group in this.allGroups)
             {
                 if (group.groupNum == groupNum)
-                    return group.allAgentsState.Length;
+                    return group.Size();
             }
             return -1;
         }
@@ -369,6 +390,87 @@ namespace mapf
             return new IndependenceDetectionConflict(groupA, groupB, time);
         }
 
+        /// <summary>
+        /// Also prefers earliest time, all other things being equal, to be closer to the original strategy when possible
+        /// </summary>
+        /// <returns></returns>
+        private IndependenceDetectionConflict ChooseConflictOfLargestResultingGroup()
+        {
+            Dictionary<int, int> groupSizes = this.allGroups.ToDictionary(group => group.groupNum, group => group.Size());
+            int maxResultingGroupSize = -1;
+            int minTime = int.MaxValue;
+            IndependenceDetectionAgentsGroup groupA = null;  // The must be at least one conflict
+            int groupRepB = -1;  // The must be at least one conflict
+            foreach (var group in this.allGroups)
+            {
+                int size = group.Size();
+                foreach (var key in this.conflictCountsPerGroup[group.groupNum].Keys)
+                {
+                    if (groupSizes[key] + size > maxResultingGroupSize ||
+                        ((groupSizes[key] + size == maxResultingGroupSize) && (this.conflictTimesPerGroup[group.groupNum][key][0] < minTime)))  // Just to be closer to the earliest conflict strategy
+                    {
+                        maxResultingGroupSize = groupSizes[key] + size;
+                        minTime = this.conflictTimesPerGroup[group.groupNum][key][0];
+                        groupA = group;
+                        groupRepB = key;
+                    }
+                }
+            }
+
+            int time = this.conflictTimesPerGroup[groupA.groupNum][groupRepB][0];  // Choosing the earliest conflict between them - the choice doesn't matter for ID, but this is consistent with CBS' strategy
+
+            IndependenceDetectionAgentsGroup groupB = null;
+            foreach (var group in this.allGroups)
+            {
+                if (group.groupNum == groupRepB)
+                    groupB = group;
+            }
+            return new IndependenceDetectionConflict(groupA, groupB, time);
+        }
+
+        /// <summary>
+        /// Also prefers earliest time, all other things being equal, to be closer to the original strategy when possible
+        /// </summary>
+        /// <returns></returns>
+        private IndependenceDetectionConflict ChooseConflictOfMostConflictingSmallestResultingGroup()
+        {
+            Dictionary<int, int> groupSizes = this.allGroups.ToDictionary(group => group.groupNum, group => group.Size());
+            int minResultingGroupSize = this.allGroups.Count + 1;
+            int maxGroupsTheyWereInConflictWith = -1;
+            int minTime = int.MaxValue;
+            IndependenceDetectionAgentsGroup groupA = null;  // The must be at least one conflict
+            int groupRepB = -1;  // The must be at least one conflict
+            foreach (var group in this.allGroups)
+            {
+                int size = group.Size();
+                foreach (var key in this.conflictCountsPerGroup[group.groupNum].Keys)
+                {
+                    int resultingGroupSize = groupSizes[key] + size;
+                    int numGroupsTheGroupsWereInConflictWith = this.countsOfGroupsThatConflict[group.groupNum] /*- 1*/ + this.countsOfGroupsThatConflict[key] /*- 1*/;
+                    if (resultingGroupSize < minResultingGroupSize ||
+                        ((resultingGroupSize == minResultingGroupSize) && (numGroupsTheGroupsWereInConflictWith > maxGroupsTheyWereInConflictWith)) ||
+                        ((resultingGroupSize == minResultingGroupSize) && (numGroupsTheGroupsWereInConflictWith == maxGroupsTheyWereInConflictWith) && (this.conflictTimesPerGroup[group.groupNum][key][0] < minTime)))  // Just to be closer to the earliest conflict strategy
+                    {
+                        minResultingGroupSize = resultingGroupSize;
+                        maxGroupsTheyWereInConflictWith = numGroupsTheGroupsWereInConflictWith;
+                        minTime = this.conflictTimesPerGroup[group.groupNum][key][0];
+                        groupA = group;
+                        groupRepB = key;
+                    }
+                }
+            }
+
+            int time = this.conflictTimesPerGroup[groupA.groupNum][groupRepB][0];  // Choosing the earliest conflict between them - the choice doesn't matter for ID, but this is consistent with CBS' strategy
+
+            IndependenceDetectionAgentsGroup groupB = null;
+            foreach (var group in this.allGroups)
+            {
+                if (group.groupNum == groupRepB)
+                    groupB = group;
+            }
+            return new IndependenceDetectionConflict(groupA, groupB, time);
+        }
+
         private IndependenceDetectionConflict ChooseFirstConflict()
         {
             int groupRepA = -1; // To quiet the compiler
@@ -400,6 +502,11 @@ namespace mapf
             return new IndependenceDetectionConflict(groupA, groupB, time);
         }
 
+        /// <summary>
+        /// For SimpleID. Doesn't use the conflictCount and conflictTimes variables.
+        /// TODO: Merge duplication with FindFirstConflict.
+        /// </summary>
+        /// <returns></returns>
         public IndependenceDetectionConflict FindFirstConflict()
         { 
             // Find the longest plan among all the groups
@@ -544,7 +651,7 @@ namespace mapf
                         {
                             if (this.debug)
                             {
-                                //Debug.WriteLine($"Found an alternative path that avoids the conflict for group 1: {conflict.group1.GetPlan()}");
+                                //Debug.WriteLine($"Found an alternative path that avoids the conflict for {conflict.group1}: {conflict.group1.GetPlan()}");
                                 Debug.WriteLine($"Found an alternative path that avoids the conflict for {conflict.group1}");
                             }
 
@@ -648,6 +755,8 @@ namespace mapf
                 // Remove both groups from avoidance table
                 conflict.group1.removeGroupFromCAT(conflictAvoidanceTable);
                 conflict.group2.removeGroupFromCAT(conflictAvoidanceTable);
+                conflictAvoidanceTable.agentSizes.Remove(conflict.group1.groupNum);
+                conflictAvoidanceTable.agentSizes.Remove(conflict.group2.groupNum);
                 conflictCountsPerGroup[conflict.group1.groupNum] = null;
                 conflictTimesPerGroup[conflict.group1.groupNum] = null;
                 conflictCountsPerGroup[conflict.group2.groupNum] = null;
@@ -693,6 +802,7 @@ namespace mapf
 
                 // Add the new group to conflict avoidance table
                 compositeGroup.addGroupToCAT(conflictAvoidanceTable);
+                conflictAvoidanceTable.agentSizes[compositeGroup.groupNum] = compositeGroup.Size();
                 allGroups.AddFirst(compositeGroup);
             }
             return true;
@@ -868,18 +978,21 @@ namespace mapf
 
         private IIndependenceDetectionSolver singleAgentSolver;  // Note this allows groups to be given different solvers, according to perhaps their size
         private IIndependenceDetectionSolver groupSolver;
+        private IndependenceDetection id;
         private Plan plan;
         private int[] singleCosts;
         public Dictionary<int, int> conflictCounts;
         public Dictionary<int, List<int>> conflictTimes;
 
         public IndependenceDetectionAgentsGroup(ProblemInstance instance, AgentState[] allAgentsState,
-                                                IIndependenceDetectionSolver singleAgentSolver, IIndependenceDetectionSolver groupSolver)
+                                                IIndependenceDetectionSolver singleAgentSolver, IIndependenceDetectionSolver groupSolver,
+                                                IndependenceDetection id)
         {
             this.allAgentsState = allAgentsState;
             this.instance = instance.Subproblem(allAgentsState);
             this.singleAgentSolver = singleAgentSolver;
             this.groupSolver = groupSolver;
+            this.id = id;
             this.groupNum = allAgentsState[0].agent.agentNum;
         }
 
@@ -900,7 +1013,10 @@ namespace mapf
             IIndependenceDetectionSolver relevantSolver = this.groupSolver;
             if (this.allAgentsState.Length == 1)
                 relevantSolver = this.singleAgentSolver; // TODO: Consider using CBS's root trick to really get single agent paths fast. Though it won't respect illegal moves or avoid conflicts.
-            relevantSolver.Setup(this.instance, runner, CAT, group1Cost, group2Cost, group1Size);
+            if (this.id.provideGroupCostsToSolver)
+                relevantSolver.Setup(this.instance, runner, CAT, group1Cost, group2Cost, group1Size);
+            else  // For experiments only
+                relevantSolver.Setup(this.instance, runner, CAT, 0, 0, 0);
             bool solved = relevantSolver.Solve();
             this.solutionCost = relevantSolver.GetSolutionCost();
             if (solved == false)
@@ -946,7 +1062,7 @@ namespace mapf
             if (this.groupSolver.GetType() != typeof(CostTreeSearchSolverOldMatching))
                 Array.Sort(joinedAgentStates, (x, y) => x.agent.agentNum.CompareTo(y.agent.agentNum));  // TODO: Technically could be a merge. FIXME: Is this necessary at all?
             
-            return new IndependenceDetectionAgentsGroup(this.instance, joinedAgentStates, this.singleAgentSolver, this.groupSolver);
+            return new IndependenceDetectionAgentsGroup(this.instance, joinedAgentStates, this.singleAgentSolver, this.groupSolver, this.id);
         }
 
         /// <summary>

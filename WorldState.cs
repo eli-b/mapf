@@ -20,7 +20,8 @@ namespace mapf
         public MDDNode mddNode;
         public int generated;
 
-        public int sumConflictCounts;
+        public int primaryTieBreaker;
+        public int secondaryTieBreaker;
         /// <summary>
         /// Maps from agent num to the number of times the path up to this node collides with that agent
         /// </summary>
@@ -77,7 +78,8 @@ namespace mapf
             this.allAgentsState = allAgentsState.ToArray();
             this.makespan = allAgentsState.Max(state => state.lastMove.time); // We expect to only find at most two G values within the agent group
             this.CalculateG(); // G not necessarily zero when solving a partially solved problem.
-            this.sumConflictCounts = 0;
+            this.primaryTieBreaker = 0;
+            this.secondaryTieBreaker = 0;
             this.conflictCounts = new Dictionary<int, int>();  // Unused if not running under CBS, and we can't tell at this point easily
             this.conflictTimes = new Dictionary<int, List<int>>();  // Unused if not running under CBS, and we can't tell at this point easily
             this.minGoalTimeStep = minDepth;
@@ -297,6 +299,11 @@ namespace mapf
             if (thatIsGoal == true && thisIsGoal == false)
                 return 1;
 
+
+            // Prefer nodes that contain conflicts with fewer agents - when a conflict is resolved,
+            // many times other conflicts with the same agent are resolved automatically thanks to conflict avoidance,
+            // especially if the cost increases.
+            // For ID, this may instead prefers nodes which conflict with smaller groups.
             // TODO: Ideally, prefer nodes where the minimum vertex cover of the conflict graph is smaller.
             //       Compute an MVC of the conflict graph without the node's agents in the CBS node
             //       before running the low level, and only compare the number of agents the node
@@ -305,24 +312,15 @@ namespace mapf
             //       graph separately and tie-break first according to the number of agents we conflict
             //       with that aren't in the MVC of the conflict graph and then the number of agents
             //       we conflict with that aren't in the cardinal conflict graph
-            if (this.conflictCounts != null && that.conflictCounts != null)
-                // Currently even when not under ID or CBS, the root node has this.conflictCounts != null 
-            {
-                // Prefer nodes that contain conflicts with fewer agents - when a conflict is resolved,
-                // many times other conflicts are resolved automatically thanks to conflict avoidance,
-                // especially if the cost increases.
-                int numberOfConflictingAgents = this.conflictCounts.Count;
-                int thatNumberOfConflictingAgents = that.conflictCounts.Count;
-                if (numberOfConflictingAgents < thatNumberOfConflictingAgents)
-                    return -1;
-                if (numberOfConflictingAgents > thatNumberOfConflictingAgents)
-                    return 1;
-            }
+            if (this.primaryTieBreaker < that.primaryTieBreaker)
+                return -1;
+            if (this.primaryTieBreaker > that.primaryTieBreaker)
+                return 1;
 
             // Prefer nodes with fewer conflicts - the probability that some of them are cardinal is lower
-            if (this.sumConflictCounts < that.sumConflictCounts)
+            if (this.secondaryTieBreaker < that.secondaryTieBreaker)
                 return -1;
-            if (this.sumConflictCounts > that.sumConflictCounts)
+            if (this.secondaryTieBreaker > that.secondaryTieBreaker)
                 return 1;
 
             // //M-Star: prefer nodes with smaller collision sets:
@@ -481,6 +479,7 @@ namespace mapf
 
         /// <summary>
         /// Counts the number of times this node collides with each agent move in the conflict avoidance table.
+        /// Also compute the representative primary and secondary tie-breaking values according to the CAT's avoidance goal
         /// </summary>
         /// <param name="CAT"></param>
         /// <returns></returns>
@@ -490,10 +489,32 @@ namespace mapf
             {
                 this.allAgentsState[i].lastMove.IncrementConflictCounts(CAT, this.conflictCounts, this.conflictTimes);
             }
-            if (CAT.avoidanceGoal == ConflictAvoidanceTable.AvoidanceGoal.MINIMIZE_CONFLICTS)
-                this.sumConflictCounts = this.conflictCounts.Sum(pair => pair.Value);
+
+            if (CAT.avoidanceGoal == ConflictAvoidanceTable.AvoidanceGoal.MINIMIZE_CONFLICTS)  // For ID, the original rule
+                this.primaryTieBreaker = this.conflictCounts.Sum(pair => pair.Value);
             else if (CAT.avoidanceGoal == ConflictAvoidanceTable.AvoidanceGoal.MINIMIZE_CONFLICTING_GROUPS)
-                this.sumConflictCounts = this.conflictCounts.Keys.Count;  // Not really the "sum" in this case
+                this.primaryTieBreaker = this.conflictCounts.Keys.Count;
+            else if (CAT.avoidanceGoal == ConflictAvoidanceTable.AvoidanceGoal.MINIMIZE_CONFLICTING_GROUPS_THEN_CONFLICTS)
+                // For CBS, minimizes the number of conflicting groups and then the number of conflicts with them
+            {
+                this.primaryTieBreaker = this.conflictCounts.Keys.Count;
+                this.secondaryTieBreaker = this.conflictCounts.Sum(pair => pair.Value);
+            }
+            else if (CAT.avoidanceGoal == ConflictAvoidanceTable.AvoidanceGoal.MINIMIZE_LARGEST_CONFLICTING_GROUP_THEN_NUMBER_OF_SUCH_GROUPS)
+                // For ID, minimizes the size of the largest group we conflict with and then 
+                // number of conflicting groups with that size
+            {
+                if (this.conflictCounts.Count != 0)
+                {
+                    this.primaryTieBreaker = this.conflictCounts.Max(pair => CAT.agentSizes[pair.Key]);
+                    this.secondaryTieBreaker = this.conflictCounts.Where(pair => CAT.agentSizes[pair.Key] == this.primaryTieBreaker).Count();
+                }
+                else
+                {
+                    this.primaryTieBreaker = 0;
+                    this.secondaryTieBreaker = 0;
+                }
+            }
         }
 
         /// <summary>

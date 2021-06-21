@@ -200,7 +200,7 @@ namespace mapf
 
             allAgentsState[lastAgentToMove].lastMove.IncrementConflictCounts(conflictAvoidance,
                                                                           this.conflictCounts, this.conflictTimes);
-            this.sumConflictCounts = this.conflictCounts.Sum(pair => pair.Value);
+            this.primaryTieBreaker = this.conflictCounts.Sum(pair => pair.Value);
         }
     }
 }
