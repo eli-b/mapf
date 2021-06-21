@@ -30,12 +30,14 @@ namespace mapf
         protected int expanded;  // TODO: remove and just rely on the subsolvers to accumulate
         protected int generated;  // TODO: remove and just rely on the subsolvers to accumulate
         protected int resolutionAttempts;
-        //TODO: add a successfulResolutions statistic 
+        protected int resolutionSuccesses;
         protected int merges;
         protected int accExpanded;
         protected int accGenerated;
         protected int accResolutionAttempts;
+        protected int accResolutionSuccesses;
         protected int accMerges;
+        public bool provideGroupCostsToSolver;
         public int totalCost;
         protected Run runner;
 
@@ -145,6 +147,8 @@ namespace mapf
             output.Write(Run.RESULTS_DELIMITER);
             output.Write(this.ToString() + " Resolution Attempts");
             output.Write(Run.RESULTS_DELIMITER);
+            output.Write(this.ToString() + " Resolution Successes");
+            output.Write(Run.RESULTS_DELIMITER);
             output.Write(this.ToString() + " Merges");
             output.Write(Run.RESULTS_DELIMITER);
         }
@@ -170,8 +174,10 @@ namespace mapf
 
             Console.WriteLine("Resolution Attempts: {0}", this.resolutionAttempts);
             Console.WriteLine("Merges: {0}", this.merges);
+            Console.WriteLine($"Resolution Successes: {this.resolutionAttempts}");
 
             output.Write(this.resolutionAttempts + Run.RESULTS_DELIMITER);
+            output.Write(this.resolutionSuccesses + Run.RESULTS_DELIMITER);
             output.Write(this.merges + Run.RESULTS_DELIMITER);
         }
 
@@ -179,7 +185,7 @@ namespace mapf
         {
             get
             {
-                return 6;
+                return 7;
             }
         }
 
@@ -190,6 +196,7 @@ namespace mapf
             this.maxGroupSize = 1;
             this.minGroupSize = instance.agents.Length;
             this.resolutionAttempts = 0;
+            this.resolutionSuccesses = 0;
             this.merges = 0;
         }
 
@@ -200,6 +207,7 @@ namespace mapf
             this.accMaxGroupSize = 1;
             this.accMinGroupSize = this.instance.agents.Length;
             this.accResolutionAttempts = 0;
+            this.accResolutionSuccesses = 0;
             this.accMerges = 0;
         }
 
@@ -210,6 +218,7 @@ namespace mapf
             this.accMaxGroupSize = Math.Max(this.accMaxGroupSize, this.maxGroupSize);
             this.accMinGroupSize = Math.Min(this.accMinGroupSize, this.minGroupSize);
             this.accResolutionAttempts += this.resolutionAttempts;
+            this.accResolutionSuccesses += this.resolutionSuccesses;
             this.accMerges += this.merges;
         }
 
@@ -229,8 +238,10 @@ namespace mapf
 
             Console.WriteLine("{0} Accumulated resolution attempts (Low-Level): {1}", this, this.accResolutionAttempts);
             Console.WriteLine("{0} Accumulated merges (Low-Level): {1}", this, this.accMerges);
+            Console.WriteLine($"{this} Accumulated resolution successes (Low-Level): {this.accResolutionSuccesses}");
 
             output.Write(this.accResolutionAttempts + Run.RESULTS_DELIMITER);
+            output.Write(this.accResolutionSuccesses + Run.RESULTS_DELIMITER);
             output.Write(this.accMerges + Run.RESULTS_DELIMITER);
         }
 
@@ -537,6 +548,7 @@ namespace mapf
 
                             UpdateConflictCounts(conflict.group1);
                             conflict.group1.addGroupToCAT(conflictAvoidanceTable);
+                            ++resolutionSuccesses;
 
                             continue;
                         }
@@ -594,6 +606,7 @@ namespace mapf
 
                             UpdateConflictCounts(conflict.group2);
                             conflict.group2.addGroupToCAT(conflictAvoidanceTable);
+                            ++resolutionSuccesses;
 
                             continue;
                         }
