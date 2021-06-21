@@ -158,23 +158,23 @@ namespace mapf
         /// </summary>
         public void OutputStatistics(TextWriter output)//, BsonDocument row)
         {
-            Console.WriteLine("Total Expanded Nodes: {0}", this.expanded);
-            Console.WriteLine("Total Generated Nodes: {0}", this.generated);
+            Console.WriteLine($"Total Expanded Nodes: {this.expanded}");
+            Console.WriteLine($"Total Generated Nodes: {this.generated}");
 
             output.Write(this.expanded + Run.RESULTS_DELIMITER);
             output.Write(this.generated + Run.RESULTS_DELIMITER);
 
             this.minGroupSize = this.allGroups.Min(group => group.allAgentsState.Length);  // MaxGroupSize is computed every time we merge
 
-            Console.WriteLine("Max Group: {0}", this.maxGroupSize);
-            Console.WriteLine("Min Group: {0}", this.minGroupSize);
+            Console.WriteLine($"Max Group: {this.maxGroupSize}");
+            Console.WriteLine($"Min Group: {this.minGroupSize}");
 
             output.Write(this.maxGroupSize + Run.RESULTS_DELIMITER);
             output.Write(this.minGroupSize + Run.RESULTS_DELIMITER);
 
-            Console.WriteLine("Resolution Attempts: {0}", this.resolutionAttempts);
-            Console.WriteLine("Merges: {0}", this.merges);
+            Console.WriteLine($"Resolution Attempts: {this.resolutionAttempts}");
             Console.WriteLine($"Resolution Successes: {this.resolutionAttempts}");
+            Console.WriteLine($"Merges: {this.merges}");
 
             output.Write(this.resolutionAttempts + Run.RESULTS_DELIMITER);
             output.Write(this.resolutionSuccesses + Run.RESULTS_DELIMITER);
@@ -224,21 +224,21 @@ namespace mapf
 
         public void OutputAccumulatedStatistics(TextWriter output)
         {
-            Console.WriteLine("{0} Accumulated Expanded Nodes (Low-Level): {1}", this, this.accExpanded);
-            Console.WriteLine("{0} Accumulated Generated Nodes (Low-Level): {1}", this, this.accGenerated);
+            Console.WriteLine($"{this} Accumulated Expanded Nodes (Low-Level): {this.accExpanded}");
+            Console.WriteLine($"{this} Accumulated Generated Nodes (Low-Level): {this.accGenerated}");
 
             output.Write(this.accExpanded + Run.RESULTS_DELIMITER);
             output.Write(this.accGenerated + Run.RESULTS_DELIMITER);
 
-            Console.WriteLine("{0} Accumulated Max Group (Low-Level): {1}", this, this.accMaxGroupSize);
-            Console.WriteLine("{0} Accumulated Min Group (Low-Level): {1}", this, this.accMinGroupSize);
+            Console.WriteLine($"{this} Accumulated Max Group (Low-Level): {this.accMaxGroupSize}");
+            Console.WriteLine($"{this} Accumulated Min Group (Low-Level): {this.accMinGroupSize}");
 
             output.Write(this.accMaxGroupSize + Run.RESULTS_DELIMITER);
             output.Write(this.accMinGroupSize + Run.RESULTS_DELIMITER);
 
-            Console.WriteLine("{0} Accumulated resolution attempts (Low-Level): {1}", this, this.accResolutionAttempts);
-            Console.WriteLine("{0} Accumulated merges (Low-Level): {1}", this, this.accMerges);
+            Console.WriteLine($"{this} Accumulated resolution attempts (Low-Level): {this.accResolutionAttempts}");
             Console.WriteLine($"{this} Accumulated resolution successes (Low-Level): {this.accResolutionSuccesses}");
+            Console.WriteLine($"{this} Accumulated merges (Low-Level): {this.accMerges}");
 
             output.Write(this.accResolutionAttempts + Run.RESULTS_DELIMITER);
             output.Write(this.accResolutionSuccesses + Run.RESULTS_DELIMITER);
