@@ -122,7 +122,7 @@ namespace mapf
                                 instanceName = $"Instance-{gridSizes[gridSizeIndex]}-{obstaclesProbs[obstaclePercentageIndex]}-{agentListSizes[numOfAgentsIndex]}-{i}";
                                 try
                                 {
-                                    instance = ProblemInstance.Import(Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "Instances", instanceName));
+                                    instance = ProblemInstance.Import(Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "..", "Instances", instanceName));
                                     instance.instanceId = i;
                                 }
                                 catch (Exception importException)
@@ -167,20 +167,20 @@ namespace mapf
         }
 
         protected static readonly string[] daoMapPaths = {
-            Path.Combine("..", "..", "maps", "den520d.map"),
-            Path.Combine("..", "..", "maps", "ost003d.map"),
-            Path.Combine("..", "..", "maps", "brc202d.map")
+            Path.Combine("..", "..", "..", "maps", "den520d.map"),
+            Path.Combine("..", "..", "..", "maps", "ost003d.map"),
+            Path.Combine("..", "..", "..", "maps", "brc202d.map")
         };
 
         protected static readonly string[] mazeMapPaths = {
-            Path.Combine("..", "..", "maps", "maze512-1-6.map"),
-            Path.Combine("..", "..", "maps", "maze512-1-2.map"),
-            Path.Combine("..", "..", "maps", "maze512-1-9.map")
+            Path.Combine("..", "..", "..", "maps", "maze512-1-6.map"),
+            Path.Combine("..", "..", "..", "maps", "maze512-1-2.map"),
+            Path.Combine("..", "..", "..", "maps", "maze512-1-9.map")
         };
 
         protected static readonly string[] scenDirs = {
-            Path.Combine("..", "..", "scen", "scen-even"),
-            Path.Combine("..", "..", "scen", "scen-random")
+            Path.Combine("..", "..", "..", "scen", "scen-even"),
+            Path.Combine("..", "..", "..", "scen", "scen-random")
         };
 
         /// <summary>
@@ -246,7 +246,7 @@ namespace mapf
                             instanceName = $"{Path.GetFileNameWithoutExtension(mapFilePath)}-{agentListSizes[ag]}-{i}";
                             try
                             {
-                                instance = ProblemInstance.Import(Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "Instances", instanceName));
+                                instance = ProblemInstance.Import(Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "..", "Instances", instanceName));
                             }
                             catch (Exception importException)
                             {
@@ -299,9 +299,9 @@ namespace mapf
                 Debug.WriteLine("Debugger attached - running without a timeout!!");
             }
 
-            if (Directory.Exists(Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "Instances")) == false)
+            if (Directory.Exists(Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "..", "Instances")) == false)
             {
-                Directory.CreateDirectory(Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "Instances"));
+                Directory.CreateDirectory(Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "..", "Instances"));
             }
 
             Program.onlyReadInstances = false;

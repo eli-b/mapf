@@ -395,7 +395,7 @@ namespace mapf
                 if (mapFilePath == null)
                 {
                     mapfileNameWithoutExtension = fileNameWithoutExtension.Substring(0, length: fileNameWithoutExtension.LastIndexOf('_')) + ".map";  // Passing a length parameter is like specifying a non-inclusive end index
-                    mapFilePath = Path.Combine(Path.GetDirectoryName(filePath), "..", "maps", mapfileNameWithoutExtension);
+                    mapFilePath = Path.Combine(Path.GetDirectoryName(filePath), "..", "..", "..", "maps", mapfileNameWithoutExtension);
                 }
                 else
                 {
@@ -450,7 +450,7 @@ namespace mapf
                 int instanceId = int.Parse(fileNameWithoutExtension.Split('-').Last());
                 string mapfileName = fileNameWithoutExtension.Substring(0, length: fileNameWithoutExtension.LastIndexOf('-'));  // Passing a length parameter is like specifying a non-inclusive end index
                 if (mapFilePath == null)
-                    mapFilePath = Path.Combine(Path.GetDirectoryName(filePath), "..", "..", "..", "maps", mapfileName);
+                    mapFilePath = Path.Combine(Path.GetDirectoryName(filePath), "..", "..", "maps", mapfileName);
                 
                 bool[][] grid = readMapFile(mapFilePath);
 
@@ -606,7 +606,7 @@ namespace mapf
         /// <param name="fileName"></param>
         public void Export(string fileName)
         {
-            TextWriter output = new StreamWriter(Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "Instances", fileName));
+            TextWriter output = new StreamWriter(Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "..", "Instances", fileName));
             // Output the instance ID
             if (this.parameters.ContainsKey(ProblemInstance.GRID_NAME_KEY))
                 output.WriteLine($"{this.instanceId},{this.parameters[ProblemInstance.GRID_NAME_KEY]}");
