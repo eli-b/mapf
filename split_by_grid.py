@@ -14,7 +14,7 @@ reader = csv.DictReader(open(input_path))
 def make_csv_writer(gridname):
     'Uses input_filename and reader.fieldnames globals'
     path = f'{input_filename}_{gridname}.csv'
-    writer = csv.DictWriter(open(path, 'wb'), reader.fieldnames)
+    writer = csv.DictWriter(open(path, 'w', newline=''), reader.fieldnames)
     writer.writeheader()
     return writer
 
