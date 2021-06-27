@@ -43,6 +43,7 @@ namespace mapf
             catch (Exception e)
             {
                 Console.WriteLine($"Skipping bad problem instance {fileName}. Error: {e.Message}");
+                Console.WriteLine(e.StackTrace);
                 return;
             }
 
@@ -350,6 +351,7 @@ namespace mapf
                 catch (Exception e)
                 {
                     Console.WriteLine($"Bad problem instance {args[1]}. Error: {e.Message}");
+                    Console.WriteLine(e.StackTrace);
                     return;
                 }
                 Run runner = new Run();  // instantiates stuff unnecessarily
