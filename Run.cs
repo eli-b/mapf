@@ -767,7 +767,7 @@ namespace mapf
                 }
 
                 ProblemInstance problem = new ProblemInstance();
-                problem.parameters[ProblemInstance.GRID_NAME_KEY] = Path.GetFileNameWithoutExtension(mapFilePath);
+                problem.gridName = Path.GetFileNameWithoutExtension(mapFilePath);
                 problem.Init(agentStates, grid);
 
                 for (int j = 0; j < RANDOM_WALK_STEPS; j++)
@@ -840,10 +840,9 @@ namespace mapf
                     {
                         if (((CBS)solvers[i]).mergeThreshold == 314159) // MAGIC NUMBER WHICH MAKES US ADJUST B according to map
                         {
-                            string gridName = (string)instance.parameters[ProblemInstance.GRID_NAME_KEY];
-                            if (gridName.StartsWith("den"))
+                            if (instance.gridName.StartsWith("den"))
                                 ((CBS)solvers[i]).mergeThreshold = 10;
-                            else if (gridName.StartsWith("brc") || gridName.StartsWith("ost"))
+                            else if (instance.gridName.StartsWith("brc") || instance.gridName.StartsWith("ost"))
                                 ((CBS)solvers[i]).mergeThreshold = 100;
                         }
                     }
@@ -858,10 +857,9 @@ namespace mapf
                     {
                         if (((CBS)((IndependenceDetection)solvers[i]).groupSolver).mergeThreshold == 314159) // MAGIC NUMBER SEE ABOVE
                         {
-                            string gridName = (string)instance.parameters[ProblemInstance.GRID_NAME_KEY];
-                            if (gridName.StartsWith("den"))
+                            if (instance.gridName.StartsWith("den"))
                                 ((CBS)((IndependenceDetection)solvers[i]).groupSolver).mergeThreshold = 10;
-                            else if (gridName.StartsWith("brc") || gridName.StartsWith("ost"))
+                            else if (instance.gridName.StartsWith("brc") || instance.gridName.StartsWith("ost"))
                                 ((CBS)((IndependenceDetection)solvers[i]).groupSolver).mergeThreshold = 100;
                         }
                     }
@@ -1035,6 +1033,8 @@ namespace mapf
             this.resultsWriter.Write(Run.RESULTS_DELIMITER);
             this.resultsWriter.Write("Grid Columns");
             this.resultsWriter.Write(Run.RESULTS_DELIMITER);
+            this.resultsWriter.Write("Instance Name");
+            this.resultsWriter.Write(Run.RESULTS_DELIMITER);
             this.resultsWriter.Write("Num Of Agents");
             this.resultsWriter.Write(Run.RESULTS_DELIMITER);
             this.resultsWriter.Write("Num Of Obstacles");
@@ -1092,14 +1092,13 @@ namespace mapf
         private void PrintProblemStatistics(ProblemInstance instance)
         {
             // Grid Name col:
-            if (instance.parameters.ContainsKey(ProblemInstance.GRID_NAME_KEY))
-                this.resultsWriter.Write(instance.parameters[ProblemInstance.GRID_NAME_KEY] + RESULTS_DELIMITER);
-            else
-                this.resultsWriter.Write(RESULTS_DELIMITER);
+            this.resultsWriter.Write(instance.gridName + RESULTS_DELIMITER);
             // Grid Rows col:
             this.resultsWriter.Write(instance.grid.Length + RESULTS_DELIMITER);
             // Grid Columns col:
             this.resultsWriter.Write(instance.grid[0].Length + RESULTS_DELIMITER);
+            // Scenario/instance Name col:
+            this.resultsWriter.Write(instance.instanceName + RESULTS_DELIMITER);
             // Num Of Agents col:
             this.resultsWriter.Write(instance.agents.Length + RESULTS_DELIMITER);
             // Num Of Obstacles col:

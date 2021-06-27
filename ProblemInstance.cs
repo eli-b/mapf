@@ -18,9 +18,6 @@ namespace mapf
         /// </summary>
         private static readonly char EXPORT_DELIMITER = ',';
 
-        public static readonly string GRID_NAME_KEY = "Grid Name";
-        public static readonly string INSTANCE_NAME_KEY = "Instance Name";
-
         /// <summary>
         /// This contains extra data of this problem instance (used for special problem instances, e.g. subproblems of a bigger problem instance).
         /// </summary>
@@ -75,6 +72,9 @@ namespace mapf
         /// </summary>
         public int[,] cardinality;
 
+        public string gridName;
+        public string instanceName;
+
         public ProblemInstance(IDictionary<string, object> parameters = null)
         {
             if (parameters != null)
@@ -96,6 +96,9 @@ namespace mapf
             subproblemInstance.Init(selectedAgents, this.grid, (int)this.numObstacles, (int)this.numLocations, this.cardinality);
             subproblemInstance.singleAgentOptimalCosts = this.singleAgentOptimalCosts; // Each subproblem knows every agent's single shortest paths so this.singleAgentOptimalCosts[agent_num] would easily work
             subproblemInstance.singleAgentOptimalMoves = this.singleAgentOptimalMoves;
+            subproblemInstance.gridName = this.gridName;
+            subproblemInstance.instanceName = this.instanceName;
+            subproblemInstance.instanceId = this.instanceId;
             return subproblemInstance;
         }
 
@@ -439,8 +442,8 @@ namespace mapf
                 ProblemInstance instance = new ProblemInstance();
                 instance.Init(states, grid);
                 instance.instanceId = instanceId;
-                instance.parameters[ProblemInstance.GRID_NAME_KEY] = mapfileNameWithoutExtension;
-                instance.parameters[ProblemInstance.INSTANCE_NAME_KEY] = fileNameWithoutExtension + ".agents";
+                instance.gridName = mapfileNameWithoutExtension;
+                instance.instanceName = fileNameWithoutExtension + ".agents";
                 instance.ComputeSingleAgentShortestPaths();
                 return instance;
             }
@@ -508,8 +511,8 @@ namespace mapf
                 ProblemInstance instance = new ProblemInstance();
                 instance.Init(stateList.ToArray(), grid);
                 instance.instanceId = instanceId;
-                instance.parameters[ProblemInstance.GRID_NAME_KEY] = mapfileName;
-                instance.parameters[ProblemInstance.INSTANCE_NAME_KEY] = fileNameWithoutExtension + ".scen";
+                instance.gridName = mapfileName;
+                instance.instanceName = fileNameWithoutExtension + ".scen";
                 instance.ComputeSingleAgentShortestPaths();
                 return instance;
             }
@@ -592,8 +595,8 @@ namespace mapf
                     ProblemInstance instance = new ProblemInstance();
                     instance.Init(states, grid);
                     instance.instanceId = instanceId;
-                    instance.parameters[ProblemInstance.GRID_NAME_KEY] = gridName;
-                    instance.parameters[ProblemInstance.INSTANCE_NAME_KEY] = Path.GetFileName(filePath);
+                    instance.gridName = gridName;
+                    instance.instanceName = Path.GetFileNameWithoutExtension(filePath);
                     instance.ComputeSingleAgentShortestPaths();
                     return instance;
                 }
@@ -608,10 +611,7 @@ namespace mapf
         {
             TextWriter output = new StreamWriter(Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "..", "Instances", fileName));
             // Output the instance ID
-            if (this.parameters.ContainsKey(ProblemInstance.GRID_NAME_KEY))
-                output.WriteLine($"{this.instanceId},{this.parameters[ProblemInstance.GRID_NAME_KEY]}");
-            else
-                output.WriteLine(this.instanceId);
+            output.WriteLine($"{this.instanceId},{this.gridName}");
 
             // Output the grid
             output.WriteLine("Grid:");
@@ -712,11 +712,7 @@ namespace mapf
 
         public override string ToString()
         {
-            string str = $"Problem instance:{instanceId}";
-            if (this.parameters.ContainsKey(ProblemInstance.GRID_NAME_KEY))
-                str += $" Grid Name:{this.parameters[ProblemInstance.GRID_NAME_KEY]}";
-            str += $" #Agents:{agents.Length}, GridCells:{numLocations}, #Obstacles:{numObstacles}";
-            return str;
+            return $"Problem instance name:{instanceName} #Agents:{agents.Length}, GridCells:{numLocations}, #Obstacles:{numObstacles}";
         }
     }
 }
