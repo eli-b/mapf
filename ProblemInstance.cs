@@ -289,7 +289,7 @@ namespace mapf
         /// </summary>
         public int GetMaxX()
         {
-            return this.grid.GetLength(0);
+            return this.grid.Length;
         }
 
         /// <summary>
@@ -491,9 +491,9 @@ namespace mapf
                         block = int.Parse(lineParts[0]);
                         mapFileName = lineParts[1];
                         mapRows = int.Parse(lineParts[2]);
-                        Trace.Assert(mapRows == grid.GetLength(0));
+                        Trace.Assert(mapRows == grid.Length);
                         mapCols = int.Parse(lineParts[3]);
-                        Trace.Assert(mapCols == grid.GetLength(1));
+                        Trace.Assert(mapCols == grid[0].Length);
 
                         startY = int.Parse(lineParts[4]);
                         startX = int.Parse(lineParts[5]);
@@ -615,11 +615,11 @@ namespace mapf
 
             // Output the grid
             output.WriteLine("Grid:");
-            output.WriteLine($"{this.grid.GetLength(0)},{this.grid[0].GetLength(0)}");
+            output.WriteLine($"{this.grid.Length},{this.grid[0].Length}");
                         
-            for (int i = 0; i < this.grid.GetLength(0); i++)
+            for (int i = 0; i < this.grid.Length; i++)
             {
-                for (int j = 0; j < this.grid[0].GetLength(0); j++)
+                for (int j = 0; j < this.grid[0].Length; j++)
                 {
                     if (this.grid[i][j] == true)
                         output.Write('@');
