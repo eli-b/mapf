@@ -5,3 +5,4 @@
 /scen/*
 /maps/*
 /.vs/*
+/__pycache__/*
