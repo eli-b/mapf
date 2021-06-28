@@ -426,7 +426,10 @@ namespace mapf
             foreach (var group in this.allGroups)
             {
                 if (group.groupNum == groupRepB)
+                {
                     groupB = group;
+                    break;
+                }
             }
             if (groupA.Size() <= groupB.Size())
                 return new IndependenceDetectionConflict(groupA, groupB, time);
@@ -451,6 +454,8 @@ namespace mapf
                 int size = group.Size();
                 foreach (var key in this.conflictCountsPerGroup[group.groupNum].Keys)
                 {
+                    if (key < group.groupNum)
+                        continue;  // Already checked in the reverse order
                     int resultingGroupSize = groupSizes[key] + size;
                     int numGroupsTheGroupsWereInConflictWith = this.countsOfGroupsThatConflict[group.groupNum] /*- 1*/ + this.countsOfGroupsThatConflict[key] /*- 1*/;
                     if (resultingGroupSize < minResultingGroupSize ||
@@ -472,7 +477,10 @@ namespace mapf
             foreach (var group in this.allGroups)
             {
                 if (group.groupNum == groupRepB)
+                {
                     groupB = group;
+                    break;
+                }
             }
             if (groupA.Size() <= groupB.Size())
                 return new IndependenceDetectionConflict(groupA, groupB, time);
