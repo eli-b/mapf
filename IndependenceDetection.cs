@@ -184,7 +184,7 @@ namespace mapf
             output.Write(this.minGroupSize + Run.RESULTS_DELIMITER);
 
             Console.WriteLine($"Resolution Attempts: {this.resolutionAttempts}");
-            Console.WriteLine($"Resolution Successes: {this.resolutionAttempts}");
+            Console.WriteLine($"Resolution Successes: {this.resolutionSuccesses}");
             Console.WriteLine($"Merges: {this.merges}");
 
             output.Write(this.resolutionAttempts + Run.RESULTS_DELIMITER);
