@@ -313,8 +313,8 @@ namespace mapf
             bool runDragonAge = false;
             bool runMazesWidth1 = false;
             bool runSpecific = false;
-            bool runPaperProblems = false;
-            bool runPaperProblemsIncrementally = false;  // Turn on for CA*
+            bool runBenchmark = true;
+            bool runBenchmarkIncrementally = false;  // Turn on for CA*
 
             if (runGrids == true)
             {
@@ -393,8 +393,9 @@ namespace mapf
                 //me.RunInstance("corridor4");
                 return;
             }
-            else if (runPaperProblems)
+            else if (runBenchmark)
             {
+                Constants.MAX_FAIL_COUNT = 1;  // That's the way the benchmark is run
                 foreach (var dirName in scenDirs)
                 {
                     foreach (var scenPath in Directory.GetFiles(dirName))
@@ -419,8 +420,9 @@ namespace mapf
                     }
                 }
             }
-            else if (runPaperProblemsIncrementally)
+            else if (runBenchmarkIncrementally)
             {
+                Constants.MAX_FAIL_COUNT = 1;  // That's the way the benchmark is run
                 foreach (var dirName in scenDirs)
                 {
                     foreach (var scenPath in Directory.GetFiles(dirName))

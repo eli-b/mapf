@@ -28,7 +28,7 @@ namespace mapf
         /// <summary>
         /// Max Consecutive failures before an algorithm is omitted from the list of tested algorithms
         /// </summary>
-        public const int MAX_FAIL_COUNT = 10;
+        public static int MAX_FAIL_COUNT = 10;
         /// <summary>
         /// Allow head-on collisions
         /// </summary>
