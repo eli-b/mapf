@@ -387,7 +387,10 @@ namespace mapf
                 else if (group.groupNum == groupRepB)
                     groupB = group;
             }
-            return new IndependenceDetectionConflict(groupA, groupB, time);
+            if (groupA.Size() <= groupB.Size())
+                return new IndependenceDetectionConflict(groupA, groupB, time);
+            else
+                return new IndependenceDetectionConflict(groupB, groupA, time);  // This way when attempting to resolve the conflict, the smaller group would be tried first
         }
 
         /// <summary>
@@ -425,7 +428,10 @@ namespace mapf
                 if (group.groupNum == groupRepB)
                     groupB = group;
             }
-            return new IndependenceDetectionConflict(groupA, groupB, time);
+            if (groupA.Size() <= groupB.Size())
+                return new IndependenceDetectionConflict(groupA, groupB, time);
+            else
+                return new IndependenceDetectionConflict(groupB, groupA, time);  // This way when attempting to resolve the conflict, the smaller group would be tried first
         }
 
         /// <summary>
@@ -468,7 +474,10 @@ namespace mapf
                 if (group.groupNum == groupRepB)
                     groupB = group;
             }
-            return new IndependenceDetectionConflict(groupA, groupB, time);
+            if (groupA.Size() <= groupB.Size())
+                return new IndependenceDetectionConflict(groupA, groupB, time);
+            else
+                return new IndependenceDetectionConflict(groupB, groupA, time);  // This way when attempting to resolve the conflict, the smaller group would be tried first
         }
 
         private IndependenceDetectionConflict ChooseFirstConflict()
@@ -499,7 +508,10 @@ namespace mapf
                 else if (group.groupNum == groupRepB)
                     groupB = group;
             }
-            return new IndependenceDetectionConflict(groupA, groupB, time);
+            if (groupA.Size() <= groupB.Size())
+                return new IndependenceDetectionConflict(groupA, groupB, time);
+            else
+                return new IndependenceDetectionConflict(groupB, groupA, time);  // This way when attempting to resolve the conflict, the smaller group would be tried first
         }
 
         /// <summary>
