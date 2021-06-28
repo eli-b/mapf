@@ -490,9 +490,9 @@ namespace mapf
                         lineParts = line.Split('\t');
                         block = int.Parse(lineParts[0]);
                         mapFileName = lineParts[1];
-                        mapRows = int.Parse(lineParts[2]);
+                        mapRows = int.Parse(lineParts[3]);
                         Trace.Assert(mapRows == grid.Length);
-                        mapCols = int.Parse(lineParts[3]);
+                        mapCols = int.Parse(lineParts[2]);
                         Trace.Assert(mapCols == grid[0].Length);
 
                         startY = int.Parse(lineParts[4]);
