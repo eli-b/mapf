@@ -441,7 +441,7 @@ namespace mapf
         private IndependenceDetectionConflict ChooseConflictOfMostConflictingSmallestResultingGroup()
         {
             Dictionary<int, int> groupSizes = this.allGroups.ToDictionary(group => group.groupNum, group => group.Size());
-            int minResultingGroupSize = this.allGroups.Count + 1;
+            int minResultingGroupSize = this.instance.agents.Length + 1;
             int maxGroupsTheyWereInConflictWith = -1;
             int minTime = int.MaxValue;
             IndependenceDetectionAgentsGroup groupA = null;  // The must be at least one conflict
