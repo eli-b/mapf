@@ -271,8 +271,9 @@ namespace mapf
         public enum ConflictChoice : byte
         {
             FIRST = 0,
-            SMALLEST_RESULTING_GROUP,
-            LARGEST_RESULTING_GROUP,
+            MOST_CONFLICTING_SMALLEST_RESULTING_GROUP,
+            MOST_CONFLICTING_AND_SMALLEST_GROUP,
+            LEAST_CONFLICTING_LARGEST_RESULTING_GROUP,
             MOST_CONFLICTING_SMALLEST_AGENTS
         }
         public ConflictChoice conflictChoice;
@@ -294,17 +295,21 @@ namespace mapf
             {
                 return this.ChooseFirstConflict();
             }
-            else if (this.conflictChoice == IndependenceDetection.ConflictChoice.SMALLEST_RESULTING_GROUP)
+            else if (this.conflictChoice == IndependenceDetection.ConflictChoice.MOST_CONFLICTING_SMALLEST_RESULTING_GROUP)
             {
                 return this.ChooseConflictOfMostConflictingSmallestResultingGroup();
             }
-            else if (this.conflictChoice == IndependenceDetection.ConflictChoice.LARGEST_RESULTING_GROUP)
+            else if (this.conflictChoice == IndependenceDetection.ConflictChoice.LEAST_CONFLICTING_LARGEST_RESULTING_GROUP)
             {
-                return this.ChooseConflictOfLargestResultingGroup();
+                return this.ChooseConflictOfLeastConflictingLargestResultingGroup();
             }
             else if (this.conflictChoice == IndependenceDetection.ConflictChoice.MOST_CONFLICTING_SMALLEST_AGENTS)
             {
-                return this.ChooseConflictOfMostConflictingSmallestAgents();
+                return this.ChooseConflictOfSmallestAgentsThatConflictWithMostOtherAgents();
+            }
+            else if (this.conflictChoice == IndependenceDetection.ConflictChoice.MOST_CONFLICTING_AND_SMALLEST_GROUP)
+            {
+                return this.ChooseConflictOfMostConflictingAndSmallestResultingGroup();
             }
             else
                 throw new Exception("Unknown conflict choosing method");
@@ -358,7 +363,7 @@ namespace mapf
         /// TODO: Prefer conflicts where one of the conflicting agents is at their goal, to reduce the danger of task blow-up
         /// by enabling partial expansion. On the other hand, partial expansion is only possible in basic CBS.
         /// </summary>
-        private IndependenceDetectionConflict ChooseConflictOfMostConflictingSmallestAgents()
+        private IndependenceDetectionConflict ChooseConflictOfSmallestAgentsThatConflictWithMostOtherAgents()
         {
             int groupRepA = -1; // To quiet the compiler
             int groupRepB = -1; // To quiet the compiler
@@ -393,14 +398,10 @@ namespace mapf
                 return new IndependenceDetectionConflict(groupB, groupA, time);  // This way when attempting to resolve the conflict, the smaller group would be tried first
         }
 
-        /// <summary>
-        /// Also prefers earliest time, all other things being equal, to be closer to the original strategy when possible
-        /// </summary>
-        /// <returns></returns>
-        private IndependenceDetectionConflict ChooseConflictOfLargestResultingGroup()
+        private IndependenceDetectionConflict ChooseConflictOfMostConflictingAndSmallestResultingGroup()
         {
             Dictionary<int, int> groupSizes = this.allGroups.ToDictionary(group => group.groupNum, group => group.Size());
-            int maxResultingGroupSize = -1;
+            double maxScore = -1;
             int minTime = int.MaxValue;
             IndependenceDetectionAgentsGroup groupA = null;  // The must be at least one conflict
             int groupRepB = -1;  // The must be at least one conflict
@@ -409,10 +410,66 @@ namespace mapf
                 int size = group.Size();
                 foreach (var key in this.conflictCountsPerGroup[group.groupNum].Keys)
                 {
-                    if (groupSizes[key] + size > maxResultingGroupSize ||
-                        ((groupSizes[key] + size == maxResultingGroupSize) && (this.conflictTimesPerGroup[group.groupNum][key][0] < minTime)))  // Just to be closer to the earliest conflict strategy
+                    if (key < group.groupNum)
+                        continue;  // Already checked in the reverse order
+                    int resultingGroupSize = groupSizes[key] + size;
+                    int numGroupsTheGroupsWereInConflictWith = this.countsOfGroupsThatConflict[group.groupNum] /*- 1*/ + this.countsOfGroupsThatConflict[key] /*- 1*/;
+                    double score = numGroupsTheGroupsWereInConflictWith / ((double)(1 << (resultingGroupSize - 1)));
+                    if (score > maxScore ||
+                        ((score == maxScore) && (this.conflictTimesPerGroup[group.groupNum][key][0] < minTime)))  // Just to be closer to the earliest conflict strategy
                     {
-                        maxResultingGroupSize = groupSizes[key] + size;
+                        maxScore = score;
+                        minTime = this.conflictTimesPerGroup[group.groupNum][key][0];
+                        groupA = group;
+                        groupRepB = key;
+                    }
+                }
+            }
+
+            int time = this.conflictTimesPerGroup[groupA.groupNum][groupRepB][0];  // Choosing the earliest conflict between them - the choice doesn't matter for ID, but this is consistent with CBS' strategy
+
+            IndependenceDetectionAgentsGroup groupB = null;
+            foreach (var group in this.allGroups)
+            {
+                if (group.groupNum == groupRepB)
+                {
+                    groupB = group;
+                    break;
+                }
+            }
+            if (groupA.Size() <= groupB.Size())
+                return new IndependenceDetectionConflict(groupA, groupB, time);
+            else
+                return new IndependenceDetectionConflict(groupB, groupA, time);  // This way when attempting to resolve the conflict, the smaller group would be tried first
+        }
+
+        /// <summary>
+        /// Also prefers earliest time, all other things being equal, to be closer to the original strategy when possible
+        /// </summary>
+        /// <returns></returns>
+        private IndependenceDetectionConflict ChooseConflictOfLeastConflictingLargestResultingGroup()
+        {
+            Dictionary<int, int> groupSizes = this.allGroups.ToDictionary(group => group.groupNum, group => group.Size());
+            int maxResultingGroupSize = -1;
+            int minGroupsTheyWereInConflictWith = int.MaxValue;
+            int minTime = int.MaxValue;
+            IndependenceDetectionAgentsGroup groupA = null;  // The must be at least one conflict
+            int groupRepB = -1;  // The must be at least one conflict
+            foreach (var group in this.allGroups)
+            {
+                int size = group.Size();
+                foreach (var key in this.conflictCountsPerGroup[group.groupNum].Keys)
+                {
+                    if (key < group.groupNum)
+                        continue;  // Already checked in the reverse order
+                    int resultingGroupSize = groupSizes[key] + size;
+                    int numGroupsTheGroupsWereInConflictWith = this.countsOfGroupsThatConflict[group.groupNum] /*- 1*/ + this.countsOfGroupsThatConflict[key] /*- 1*/;
+                    if (resultingGroupSize > maxResultingGroupSize ||
+                        ((resultingGroupSize == maxResultingGroupSize) && (numGroupsTheGroupsWereInConflictWith < minGroupsTheyWereInConflictWith)) ||
+                        ((resultingGroupSize == maxResultingGroupSize) && (numGroupsTheGroupsWereInConflictWith == minGroupsTheyWereInConflictWith) && (this.conflictTimesPerGroup[group.groupNum][key][0] < minTime)))  // Just to be closer to the earliest conflict strategy
+                    {
+                        maxResultingGroupSize = resultingGroupSize;
+                        minGroupsTheyWereInConflictWith = numGroupsTheGroupsWereInConflictWith;
                         minTime = this.conflictTimesPerGroup[group.groupNum][key][0];
                         groupA = group;
                         groupRepB = key;

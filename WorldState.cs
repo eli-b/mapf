@@ -515,6 +515,10 @@ namespace mapf
                     this.secondaryTieBreaker = 0;
                 }
             }
+            else if (CAT.avoidanceGoal == ConflictAvoidanceTable.AvoidanceGoal.MINIMIZE_CONFLICTING_GROUP_SIZE_AND_COUNT)
+            {
+                this.primaryTieBreaker = this.conflictCounts.Sum(pair => 1 << (CAT.agentSizes[pair.Key] - 1));
+            }
         }
 
         /// <summary>
