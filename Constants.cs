@@ -5,18 +5,22 @@ namespace mapf
     {
         public static int MAX_TIME = 60000;
 
-        /// <summary>
-        /// The cost that is set to the algorithms when all the states have been expanded and no goal was found 
-        /// </summary>
-        public const int NO_SOLUTION_COST = -1;
-        /// <summary>
-        /// The cost that is set to the algorithms when they are halted due to out of time 
-        /// </summary>
-        public const int TIMEOUT_COST = -2;
-        /// <summary>
-        /// The cost that is set to the algorithms when they are halted due to out of memory
-        /// </summary>
-        public const int MAX_MEMORY_COST = -3; // TODO: Implement this, it's a great idea!
+        public enum SpecialCosts : int
+        {
+            /// <summary>
+            /// The cost that is set to the algorithms when all the states have been expanded and no goal was found 
+            /// </summary>
+            NO_SOLUTION_COST = -1,
+            /// <summary>
+            /// The cost that is set to the algorithms when they are halted due to out of time 
+            /// </summary>
+            TIMEOUT_COST = -2,
+            /// <summary>
+            /// The cost that is set to the algorithms when they are halted due to out of memory
+            /// </summary>
+            MAX_MEMORY_COST = -3, // TODO: Implement this, it's a great idea!
+    }
+        
         /// <summary>
         /// The number of generated nodes after which a debug print will be given
         /// </summary>

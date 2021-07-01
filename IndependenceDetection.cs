@@ -871,7 +871,7 @@ namespace mapf
 
                 if (solved == false)
                 {
-                    this.totalCost = Constants.NO_SOLUTION_COST;
+                    this.totalCost = (int) Constants.SpecialCosts.NO_SOLUTION_COST;
                     return false;
                 }
 

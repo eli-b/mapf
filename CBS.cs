@@ -773,7 +773,7 @@ namespace mapf
                 // Check if max time has been exceeded
                 if (this.runner.ElapsedMilliseconds() > Constants.MAX_TIME)
                 {
-                    this.solutionCost = Constants.TIMEOUT_COST;
+                    this.solutionCost = (int) Constants.SpecialCosts.TIMEOUT_COST;
                     Console.WriteLine("Out of time");
                     this.solutionDepth = openList.Peek().f - initialEstimate; // A minimum estimate
                     this.Clear(); // Total search time exceeded - we're not going to resume this search.
@@ -885,7 +885,7 @@ namespace mapf
                     currentNode.Clear();
             }
 
-            this.solutionCost = Constants.NO_SOLUTION_COST;
+            this.solutionCost = (int) Constants.SpecialCosts.NO_SOLUTION_COST;
             this.Clear(); // unsolvable problem - we're not going to resume it
             this.CleanGlobals();
             return false;

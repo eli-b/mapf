@@ -131,7 +131,7 @@ namespace mapf
             {
                 if (!singleAgentAStar(agent))
                 {
-                    this.totalcost = Constants.NO_SOLUTION_COST;
+                    this.totalcost = (int) Constants.SpecialCosts.NO_SOLUTION_COST;
                     return false;
                 }
             }
@@ -142,7 +142,7 @@ namespace mapf
         {
             if (!singleAgentAStar(allAgentsState[index]))
             {
-                this.totalcost = Constants.NO_SOLUTION_COST;
+                this.totalcost = (int) Constants.SpecialCosts.NO_SOLUTION_COST;
                 return false;
             }
             return true;

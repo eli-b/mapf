@@ -400,7 +400,7 @@ namespace mapf
                 // Check if max time has been exceeded
                 if (runner.ElapsedMilliseconds() > Constants.MAX_TIME)
                 {
-                    totalCost = Constants.TIMEOUT_COST;
+                    totalCost = (int) Constants.SpecialCosts.TIMEOUT_COST;
                     Console.WriteLine("Out of time");
                     this.solutionDepth = openList.Peek().g + openList.Peek().h - initialEstimate; // A minimum estimate, assuming h is admissible
                     this.Clear();
@@ -517,7 +517,7 @@ namespace mapf
                 }
             }
 
-            totalCost = Constants.NO_SOLUTION_COST;
+            totalCost = (int) Constants.SpecialCosts.NO_SOLUTION_COST;
             this.Clear();
             return false;
         }

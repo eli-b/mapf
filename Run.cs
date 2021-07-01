@@ -20,9 +20,11 @@ namespace mapf
         /// </summary>
         public static readonly string RESULTS_DELIMITER = ",";
 
-        public static readonly int SUCCESS_CODE = 1;
-
-        public static readonly int FAILURE_CODE = 0;
+        public enum CsvSolutionCodes
+        {
+            SUCCESS = 1,
+            FAILURE = 0
+        };
 
         /// <summary>
         /// Number of random steps performed when generating a new problem instance for choosing a start-goal pair.
@@ -1075,9 +1077,9 @@ namespace mapf
         {
             // Success col:
             if (solver.GetSolutionCost() < 0)
-                this.resultsWriter.Write(Run.FAILURE_CODE + RESULTS_DELIMITER);
+                this.resultsWriter.Write(((int)Run.CsvSolutionCodes.FAILURE) + RESULTS_DELIMITER);
             else
-                this.resultsWriter.Write(Run.SUCCESS_CODE + RESULTS_DELIMITER);
+                this.resultsWriter.Write(((int)Run.CsvSolutionCodes.SUCCESS) + RESULTS_DELIMITER);
             // Runtime col:
             this.resultsWriter.Write(runtimeInMillis + RESULTS_DELIMITER);
             // Solution Cost col:
@@ -1116,7 +1118,7 @@ namespace mapf
         private void PrintNullStatistics(ISolver solver)
         {
             // Success col:
-            this.resultsWriter.Write(Run.FAILURE_CODE + RESULTS_DELIMITER);
+            this.resultsWriter.Write(((int)Run.CsvSolutionCodes.FAILURE) + RESULTS_DELIMITER);
             // Runtime col:
             this.resultsWriter.Write(Constants.MAX_TIME + RESULTS_DELIMITER);
             // Solution Cost col:

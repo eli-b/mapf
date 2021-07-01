@@ -133,7 +133,7 @@ namespace mapf
             this.expandedHL = 1;
             this.generatedLL = 0;
             this.expandedLL = 0;
-            this.totalCost = Constants.TIMEOUT_COST;
+            this.totalCost = (int) Constants.SpecialCosts.TIMEOUT_COST;
             
             this.problem = problemInstance;
             this.runner = runner;
@@ -397,7 +397,7 @@ namespace mapf
                 openList.Dequeue();
             }
 
-            this.totalCost = Constants.TIMEOUT_COST;
+            this.totalCost = (int) Constants.SpecialCosts.TIMEOUT_COST;
             this.solutionDepth = nodeSolver.totalCost - this.initialEstimate; // A lower bound
             Console.WriteLine("Out of time");
             return false; 
@@ -485,7 +485,7 @@ namespace mapf
                 generatedHL += costTreeNode.costs.Length;
                 openList.Dequeue();
             }
-            totalCost = Constants.TIMEOUT_COST;
+            totalCost = (int) Constants.SpecialCosts.TIMEOUT_COST;
             Console.WriteLine("Out of time");
             return false; 
         }
@@ -588,7 +588,7 @@ namespace mapf
                 generatedHL += costTreeNode.costs.Length;
                 openList.Dequeue();
             }
-            totalCost = Constants.TIMEOUT_COST;
+            totalCost = (int) Constants.SpecialCosts.TIMEOUT_COST;
             Console.WriteLine("Out of time");
             return false; 
         }
@@ -689,7 +689,7 @@ namespace mapf
                 generatedHL += costTreeNode.costs.Length;
                 openList.Dequeue();
             }
-            totalCost = Constants.TIMEOUT_COST;
+            totalCost = (int) Constants.SpecialCosts.TIMEOUT_COST;
             Console.WriteLine("Out of time");
             return false; 
         }
