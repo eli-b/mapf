@@ -181,7 +181,8 @@ namespace mapf
 
         protected static readonly string[] scenDirs = {
             Path.Combine("..", "..", "..", "scen", "scen-even"),
-            Path.Combine("..", "..", "..", "scen", "scen-random")
+            Path.Combine("..", "..", "..", "scen", "scen-random"),
+            Path.Combine("..", "..", "..", "scen", "scen-omri")
         };
 
         /// <summary>
