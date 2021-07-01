@@ -328,15 +328,18 @@ namespace mapf
             while (runner.ElapsedMilliseconds() < Constants.MAX_TIME)
             {
                 costTreeNode = openList.Peek();
-                int sumSubGroupA = costTreeNode.Sum(0, this.sizeParentGroupA);
-                int sumSubGroupB = costTreeNode.Sum(this.sizeParentGroupA, costTreeNode.costs.Length);
+                int sumSubGroupA = costTreeNode.Sum(from: 0, to: this.sizeParentGroupA);
+                int sumSubGroupB = costTreeNode.Sum(from: this.sizeParentGroupA, to: costTreeNode.costs.Length);
 
                 //if we are above the given solution return no solution found
                 if (sumSubGroupA + sumSubGroupB > maxCost)  // TODO: For makespan, using Max of the group "sums"
                     return this.minConflictsNotAvoided != int.MaxValue;  // If we're running exhaustive ICTS and have a solution and
-                                                                          // reached a node with a higher cost, it means we've exhausted
-                                                                          // all goal nodes and can return that a solution was found
-                                                                          // (with some external conflicts)
+                                                                         // reached a node with a higher cost, it means we've exhausted
+                                                                         // all goal nodes and can return that a solution was found
+                                                                         // (with some external conflicts)
+                                                                         // If we're running non-exhaustive ICTS and have found a solution
+                                                                         // earlier with cost not above maxCost,
+                                                                         // we will have returned it already and not reach this line.
                 
                 // Goal test, unless any subproblem hasn't reached its previous optimal cost or we're below the minimum total cost
                 if (sumSubGroupA >= costParentGroupA && sumSubGroupB >= costParentGroupB &&
