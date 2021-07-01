@@ -401,18 +401,29 @@ namespace mapf
                 {
                     foreach (var scenPath in Directory.GetFiles(dirName))
                     {
-                        var problem = ProblemInstance.Import(scenPath);
-                        foreach (var numAgents in Enumerable.Range(1, problem.agents.Length))
+                        ProblemInstance problem;
+                        try
                         {
-                            var subProblem = problem.Subproblem(problem.agents.Take(numAgents).ToArray());
-                            // don't create a subproblem, just feed time adding one agent and report the sum of times so far
-                            Run runner = new Run();
-                            using (runner)
+                            problem = ProblemInstance.Import(scenPath);
+                        }
+                        catch (Exception e)
+                        {
+                            Console.WriteLine($"Bad problem instance {scenPath}. Error: {e.Message}");
+                            Console.WriteLine(e.StackTrace);
+                            return;
+                        }
+
+                        Run runner = new Run();
+
+                        using (runner)
+                        {
+                            bool resultsFileExisted = File.Exists(RESULTS_FILE_NAME);
+                            runner.OpenResultsFile(RESULTS_FILE_NAME);
+                            if (resultsFileExisted == false)
+                                runner.PrintResultsFileHeader();
+                            foreach (var numAgents in Enumerable.Range(1, problem.agents.Length))
                             {
-                                bool resultsFileExisted = File.Exists(RESULTS_FILE_NAME);
-                                runner.OpenResultsFile(RESULTS_FILE_NAME);
-                                if (resultsFileExisted == false)
-                                    runner.PrintResultsFileHeader();
+                                var subProblem = problem.Subproblem(problem.agents.Take(numAgents).ToArray());
                                 bool success = runner.SolveGivenProblem(subProblem);
                                 if (success == false)
                                     break;
@@ -428,7 +439,17 @@ namespace mapf
                 {
                     foreach (var scenPath in Directory.GetFiles(dirName))
                     {
-                        var problem = ProblemInstance.Import(scenPath);
+                        ProblemInstance problem;
+                        try
+                        {
+                            problem = ProblemInstance.Import(scenPath);
+                        }
+                        catch (Exception e)
+                        {
+                            Console.WriteLine($"Bad problem instance {scenPath}. Error: {e.Message}");
+                            Console.WriteLine(e.StackTrace);
+                            return;
+                        }
                         CooperativeAStar castar = new CooperativeAStar();
                         Run runner = new Run();
                         using (runner)
