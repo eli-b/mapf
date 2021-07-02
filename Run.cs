@@ -875,11 +875,7 @@ namespace mapf
                     if (solverSolutionCost >= 0) // Solved successfully
                     {
                         Plan plan = solvers[i].GetPlan();
-                        int planSize = plan.GetSize();
-                        if (planSize < 200)
-                            plan.PrintPlan();
-                        else
-                            Console.WriteLine($"Plan is too long to print ({planSize} steps).");
+                        plan.PrintPlanIfShort();
                         outOfTimeCounters[i] = 0;
 
                         // Validate solution:
@@ -969,12 +965,7 @@ namespace mapf
                 if (solverSolutionCost >= 0) // Solved successfully
                 {
                     Plan plan = cooperativeAStar.GetPlan();
-                    int planSize = plan.GetSize();
-                    if (planSize < 50)
-                        plan.PrintPlan();
-                    else
-                        Console.WriteLine($"Plan is too long to print ({planSize} steps).");
-
+                    plan.PrintPlanIfShort();
                     Console.WriteLine("+SUCCESS+ (:");
                 }
                 else

@@ -693,11 +693,7 @@ namespace mapf
                     }
 
                     var plan = this.CalculateJointPlan();
-                    if (plan.GetSize() < 200)
-                        Debug.WriteLine(plan);
-                    else
-                        Debug.WriteLine($"Plan is too long to print ({plan.GetSize()} steps)");
-
+                    plan.PrintPlanIfShort();
                     Debug.WriteLine($"Chose {conflict}");
                 }
 

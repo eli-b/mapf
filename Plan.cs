@@ -232,6 +232,21 @@ namespace mapf
         }
 
         /// <summary>
+        /// Print plan if it would fit nicely in the console, otherwise print why it wasn't printed
+        /// </summary>
+        public void PrintPlanIfShort()
+        {
+            var planSize = GetSize();
+            var numAgents = this.locationsAtTimes.First.Value.Count;
+            if (planSize < 200 && numAgents < 30)
+                PrintPlan();
+            else if (planSize >= 200)
+                Console.WriteLine($"Plan is too long to print ({planSize} steps).");
+            else
+                Console.WriteLine($"Plan is too wide to print ({numAgents} agents).");
+        }
+
+        /// <summary>
         /// Prints the plan to the Console. 
         /// This is used for debugging purposes.
         /// </summary>
