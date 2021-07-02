@@ -8,6 +8,7 @@ namespace mapf
         Dictionary<TimedMove, List<int>> timedMovesToAgentNumList;
         Dictionary<Move, (int time, int agentNum)> atGoalWaitsToTimeAndAgentNum; // No need for a list of agent nums because goals can't collide :)
         public Dictionary<int, int> agentSizes;
+        public Dictionary<int, int> agentConflictCounts;
 
         public enum AvoidanceGoal
         {
@@ -15,6 +16,7 @@ namespace mapf
             MINIMIZE_CONFLICTING_GROUPS_THEN_CONFLICTS,
             MINIMIZE_CONFLICTING_GROUPS,
             MINIMIZE_LARGEST_CONFLICTING_GROUP_THEN_NUMBER_OF_SUCH_GROUPS,
+            MINIMIZE_LARGEST_CONFLICTING_GROUP_THEN_MAXIMIZE_CONFLICT_COUNTS_WITH_OTHERS,
             MINIMIZE_CONFLICTING_GROUP_SIZE_AND_COUNT
         };
         public AvoidanceGoal avoidanceGoal = AvoidanceGoal.MINIMIZE_CONFLICTING_GROUPS_THEN_CONFLICTS;  // Better for CBS
@@ -37,6 +39,7 @@ namespace mapf
             timedMovesToAgentNumList = new Dictionary<TimedMove, List<int>>();
             atGoalWaitsToTimeAndAgentNum = new Dictionary<Move, (int time, int agentNum)>();
             agentSizes = new Dictionary<int, int>();
+            agentConflictCounts = new Dictionary<int, int>();
             NumPlans = 0;
         }
         

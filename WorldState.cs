@@ -502,12 +502,30 @@ namespace mapf
             }
             else if (CAT.avoidanceGoal == ConflictAvoidanceTable.AvoidanceGoal.MINIMIZE_LARGEST_CONFLICTING_GROUP_THEN_NUMBER_OF_SUCH_GROUPS)
                 // For ID, minimizes the size of the largest group we conflict with and then 
-                // number of conflicting groups with that size
+                // the number of conflicting groups with that size. The idea was to minimize conflicts that matter, and conflicts with
+                // non-max-size groups don't.
+                // Kept mostly for reference.
             {
                 if (this.conflictCounts.Count != 0)
                 {
                     this.primaryTieBreaker = this.conflictCounts.Max(pair => CAT.agentSizes[pair.Key]);
                     this.secondaryTieBreaker = this.conflictCounts.Where(pair => CAT.agentSizes[pair.Key] == this.primaryTieBreaker).Count();
+                }
+                else
+                {
+                    this.primaryTieBreaker = 0;
+                    this.secondaryTieBreaker = 0;
+                }
+            }
+            else if (CAT.avoidanceGoal == ConflictAvoidanceTable.AvoidanceGoal.MINIMIZE_LARGEST_CONFLICTING_GROUP_THEN_MAXIMIZE_CONFLICT_COUNTS_WITH_OTHERS)
+            // For ID, minimizes the size of the largest group we conflict with and then 
+            // maximizes the number of conflicts the two groups have with other groups
+            {
+                if (this.conflictCounts.Count != 0)
+                {
+                    this.primaryTieBreaker = this.conflictCounts.Max(pair => CAT.agentSizes[pair.Key]);
+                    this.secondaryTieBreaker = -(this.conflictCounts.Sum(pair => pair.Value) +
+                        this.conflictCounts.Where(pair => CAT.agentSizes[pair.Key] == this.primaryTieBreaker).Max(pair => CAT.agentConflictCounts[pair.Key]));
                 }
                 else
                 {

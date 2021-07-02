@@ -105,6 +105,7 @@ namespace mapf
                                             this.singleAgentSolver, this.groupSolver, this)
                 );
                 this.conflictAvoidanceTable.agentSizes[agentStartState.agent.agentNum] = 1;
+                this.conflictAvoidanceTable.agentConflictCounts[agentStartState.agent.agentNum] = 0;
             }
             conflictCountsPerGroup = new Dictionary<int, int>[instance.GetNumOfAgents()];
             conflictTimesPerGroup = new Dictionary<int, List<int>>[instance.GetNumOfAgents()];
@@ -730,6 +731,7 @@ namespace mapf
 
                             UpdateConflictCounts(conflict.group1);
                             conflict.group1.addGroupToCAT(conflictAvoidanceTable);
+                            conflictAvoidanceTable.agentConflictCounts[conflict.group1.groupNum] = conflictCountsPerGroup[conflict.group1.groupNum].Count;
                             ++resolutionSuccesses;
 
                             continue;
@@ -790,6 +792,7 @@ namespace mapf
 
                             UpdateConflictCounts(conflict.group2);
                             conflict.group2.addGroupToCAT(conflictAvoidanceTable);
+                            conflictAvoidanceTable.agentConflictCounts[conflict.group2.groupNum] = conflictCountsPerGroup[conflict.group2.groupNum].Count;
                             ++resolutionSuccesses;
 
                             continue;
@@ -830,6 +833,8 @@ namespace mapf
                 conflict.group2.removeGroupFromCAT(conflictAvoidanceTable);
                 conflictAvoidanceTable.agentSizes.Remove(conflict.group1.groupNum);
                 conflictAvoidanceTable.agentSizes.Remove(conflict.group2.groupNum);
+                conflictAvoidanceTable.agentConflictCounts.Remove(conflict.group1.groupNum);
+                conflictAvoidanceTable.agentConflictCounts.Remove(conflict.group2.groupNum);
                 conflictCountsPerGroup[conflict.group1.groupNum] = null;
                 conflictTimesPerGroup[conflict.group1.groupNum] = null;
                 conflictCountsPerGroup[conflict.group2.groupNum] = null;
@@ -876,6 +881,7 @@ namespace mapf
                 // Add the new group to conflict avoidance table
                 compositeGroup.addGroupToCAT(conflictAvoidanceTable);
                 conflictAvoidanceTable.agentSizes[compositeGroup.groupNum] = compositeGroup.Size();
+                conflictAvoidanceTable.agentConflictCounts[compositeGroup.groupNum] = this.conflictCountsPerGroup[compositeGroup.groupNum].Count;
                 allGroups.AddFirst(compositeGroup);
             }
             return true;
@@ -943,7 +949,7 @@ namespace mapf
         }
 
         /// <summary>
-        /// Run the A* algorithm with Standley's ID and OD improvements.
+        /// Run Standley's ID framework with the given subsolver
         /// </summary>
         /// <returns>true if optimal solution has been found</returns>
         public bool Solve()
@@ -970,7 +976,6 @@ namespace mapf
 
                 conflictCountsPerGroup[group.groupNum] = group.conflictCounts;
                 conflictTimesPerGroup[group.groupNum] = group.conflictTimes;
-
                 this.IncrementConflictCountsAtGoal(group, conflictAvoidanceTable);
 
                 // Add group to conflict avoidance table
@@ -992,6 +997,10 @@ namespace mapf
                     }
                 }
             }
+
+            // Populate the CAT's agentConflictCounts
+            foreach (var group in this.allGroups)
+                this.conflictAvoidanceTable.agentConflictCounts[group.groupNum] = group.conflictCounts.Count;
 
             CountConflicts();
 
