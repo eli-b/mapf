@@ -397,7 +397,9 @@ namespace mapf
                 string mapfileNameWithoutExtension;
                 if (mapFilePath == null)
                 {
-                    mapfileNameWithoutExtension = fileNameWithoutExtension.Substring(0, length: fileNameWithoutExtension.LastIndexOf('_')) + ".map";  // Passing a length parameter is like specifying a non-inclusive end index
+                    var lastIndexOf_ = fileNameWithoutExtension.LastIndexOf('_');
+                    Trace.Assert(lastIndexOf_ >= 0);
+                    mapfileNameWithoutExtension = fileNameWithoutExtension.Substring(0, length: lastIndexOf_) + ".map";  // Passing a length parameter is like specifying a non-inclusive end index
                     mapFilePath = Path.Combine(Path.GetDirectoryName(filePath), "..", "..", "..", "maps", mapfileNameWithoutExtension);
                 }
                 else
@@ -451,7 +453,9 @@ namespace mapf
             {
                 string fileNameWithoutExtension = Path.GetFileNameWithoutExtension(filePath);
                 int instanceId = int.Parse(fileNameWithoutExtension.Split('-').Last());
-                string mapfileName = fileNameWithoutExtension.Substring(0, length: fileNameWithoutExtension.LastIndexOf('-'));  // Passing a length parameter is like specifying a non-inclusive end index
+                var lastIndexOfDash = fileNameWithoutExtension.LastIndexOf('-');
+                Trace.Assert(lastIndexOfDash >= 0);
+                string mapfileName = fileNameWithoutExtension.Substring(0, length: lastIndexOfDash);  // Passing a length parameter is like specifying a non-inclusive end index
                 if (mapFilePath == null)
                     mapFilePath = Path.Combine(Path.GetDirectoryName(filePath), "..", "..", "maps", mapfileName);
                 
@@ -478,7 +482,7 @@ namespace mapf
                     int goalY;
                     int startX;
                     int startY;
-                    string mapFileName;
+                    string mapFileNameRow;
                     int mapRows;
                     int mapCols;
                     double optimalCost;  // Assuming diagonal moves are allowed and cost sqrt(2)
@@ -489,7 +493,8 @@ namespace mapf
                             break;
                         lineParts = line.Split('\t');
                         block = int.Parse(lineParts[0]);
-                        mapFileName = lineParts[1];
+                        mapFileNameRow = lineParts[1];
+                        Trace.Assert(mapfileName == mapFileNameRow);
                         mapRows = int.Parse(lineParts[3]);
                         Trace.Assert(mapRows == grid.Length);
                         mapCols = int.Parse(lineParts[2]);
@@ -512,7 +517,7 @@ namespace mapf
                 instance.Init(stateList.ToArray(), grid);
                 instance.instanceId = instanceId;
                 instance.gridName = mapfileName;
-                instance.instanceName = fileNameWithoutExtension + ".scen";
+                instance.instanceName = Path.GetFileName(filePath);
                 instance.ComputeSingleAgentShortestPaths();
                 return instance;
             }
@@ -604,7 +609,7 @@ namespace mapf
         }
 
         /// <summary>
-        /// Exports a problem instance to a file
+        /// Exports a problem instance to a file in the old combined map+agents format
         /// </summary>
         /// <param name="fileName"></param>
         public void Export(string fileName)
