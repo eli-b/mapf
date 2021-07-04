@@ -176,7 +176,7 @@ namespace mapf
             output.Write(this.expanded + Run.RESULTS_DELIMITER);
             output.Write(this.generated + Run.RESULTS_DELIMITER);
 
-            this.minGroupSize = this.allGroups.Min(group => group.allAgentsState.Length);  // MaxGroupSize is computed every time we merge
+            this.minGroupSize = this.allGroups.Min(group => group.Size());  // MaxGroupSize is computed every time we merge
 
             Console.WriteLine($"Max Group: {this.maxGroupSize}");
             Console.WriteLine($"Min Group: {this.minGroupSize}");
@@ -737,11 +737,19 @@ namespace mapf
                             continue;
                         }
                         else
+                        {
+                            if (conflict.group1.solutionCost < 0)  // ReplanUnderConstraints reverts to the old cost if there was simply no solution
+                            {
+                                totalCost = conflict.group1.solutionCost;
+                                return false;
+                            }
+
                             conflict.group1.addGroupToCAT(conflictAvoidanceTable);
 
-                        if (this.debug)
-                        {
-                            Debug.WriteLine($"Couldn't find an alternative path that avoids the conflict for {conflict.group1}");
+                            if (this.debug)
+                            {
+                                Debug.WriteLine($"Couldn't find an alternative path that avoids the conflict for {conflict.group1}");
+                            }
                         }
                     }
                     else
@@ -798,11 +806,19 @@ namespace mapf
                             continue;
                         }
                         else
-                            conflict.group2.addGroupToCAT(conflictAvoidanceTable);
-
-                        if (this.debug)
                         {
-                            Debug.WriteLine($"Couldn't find an alternative path that avoids the conflict for {conflict.group2}");
+                            if (conflict.group2.solutionCost < 0)  // ReplanUnderConstraints reverts to the old cost if there was simply no solution
+                            {
+                                totalCost = conflict.group2.solutionCost;
+                                return false;
+                            }
+                            
+                            conflict.group2.addGroupToCAT(conflictAvoidanceTable);
+                            
+                            if (this.debug)
+                            {
+                                Debug.WriteLine($"Couldn't find an alternative path that avoids the conflict for {conflict.group2}");
+                            }
                         }
                     }
                     else {
@@ -872,7 +888,7 @@ namespace mapf
 
                 if (solved == false)
                 {
-                    this.totalCost = (int) Constants.SpecialCosts.NO_SOLUTION_COST;
+                    this.totalCost = compositeGroup.solutionCost;
                     return false;
                 }
 
@@ -1218,7 +1234,8 @@ namespace mapf
 
             if (solved == false)
             {
-                this.solutionCost = oldCost;
+                if (this.solutionCost == (int) Constants.SpecialCosts.NO_SOLUTION_COST)  // No solution is an expected option, not a failure, revert to the old cost
+                    this.solutionCost = oldCost;
                 this.plan = oldPlan;
                 this.singleCosts = oldCosts;
                 this.solutionDepth = oldSolutionDepth;
