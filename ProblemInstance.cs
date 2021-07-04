@@ -453,12 +453,24 @@ namespace mapf
             {
                 string fileNameWithoutExtension = Path.GetFileNameWithoutExtension(filePath);
                 int instanceId = int.Parse(fileNameWithoutExtension.Split('-').Last());
-                var lastIndexOfDash = fileNameWithoutExtension.LastIndexOf('-');
-                Trace.Assert(lastIndexOfDash >= 0);
-                string mapfileName = fileNameWithoutExtension.Substring(0, length: lastIndexOfDash);  // Passing a length parameter is like specifying a non-inclusive end index
+                string mapfileName;
                 if (mapFilePath == null)
+                {
+                    var lastIndexOfDash = fileNameWithoutExtension.LastIndexOf('-');
+                    Trace.Assert(lastIndexOfDash >= 0);
+                    mapfileName = fileNameWithoutExtension.Substring(0, length: lastIndexOfDash);  // Passing a length parameter is like specifying a non-inclusive end index
+                    if (mapfileName.EndsWith(".map") == false)  // New format
+                    {
+                        lastIndexOfDash = mapfileName.LastIndexOf('-');
+                        Trace.Assert(lastIndexOfDash >= 0);
+                        mapfileName = fileNameWithoutExtension.Substring(0, length: lastIndexOfDash) + ".map";
+                    }
                     mapFilePath = Path.Combine(Path.GetDirectoryName(filePath), "..", "..", "maps", mapfileName);
-                
+                }
+                else
+                    mapfileName = Path.GetFileNameWithoutExtension(mapFilePath);
+
+
                 bool[][] grid = readMapFile(mapFilePath);
 
                 string line;
