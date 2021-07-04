@@ -889,6 +889,8 @@ namespace mapf
                 if (solved == false)
                 {
                     this.totalCost = compositeGroup.solutionCost;
+
+                    allGroups.AddFirst(compositeGroup);  // Important for printing the statistics
                     return false;
                 }
 
