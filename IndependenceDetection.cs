@@ -58,7 +58,7 @@ namespace mapf
         private ISet<IndependenceDetectionConflict> resolutionAttemptedSecondGroup;
         private int solutionDepth;
         private ConflictAvoidanceTable conflictAvoidanceTable;
-        private int maxSolutionCostFound;
+        private int maxSolutionCostFound;  // FIXME: Maintained but not used
         private ConflictAvoidanceTable.AvoidanceGoal avoidanceGoal;
 
         public IndependenceDetection(IIndependenceDetectionSolver singleAgentSolver, IIndependenceDetectionSolver groupSolver,
