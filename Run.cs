@@ -901,8 +901,12 @@ namespace mapf
                     }
                     else
                     {
-                        outOfTimeCounters[i]++;
-                        Console.WriteLine("-FAILURE- ):");
+                        if (solverSolutionCost == (int) Constants.SpecialCosts.TIMEOUT_COST)
+                            outOfTimeCounters[i]++;
+                        if (solverSolutionCost != (int)Constants.SpecialCosts.NO_SOLUTION_COST)
+                            Console.WriteLine("-FAILURE- ):");
+                        else
+                            Console.WriteLine("-NO SOLUTION- ]:");
                     }
                 }
                 else
