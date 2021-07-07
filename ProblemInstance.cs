@@ -457,13 +457,21 @@ namespace mapf
                 if (mapFilePath == null)
                 {
                     var lastIndexOfDash = fileNameWithoutExtension.LastIndexOf('-');
-                    Trace.Assert(lastIndexOfDash >= 0);
+                    Trace.Assert(lastIndexOfDash >= 0, "No '-' found in scenario file name?!");
                     mapfileName = fileNameWithoutExtension.Substring(0, length: lastIndexOfDash);  // Passing a length parameter is like specifying a non-inclusive end index
-                    if (mapfileName.EndsWith(".map") == false)  // New format
+                    if (mapfileName.EndsWith(".map") == false)  // New format - remove the "-even"/"-random" and add ".map" to get the map file name
                     {
                         lastIndexOfDash = mapfileName.LastIndexOf('-');
                         Trace.Assert(lastIndexOfDash >= 0);
-                        mapfileName = fileNameWithoutExtension.Substring(0, length: lastIndexOfDash) + ".map";
+                        mapfileName = mapfileName.Substring(0, length: lastIndexOfDash) + ".map";
+                        // Handle Omri's annoying naming:
+                        while (mapfileName.Contains("cross") || mapfileName.Contains("inside") || mapfileName.Contains("outside") || 
+                               mapfileName.Contains("swap") || mapfileName.Contains("tight"))
+                        {
+                            lastIndexOfDash = mapfileName.LastIndexOf('-');
+                            Trace.Assert(lastIndexOfDash >= 0);
+                            mapfileName = mapfileName.Substring(0, length: lastIndexOfDash) + ".map";
+                        }
                     }
                     mapFilePath = Path.Combine(Path.GetDirectoryName(filePath), "..", "..", "maps", mapfileName);
                 }
@@ -506,11 +514,11 @@ namespace mapf
                         lineParts = line.Split('\t');
                         block = int.Parse(lineParts[0]);
                         mapFileNameRow = lineParts[1];
-                        Trace.Assert(mapfileName == mapFileNameRow);
+                        Trace.Assert((mapfileName == mapFileNameRow) || (mapfileName == mapFileNameRow + ".map"), "Row's map name doesn't match map's name");  // Second option is for Omri's scenarios
                         mapRows = int.Parse(lineParts[3]);
-                        Trace.Assert(mapRows == grid.Length);
+                        Trace.Assert(mapRows == grid.Length, "Row's number of grid rows doesn't match map's");
                         mapCols = int.Parse(lineParts[2]);
-                        Trace.Assert(mapCols == grid[0].Length);
+                        Trace.Assert(mapCols == grid[0].Length, "Row's number of grid columns doesn't match map's");
 
                         startY = int.Parse(lineParts[4]);
                         startX = int.Parse(lineParts[5]);
