@@ -520,10 +520,18 @@ namespace mapf
                         mapCols = int.Parse(lineParts[2]);
                         Trace.Assert(mapCols == grid[0].Length, "Row's number of grid columns doesn't match map's");
 
+                        // Read in the start and goal coordinates.
+                        // Note that at first glance, https://movingai.com/benchmarks/formats.html seems to indicate a reverse order of for Y,X,
+                        // but the maps *height* is indicated as y, which translates to the number of rows here, so each coordinate is given to us
+                        // as (column,row) and we invert it.
                         startY = int.Parse(lineParts[4]);
                         startX = int.Parse(lineParts[5]);
+                        if (grid[startX][startY])
+                            throw new Exception($"Agent {agentNum} start location ({startX},{startY}) is on an obstacle");
                         goalY = int.Parse(lineParts[6]);
                         goalX = int.Parse(lineParts[7]);
+                        if (grid[goalX][goalY])
+                            throw new Exception($"Agent {agentNum} goal location ({goalX},{goalY}) is on an obstacle");
                         optimalCost = double.Parse(lineParts[8]);
                         agent = new Agent(goalX, goalY, agentNum);
                         state = new AgentState(startX, startY, agent);
