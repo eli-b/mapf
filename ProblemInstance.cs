@@ -417,6 +417,11 @@ namespace mapf
                     // Read the number of agents
                     line = input.ReadLine();
                     int numOfAgents = int.Parse(line);
+                    if (numOfAgents > Constants.MAX_AGENTS)
+                    {
+                        Console.WriteLine($"Only reading first {Constants.MAX_AGENTS} agents from the scenario");
+                        numOfAgents = Constants.MAX_AGENTS;
+                    }
 
                     // Read the agents' start and goal states
                     states = new AgentState[numOfAgents];
