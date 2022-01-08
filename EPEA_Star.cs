@@ -19,7 +19,7 @@ class EPEA_Star : A_Star
             Constants.costFunction == Constants.CostFunction.MAKESPAN_THEN_SUM_OF_COSTS
             )
         {
-            Trace.Assert(false, "Makespan support isn't implemented at the moment. Use A*+OD for now.");
+            throw new NotImplementedException("Makespan support isn't implemented at the moment. Use A*+OD for now.");
         }
     }
 
