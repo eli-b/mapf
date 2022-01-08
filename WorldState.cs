@@ -151,9 +151,18 @@ public class WorldState : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuris
             // Check if plans are long enough and costly enough
             if (this.singlePlans.All(plan => plan.GetSize() - 1 >= this.minGoalTimeStep))
             {
-                if (this.singlePlans.Sum(plan => plan.GetCost()) >= this.minGoalCost)
-                // FIXME: support a makespan cost function!!!
-                    return true;
+                if (Constants.costFunction == Constants.CostFunction.SUM_OF_COSTS)
+                {
+	                if (this.singlePlans.Sum(plan => plan.GetCost()) >= this.minGoalCost)
+                        return true;
+                }
+                else if (Constants.costFunction == Constants.CostFunction.MAKESPAN || Constants.costFunction == Constants.CostFunction.MAKESPAN_THEN_SUM_OF_COSTS)
+                {
+                    if (this.singlePlans.Max(plan => plan.GetCost()) >= this.minGoalCost)
+    	                return true;
+                }
+                else
+                    throw new Exception("Unsupported cost function");
             }
         }
 
