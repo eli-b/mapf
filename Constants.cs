@@ -1,70 +1,69 @@
 ﻿
-namespace mapf
+namespace mapf;
+
+class Constants
 {
-    class Constants
+    public static int MAX_TIME = 60000;
+
+    public enum SpecialCosts : int
     {
-        public static int MAX_TIME = 60000;
-
-        public enum SpecialCosts : int
-        {
-            /// <summary>
-            /// The cost that is set to the algorithms when all the states have been expanded and no goal was found 
-            /// </summary>
-            NO_SOLUTION_COST = -1,
-            /// <summary>
-            /// The cost that is set to the algorithms when they are halted due to out of time 
-            /// </summary>
-            TIMEOUT_COST = -2,
-            /// <summary>
-            /// The cost that is set to the algorithms when they are halted due to out of memory
-            /// </summary>
-            MAX_MEMORY_COST = -3, // TODO: Implement this, it's a great idea!
-    }
+        /// <summary>
+        /// The cost that is set to the algorithms when all the states have been expanded and no goal was found 
+        /// </summary>
+        NO_SOLUTION_COST = -1,
+        /// <summary>
+        /// The cost that is set to the algorithms when they are halted due to out of time 
+        /// </summary>
+        TIMEOUT_COST = -2,
+        /// <summary>
+        /// The cost that is set to the algorithms when they are halted due to out of memory
+        /// </summary>
+        MAX_MEMORY_COST = -3, // TODO: Implement this, it's a great idea!
+}
         
-        /// <summary>
-        /// The number of generated nodes after which a debug print will be given
-        /// </summary>
-        public const int GENERATED_PER_PRINT = 10000;
-        /// <summary>
-        /// An optimization to avoid loading huge problem instances that would never be fully used
-        /// </summary>
-        public const int MAX_AGENTS = 700;
-        /// <summary>
-        /// Prime numbers for hashing
-        /// </summary>
-        public static readonly int[] PRIMES_FOR_HASHING = { 2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 71, 73, 79 }; // 21 numbers
-        /// <summary>
-        /// Max Consecutive failures before an algorithm is omitted from the list of tested algorithms
-        /// </summary>
-        public static int MAX_FAIL_COUNT = 10;
-        /// <summary>
-        /// Allow head-on collisions
-        /// </summary>
-        public const bool ALLOW_HEAD_ON_COLLISION = false;
+    /// <summary>
+    /// The number of generated nodes after which a debug print will be given
+    /// </summary>
+    public const int GENERATED_PER_PRINT = 10000;
+    /// <summary>
+    /// An optimization to avoid loading huge problem instances that would never be fully used
+    /// </summary>
+    public const int MAX_AGENTS = 700;
+    /// <summary>
+    /// Prime numbers for hashing
+    /// </summary>
+    public static readonly int[] PRIMES_FOR_HASHING = { 2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 71, 73, 79 }; // 21 numbers
+    /// <summary>
+    /// Max Consecutive failures before an algorithm is omitted from the list of tested algorithms
+    /// </summary>
+    public static int MAX_FAIL_COUNT = 10;
+    /// <summary>
+    /// Allow head-on collisions
+    /// </summary>
+    public const bool ALLOW_HEAD_ON_COLLISION = false;
 
-        /// <summary>
-        /// FIXME: Diagonal move support should count their cost as sqrt(2)
-        /// </summary>
-        public const bool ALLOW_DIAGONAL_MOVE = false;
-        public static readonly int NUM_ALLOWED_DIRECTIONS = ALLOW_DIAGONAL_MOVE ? Move.NUM_DIRECTIONS : Move.NUM_NON_DIAG_MOVES;
+    /// <summary>
+    /// FIXME: Diagonal move support should count their cost as sqrt(2)
+    /// </summary>
+    public const bool ALLOW_DIAGONAL_MOVE = false;
+    public static readonly int NUM_ALLOWED_DIRECTIONS = ALLOW_DIAGONAL_MOVE ? Move.NUM_DIRECTIONS : Move.NUM_NON_DIAG_MOVES;
 
-        public enum SumOfCostsVariant : byte
-        {
-            ORIG = 0, // Moving from goal incurs cost equal to all waits in the goal, plus the movement out.
-            WAITING_AT_GOAL_ALWAYS_FREE, // Waiting at the goal is always free
-        }
-
-        public static SumOfCostsVariant sumOfCostsVariant = SumOfCostsVariant.ORIG;
-
-        public enum CostFunction : byte
-        {
-            SUM_OF_COSTS = 0,
-            MAKESPAN,
-            MAKESPAN_THEN_SUM_OF_COSTS, // Weird variant where the optimal solution is one with
-                                        // minimum makespan where the sum of costs is minimal among
-                                        // such solutions
-        }
-
-        public static CostFunction costFunction = CostFunction.SUM_OF_COSTS;
+    public enum SumOfCostsVariant : byte
+    {
+        ORIG = 0, // Moving from goal incurs cost equal to all waits in the goal, plus the movement out.
+        WAITING_AT_GOAL_ALWAYS_FREE, // Waiting at the goal is always free
     }
+
+    public static SumOfCostsVariant sumOfCostsVariant = SumOfCostsVariant.ORIG;
+
+    public enum CostFunction : byte
+    {
+        SUM_OF_COSTS = 0,
+        MAKESPAN,
+        MAKESPAN_THEN_SUM_OF_COSTS, // Weird variant where the optimal solution is one with
+                                    // minimum makespan where the sum of costs is minimal among
+                                    // such solutions
+    }
+
+    public static CostFunction costFunction = CostFunction.SUM_OF_COSTS;
 }

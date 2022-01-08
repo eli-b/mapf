@@ -1,16 +1,15 @@
 ﻿using System;
 
-namespace mapf
+namespace mapf;
+
+/// <summary>
+/// represents items that are stored in the binary heap
+/// </summary>
+public interface IBinaryHeapItem : IComparable<IBinaryHeapItem> 
 {
     /// <summary>
-    /// represents items that are stored in the binary heap
+    /// The index of the item in the binary heap
     /// </summary>
-    public interface IBinaryHeapItem : IComparable<IBinaryHeapItem> 
-    {
-        /// <summary>
-        /// The index of the item in the binary heap
-        /// </summary>
-        int GetIndexInHeap();
-        void SetIndexInHeap(int index);
-    }
+    int GetIndexInHeap();
+    void SetIndexInHeap(int index);
 }

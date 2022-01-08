@@ -4,198 +4,197 @@ using System.Collections.Immutable;
 using System.Linq;
 using System.Runtime.CompilerServices;
 
-namespace ExtensionMethods
+namespace ExtensionMethods;
+
+public static class MyExtensions
 {
-    public static class MyExtensions
+    public static IEnumerable<(int, T)> Enumerate<T>(this IEnumerable<T> input, int start = 0)
     {
-        public static IEnumerable<(int, T)> Enumerate<T>(this IEnumerable<T> input, int start = 0)
-        {
-            int i = start;
-            foreach (var t in input)
-                yield return (i++, t);
-        }
+        int i = start;
+        foreach (var t in input)
+            yield return (i++, t);
+    }
 
-        public static int IndexOfMax<T>(this IEnumerable<T> sequence)
-            where T : IComparable<T>
+    public static int IndexOfMax<T>(this IEnumerable<T> sequence)
+        where T : IComparable<T>
+    {
+        T maxValue = default; // Immediately overwritten anyway
+        int ans = 0;
+        int index = 0;
+        foreach (T value in sequence)
         {
-            T maxValue = default; // Immediately overwritten anyway
-            int ans = 0;
-            int index = 0;
-            foreach (T value in sequence)
+            int compareResult = value.CompareTo(maxValue);
+            if (compareResult > 0 || index == 0)
             {
-                int compareResult = value.CompareTo(maxValue);
-                if (compareResult > 0 || index == 0)
-                {
-                    ans = index;
-                    maxValue = value;
-                }
-                index++;
+                ans = index;
+                maxValue = value;
             }
-            return ans;
+            index++;
         }
+        return ans;
+    }
 
-        public static int IndexOfMax<T, R>(this IEnumerable<T> sequence, Func<T, R> mapping)
-            where R : IComparable<R>
+    public static int IndexOfMax<T, R>(this IEnumerable<T> sequence, Func<T, R> mapping)
+        where R : IComparable<R>
+    {
+        R maxValue = default; // Immediately overwritten anyway
+        int ans = 0;
+        int index = 0;
+        foreach (T value in sequence)
         {
-            R maxValue = default; // Immediately overwritten anyway
-            int ans = 0;
-            int index = 0;
-            foreach (T value in sequence)
+            R res = mapping(value);
+            int compareResult = res.CompareTo(maxValue);
+            if (compareResult > 0 || index == 0)
             {
-                R res = mapping(value);
-                int compareResult = res.CompareTo(maxValue);
-                if (compareResult > 0 || index == 0)
-                {
-                    ans = index;
-                    maxValue = res;
-                }
-                index++;
+                ans = index;
+                maxValue = res;
             }
-            return ans;
+            index++;
         }
+        return ans;
+    }
 
-        /// <summary>
-        /// Like Python's max(x, key=func)
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <typeparam name="R"></typeparam>
-        /// <param name="sequence"></param>
-        /// <param name="mapping"></param>
-        /// <returns></returns>
-        public static T MaxByKeyFunc<T, R>(this IEnumerable<T> sequence, Func<T, R> mapping)
-            where R : IComparable<R>
+    /// <summary>
+    /// Like Python's max(x, key=func)
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <typeparam name="R"></typeparam>
+    /// <param name="sequence"></param>
+    /// <param name="mapping"></param>
+    /// <returns></returns>
+    public static T MaxByKeyFunc<T, R>(this IEnumerable<T> sequence, Func<T, R> mapping)
+        where R : IComparable<R>
+    {
+        R maxValue = default; // Immediately overwritten anyway
+        T ans = default;
+        int index = 0;
+        foreach (T value in sequence)
         {
-            R maxValue = default; // Immediately overwritten anyway
-            T ans = default;
-            int index = 0;
-            foreach (T value in sequence)
+            R res = mapping(value);
+            int compareResult = res.CompareTo(maxValue);
+            if (compareResult > 0 || index == 0)
             {
-                R res = mapping(value);
-                int compareResult = res.CompareTo(maxValue);
-                if (compareResult > 0 || index == 0)
-                {
-                    ans = value;
-                    maxValue = res;
-                }
-                index++;
+                ans = value;
+                maxValue = res;
             }
-            return ans;
+            index++;
         }
+        return ans;
+    }
         
-        /// <summary>
-        /// Based on MaxIndex By Jon Skeet: http://stackoverflow.com/questions/462699/how-do-i-get-the-index-of-the-highest-value-in-an-array-using-linq
-        /// </summary>
-        /// <param name="sequence"></param>
-        /// <returns></returns>
-        public static IList<int> IndicesOfMax<T>(this IEnumerable<T> sequence)
-            where T : IComparable<T>
+    /// <summary>
+    /// Based on MaxIndex By Jon Skeet: http://stackoverflow.com/questions/462699/how-do-i-get-the-index-of-the-highest-value-in-an-array-using-linq
+    /// </summary>
+    /// <param name="sequence"></param>
+    /// <returns></returns>
+    public static IList<int> IndicesOfMax<T>(this IEnumerable<T> sequence)
+        where T : IComparable<T>
+    {
+        var ans = new List<int>(4);
+        T maxValue = default; // Immediately overwritten anyway
+
+        int index = 0;
+        foreach (T value in sequence)
         {
-            var ans = new List<int>(4);
-            T maxValue = default; // Immediately overwritten anyway
-
-            int index = 0;
-            foreach (T value in sequence)
+            int compareResult = value.CompareTo(maxValue);
+            if (compareResult > 0 || ans.Count == 0)
             {
-                int compareResult = value.CompareTo(maxValue);
-                if (compareResult > 0 || ans.Count == 0)
-                {
-                    ans.Clear();
-                    ans.Add(index);
-                    maxValue = value;
-                }
-                if (compareResult == 0)
-                    ans.Add(index);
-                index++;
+                ans.Clear();
+                ans.Add(index);
+                maxValue = value;
             }
-            return ans;
+            if (compareResult == 0)
+                ans.Add(index);
+            index++;
         }
+        return ans;
+    }
 
-        public static IList<int> IndicesOfMax<T, R>(this IEnumerable<T> sequence, Func<T, R> mapping)
-            where R : IComparable<R>
+    public static IList<int> IndicesOfMax<T, R>(this IEnumerable<T> sequence, Func<T, R> mapping)
+        where R : IComparable<R>
+    {
+        var ans = new List<int>(4);
+        R maxRes = default; // Immediately overwritten anyway
+
+        int index = 0;
+        foreach (T value in sequence)
         {
-            var ans = new List<int>(4);
-            R maxRes = default; // Immediately overwritten anyway
-
-            int index = 0;
-            foreach (T value in sequence)
+            R res = mapping(value);
+            int compareResult = res.CompareTo(maxRes);
+            if (compareResult > 0 || ans.Count == 0)
             {
-                R res = mapping(value);
-                int compareResult = res.CompareTo(maxRes);
-                if (compareResult > 0 || ans.Count == 0)
-                {
-                    ans.Clear();
-                    ans.Add(index);
-                    maxRes = res;
-                }
-                if (compareResult == 0)
-                    ans.Add(index);
-                index++;
+                ans.Clear();
+                ans.Add(index);
+                maxRes = res;
             }
-            return ans;
+            if (compareResult == 0)
+                ans.Add(index);
+            index++;
         }
+        return ans;
+    }
         
-        public static IList<T> AllMax<T>(this IEnumerable<T> sequence)
-            where T : IComparable<T>
+    public static IList<T> AllMax<T>(this IEnumerable<T> sequence)
+        where T : IComparable<T>
+    {
+        var ans = new List<T>();
+        T maxVal = default; // Immediately overwritten anyway
+
+        foreach (T item in sequence)
         {
-            var ans = new List<T>();
-            T maxVal = default; // Immediately overwritten anyway
-
-            foreach (T item in sequence)
+            int compareResult = item.CompareTo(maxVal);
+            if (compareResult > 0 || ans.Count == 0)
             {
-                int compareResult = item.CompareTo(maxVal);
-                if (compareResult > 0 || ans.Count == 0)
-                {
-                    ans.Clear();
-                    ans.Add(item);
-                    maxVal = item;
-                }
-                if (compareResult == 0)
-                    ans.Add(item);
+                ans.Clear();
+                ans.Add(item);
+                maxVal = item;
             }
-            return ans;
+            if (compareResult == 0)
+                ans.Add(item);
         }
+        return ans;
+    }
 
-        public static IList<T> AllMax<T, R>(this IEnumerable<T> sequence, Func<T, R> mapping)
-            where R : IComparable<R>
+    public static IList<T> AllMax<T, R>(this IEnumerable<T> sequence, Func<T, R> mapping)
+        where R : IComparable<R>
+    {
+        var ans = new List<T>();
+        R maxResult = default; // Immediately overwritten anyway
+
+        foreach (T item in sequence)
         {
-            var ans = new List<T>();
-            R maxResult = default; // Immediately overwritten anyway
-
-            foreach (T item in sequence)
+            R mappingResult = mapping(item);
+            int compareResult = mappingResult.CompareTo(maxResult);
+            if (compareResult > 0 || ans.Count == 0)
             {
-                R mappingResult = mapping(item);
-                int compareResult = mappingResult.CompareTo(maxResult);
-                if (compareResult > 0 || ans.Count == 0)
-                {
-                    ans.Clear();
-                    ans.Add(item);
-                    maxResult = mappingResult;
-                }
-                if (compareResult == 0)
-                    ans.Add(item);
+                ans.Clear();
+                ans.Add(item);
+                maxResult = mappingResult;
             }
-            return ans;
+            if (compareResult == 0)
+                ans.Add(item);
         }
+        return ans;
+    }
 
-        public static IList<K> KeysOfMaxValue<K, V>(this IEnumerable<KeyValuePair<K, V>> mapping)
-            where V : IComparable<V>
+    public static IList<K> KeysOfMaxValue<K, V>(this IEnumerable<KeyValuePair<K, V>> mapping)
+        where V : IComparable<V>
+    {
+        var ans = new List<K>();
+        V maxValue = default; // Immediately overwritten anyway
+
+        foreach (KeyValuePair<K, V> kvp in mapping)
         {
-            var ans = new List<K>();
-            V maxValue = default; // Immediately overwritten anyway
-
-            foreach (KeyValuePair<K, V> kvp in mapping)
+            int compareResult = kvp.Value.CompareTo(maxValue);
+            if (compareResult > 0 || ans.Count == 0)
             {
-                int compareResult = kvp.Value.CompareTo(maxValue);
-                if (compareResult > 0 || ans.Count == 0)
-                {
-                    ans.Clear();
-                    ans.Add(kvp.Key);
-                    maxValue = kvp.Value;
-                }
-                if (compareResult == 0)
-                    ans.Add(kvp.Key);
+                ans.Clear();
+                ans.Add(kvp.Key);
+                maxValue = kvp.Value;
             }
-            return ans;
+            if (compareResult == 0)
+                ans.Add(kvp.Key);
         }
+        return ans;
     }
 }
