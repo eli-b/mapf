@@ -55,6 +55,9 @@ public class A_Star : ICbsSolver, IMStarSolver, IHeuristicSolver<WorldState>, II
     protected int maxSolutionCost;
     protected ConflictAvoidanceTable CAT;
     protected ISet<TimedMove> illegalMoves;
+    protected int costParentGroupA;
+    protected int costParentGroupB;
+    protected int sizeParentGroupA;
     protected ISet<CbsConstraint> constraints;
     /// <summary>
     /// An array of dictionaries that map constrained timesteps to must constraints.
@@ -107,7 +110,7 @@ public class A_Star : ICbsSolver, IMStarSolver, IHeuristicSolver<WorldState>, II
         WorldState root = this.CreateSearchRoot(minDepth, minCost, mddRoot);
         root.h = (int)this.heuristic.h(root); // g was already set in the constructor
         if (root.f < minCost)
-            root.h = minCost - root.g;
+            root.h = minCost - root.g;  // Will be propagated to children with BPMX as needed
         this.openList.Add(root);
         this.closedList.Add(root, root);
         this.ClearPrivateStatistics();
@@ -165,6 +168,10 @@ public class A_Star : ICbsSolver, IMStarSolver, IHeuristicSolver<WorldState>, II
         this.closedList.Clear();
         this.mustConstraints = null;
         this.illegalMoves = null;
+        // Set trivial values for subproblem data
+        this.costParentGroupA = 0;
+        this.costParentGroupB = 0;
+        this.sizeParentGroupA = 1;
     }
 
     public IHeuristicCalculator<WorldState> GetHeuristic()
@@ -557,7 +564,7 @@ public class A_Star : ICbsSolver, IMStarSolver, IHeuristicSolver<WorldState>, II
                     currentNode.h = 2; // Otherwise waiting at goal would expand to waiting at the goal for the same too low cost,
                                        // which would expand to waiting at the goal, etc.
                                        // +2 because you need a step out of the goal and another step into it.
-                currentNode.h = Math.Max(currentNode.h, currentNode.minGoalCost - currentNode.g);
+                currentNode.h = Math.Max(currentNode.h, currentNode.minGoalCost - currentNode.g);  // Like a Manhattan Distance on the time dimension
                 // TODO: Add a statistic for when the H was increased thanks to the minGoalCost
             }
 
@@ -1022,11 +1029,25 @@ public class A_Star : ICbsSolver, IMStarSolver, IHeuristicSolver<WorldState>, II
     public void Setup(ProblemInstance problemInstance, Run runner, ConflictAvoidanceTable CAT,
                         int parentGroup1Cost, int parentGroup2Cost, int parentGroup1Size)
     {
+        // Use the solutions of previously solved subproblems as a lower bound
+        this.costParentGroupA = parentGroup1Cost;
+        this.costParentGroupB = parentGroup2Cost;
+        this.sizeParentGroupA = parentGroup1Size;
 
-        this.Setup(problemInstance, -1, runner, CAT,
-                   minCost: parentGroup1Cost + parentGroup2Cost);
-        // TODO: We can do more with the info
-        // FIXME: Support a makespan cost function
+        if (Constants.costFunction == Constants.CostFunction.SUM_OF_COSTS)
+        {
+            this.Setup(problemInstance, -1, runner, CAT,
+                       minCost: parentGroup1Cost + parentGroup2Cost);
+        }
+        else if (Constants.costFunction == Constants.CostFunction.MAKESPAN || Constants.costFunction == Constants.CostFunction.MAKESPAN_THEN_SUM_OF_COSTS)
+        {
+            this.Setup(problemInstance, -1, runner, CAT,
+                        minCost: Math.Max(parentGroup1Cost, parentGroup2Cost));
+        }
+        else
+        {
+            throw new NotImplementedException($"Unsupported cost function {Constants.costFunction}");
+        }
     }
 
     /// <summary>
