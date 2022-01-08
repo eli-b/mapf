@@ -60,11 +60,13 @@ class IndependenceDetection : ISolver
     private ConflictAvoidanceTable conflictAvoidanceTable;
     private int maxSolutionCostFound;  // FIXME: Maintained but not used
     private ConflictAvoidanceTable.AvoidanceGoal avoidanceGoal;
+    private bool simple;
 
     public IndependenceDetection(IIndependenceDetectionSolver singleAgentSolver, IIndependenceDetectionSolver groupSolver,
                                  ConflictChoice conflictChoice = ConflictChoice.MOST_CONFLICTING_SMALLEST_AGENTS,
                                  bool provideGroupCostsToSolver = true,
-                                 ConflictAvoidanceTable.AvoidanceGoal avoidanceGoal = ConflictAvoidanceTable.AvoidanceGoal.MINIMIZE_CONFLICTING_GROUPS  // The effect of a conflict between two groups is total in ID - they're either fully merged or try to fully avoid each other's plan
+                                 ConflictAvoidanceTable.AvoidanceGoal avoidanceGoal = ConflictAvoidanceTable.AvoidanceGoal.MINIMIZE_CONFLICTING_GROUPS,  // The effect of a conflict between two groups is total in ID - they're either fully merged or try to fully avoid each other's plan
+                                 bool simple = false
                                  )
     {
         this.singleAgentSolver = singleAgentSolver;
@@ -72,6 +74,7 @@ class IndependenceDetection : ISolver
         this.conflictChoice = conflictChoice;
         this.provideGroupCostsToSolver = provideGroupCostsToSolver;
         this.avoidanceGoal = avoidanceGoal;
+        this.simple = simple;
     }
 
     public void Clear()
@@ -117,7 +120,7 @@ class IndependenceDetection : ISolver
         countsOfGroupsThatConflict = new int[instance.GetNumOfAgents()];
     }
 
-    public virtual String GetName() { return $"{groupSolver.GetName()}+ID({conflictChoice})"; }
+        public virtual String GetName() { return $"{groupSolver.GetName()}+ID({conflictChoice} ProvideInfoToSubsolver={provideGroupCostsToSolver})"; }
 
     /// <summary>
     /// Calculate the full plan for all the agents that has been found by the algorithm
@@ -455,7 +458,7 @@ class IndependenceDetection : ISolver
         int minGroupsTheyWereInConflictWith = int.MaxValue;
         int minTime = int.MaxValue;
         IndependenceDetectionAgentsGroup groupA = null;  // The must be at least one conflict
-        int groupRepB = -1;  // The must be at least one conflict
+        int groupRepB = -1;  // There must be at least one conflict
         foreach (var group in this.allGroups)
         {
             int size = group.Size();
@@ -634,7 +637,7 @@ class IndependenceDetection : ISolver
             IndependenceDetectionAgentsGroup compositeGroup = this.JoinGroups(conflict);
             ++merges;
                 
-            // Solve composite group with the A*
+            // Solve composite group with the subsolver
             bool solved = compositeGroup.Solve(runner, conflictAvoidanceTable);
             if (solved == false)
             {
@@ -974,6 +977,8 @@ class IndependenceDetection : ISolver
     /// <returns>true if optimal solution has been found</returns>
     public bool Solve()
     {
+        // TODO: Add a SolveGiven method that takes the state just before the "if (this.simple == false)" line in this method and solves from it.
+        //       Add a PreSolve method that prepares that state and also gives for each agent the accummulated time it took to presolve up to it.
         bool solved;
 
         // Solve the single agent problems independently
@@ -1024,8 +1029,10 @@ class IndependenceDetection : ISolver
 
         CountConflicts();
 
-        //solved = this.SimpleID(runner);  // TODO: Consider adding a parameter to choose this option
-        solved = this.ImprovedID(runner);
+        if (this.simple == false)
+            solved = this.ImprovedID(runner);
+        else
+            solved = this.SimpleID(runner);  // TODO: it doesn't manage all the stats. Just add flags to ImprovedID instead
         // Record found solution
         if (solved == true)
         {
