@@ -1577,7 +1577,7 @@ public class CBS : ICbsSolver, IHeuristicSolver<CbsNode>, IIndependenceDetection
         CbsNode child = new CbsNode(node, node.agentsGroupAssignment[conflict.agentAIndex], node.agentsGroupAssignment[conflict.agentBIndex]);
         if (closedList.ContainsKey(child) == false) // We may have already merged these agents in another node
         {
-            Debug.WriteLine("Merging agents {0} and {1}", conflict.agentAIndex, conflict.agentBIndex);
+            Debug.WriteLine($"Merging agents {conflict.agentAIndex} and {conflict.agentBIndex}");
             int aCost = node.GetGroupCost(node.agentsGroupAssignment[conflict.agentAIndex]);
             int bCost = node.GetGroupCost(node.agentsGroupAssignment[conflict.agentBIndex]);
             int minNewCost;
@@ -1587,7 +1587,7 @@ public class CBS : ICbsSolver, IHeuristicSolver<CbsNode>, IIndependenceDetection
                         Constants.costFunction == Constants.CostFunction.MAKESPAN_THEN_SUM_OF_COSTS)
                 minNewCost = Math.Max(aCost, bCost);
             else
-                throw new NotImplementedException("Unsupported cost function");
+                throw new NotImplementedException($"Unsupported cost function {Constants.costFunction}");
             if (this.useOldCost == false)
                 minNewCost = -1;
             bool success = child.Replan(conflict.agentAIndex,  // or agentBIndex. Doesn't matter - they're in the same group.
