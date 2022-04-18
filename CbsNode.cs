@@ -1261,12 +1261,14 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
                     bool otherCanBuildMdd = groups[conflictingAgentIndex].Count == 1 && this.mddNarrownessValues[conflictingAgentIndex] == null;
                     if (allowAgentOrderFlip)
                     {
-                        if ((conflictingAgentIndex < i) || (canBuildMDD == false && otherCanBuildMdd))
+                        if (i < conflictingAgentIndex &&  // We'll see this pair again in the other order
+                            canBuildMDD == false && otherCanBuildMdd)
                             continue; // We'll take care of this conflict from the other end,
-                                        // either because it's the first conflict sorting round
-                                        // and we want to consider each conflict only once,
-                                        // or because only the second agent can build an MDD and we
-                                        // prefer the agent that can build an MDD to be the first one.
+                                      // because only the second agent can build an MDD and we
+                                      // prefer the agent that can build an MDD to be the first one.
+                        if (i > conflictingAgentIndex &&  // This is the second time we're seeing this pair
+                            ((canBuildMDD && otherCanBuildMdd == false) == false))  // We didn't skip to this order earlier
+                            continue;  // Already taken care of
                     }
                     bool otherHasMDD = this.mddNarrownessValues[conflictingAgentIndex] != null ||
                         this.CopyAppropriateMddFromParent(conflictingAgentIndex);  // If no ancestor has an appropriate MDD, this might be checked multiple times :(
