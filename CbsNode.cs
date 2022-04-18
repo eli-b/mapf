@@ -396,6 +396,8 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
                 {
                     g = Math.Max(g, (ushort)singleAgentCosts[i]);
                 }
+                else
+                    throw new NotImplementedException($"Unsupported cost function {Constants.costFunction}");
 
                 this.UpdateAtGoalConflictCounts(i, CAT);
             }
@@ -664,7 +666,7 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
                                                                                 // (only happens when shuffling a partially expanded node)
         }
         else
-            throw new NotImplementedException("Unsupported cost function");
+            throw new NotImplementedException($"Unsupported cost function {Constants.costFunction}");
 
         this.isGoal = this.countsOfInternalAgentsThatConflict.All(i => i == 0);
 
@@ -675,7 +677,8 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
     {
         Debug.WriteLine("");
         Debug.WriteLine("");
-        Debug.WriteLine($"Node hash: {this.GetHashCode()}");
+        var hashCode = this.GetHashCode();
+        Debug.WriteLine($"Node hash: {hashCode}");
         var parent = this.prev;
         Debug.Write("Ancestor hashes (parent to root): ");
         while (parent != null)
@@ -717,13 +720,13 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
         Debug.Write("Agent group assignments: ");
         for (int j = 0; j < this.agentsGroupAssignment.Length; j++)
         {
-            Debug.Write(" " + this.agentsGroupAssignment[j]);
+            Debug.Write($" {this.agentsGroupAssignment[j],3}");
         }
         Debug.WriteLine("");
-        Debug.Write("Single agent costs: ");
+        Debug.Write("Single agent costs:      ");  // Extra spaces to align with the group assignments line
         for (int j = 0; j < this.singleAgentCosts.Length; j++)
         {
-            Debug.Write(" " + this.singleAgentCosts[j]);
+            Debug.Write($" {this.singleAgentCosts[j],3}");
         }
         Debug.WriteLine("");
         Debug.Write("Internal agents that conflict with each agent: ");
@@ -740,7 +743,7 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
         Debug.WriteLine("");
         for (int j = 0; j < this.conflictCountsPerAgent.Length; j++)
         {
-            //if (this.conflictCountsPerAgent[j].Count != 0)
+            if (this.conflictCountsPerAgent[j].Count != 0)
             {
                 Debug.Write($"Agent {problem.agents[j].agent.agentNum} conflict counts: ");
                 foreach (var pair in this.conflictCountsPerAgent[j])
@@ -753,7 +756,7 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
         }
         for (int j = 0; j < this.conflictTimesPerAgent.Length; j++)
         {
-            //if (this.conflictCountsPerAgent[j].Count != 0)
+            if (this.conflictCountsPerAgent[j].Count != 0)
             {
                 Debug.Write($"Agent {problem.agents[j].agent.agentNum} conflict times: ");
                 foreach (var pair in this.conflictTimesPerAgent[j])
@@ -2749,7 +2752,7 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
             return cost;
         }
         else
-            throw new NotImplementedException("Unsupported cost function");
+            throw new NotImplementedException($"Unsupported cost function {Constants.costFunction}");
     }
 
     /// <summary>
@@ -3040,6 +3043,8 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
         {
             this.g = (ushort)this.singleAgentCosts.Max();
         }
+        else
+            throw new NotImplementedException($"Unsupported cost function {Constants.costFunction}");
 
         // PrintPlan();
 
