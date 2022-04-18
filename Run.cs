@@ -820,6 +820,7 @@ public class Run : IDisposable
             astar_heuristics[i].Init(instance, agentList);
 
         int solutionCost = -1;
+        int solutionDepth = -1;
         int firstSolverToSolveIndex = -1;
 
         for (int i = 0; i < solvers.Count; i++)
@@ -871,6 +872,7 @@ public class Run : IDisposable
                 Console.WriteLine();
 
                 int solverSolutionCost = solvers[i].GetSolutionCost();
+                int solverSolutionDepth = solvers[i].GetSolutionDepth();
 
                 if (solverSolutionCost >= 0) // Solved successfully
                 {
@@ -882,6 +884,7 @@ public class Run : IDisposable
                     if (solutionCost == -1) // This is the first time the problem is successfully solved
                     {
                         solutionCost = solverSolutionCost;
+                        solutionDepth = solverSolutionDepth;
                         firstSolverToSolveIndex = i;
 
                         plan.Check(instance);
@@ -890,8 +893,9 @@ public class Run : IDisposable
                     {
                         plan.Check(instance);
 
-                        Trace.Assert(solutionCost == solverSolutionCost,
-                            $"{solvers[firstSolverToSolveIndex]} solution cost is different than that of {solvers[i]}"); // Assuming algs are supposed to find an optimal solution, this is an error.
+                         Trace.Assert(solutionCost == solverSolutionCost,
+                            $"{solvers[i]} solution cost {solverSolutionCost} is different " +
+                            $"to the solution cost {solutionCost} of {solvers[firstSolverToSolveIndex]}"); // Assuming algs are supposed to find an optimal solution, this is an error.
                         //Trace.Assert(solvers[0].GetExpanded() == solvers[i].GetExpanded(), "Different Expanded");
                         //Trace.Assert(solvers[0].GetGenerated() == solvers[i].GetGenerated(), "Different Generated");
                         //Trace.Assert(solvers[0].GetSolutionDepth() == solvers[i].GetSolutionDepth(), "Depth Bug " + solvers[i]);
@@ -901,6 +905,12 @@ public class Run : IDisposable
                 }
                 else
                 {
+                    if (solutionCost != -1) // Problem solved before
+                        Trace.Assert(solutionDepth >= solverSolutionDepth,
+                            $"Failed solver {solvers[i]} solution depth lower bound {solverSolutionDepth} is *greater* than " +
+                            $"the solution depth {solvers[firstSolverToSolveIndex]} of successful solver {solutionDepth}. " +
+                            $"This is a problem if both start with an SIC estimate."); // Assuming algs are supposed to find an optimal solution, this is an error.
+
                     if (solverSolutionCost == (int) Constants.SpecialCosts.TIMEOUT_COST)
                         outOfTimeCounters[i]++;
                     if (solverSolutionCost != (int)Constants.SpecialCosts.NO_SOLUTION_COST)
