@@ -959,7 +959,6 @@ public class CBS : ICbsSolver, IHeuristicSolver<CbsNode>, IIndependenceDetection
                 // TODO: What if planning a path for the merged agents finds a path with the same
                 // cost as the sum of their current paths and no other conflicts exist? Should just
                 // adopt this solution and get a goal node.
-                // TODO: Use the minimum F in OPEN as a heuristic for the new root!
                 // TODO: Save the cost of the group in a table, and use it as a heuristic in the future!
                 child = new CbsNode(this.instance.agents.Length, this.solver,
                                     this.singleAgentSolver, this, node.agentsGroupAssignment);  // This will be the new root node
@@ -967,15 +966,15 @@ public class CBS : ICbsSolver, IHeuristicSolver<CbsNode>, IIndependenceDetection
                                     node.agentsGroupAssignment[conflict.agentBIndex], fixCounts: false);
                 this.maxSizeGroup = Math.Max(this.maxSizeGroup, child.GetGroupSize(conflict.agentAIndex));
                 bool solved = child.Solve(this.minSolutionTimeStep);
-                if (solved == false)
-                    return (adopted: false, children, reinsertParent: false);
-                //if ((child.allSingleAgentCosts[child.agentsGroupAssignment[conflict.agentAIndex]] ==
-                //    node.allSingleAgentCosts[node.agentsGroupAssignment[conflict.agentAIndex]] +
-                //    node.allSingleAgentCosts[node.agentsGroupAssignment[conflict.agentBIndex]]) &&
-                //    //All of node's conflicts are between the agents of the merged groups)
-                if (this.debug)
-                    Debug.WriteLine("Restarting the search with merged agents.");
+                child.h = node.f - child.g;
+                
+                //if (this.debug)
+                    Debug.WriteLine($"Restarting the search with agents {node.agentsGroupAssignment[conflict.agentAIndex]} and" +
+                                    $" {node.agentsGroupAssignment[conflict.agentBIndex]} merged.");
                 this.Reset();
+
+                if (solved == false)  // Likely due to a time-out
+                    return (adopted: false, children, reinsertParent: false);
             }
             // No need to try to adopt the child - there's only one so we're not branching.
             children.Add(child);
