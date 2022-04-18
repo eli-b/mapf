@@ -895,8 +895,16 @@ public class CBS : ICbsSolver, IHeuristicSolver<CbsNode>, IIndependenceDetection
                 currentNode.Clear();
         }
 
-        this.solutionCost = (int) Constants.SpecialCosts.NO_SOLUTION_COST;
-        this.Clear(); // unsolvable problem - we're not going to resume it
+        // Check if max time has been exceeded
+        if (this.runner.ElapsedMilliseconds() > Constants.MAX_TIME)
+        {
+            this.solutionCost = (int)Constants.SpecialCosts.TIMEOUT_COST;
+            Console.WriteLine("Out of time");
+            this.solutionDepth = maxExpandedNodeF - initialEstimate; // A minimum estimate
+        }
+        else
+            this.solutionCost = (int) Constants.SpecialCosts.NO_SOLUTION_COST;
+        this.Clear(); // we're not going to resume this search - it either timed out or the problem is unsolvable
         this.CleanGlobals();
         return false;
     }
