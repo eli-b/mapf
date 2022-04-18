@@ -784,7 +784,10 @@ public class CBS : ICbsSolver, IHeuristicSolver<CbsNode>, IIndependenceDetection
             {
                 this.solutionCost = (int) Constants.SpecialCosts.TIMEOUT_COST;
                 Console.WriteLine("Out of time");
-                this.solutionDepth = openList.Peek().f - initialEstimate; // A minimum estimate
+                this.solutionDepth = maxExpandedNodeF - initialEstimate; // A minimum estimate.
+                                                                         // Can't use top of OPEN's f-value instead of openList.Peek().f because we may have
+                                                                         // timed out while expanding and before generating nodes that would have led to the
+                                                                         // optimal solution, and the remaining nodes in OPEN are junk
                 this.Clear(); // Total search time exceeded - we're not going to resume this search.
                 this.CleanGlobals();
                 return false;
