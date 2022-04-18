@@ -1017,7 +1017,8 @@ class IndependenceDetection : ISolver
         {
             foreach (KeyValuePair<int, int> pair in this.conflictCountsPerGroup[i])
             {
-                if (pair.Key < i)  // Just an optimization. Would also be correct without this check.
+                //if (pair.Key < i)  // Just an optimization. Would also be correct without this check.
+                                     // Not if group order is funky...
                 {
                     this.conflictCountsPerGroup[pair.Key][i] = pair.Value; // Collisions are symmetrical, and agent "key" didn't see the route for agent "i" when planning.
                     this.conflictTimesPerGroup[pair.Key][i] = this.conflictTimesPerGroup[i][pair.Key];
