@@ -547,6 +547,10 @@ class IndependenceDetection : ISolver
             return new IndependenceDetectionConflict(groupB, groupA, time);  // This way when attempting to resolve the conflict, the smaller group would be tried first
     }
 
+    /// <summary>
+    /// Returns the earliest conflict between the groups
+    /// </summary>
+    /// <returns></returns>
     private IndependenceDetectionConflict ChooseFirstConflict()
     {
         int groupRepA = -1; // To quiet the compiler
@@ -559,7 +563,7 @@ class IndependenceDetection : ISolver
 
             foreach (var otherGroupNumAndConflictTimes in this.conflictTimesPerGroup[i])
             {
-                if (otherGroupNumAndConflictTimes.Value[0] < time)
+                if (otherGroupNumAndConflictTimes.Value[0] < time)  // Conflict times are sorted, so only the first one needs to be checked
                 {
                     time = otherGroupNumAndConflictTimes.Value[0];
                     groupRepA = i;
@@ -663,6 +667,15 @@ class IndependenceDetection : ISolver
             if (this.debug)
             {
                 Debug.WriteLine($"{this.totalConflictCount} conflicts");
+                Debug.WriteLine($"Total cost: {this.allGroups.Sum(group => group.solutionCost)}");
+                Debug.WriteLine($"{this.allGroups.Count} groups: {String.Join(", ", this.allGroups)}");
+
+                Debug.Write("Group single agent costs: ");
+                foreach (var group in this.allGroups)
+                {
+                    Debug.Write($"{{{String.Join(" ", group.GetCosts())}}}, ");
+                }
+                Debug.WriteLine("");
             }
 
             IndependenceDetectionConflict conflict = ChooseConflict();
@@ -672,18 +685,9 @@ class IndependenceDetection : ISolver
 
             if (this.debug)
             {
-                Debug.WriteLine($"{this.allGroups.Count} groups: {String.Join(", ", this.allGroups)}");
-
-                Debug.Write("Group single agent costs: ");
-                foreach (var group in this.allGroups)
-                {
-                    Debug.Write($"{{{String.Join(" ", group.GetCosts())}}}, ");
-                }
-                Debug.WriteLine("");
-
                 for (int j = 0; j < this.conflictTimesPerGroup.Length; j++)
                 {
-                    if (this.conflictTimesPerGroup[j] != null)
+                    if (this.conflictTimesPerGroup[j] != null && this.conflictTimesPerGroup[j].Count != 0)
                     {
                         Debug.Write($"Group {j} conflict times: ");
                         foreach (var pair in this.conflictTimesPerGroup[j])
@@ -810,7 +814,7 @@ class IndependenceDetection : ISolver
                     {
                         if (conflict.group2.solutionCost < 0)  // ReplanUnderConstraints reverts to the old cost if there was simply no solution
                         {
-                            totalCost = conflict.group2.solutionCost;
+                            totalCost = conflict.group2.solutionCost;  // To propagate special costs
                             return false;
                         }
                             
@@ -891,7 +895,7 @@ class IndependenceDetection : ISolver
 
             if (solved == false)
             {
-                this.totalCost = compositeGroup.solutionCost;
+                this.totalCost = compositeGroup.solutionCost;  // To propagate special costs
 
                 allGroups.AddFirst(compositeGroup);  // Important for printing the statistics
                 return false;
@@ -1035,7 +1039,12 @@ class IndependenceDetection : ISolver
         if (solved == true)
         {
             // Store solution details
-            this.totalCost = this.allGroups.Sum(group => group.solutionCost);  // TODO: Support the makespan cost function
+            if (Constants.costFunction == Constants.CostFunction.SUM_OF_COSTS)
+                this.totalCost = this.allGroups.Sum(group => group.solutionCost);
+            else if (Constants.costFunction == Constants.CostFunction.MAKESPAN || Constants.costFunction == Constants.CostFunction.MAKESPAN_THEN_SUM_OF_COSTS)
+                this.totalCost = this.allGroups.Max(group => group.solutionCost);
+            else
+                throw new Exception($"Unexpected cost function {Constants.costFunction}");
             this.plan = this.CalculateJointPlan();
         }
         else
