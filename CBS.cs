@@ -1234,28 +1234,28 @@ public class CBS : ICbsSolver, IHeuristicSolver<CbsNode>, IIndependenceDetection
                 if (lookAheadReinsertParent)
                     lookAheadSameCostNodesToReinsertWithHigherCost.Add(lookAheadNode);
 
-                foreach (var child in lookAheadChildren)
+                foreach (var lookaheadChild in lookAheadChildren)
                 {
                     this.bypassLookAheadNodesCreated++;
-                    this.closedList.Add(child, child); // Temporarily! Just so look ahead expansion can use this data
-                    if (child.g == node.g)
+                    this.closedList.Add(lookaheadChild, lookaheadChild); // Temporarily! Just so look ahead expansion can use this data
+                    if (lookaheadChild.g == node.g)
                     {
-                        if (child.GoalTest()) // Lookahead found an admissible solution!
+                        if (lookaheadChild.GoalTest()) // Lookahead found an admissible solution!
                         {
                             Debug.WriteLine("Goal found with same cost - stopping lookahead.");
-                            this.openList.Add(child); // Technically should have just breaked and let node adopt child. This is just a short-cut.
+                            this.openList.Add(lookaheadChild); // Technically should have just breaked and let node adopt child. This is just a short-cut.
                             this.bypasses++; // Just a technicality needed to make the adoption count not lower than if we didn't use immediate adoption. You could say we adopt the goal's solution.
                             return;
                         }
 
-                        if (lookAheadSameCostNodes.Contains(child) == false)
+                        if (lookAheadSameCostNodes.Contains(lookaheadChild) == false)
                         {
-                            lookAheadOpenList.Add(child);
-                            lookAheadSameCostNodes.Add(child);
+                            lookAheadOpenList.Add(lookaheadChild);
+                            lookAheadSameCostNodes.Add(lookaheadChild);
                         }
                     }
                     else
-                        lookAheadLargerCostNodes.Add(child); // No need to check if it's already there :)
+                        lookAheadLargerCostNodes.Add(lookaheadChild); // No need to check if it's already there :)
                 }
             }
 
@@ -1540,6 +1540,8 @@ public class CBS : ICbsSolver, IHeuristicSolver<CbsNode>, IIndependenceDetection
                 this.addToGlobalConflictCount(child);  // TODO: Make MACBS_WholeTreeThreshold use nodes that do this automatically after choosing a conflict
                 openList.Add(child);
             }
+            else
+                this.surplusNodesAvoided++;
         }
     }
 
