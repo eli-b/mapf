@@ -2119,8 +2119,7 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
         if (this.mddNarrownessValues[agentIndex] != null)  // Already have an MDD with the current cost (they're nulled when the cost increases)
             return false;
 
-        CbsCacheEntry entry = new CbsCacheEntry(this, agentIndex);
-        if (this.cbs.cacheMdds == false || this.cbs.mddCache[agentIndex].ContainsKey(entry) == false)
+        if (this.cbs.cacheMdds == false || this.cbs.mddCache[agentIndex].ContainsKey(new CbsCacheEntry(this, agentIndex)) == false)
         {
             // Caching not enabled or no cache hit
             if (CopyAppropriateMddFromParent(agentIndex))
@@ -2189,6 +2188,7 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
             this.cbs.timeBuildingMdds += endTime - startTime;
             if (this.cbs.cacheMdds)
             {
+                CbsCacheEntry entry = new CbsCacheEntry(this, agentIndex);
                 this.cbs.mddCache[agentIndex][entry] = this.mdds[agentIndex];
                 this.cbs.mddNarrownessValuesCache[agentIndex][entry] = this.mddNarrownessValues[agentIndex];
             }
@@ -2197,6 +2197,7 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
         else
         {
             // The MDD is in the cache!
+            CbsCacheEntry entry = new CbsCacheEntry(this, agentIndex);
             this.mdds[agentIndex] = this.cbs.mddCache[agentIndex][entry];
             this.mddNarrownessValues[agentIndex] = this.cbs.mddNarrownessValuesCache[agentIndex][entry];
             this.cbs.mddCacheHits++;
