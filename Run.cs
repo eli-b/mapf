@@ -880,19 +880,17 @@ public class Run : IDisposable
                     plan.PrintPlanIfShort();
                     outOfTimeCounters[i] = 0;
 
+                    plan.Check(instance);
+
                     // Validate solution:
                     if (solutionCost == -1) // This is the first time the problem is successfully solved
                     {
                         solutionCost = solverSolutionCost;
                         solutionDepth = solverSolutionDepth;
                         firstSolverToSolveIndex = i;
-
-                        plan.Check(instance);
                     }
                     else // Problem solved before
                     {
-                        plan.Check(instance);
-
                          Trace.Assert(solutionCost == solverSolutionCost,
                             $"{solvers[i]} solution cost {solverSolutionCost} is different " +
                             $"to the solution cost {solutionCost} of {solvers[firstSolverToSolveIndex]}"); // Assuming algs are supposed to find an optimal solution, this is an error.
