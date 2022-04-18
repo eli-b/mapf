@@ -19,6 +19,7 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
     /// of the children.
     /// </summary>
     public int minimumVertexCover;
+    public bool[] newPlans;
     public SinglePlan[] singleAgentPlans;
     public int[] singleAgentCosts;
     /// <summary>
@@ -121,6 +122,7 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
     {
         this.cbs = cbs;
         singleAgentPlans = new SinglePlan[numberOfAgents];
+        newPlans = new bool[numberOfAgents];
         singleAgentCosts = new int[numberOfAgents];
         mddNarrownessValues = new Dictionary<int, MDD.LevelNarrowness>[numberOfAgents];
         mdds = new MDD[numberOfAgents];
@@ -161,6 +163,7 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
     {
         this.cbs = parent.cbs;
         this.singleAgentPlans = parent.singleAgentPlans.ToArray();
+        newPlans = new bool[this.singleAgentPlans.Length];
         this.singleAgentCosts = parent.singleAgentCosts.ToArray();
         this.mdds = parent.mdds.ToArray();
         this.mddNarrownessValues = parent.mddNarrownessValues.ToArray();
@@ -199,6 +202,15 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
                 this.conflictTimesPerAgent[i][kvp.Key] = new List<int>(kvp.Value);
         }
         this.agentsGroupAssignment = parent.agentsGroupAssignment.ToArray();
+        
+        for (int i = 0; i < this.singleAgentPlans.Length; i++)
+        {
+            newPlans[i] = false;
+        }
+        ISet<int> group = this.GetGroup(agentToReplan);
+        foreach (int i in group)
+            newPlans[i] = true;
+        
         this.agentNumToIndex = parent.agentNumToIndex;
         this.prev = parent;
         this.constraint = newConstraint;
@@ -221,6 +233,7 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
     public CbsNode(CbsNode parent, int mergeGroupA, int mergeGroupB)
     {
         this.singleAgentPlans = parent.singleAgentPlans.ToArray();
+        newPlans = new bool[this.singleAgentPlans.Length];
         this.singleAgentCosts = parent.singleAgentCosts.ToArray();
         this.mdds = parent.mdds.ToArray();
         this.mddNarrownessValues = parent.mddNarrownessValues.ToArray();  // No new constraint was added so all of the parent's MDDs are valid
@@ -248,6 +261,15 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
         this.cbs = parent.cbs;
             
         this.MergeGroups(mergeGroupA, mergeGroupB);
+
+        for (int i = 0; i < this.singleAgentPlans.Length; i++)
+        {
+            newPlans[i] = false;
+        }
+        ISet<int> mergedGroup = (mergeGroupA < mergeGroupB) ? this.GetGroup(mergeGroupA) : this.GetGroup(mergeGroupB);
+        foreach (int i in mergedGroup)
+            newPlans[i] = true;
+
         this.minimumVertexCover = (int) ConflictGraph.MinVertexCover.NOT_SET;
         //this.externalConstraints = parent.externalConstraints;
     }
@@ -272,6 +294,10 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
     {
         this.g = 0;
         ProblemInstance problem = this.cbs.GetProblemInstance();
+        for (int i = 0; i < newPlans.Length; i++)
+        {
+            newPlans[i] = true;
+        }
 
         var internalCAT = new ConflictAvoidanceTable();
         ConflictAvoidanceTable CAT = internalCAT;
@@ -704,6 +730,12 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
         for (int j = 0; j < this.countsOfInternalAgentsThatConflict.Length; j++)
         {
             Debug.Write($" {this.countsOfInternalAgentsThatConflict[j]}");
+        }
+        Debug.WriteLine("");
+        Debug.Write("New plans: ");
+        for (int j = 0; j < this.newPlans.Length; j++)
+        {
+            Debug.Write($" {(this.newPlans[j] ? 1 : 0)}");
         }
         Debug.WriteLine("");
         for (int j = 0; j < this.conflictCountsPerAgent.Length; j++)
@@ -1776,6 +1808,10 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
         this.totalConflictsWithExternalAgents = child.totalConflictsWithExternalAgents;
         this.totalConflictsBetweenInternalAgents = child.totalConflictsBetweenInternalAgents;
         this.largerConflictingGroupSize = child.largerConflictingGroupSize;
+        for (int i = 0; i < child.newPlans.Length; i++)
+        {
+            this.newPlans[i] = this.newPlans[i] || child.newPlans[i];
+        }
         // We don't adopt the child's constraints, nor its agents groups assignment
         // this.mdds is kept unchanged too since the cost of the replanned (meta-)agent
         // didn't change and we added no constraints.
@@ -2048,7 +2084,9 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
     }
 
     /// <summary>
-    /// Check if the agent groups that participate in the conflict of this node pass the merge threshold.
+    /// Check if the agent groups that participate in the conflict of this node should be merged.
+    /// The merge criterion is the old one - counts how many times a conflict between the agents was chosen
+    /// as the conflict to resolve along the branch to this node.
     /// </summary>
     /// <param name="mergeThreshold"></param>
     /// <returns>Whether to merge.</returns>
@@ -2073,8 +2111,51 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
     }
 
     /// <summary>
+    /// New merge criterion: counts how many times the agents conflicted in a new plan.
+    /// </summary>
+    /// <param name="mergeThreshold"></param>
+    /// <param name="agentAIndex"></param>
+    /// <param name="agentBIndex"></param>
+    /// <returns></returns>
+    public bool ShouldMerge(int mergeThreshold, int agentAIndex, int agentBIndex)
+    {
+        int conflictsCount = 0;
+        ISet<int> firstGroup = this.GetGroup(agentAIndex);
+        ISet<int> secondGroup = this.GetGroup(agentBIndex);
+        ProblemInstance problem = this.cbs.GetProblemInstance();
+
+        CbsNode current = this;
+        while (current != null)
+        {
+            for (int i = 0; i < this.conflictCountsPerAgent.Length; i++)
+            {
+                if (firstGroup.Contains(i) == false && secondGroup.Contains(i) == false)
+                    continue;
+                foreach (var kvp in this.conflictCountsPerAgent[i])
+                {
+                    if (i > kvp.Key)
+                        continue;  // Count each conflict once
+                    if (newPlans[i] == false && newPlans[kvp.Key] == false)
+                        continue;  // Only count conflicts of new plans
+                    if (firstGroup.Contains(i) || secondGroup.Contains(i))
+                        conflictsCount += kvp.Value;
+                }
+            }
+
+            current = current.prev;
+        }
+
+
+        // TODO: Make a permanent branchConflictCounts instead of computing this every time?
+        //       OTOH, I compute this ~once per agent pair per node.
+        return conflictsCount > mergeThreshold;
+    }
+
+    /// <summary>
     /// Check if the agent groups that participate in the conflict of this node pass the merge threshold,
-    /// using the given conflict counts.
+    /// using the given conflict counts. 
+    /// The merge criterion is the old one - count how many times a conflict between the agents was chosen
+    /// as the conflict to resolve in the nodes of the tree.
     /// </summary>
     /// <param name="mergeThreshold"></param>
     /// <param name="globalConflictCounter"></param>
@@ -2094,6 +2175,40 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
         }
 
         return conflictCounter > mergeThreshold;
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="mergeThreshold"></param>
+    /// <param name="agentAIndex"></param>
+    /// <param name="agentBIndex"></param>
+    /// <returns></returns>
+    public bool ShouldMerge(int mergeThreshold, int[][] globalConflictCounter, int agentAIndex, int agentBIndex)
+    {
+        int conflictsCount = 0;
+        ISet<int> firstGroup = this.GetGroup(agentAIndex);
+        ISet<int> secondGroup = this.GetGroup(agentBIndex);
+        ProblemInstance problem = this.cbs.GetProblemInstance();
+
+        for (int i = 0; i < this.conflictCountsPerAgent.Length; i++)
+        {
+            if (firstGroup.Contains(i) == false && secondGroup.Contains(i) == false)
+                continue;
+            foreach (var kvp in this.conflictCountsPerAgent[i])
+            {
+                if (i > kvp.Key)
+                    continue;  // Count each conflict once
+                if (newPlans[i] == false && newPlans[kvp.Key] == false)
+                    continue;  // Only count conflicts of new plans
+                if (firstGroup.Contains(i) || secondGroup.Contains(i))
+                {
+                    conflictsCount += globalConflictCounter[kvp.Key][i];
+                }
+            }
+        }
+
+        return conflictsCount > mergeThreshold;
     }
 
     /// <summary>

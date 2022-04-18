@@ -148,7 +148,7 @@ public class CBS : ICbsSolver, IHeuristicSolver<CbsNode>, IIndependenceDetection
         FIRST_FIT_LOOKAHEAD,
         BEST_FIT_LOOKAHEAD
     }
-    private bool mergeCausesRestart;
+    protected bool mergeCausesRestart;
     private bool useOldCost;
     public bool replanSameCostWithMdd;
     public bool cacheMdds;
@@ -333,6 +333,7 @@ public class CBS : ICbsSolver, IHeuristicSolver<CbsNode>, IIndependenceDetection
         {
             if (root.f <= this.maxSolutionCost)
             {
+                this.addToGlobalConflictCount(root);  // TODO: Make MACBS_WholeTreeThreshold use nodes that do this automatically after choosing a conflict
                 this.openList.Add(root);
                 this.highLevelGenerated++;
                 this.closedList.Add(root, root);
@@ -805,8 +806,6 @@ public class CBS : ICbsSolver, IHeuristicSolver<CbsNode>, IIndependenceDetection
             // there would be no point in pushing their node back at that point,
             // as we would've already made the split by then.
 
-            this.addToGlobalConflictCount(currentNode.GetConflict()); // TODO: Make MACBS_WholeTreeThreshold use nodes that do this automatically after choosing a conflict
-
             Debug.WriteLine("Expanding node: (or returning its solution, if it's a goal node)");
             currentNode.DebugPrint();
 
@@ -893,7 +892,7 @@ public class CBS : ICbsSolver, IHeuristicSolver<CbsNode>, IIndependenceDetection
 
     protected virtual bool ShouldMerge(CbsNode node)
     {
-        return node.ShouldMerge(mergeThreshold);
+        return node.ShouldMerge(mergeThreshold, node.conflict.agentAIndex, node.conflict.agentBIndex);  //TODO: Add an option to use the old merge criterion
     }
 
     public virtual void Reset()
@@ -1349,6 +1348,7 @@ public class CBS : ICbsSolver, IHeuristicSolver<CbsNode>, IIndependenceDetection
             // to the goal within the budget
             {
                 this.highLevelGenerated++;
+                this.addToGlobalConflictCount(child); // TODO: Make MACBS_WholeTreeThreshold use nodes that do this automatically after choosing a conflict
                 openList.Add(child);
             }
             else
@@ -1516,6 +1516,7 @@ public class CBS : ICbsSolver, IHeuristicSolver<CbsNode>, IIndependenceDetection
             if (child.f <= this.maxSolutionCost)
             {
                 this.highLevelGenerated++;
+                this.addToGlobalConflictCount(child);  // TODO: Make MACBS_WholeTreeThreshold use nodes that do this automatically after choosing a conflict
                 openList.Add(child);
             }
         }
@@ -1794,6 +1795,8 @@ public class CBS : ICbsSolver, IHeuristicSolver<CbsNode>, IIndependenceDetection
 
     protected virtual void addToGlobalConflictCount(CbsConflict conflict) { }
 
+    protected virtual void addToGlobalConflictCount(CbsNode node) { }
+
     public virtual Plan GetPlan()
     {
         if (this.solution == null)
@@ -1831,6 +1834,9 @@ public class CBS : ICbsSolver, IHeuristicSolver<CbsNode>, IIndependenceDetection
 /// </summary>
 public class MACBS_WholeTreeThreshold : CBS
 {
+    /// <summary>
+    /// Counts conflicts between pairs of individual agents. To get counts for meta-agents, sum the values for their concrete agents.
+    /// </summary>
     public int[][] globalConflictsCounter;
 
     public MACBS_WholeTreeThreshold(ICbsSolver singleAgentSolver, ICbsSolver generalSolver,
@@ -1877,13 +1883,50 @@ public class MACBS_WholeTreeThreshold : CBS
 
     protected override bool ShouldMerge(CbsNode node)
     {
-        return node.ShouldMerge(mergeThreshold, globalConflictsCounter);
+        return node.ShouldMerge(mergeThreshold, globalConflictsCounter, node.conflict.agentAIndex, node.conflict.agentBIndex);  //TODO: Add an option to choose the old merge criterion
     }
 
+    /// <summary>
+    /// Old logic. Only add the chosen conflict to the counts
+    /// </summary>
+    /// <param name="conflict"></param>
     protected override void addToGlobalConflictCount(CbsConflict conflict)
     {
         if (conflict != null)
             globalConflictsCounter[Math.Max(conflict.agentAIndex, conflict.agentBIndex)][Math.Min(conflict.agentAIndex, conflict.agentBIndex)]++;
+    }
+
+    protected override void addToGlobalConflictCount(CbsNode node)
+    {
+        if (this.mergeCausesRestart == false)
+        {
+            // Old logic:
+            if (node.conflict != null)
+                globalConflictsCounter[Math.Max(node.conflict.agentAIndex, node.conflict.agentBIndex)][Math.Min(node.conflict.agentAIndex, node.conflict.agentBIndex)]++;
+            // This only looks at conflicts between individual agents - doesn't take into account merges.
+            // Merges are local when merge & restart is off so the global counts might be incorrect.
+            // FIXME: Currently only looks at the chosen conflict.
+        }
+        else
+        {
+            //TODO: Add an option to use the old logic above here too
+            for (int i = 0; i < this.GetProblemInstance().GetNumOfAgents(); i++)
+            {
+                if (node.newPlans[i] == false)
+                    continue;
+                foreach (var kvp in node.conflictCountsPerAgent[i])
+                {
+                    if (i > kvp.Key)
+                        continue;
+                    int groupRepA = node.agentsGroupAssignment[i];
+                    int groupRepB = node.agentsGroupAssignment[kvp.Key];
+                    if (groupRepA > groupRepB)
+                        globalConflictsCounter[groupRepA][groupRepB] += kvp.Value;
+                    else
+                        globalConflictsCounter[groupRepB][groupRepA] += kvp.Value;
+                }
+            }
+        }
     }
 
     public override string GetName()
