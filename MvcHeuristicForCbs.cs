@@ -92,6 +92,9 @@ class MvcHeuristicForCbs : ILazyHeuristic<CbsNode>
             if (s.conflictTimesPerAgent[agentIndex].Count == 0)
                 continue;  // Agent has no conflicts
             bool hasMdd = s.mddNarrownessValues[agentIndex] != null;
+            bool canBuildMDD = groups[agentIndex].Count == 1;
+            if (canBuildMDD == false)
+                continue;  // We aren't going to lookahead just for the heuristic
 
             foreach (int conflictingAgentNum in s.conflictTimesPerAgent[agentIndex].Keys)
             {
@@ -99,16 +102,24 @@ class MvcHeuristicForCbs : ILazyHeuristic<CbsNode>
                 if (conflictingAgentIndex < agentIndex) // check later
                     continue;
                 bool otherHasMdd = s.mddNarrownessValues[conflictingAgentIndex] != null;
+                bool otherCanBuildMdd = groups[conflictingAgentIndex].Count == 1;
+                if (otherCanBuildMdd == false)
+                    continue;  // We won't lookahead just for the heuristic
 
                 foreach (int conflictTime in s.conflictTimesPerAgent[agentIndex][conflictingAgentNum])
                 {
-                    if (otherHasMdd == false || s.DoesAgentHaveNoOtherOption(conflictingAgentIndex, conflictTime, agentIndex, groups))  // Other agent's MDD is narrow at this timestep.
+                    bool otherNarrow;
+                    if (otherHasMdd)
                     {
-                        s.buildMddForAgentWithItsCurrentCost(agentIndex);
-                        hasMdd = true;
+                        otherNarrow = s.DoesAgentHaveNoOtherOption(conflictingAgentIndex, conflictTime, agentIndex, groups);
+                        if (otherNarrow == false)
+                            continue;
                     }
                     else
-                        continue;
+                        otherNarrow = false;  // Temporarily. Will be computed soon.
+
+                    s.buildMddForAgentWithItsCurrentCost(agentIndex);  // Does nothing if its MDD is already built.
+                    hasMdd = true;
                     bool iNarrow = s.DoesAgentHaveNoOtherOption(agentIndex, conflictTime, conflictingAgentIndex, groups);
                     if (iNarrow == false)
                         continue;
@@ -116,9 +127,9 @@ class MvcHeuristicForCbs : ILazyHeuristic<CbsNode>
                     {
                         s.buildMddForAgentWithItsCurrentCost(conflictingAgentIndex);
                         otherHasMdd = true;
+                        otherNarrow = s.DoesAgentHaveNoOtherOption(conflictingAgentIndex, conflictTime, agentIndex, groups);
                     }
-                    bool jNarrow = s.DoesAgentHaveNoOtherOption(conflictingAgentIndex, conflictTime, agentIndex, groups);
-                    if (jNarrow) // Cardinal conflict - both agent's MDDs are narrow at this timestep.
+                    if (otherNarrow) // Cardinal conflict - both agent's MDDs are narrow at this timestep.
                         CardinallyConflictingAgents.Add(agentIndex, conflictingAgentIndex);
                 }
             }
@@ -128,6 +139,7 @@ class MvcHeuristicForCbs : ILazyHeuristic<CbsNode>
             s.minimumVertexCover = CardinallyConflictingAgents.MinimumVertexCover();
         else
             s.minimumVertexCover = CardinallyConflictingAgents.MinimumVertexCover(s.prev.minimumVertexCover);
+        // FIXME: The value might be incorrect after a merge operation which wasn't followed by a restart
 
         if (target != int.MaxValue)
         {
