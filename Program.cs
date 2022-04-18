@@ -298,6 +298,7 @@ class Program
         if (System.Diagnostics.Debugger.IsAttached)
         {
             Constants.MAX_TIME = int.MaxValue;
+            Console.WriteLine("Debugger attached - running without a timeout!!");
             Debug.WriteLine("Debugger attached - running without a timeout!!");
         }
 
@@ -401,6 +402,8 @@ class Program
             {
                 foreach (var scenPath in Directory.GetFiles(dirName))
                 {
+                    Console.WriteLine($"Processing {scenPath}...");
+
                     ProblemInstance problem;
                     try
                     {
