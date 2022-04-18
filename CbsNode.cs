@@ -1036,8 +1036,21 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
             this.conflict = this.nextConflicts.Current;
             //FIXME: code dup with previous option
         }
+        else if (this.cbs.conflictChoice == CBS.ConflictChoice.CARDINAL_MDD_THEN_MERGE_EARLY_MOST_CONFLICTING_SMALLEST_GROUP ||
+                 this.cbs.conflictChoice == CBS.ConflictChoice.CARDINAL_MDD_THEN_MERGE_EARLY_MOST_CONFLICTING_AND_SMALLEST_GROUP)
+        {
+            this.nextConflicts = this.GetConflictsCardinalFirstUsingMddMergeFirstByNewPolicy().GetEnumerator();
+            bool hasConflict = this.nextConflicts.MoveNext(); // This node isn't a goal node so this is expected to return true -
+                                                              // a conflict should be found
+            if (hasConflict == false)
+            {
+                this.DebugPrint();
+                Trace.Assert(false, "Non-goal node found no conflict");
+            }
+            this.conflict = this.nextConflicts.Current;
+        }
         else
-            throw new Exception("Unknown conflict choosing method");
+            throw new Exception("Unknown conflict-choosing method");
     }
 
     private void ChooseConflictOfMostConflictingSmallestAgents()
@@ -1185,6 +1198,16 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
             return GetConflictsNoOrder();
         }
         return GetConflictsCardinalFirstUsingMddInternal();
+    }
+
+    private IEnumerable<CbsConflict> GetConflictsCardinalFirstUsingMddMergeFirstByNewPolicy()
+    {
+        if (this.totalConflictsBetweenInternalAgents == 1)
+        {
+            Debug.WriteLine("Single conflict. Just choosing it.");
+            return GetConflictsNoOrder();
+        }
+        return GetConflictsCardinalFirstUsindMddMergeFirstByNewPolicyInternal();
     }
 
     /// <summary>
@@ -1395,7 +1418,7 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
         // Yield the possibly cardinal conflicts where we can't build an MDD for the second agent
         while (PossiblyCardinalFirstHasMddSecondCannot.Count != 0)
         {
-            Debug.WriteLine("We'll try and see if this conflict is cardinal");
+            Debug.WriteLine("Checking for cardinality via a lookahead...");
             var tuple = PossiblyCardinalFirstHasMddSecondCannot.Dequeue();
             this.nextConflictCouldBeCardinal = (PossiblyCardinalFirstHasMddSecondCannot.Count != 0) ||
                                                 (PossiblyCardinalBothCannotBuildMdd.Count != 0);
@@ -1408,7 +1431,7 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
         // Yield the possibly cardinal conflicts where we can't build an MDD for either agent
         while (PossiblyCardinalBothCannotBuildMdd.Count != 0)
         {
-            Debug.WriteLine("We'll try and see if this conflict is cardinal");
+            Debug.WriteLine("Checking for cardinality via a lookahead...");
             var tuple = PossiblyCardinalBothCannotBuildMdd.Dequeue();
             this.nextConflictCouldBeCardinal = PossiblyCardinalBothCannotBuildMdd.Count != 0;
             var possiblyCardinal = FindConflict(tuple.agentAIndex, tuple.agentBIndex, tuple.conflictTime, groups);
@@ -1445,6 +1468,473 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
         {
             Debug.WriteLine("Non-cardinal conflict chosen");
             var tuple = NotCardinalNotSemi.Dequeue();
+            var conflict = FindConflict(tuple.agentAIndex, tuple.agentBIndex, tuple.conflictTime, groups);
+            conflict.willCostIncreaseForAgentA = CbsConflict.WillCostIncrease.NO;
+            conflict.willCostIncreaseForAgentB = CbsConflict.WillCostIncrease.NO;
+            yield return conflict;
+        }
+
+        Trace.Assert(NotCardinalMaybeSemi.Count == 0);
+        Trace.Assert(NotCardinalNotSemi.Count == 0);
+        Trace.Assert(SemiCardinal.Count == 0);
+        Trace.Assert(PossiblyCardinalFirstHasMddSecondDoesNotButCan.Count == 0);
+        Trace.Assert(PossiblyCardinalFirstHasMddSecondCannot.Count == 0);
+        Trace.Assert(PossiblyCardinalBothCannotBuildMdd.Count == 0);
+        Trace.Assert(PossiblyCardinalFirstCanBuildMdd.Count == 0);
+        Trace.Assert(AgentIndexesWaitingToCheckTheirConflictsForCardinality.Count == 0);
+    }
+
+    /// <summary>
+    /// Finds conflicts from the highest cardinality class that's available and returns them
+    /// in the order of the merge policy (most conflicting with others smallest resulting meta-agent that should be merged first).
+    /// Doesn't necessarily find all conflicts - some may be skipped.
+    /// </summary>
+    /// <returns>
+    /// Iterates over conflicts in the following order: certainly cardinal, should be merged (in order of merge policy),
+    /// certainly cardinal, shouldn't be merged,
+    /// semi-cardinal that should be merged (in order of merge policy),
+    /// semi-cardinal that shouldn't be merged
+    /// non-cardinal that should be merged (in order of merge policy),
+    /// non-cardinal that shouldn't be merged
+    /// </returns>
+    private IEnumerable<CbsConflict> GetConflictsCardinalFirstUsindMddMergeFirstByNewPolicyInternal()
+    {
+        ISet<int>[] groups = this.GetGroups();
+        // Queue items are <first agent index, second agent index, time>
+        var CardinalShouldMerge = new List<(int agentAIndex, int agentBIndex, int conflictTime)>(this.totalConflictsBetweenInternalAgents);
+        var Cardinal = new Queue<(int agentAIndex, int agentBIndex, int conflictTime)>(this.totalConflictsBetweenInternalAgents);
+        var NotCardinalMaybeSemi = new Queue<(int agentAIndex, int agentBIndex, int conflictTime)>(this.totalConflictsBetweenInternalAgents); // Because first has an MDD
+        var NonCardinalShouldMerge = new Queue<(int agentAIndex, int agentBIndex, int conflictTime)>(this.totalConflictsBetweenInternalAgents);
+        var NotCardinalNotSemi = new Queue<(int agentAIndex, int agentBIndex, int conflictTime)>(this.totalConflictsBetweenInternalAgents);
+        var SemiCardinal = new Queue<(int agentAIndex, int agentBIndex, int conflictTime)>(this.totalConflictsBetweenInternalAgents);
+        var PossiblyCardinalFirstHasMddSecondCannotShouldMerge = new Queue<(int agentAIndex, int agentBIndex, int conflictTime)>(this.totalConflictsBetweenInternalAgents);
+        var PossiblyCardinalBothCannotBuildMddShouldMerge = new Queue<(int agentAIndex, int agentBIndex, int conflictTime)>(this.totalConflictsBetweenInternalAgents);
+        var PossiblyCardinalFirstHasMddSecondDoesNotButCan = new Queue<(int agentAIndex, int agentBIndex, int conflictTime)>(this.totalConflictsBetweenInternalAgents);
+        var PossiblyCardinalFirstHasMddSecondCannot = new Queue<(int agentAIndex, int agentBIndex, int conflictTime)>(this.totalConflictsBetweenInternalAgents);
+        var PossiblyCardinalBothCannotBuildMdd = new Queue<(int agentAIndex, int agentBIndex, int conflictTime)>(this.totalConflictsBetweenInternalAgents);
+        var PossiblyCardinalFirstCanBuildMdd = new Queue<(int agentAIndex, int agentBIndex, int conflictTime)>(this.totalConflictsBetweenInternalAgents); // Going over these just get the first element, build its MDD and 
+        var AgentIndexesWaitingToCheckTheirConflictsForCardinality = new Queue<int>(Enumerable.Range(0, this.singleAgentPlans.Length)); // Initially go over all conflicting agents.
+                                                                                                                                        // TODO: this will also go over non-conflicting agents harmlessly. Is there an easy way to get a list of agents that have conflicts?
+                                                                                                                                        // Positively cardinal conflicts are just yielded immediately
+                                                                                                                                        // Conflicting agents are only entered into a queue once. Only if the conflicting agent with the larger index
+                                                                                                                                        // can have an MDD built and the one with the lower can't, a pair of conflicting agents is entered in reverse.
+        var shouldMergePair = new Dictionary<(int agentAIndex, int agentBIndex), bool>();
+        bool allowAgentOrderFlip = true; // Needed when rechecking agents to signal that we shouldn't 
+                                         // rely on the other end to check a conflict
+
+        // Incrementally scan conflicts and build MDDs
+        while (true)
+        {
+            // 1. Go over AgentIndexesWaitingToCheckTheirConflictsForCardinality,
+            // sorting conflicts into queues and yielding cardinal conflicts as necessary,
+            // but not building new MDDs.
+            while (AgentIndexesWaitingToCheckTheirConflictsForCardinality.Count != 0)  // Can't use foreach, we actually want to drain the queue
+            {
+                var i = AgentIndexesWaitingToCheckTheirConflictsForCardinality.Dequeue();
+                bool hasMDD = this.mddNarrownessValues[i] != null ||  // No need to check if its levels is null, we don't sync MDDs and we know there's a path with the current cost for the agent
+                                this.CopyAppropriateMddFromParent(i);
+                bool canBuildMDD = groups[i].Count == 1;
+
+                foreach (int conflictingAgentNum in this.conflictTimesPerAgent[i].Keys)
+                {
+                    int conflictingAgentIndex = this.agentNumToIndex[conflictingAgentNum];
+                    bool otherCanBuildMdd = groups[conflictingAgentIndex].Count == 1 && this.mddNarrownessValues[conflictingAgentIndex] == null;
+                    if (allowAgentOrderFlip)
+                    {
+                        if (i < conflictingAgentIndex &&  // We'll see this pair again in the other order
+                            canBuildMDD == false && otherCanBuildMdd)
+                            continue; // We'll take care of this conflict from the other end,
+                                      // because only the second agent can build an MDD and we
+                                      // prefer the agent that can build an MDD to be the first one.
+                        if (i > conflictingAgentIndex &&  // This is the second time we're seeing this pair
+                            ((canBuildMDD && otherCanBuildMdd == false) == false))  // We didn't skip to this order earlier
+                            continue;  // Already taken care of
+                    }
+                    bool otherHasMDD = this.mddNarrownessValues[conflictingAgentIndex] != null ||
+                        this.CopyAppropriateMddFromParent(conflictingAgentIndex);  // FIXME: If no ancestor has an appropriate MDD, this might be checked multiple times :(
+                    bool shouldMergeThisPair;
+                    if (shouldMergePair.ContainsKey((i, conflictingAgentIndex)) == false)
+                    {
+                        shouldMergeThisPair = this.ShouldMerge(this.cbs.mergeThreshold, i, conflictingAgentIndex);
+                        shouldMergePair[(i, conflictingAgentIndex)] = shouldMergeThisPair;
+                        shouldMergePair[(conflictingAgentIndex, i)] = shouldMergeThisPair;
+                    }
+                    else
+                        shouldMergeThisPair = shouldMergePair[(i, conflictingAgentIndex)];
+                    if (shouldMergeThisPair)  // Don't delay building MDDs for them
+                    {
+                        if (!hasMDD && canBuildMDD)
+                        {
+                            this.buildMddForAgentWithItsCurrentCost(i);
+                            hasMDD = true;
+                        }
+                        if (!otherHasMDD && otherCanBuildMdd)
+                        {
+                            this.buildMddForAgentWithItsCurrentCost(conflictingAgentIndex);
+                            otherHasMDD = true;
+                        }
+                    }
+
+                    // TODO: Once we find a potentially cardinal conflict we don't need to look at other potentially-but-not-certainly cardinal conflicts,
+                    // semi cardinal conflicts or non cardinal conflicts for this pair. This would only save some queue operations.
+
+                    // Reaching here means either i < conflictingAgentIndex,
+                    // or the i'th agent can build an MDD and the conflictingAgentIndex'th can't.
+                    foreach (int conflictTime in this.conflictTimesPerAgent[i][conflictingAgentNum])
+                    {
+                        if (hasMDD) // Check if not cardinal
+                        {
+                            bool iNarrow = this.DoesAgentHaveNoOtherOption(i, conflictTime, conflictingAgentIndex, groups);
+                            if (iNarrow == false) // Then it isn't cardinal. May still be semi cardinal.
+                            {
+                                if (otherHasMDD == false) // Skip building the second MDD even if it's possible
+                                {
+                                    if (shouldMergeThisPair)
+                                        NonCardinalShouldMerge.Enqueue((i, conflictingAgentIndex, conflictTime));  // No semi-cardinal conflicts possible
+                                                                                                                          // for nodes with a single child
+                                    else
+                                        NotCardinalMaybeSemi.Enqueue((i, conflictingAgentIndex, conflictTime));
+                                    continue;
+                                }
+                                else // Other has MDD
+                                {
+                                    bool otherNarrow = this.DoesAgentHaveNoOtherOption(conflictingAgentIndex, conflictTime, i, groups);
+                                    if (otherNarrow == false)
+                                    {
+                                        if (shouldMergeThisPair)
+                                            NonCardinalShouldMerge.Enqueue((i, conflictingAgentIndex, conflictTime));
+                                        else
+                                            NotCardinalNotSemi.Enqueue((i, conflictingAgentIndex, conflictTime));
+                                        continue;
+                                    }
+                                    else // Other narrow but i not narrow at the time of the conflict
+                                    {
+                                        if (shouldMergeThisPair)
+                                            NonCardinalShouldMerge.Enqueue((conflictingAgentIndex, i, conflictTime));
+                                        else
+                                            SemiCardinal.Enqueue((conflictingAgentIndex, i, conflictTime));  // Order important to know whose cost will increase
+                                        continue;
+                                    }
+                                }
+                            }
+                            else // iNarrow
+                            {
+                                if (otherHasMDD == false)
+                                {
+                                    if (otherCanBuildMdd)
+                                    {
+                                        Trace.Assert(shouldMergeThisPair == false, "we should have already built an mdd");
+                                        PossiblyCardinalFirstHasMddSecondDoesNotButCan.Enqueue((i, conflictingAgentIndex, conflictTime));
+                                        continue;
+                                    }
+                                    else // iNarrow, other cannot build an MDD
+                                    {
+                                        if (shouldMergeThisPair)
+                                            PossiblyCardinalFirstHasMddSecondCannotShouldMerge.Enqueue((i, conflictingAgentIndex, conflictTime));
+                                        else
+                                            PossiblyCardinalFirstHasMddSecondCannot.Enqueue((i, conflictingAgentIndex, conflictTime));
+                                        continue;
+                                    }
+                                }
+                                else // Other has MDD
+                                {
+                                    bool otherNarrow = this.DoesAgentHaveNoOtherOption(conflictingAgentIndex, conflictTime, i, groups);
+                                    if (otherNarrow == false) // iNarrow but other not narrow
+                                    {
+                                        if (shouldMergeThisPair)
+                                            NonCardinalShouldMerge.Enqueue((i, conflictingAgentIndex, conflictTime));
+                                        else
+                                            SemiCardinal.Enqueue((i, conflictingAgentIndex, conflictTime));
+                                        continue;
+                                    }
+                                    else // Both narrow!
+                                    {
+                                        if (shouldMergeThisPair)
+                                        {
+                                            CardinalShouldMerge.Add((i, conflictingAgentIndex, conflictTime));
+                                            break;  // Once we find a cardinal conflict between agents that should be merged we don't need to look at other
+                                                    // conflicts for this pair
+                                        }
+                                        else
+                                            Cardinal.Enqueue((i, conflictingAgentIndex, conflictTime));
+                                        continue;
+                                    }
+                                }
+                            }
+                        }
+                        else // No MDD
+                        {
+                            if (canBuildMDD)
+                            {
+                                Trace.Assert(shouldMergeThisPair == false, "we should have already built an mdd");
+                                PossiblyCardinalFirstCanBuildMdd.Enqueue((i, conflictingAgentIndex, conflictTime));
+                                continue;
+                            }
+                            else // No MDD and can't build one and other can't build one either (already checked for the latter case above)
+                                 // When re-checking an agent's conflicts we'll never get here because we only recheck agents that can build an MDD
+                            {
+                                if (shouldMergeThisPair)
+                                    PossiblyCardinalBothCannotBuildMddShouldMerge.Enqueue((i, conflictingAgentIndex, conflictTime));
+                                else
+                                    PossiblyCardinalBothCannotBuildMdd.Enqueue((i, conflictingAgentIndex, conflictTime));
+                                continue;
+                            }
+                        }
+                    }
+                }
+            }
+
+            allowAgentOrderFlip = false;  // We've flipped all we needed above
+
+            // 1.5. Check the possibly cardinal conflicts between agents that should be merged where we can't build an MDD for the second agent
+            while (PossiblyCardinalFirstHasMddSecondCannotShouldMerge.Count != 0)
+            {
+                Debug.WriteLine("Checking for cardinality via a lookahead...");
+                var tuple = PossiblyCardinalFirstHasMddSecondCannotShouldMerge.Dequeue();
+                var possiblyCardinal = FindConflict(tuple.agentAIndex, tuple.agentBIndex, tuple.conflictTime, groups);
+                // Lookahead to check if it's a cardinal conflict. Note: If we merge & restart, then all current constraints
+                // on the agents will be discarded, so the cost of the merged agent might actually go down!
+                // But this is the way to tell if this conflict is avoidable or not.
+                // FIXME: Lots of code duplication here
+                int groupRepA = agentsGroupAssignment[tuple.agentAIndex];
+                int groupRepB = agentsGroupAssignment[tuple.agentBIndex];
+                int aCost = GetGroupCost(groupRepA);
+                int bCost = GetGroupCost(groupRepB);
+                int minAndMaxNewCost;
+                if (Constants.costFunction == Constants.CostFunction.SUM_OF_COSTS)
+                    minAndMaxNewCost = aCost + bCost;
+                else if (Constants.costFunction == Constants.CostFunction.MAKESPAN ||
+                            Constants.costFunction == Constants.CostFunction.MAKESPAN_THEN_SUM_OF_COSTS)
+                    minAndMaxNewCost = Math.Max(aCost, bCost);
+                else
+                    throw new Exception("Unexpected cost function");
+                var tempNode = new CbsNode(this, groupRepA, groupRepB);
+                bool success = tempNode.Replan(groupRepA, this.cbs.minSolutionTimeStep,
+                    minPathCost: minAndMaxNewCost, maxPathCost: minAndMaxNewCost);
+                if (success) // then not cardinal
+                {
+                    NonCardinalShouldMerge.Enqueue(tuple);
+                }
+                else
+                {
+                    CardinalShouldMerge.Add(tuple);
+                    PossiblyCardinalFirstHasMddSecondCannotShouldMerge = new Queue<(int agentAIndex, int agentBIndex, int conflictTime)>(
+                        PossiblyCardinalFirstHasMddSecondCannotShouldMerge.Where(
+                        other => !(other.agentAIndex == tuple.agentAIndex && other.agentBIndex == tuple.agentBIndex) &&
+                                 !(other.agentAIndex == tuple.agentBIndex && other.agentBIndex == tuple.agentAIndex)
+                    ));
+                }
+            }
+
+            // 1.8. Check the possibly cardinal conflicts between agents that should be merged where we can't build an MDD for either agent
+            while (PossiblyCardinalBothCannotBuildMddShouldMerge.Count != 0)
+            {
+                Debug.WriteLine("Checking for cardinality via a lookahead...");
+                var tuple = PossiblyCardinalBothCannotBuildMddShouldMerge.Dequeue();
+                var possiblyCardinal = FindConflict(tuple.agentAIndex, tuple.agentBIndex, tuple.conflictTime, groups);
+                // code dup w 1.5:
+                // Lookahead to check if it's a cardinal conflict. Note: If we merge & restart, then all current constraints
+                // on the agents will be discarded, so the cost of the merged agent might actually go down!
+                // But this is the way to tell if this conflict is avoidable or not.
+                // FIXME: Lots of code duplication here
+                int groupRepA = agentsGroupAssignment[tuple.agentAIndex];
+                int groupRepB = agentsGroupAssignment[tuple.agentBIndex];
+                int aCost = GetGroupCost(groupRepA);
+                int bCost = GetGroupCost(groupRepB);
+                int minAndMaxNewCost;
+                if (Constants.costFunction == Constants.CostFunction.SUM_OF_COSTS)
+                    minAndMaxNewCost = aCost + bCost;
+                else if (Constants.costFunction == Constants.CostFunction.MAKESPAN ||
+                            Constants.costFunction == Constants.CostFunction.MAKESPAN_THEN_SUM_OF_COSTS)
+                    minAndMaxNewCost = Math.Max(aCost, bCost);
+                else
+                    throw new Exception("Unexpected cost function");
+                var tempNode = new CbsNode(this, groupRepA, groupRepB);
+                bool success = tempNode.Replan(groupRepA, this.cbs.minSolutionTimeStep,
+                    minPathCost: minAndMaxNewCost, maxPathCost: minAndMaxNewCost);
+                if (success) // then not cardinal
+                {
+                    NonCardinalShouldMerge.Enqueue(tuple);
+                }
+                else
+                {
+                    CardinalShouldMerge.Add(tuple);
+                    PossiblyCardinalBothCannotBuildMddShouldMerge = new Queue<(int agentAIndex, int agentBIndex, int conflictTime)>(
+                        PossiblyCardinalBothCannotBuildMddShouldMerge.Where(
+                        other => !(other.agentAIndex == tuple.agentAIndex && other.agentBIndex == tuple.agentBIndex) &&
+                                 !(other.agentAIndex == tuple.agentBIndex && other.agentBIndex == tuple.agentAIndex)
+                    ));
+                }
+            }
+
+            // 1.9. Yield CardinalShouldMerge conflicts in order of policy
+            while (CardinalShouldMerge.Count != 0)
+            {
+                int i;
+                if (this.cbs.conflictChoice == CBS.ConflictChoice.CARDINAL_MDD_THEN_MERGE_EARLY_MOST_CONFLICTING_SMALLEST_GROUP)
+                {
+                    i = CardinalShouldMerge.ToArray().IndexOfMax(tuple => -1 * (this.GetGroupSize(tuple.agentAIndex) + this.GetGroupSize(tuple.agentBIndex)));
+                    //var array = CardinalShouldMerge.ToArray();
+                    //var indices_of_smallest = array.IndicesOfMax(tuple => -1 * (this.GetGroupSize(tuple.agentAIndex) + this.GetGroupSize(tuple.agentBIndex)));  // Max of -1*value instead of adding min variants
+                    //var i = indices_of_smallest.MaxByKeyFunc(index => conflicts(array[i].agentAIndex) + conflicts(array[i].agentAIndex))
+                }
+                else if (this.cbs.conflictChoice == CBS.ConflictChoice.CARDINAL_MDD_THEN_MERGE_EARLY_MOST_CONFLICTING_AND_SMALLEST_GROUP)
+                {
+                    //i = CardinalShouldMerge.ToArray().IndexOfMax(tuple => conflicts / (1 << (this.GetGroupSize(tuple.agentAIndex) + this.GetGroupSize(tuple.agentBIndex) - 1)));
+                    //...
+                    throw new Exception("Unexpected");
+                }
+                else
+                    throw new Exception("Unexpected");
+                var tuple = CardinalShouldMerge[i];
+                CardinalShouldMerge.RemoveAt(i);
+                Debug.WriteLine("Chose a cardinal conflict between agents that should be merged");
+                this.nextConflictCouldBeCardinal = (Cardinal.Count != 0) ||
+                                                    (PossiblyCardinalFirstHasMddSecondCannot.Count != 0) ||
+                                                    (PossiblyCardinalBothCannotBuildMdd.Count != 0);
+                var cardinal = FindConflict(tuple.agentAIndex, tuple.agentBIndex, tuple.conflictTime, groups);
+                cardinal.willCostIncreaseForAgentA = CbsConflict.WillCostIncrease.YES;
+                cardinal.willCostIncreaseForAgentB = CbsConflict.WillCostIncrease.YES;
+                yield return cardinal;
+            }
+
+            // 1.99. yield cardinal conflicts
+            while (Cardinal.Count != 0)
+            {
+                Debug.WriteLine("Chose a cardinal conflict");
+                var tuple = Cardinal.Dequeue();
+                this.nextConflictCouldBeCardinal = (Cardinal.Count != 0) ||
+                                                    (PossiblyCardinalFirstHasMddSecondCannot.Count != 0) ||
+                                                    (PossiblyCardinalBothCannotBuildMdd.Count != 0);
+                var cardinal = FindConflict(tuple.agentAIndex, tuple.agentBIndex, tuple.conflictTime, groups);
+                cardinal.willCostIncreaseForAgentA = CbsConflict.WillCostIncrease.YES;
+                cardinal.willCostIncreaseForAgentB = CbsConflict.WillCostIncrease.YES;
+                yield return cardinal;
+            }
+
+            // 2. No cardinal conflicts that should be resolved with a merge and no cardinal conflicts.
+            //    Build an MDD and re-check its agent's conflicts.
+            if (PossiblyCardinalFirstHasMddSecondDoesNotButCan.Count != 0)
+            {
+                //   a. Get one conflict from PossiblyCardinalFirstHasMddSecondDoesNotButCan and build the second agent's
+                //      MDD.
+                int agentToBuildAnMddFor = PossiblyCardinalFirstHasMddSecondDoesNotButCan.Dequeue().agentBIndex;
+                this.buildMddForAgentWithItsCurrentCost(agentToBuildAnMddFor);
+                //   b. Remove other conflicts from PossiblyCardinalFirstHasMddSecondDoesNotButCan where the second
+                //      agent is the one we built an MDD for (in all of those, the first agent's index is lower than the second's,
+                //      since we could build an MDD for it).
+                PossiblyCardinalFirstHasMddSecondDoesNotButCan = new Queue<(int agentAIndex, int agentBIndex, int conflictTime)>(
+                        PossiblyCardinalFirstHasMddSecondDoesNotButCan.Where(tuple => tuple.agentBIndex != agentToBuildAnMddFor));
+                //   c. Remove conflicts from PossiblyCardinalFirstCanBuildMdd where the first or second agent is the one we
+                //      built the MDD for.
+                PossiblyCardinalFirstCanBuildMdd = new Queue<(int agentAIndex, int agentBIndex, int conflictTime)>(
+                    PossiblyCardinalFirstCanBuildMdd.Where(
+                        tuple => (tuple.agentBIndex != agentToBuildAnMddFor) && (tuple.agentAIndex != agentToBuildAnMddFor)));
+                //   d. Remove conflicts from NotCardinalMaybeSemi where the second agent is the one we
+                //      built the MDD for
+                NotCardinalMaybeSemi = new Queue<(int agentAIndex, int agentBIndex, int conflictTime)>(
+                    NotCardinalMaybeSemi.Where(tuple => tuple.agentBIndex != agentToBuildAnMddFor));
+                //   e. No need to check for the agent's conflicts in PossiblyCardinalFirstHasMddSecondCannot,
+                //      PossiblyCardinalBothCannotBuildMdd, NotCardinalNotSemi, SemiCardinal
+                //   f. Enter the agent into AgentIndexesWaitingToCheckTheirConflictsForCardinality. 
+                AgentIndexesWaitingToCheckTheirConflictsForCardinality.Enqueue(agentToBuildAnMddFor);
+                continue;
+            }
+
+            // 3. Build an MDD for an agent and re-check its conflicts
+            if (PossiblyCardinalFirstCanBuildMdd.Count != 0)
+            {
+                //   a. Get one conflict from PossiblyCardinalFirstCanBuildMdd and build the first agent's
+                // MDD.
+                int agentToBuildAnMddFor = PossiblyCardinalFirstCanBuildMdd.Dequeue().agentAIndex;
+                this.buildMddForAgentWithItsCurrentCost(agentToBuildAnMddFor);
+                //   b. Remove other conflicts from PossiblyCardinalFirstHasMddSecondDoesNotButCan where the second
+                //      agent is the one we built an MDD for (in all of those, the first agent's index is lower than the second's,
+                //      since we could build an MDD for it).
+                PossiblyCardinalFirstHasMddSecondDoesNotButCan = new Queue<(int agentAIndex, int agentBIndex, int conflictTime)>(
+                        PossiblyCardinalFirstHasMddSecondDoesNotButCan.Where(tuple => tuple.agentBIndex != agentToBuildAnMddFor));
+                //   c. Remove conflicts from PossiblyCardinalFirstCanBuildMdd where the first or second agent is the one we
+                //      built the MDD for.
+                PossiblyCardinalFirstCanBuildMdd = new Queue<(int agentAIndex, int agentBIndex, int conflictTime)>(
+                    PossiblyCardinalFirstCanBuildMdd.Where(
+                        tuple => (tuple.agentBIndex != agentToBuildAnMddFor) && (tuple.agentAIndex != agentToBuildAnMddFor)));
+                //   d. Remove conflicts from NotCardinalMaybeSemi where the second agent is the one we
+                //      built the MDD for
+                NotCardinalMaybeSemi = new Queue<(int agentAIndex, int agentBIndex, int conflictTime)>(
+                    NotCardinalMaybeSemi.Where(tuple => tuple.agentBIndex != agentToBuildAnMddFor));
+                //   e. No need to check for the agent's conflicts in PossiblyCardinalFirstHasMddSecondCannot,
+                //      PossiblyCardinalBothCannotBuildMdd, NotCardinalNotSemi, SemiCardinal
+                //   f. Enter the agent into AgentIndexesWaitingToCheckTheirConflictsForCardinality. 
+                AgentIndexesWaitingToCheckTheirConflictsForCardinality.Enqueue(agentToBuildAnMddFor);
+                continue;
+            }
+
+            break; // No more queues to loot
+        }
+
+        // Yield the possibly cardinal conflicts where we can't build an MDD for the second agent
+        while (PossiblyCardinalFirstHasMddSecondCannot.Count != 0)
+        {
+            Debug.WriteLine("Checking for cardinality via a lookahead...");
+            var tuple = PossiblyCardinalFirstHasMddSecondCannot.Dequeue();
+            this.nextConflictCouldBeCardinal = (PossiblyCardinalFirstHasMddSecondCannot.Count != 0) ||
+                                                (PossiblyCardinalBothCannotBuildMdd.Count != 0);
+            var possiblyCardinal = FindConflict(tuple.agentAIndex, tuple.agentBIndex, tuple.conflictTime, groups);
+            possiblyCardinal.willCostIncreaseForAgentA = CbsConflict.WillCostIncrease.YES;
+            possiblyCardinal.willCostIncreaseForAgentB = CbsConflict.WillCostIncrease.MAYBE;
+            yield return possiblyCardinal;
+        }
+
+        // Yield the possibly cardinal conflicts where we can't build an MDD for either agent
+        while (PossiblyCardinalBothCannotBuildMdd.Count != 0)
+        {
+            Debug.WriteLine("Checking for cardinality via a lookahead...");
+            var tuple = PossiblyCardinalBothCannotBuildMdd.Dequeue();
+            this.nextConflictCouldBeCardinal = PossiblyCardinalBothCannotBuildMdd.Count != 0;
+            var possiblyCardinal = FindConflict(tuple.agentAIndex, tuple.agentBIndex, tuple.conflictTime, groups);
+            possiblyCardinal.willCostIncreaseForAgentA = CbsConflict.WillCostIncrease.MAYBE;
+            possiblyCardinal.willCostIncreaseForAgentB = CbsConflict.WillCostIncrease.MAYBE;
+            yield return possiblyCardinal;
+        }
+
+        this.nextConflictCouldBeCardinal = false;
+
+        // Yield semi cardinal conflicts
+        while (SemiCardinal.Count != 0)
+        {
+            Debug.WriteLine("Settling for a semi-cardinal conflict.");
+            var tuple = SemiCardinal.Dequeue();
+            var semiCardinal = FindConflict(tuple.agentAIndex, tuple.agentBIndex, tuple.conflictTime, groups);
+            semiCardinal.willCostIncreaseForAgentA = CbsConflict.WillCostIncrease.YES;
+            semiCardinal.willCostIncreaseForAgentB = CbsConflict.WillCostIncrease.NO;
+            yield return semiCardinal;
+        }
+
+        // Yield the non cardinal conflicts, possibly semi first
+        while (NotCardinalMaybeSemi.Count != 0)
+        {
+            Debug.WriteLine("No cardinal conflict found. This one's possibly a semi cardinal conflict.");
+            var tuple = NotCardinalMaybeSemi.Dequeue();
+            var conflict = FindConflict(tuple.agentAIndex, tuple.agentBIndex, tuple.conflictTime, groups);
+            conflict.willCostIncreaseForAgentA = CbsConflict.WillCostIncrease.NO;
+            conflict.willCostIncreaseForAgentB = CbsConflict.WillCostIncrease.MAYBE;
+            yield return conflict;
+        }
+
+        while (NotCardinalNotSemi.Count != 0)
+        {
+            Debug.WriteLine("Non-cardinal conflict chosen");
+            var tuple = NotCardinalNotSemi.Dequeue();
+            var conflict = FindConflict(tuple.agentAIndex, tuple.agentBIndex, tuple.conflictTime, groups);
+            conflict.willCostIncreaseForAgentA = CbsConflict.WillCostIncrease.NO;
+            conflict.willCostIncreaseForAgentB = CbsConflict.WillCostIncrease.NO;
+            yield return conflict;
+        }
+
+        while (NonCardinalShouldMerge.Count != 0)  // Yield those last to give them a chance to be resolved indirectly
+        {
+            Debug.WriteLine("A non-cardinal conflict between agents that should be merged was chosen");
+            var tuple = NonCardinalShouldMerge.Dequeue();
             var conflict = FindConflict(tuple.agentAIndex, tuple.agentBIndex, tuple.conflictTime, groups);
             conflict.willCostIncreaseForAgentA = CbsConflict.WillCostIncrease.NO;
             conflict.willCostIncreaseForAgentB = CbsConflict.WillCostIncrease.NO;
@@ -1816,7 +2306,7 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
         // this.mdds is kept unchanged too since the cost of the replanned (meta-)agent
         // didn't change and we added no constraints.
 
-        this.ChooseConflict(); // child probably hasn't chosen a conflict (and will never get a chance to),
+        this.ChooseConflict();  // child probably hasn't chosen a conflict (and will never get a chance to),
                                 // need to choose the new conflict to work on.
                                 // (if child somehow had a conflict already, ChooseConflict does nothing)
                                 // We can't just continue the node's conflict iteration since

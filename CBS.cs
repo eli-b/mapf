@@ -127,7 +127,7 @@ public class CBS : ICbsSolver, IHeuristicSolver<CbsNode>, IIndependenceDetection
     protected ICbsSolver solver;
     protected ICbsSolver singleAgentSolver;
     public int mergeThreshold;
-    protected int minSolutionTimeStep;
+    public int minSolutionTimeStep;
     protected int maxSizeGroup;
     protected int accMaxSizeGroup;
     public BypassStrategy bypassStrategy;
@@ -141,6 +141,8 @@ public class CBS : ICbsSolver, IHeuristicSolver<CbsNode>, IIndependenceDetection
         MOST_CONFLICTING_SMALLEST_AGENTS,
         CARDINAL_MDD,
         CARDINAL_LOOKAHEAD,
+        CARDINAL_MDD_THEN_MERGE_EARLY_MOST_CONFLICTING_SMALLEST_GROUP,
+        CARDINAL_MDD_THEN_MERGE_EARLY_MOST_CONFLICTING_AND_SMALLEST_GROUP
     }
     public enum BypassStrategy : byte
     {
@@ -205,7 +207,9 @@ public class CBS : ICbsSolver, IHeuristicSolver<CbsNode>, IIndependenceDetection
         if (Constants.costFunction != Constants.CostFunction.SUM_OF_COSTS)
         {
             Trace.Assert(conflictChoice != ConflictChoice.CARDINAL_MDD &&
-                         conflictChoice != ConflictChoice.CARDINAL_LOOKAHEAD,  // TODO: Might be OK. Need to look at it.
+                         conflictChoice != ConflictChoice.CARDINAL_LOOKAHEAD &&
+                         conflictChoice != ConflictChoice.CARDINAL_MDD_THEN_MERGE_EARLY_MOST_CONFLICTING_SMALLEST_GROUP &&
+                         conflictChoice != ConflictChoice.CARDINAL_MDD_THEN_MERGE_EARLY_MOST_CONFLICTING_AND_SMALLEST_GROUP,  // TODO: Might be OK. Need to look at it.
 		                 "Under makespan, increasing the cost for a single agent might not increase the cost for the solution." +
 		                 "Before this strategy is enabled we need to add a consideration of whether the agent whose cost will " +
 		                 "increase has the highest cost in the solution first");
@@ -423,7 +427,11 @@ public class CBS : ICbsSolver, IHeuristicSolver<CbsNode>, IIndependenceDetection
         else if (this.conflictChoice == ConflictChoice.CARDINAL_MDD)
             variants += " + PC";
         else if (this.conflictChoice == ConflictChoice.CARDINAL_LOOKAHEAD)
-            variants += " choosing cardinal conflicts using lookahead";
+            variants += " + PC choosing cardinal conflicts using lookahead";
+        else if (this.conflictChoice == ConflictChoice.CARDINAL_MDD_THEN_MERGE_EARLY_MOST_CONFLICTING_SMALLEST_GROUP)
+            variants += " + PC MERGE EARLY MOST CONFLICTING SMALLEST GROUP";
+        else if (this.conflictChoice == ConflictChoice.CARDINAL_MDD_THEN_MERGE_EARLY_MOST_CONFLICTING_AND_SMALLEST_GROUP)
+            variants += " + PC MERGE EARLY MOST CONFLICTING & SMALLEST GROUP";
 
         if (this.disableTieBreakingByMinOpsEstimate == true)
             variants += " without smart tie breaking";
@@ -800,7 +808,7 @@ public class CBS : ICbsSolver, IHeuristicSolver<CbsNode>, IIndependenceDetection
             }
 
 
-            currentNode.ChooseConflict();
+            currentNode.ChooseConflict();  // Does nothing if this node has already been partially expanded before
 
             // Notice that even though we may discover cardinal conflicts in hindsight later,
             // there would be no point in pushing their node back at that point,
@@ -1507,7 +1515,10 @@ public class CBS : ICbsSolver, IHeuristicSolver<CbsNode>, IIndependenceDetection
             }
             // "Path-Max Plus"
             if (node.minimumVertexCover > 0 &&
-                (this.conflictChoice == ConflictChoice.CARDINAL_MDD || this.conflictChoice == ConflictChoice.CARDINAL_LOOKAHEAD))
+                (this.conflictChoice == ConflictChoice.CARDINAL_MDD || this.conflictChoice == ConflictChoice.CARDINAL_LOOKAHEAD ||
+                 this.conflictChoice == ConflictChoice.CARDINAL_MDD_THEN_MERGE_EARLY_MOST_CONFLICTING_SMALLEST_GROUP ||
+                 this.conflictChoice == ConflictChoice.CARDINAL_MDD_THEN_MERGE_EARLY_MOST_CONFLICTING_AND_SMALLEST_GROUP
+                 ))
             {
                 child.h = (ushort)Math.Max(child.h, node.minimumVertexCover - 1);  // -1 because we've just resolved a cardinal conflict.
                                                                                     // Even if the cost increased by more than 1 for the child, this is still our estimate, based on all the other conflicts
