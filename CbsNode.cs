@@ -1165,8 +1165,7 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
                         CbsConflict cardinal = FindConflict(agentIndex, conflictingAgentIndex, conflictTime);
                         cardinal.willCostIncreaseForAgentA = CbsConflict.WillCostIncrease.YES;
                         cardinal.willCostIncreaseForAgentB = CbsConflict.WillCostIncrease.YES;
-                        // No need to set this.nextConflictCouldBeCardinal to true.
-                        // This conflict is cardinal so the solver has no reason to cycle conflicts.
+                        this.nextConflictCouldBeCardinal = false;  // Don't cycle conflicts even if the cost doesn't increase (can happen if this is resolved via a merge operation because it also removes some constraints)
                         yield return cardinal;
                     }
                 }
@@ -1331,8 +1330,11 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
                                         cardinal.willCostIncreaseForAgentA = CbsConflict.WillCostIncrease.YES;
                                         cardinal.willCostIncreaseForAgentB = CbsConflict.WillCostIncrease.YES;
                                         this.h = Math.Max(this.h, 1);  // The children's cost will be at least 1 more than this node's cost
-                                        // No need to set this.nextConflictCouldBeCardinal to true.
-                                        // This conflict is cardinal so the solver has no reason to cycle conflicts.
+                                        this.nextConflictCouldBeCardinal = false;  // We don't want CBS to cycle conflicts after this one.
+                                                                                   // This could happen if the conflict is resolved via a merge
+                                                                                   // and the conflicting agents already have some constraints
+                                                                                   // to avoid each other that have already increased the cost
+                                                                                   // of their paths
                                         yield return cardinal;
                                         continue;
                                     }
