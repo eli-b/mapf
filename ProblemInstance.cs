@@ -642,48 +642,66 @@ public class ProblemInstance
     }
 
     /// <summary>
-    /// Exports a problem instance to a file in the old combined map+agents format
+    /// Exports a problem instance to a file. The format depends on the suffix of the given filename.
     /// </summary>
     /// <param name="fileName"></param>
-    public void Export(string fileName)
+    /// <param name="mapFileName">For including in .scen file format data</param>
+    public void Export(string fileName, string mapFileName = null)
     {
         TextWriter output = new StreamWriter(Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "..", "Instances", fileName));
-        // Output the instance ID
-        output.WriteLine($"{this.instanceId},{this.gridName}");
 
-        // Output the grid
-        output.WriteLine("Grid:");
-        output.WriteLine($"{this.grid.Length},{this.grid[0].Length}");
-                        
-        for (int i = 0; i < this.grid.Length; i++)
+        if (fileName.EndsWith(".scen"))
         {
-            for (int j = 0; j < this.grid[0].Length; j++)
+            output.WriteLine("version 1");
+
+            if (mapFileName == null)
+                throw new Exception("Map file name needed for .scen format");
+
+            foreach (var agentState in this.agents)
             {
-                if (this.grid[i][j] == true)
-                    output.Write('@');
-                else
-                    output.Write('.');
-                    
+                // Output all agent as block 1, with optimal cost -1
+                output.WriteLine($"{1}\t{mapFileName}\t{grid[0].Length}\t{grid.Length}\t{agentState.lastMove.y}\t{agentState.lastMove.x}\t{agentState.agent.Goal.y}\t{agentState.agent.Goal.x}\t{-1}");
             }
-            output.WriteLine();
         }
-        // Output the agents state
-        output.WriteLine("Agents:");
-        output.WriteLine(this.agents.Length);
-        AgentState state;
-        for(int i = 0 ; i < this.agents.Length ; i++)
+        else if (fileName.EndsWith(".agents"))
         {
-            state = this.agents[i];
-            output.Write(state.agent.agentNum);
-            output.Write(EXPORT_DELIMITER);
-            output.Write(state.agent.Goal.x);
-            output.Write(EXPORT_DELIMITER);
-            output.Write(state.agent.Goal.y);
-            output.Write(EXPORT_DELIMITER);
-            output.Write(state.lastMove.x);
-            output.Write(EXPORT_DELIMITER);
-            output.Write(state.lastMove.y);
-            output.WriteLine();
+            output.WriteLine(this.GetNumOfAgents());
+
+            foreach (var agentState in this.agents)
+            {
+                output.WriteLine($"{agentState.agent.Goal.x},{agentState.agent.Goal.y},{agentState.lastMove.x},{agentState.lastMove.x}");
+            }
+        }
+        else
+        {
+            // Output the instance ID
+            output.WriteLine($"{this.instanceId},{this.gridName}");
+
+            // Output the grid
+            output.WriteLine("Grid:");
+            output.WriteLine($"{this.grid.Length},{this.grid[0].Length}");
+
+            for (int i = 0; i < this.grid.Length; i++)
+            {
+                for (int j = 0; j < this.grid[0].Length; j++)
+                {
+                    if (this.grid[i][j] == true)
+                        output.Write('@');
+                    else
+                        output.Write('.');
+
+                }
+                output.WriteLine();
+            }
+            // Output the agents state
+            output.WriteLine("Agents:");
+            output.WriteLine(this.agents.Length);
+            AgentState state;
+            for (int i = 0; i < this.agents.Length; i++)
+            {
+                state = this.agents[i];
+                output.WriteLine($"{state.agent.agentNum}{EXPORT_DELIMITER}{state.agent.Goal.x}{EXPORT_DELIMITER}{state.agent.Goal.y}{EXPORT_DELIMITER}{state.lastMove.x}{EXPORT_DELIMITER}{state.lastMove.y}");
+            }
         }
         output.Flush();
         output.Close();
