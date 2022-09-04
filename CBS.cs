@@ -178,6 +178,10 @@ public class CBS : ICbsSolver, IHeuristicSolver<CbsNode>, IIndependenceDetection
     /// <param name="disableTieBreakingByMinOpsEstimate"></param>
     /// <param name="lookaheadMaxExpansions"></param>
     /// <param name="mergeCausesRestart"></param>
+    /// <param name="replanSameCostWithMdd"></param>
+    /// <param name="cacheMdds"></param>
+    /// <param name="useOldCost"></param>
+    /// <param name="useCAT"></param>
     public CBS(ICbsSolver singleAgentSolver, ICbsSolver generalSolver,
                                 int mergeThreshold = -1,
                                 BypassStrategy bypassStrategy = BypassStrategy.NONE,
@@ -963,8 +967,9 @@ public class CBS : ICbsSolver, IHeuristicSolver<CbsNode>, IIndependenceDetection
                 // TODO: Save the cost of the group in a table, and use it as a heuristic in the future!
                 child = new CbsNode(this.instance.agents.Length, this.solver,
                                     this.singleAgentSolver, this, node.agentsGroupAssignment);  // This will be the new root node
-                child.MergeGroups(node.agentsGroupAssignment[conflict.agentAIndex],
-                                    node.agentsGroupAssignment[conflict.agentBIndex], fixCounts: false);
+                child.MergeGroups(node.agentsGroupAssignment[conflict.agentAIndex], node.agentsGroupAssignment[conflict.agentBIndex],
+                                  fixCounts: false  // This is a new root node, it doesn't have conflict counts yet
+                                  );
                 this.maxSizeGroup = Math.Max(this.maxSizeGroup, child.GetGroupSize(conflict.agentAIndex));
                 bool solved = child.Solve(this.minSolutionTimeStep);
                 child.h = node.f - child.g;
@@ -1786,6 +1791,13 @@ public class CBS : ICbsSolver, IHeuristicSolver<CbsNode>, IIndependenceDetection
         }
     }
 
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="node"></param>
+    /// <param name="adoptionCandidate"></param>
+    /// <param name="nodeOrigH"></param>
+    /// <returns>Whether the candidate's solution was adopted</returns>
     protected bool AdoptConditionally(CbsNode node, CbsNode adoptionCandidate, int nodeOrigH)
     {
         Debug.WriteLine($"Considering adoption of node hash: {adoptionCandidate.GetHashCode()}.");

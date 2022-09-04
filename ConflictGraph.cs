@@ -117,7 +117,7 @@ public class ConflictGraph
         // agent or deleted, and new edges between the combined agent and other agents might need
         // to be deleted. So we either subtract 2 nodes from the old mvc, or one node, or it
         // stays the same, or we now have to add the combined node to the mvc.
-        // TODO: add support for merge actions by checking the prevMVC-2 option if the last
+        // TODO: add support for merge actions that don't cause a restart by checking the prevMVC-2 option if the last
         //       action was a merge.
         if (KVertexCover(this, prevMVC - 1))
             return prevMVC - 1;

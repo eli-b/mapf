@@ -286,7 +286,7 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
 
     /// <summary>
     /// Solves the entire node - finds a plan for every agent group.
-    /// Since this method is only called for the root of the constraint tree, every agent is in its own group.
+    /// This method is only called for the root of the constraint tree.
     /// </summary>
     /// <param name="depthToReplan"></param>
     /// <returns>Whether solving was successful. Solving fails if a timeout occurs.</returns>
@@ -1234,13 +1234,13 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
         var PossiblyCardinalBothCannotBuildMdd = new Queue<(int agentAIndex, int agentBIndex, int conflictTime)>(this.totalConflictsBetweenInternalAgents);
         var PossiblyCardinalFirstCanBuildMdd = new Queue<(int agentAIndex, int agentBIndex, int conflictTime)>(this.totalConflictsBetweenInternalAgents); // Going over these just get the first element, build its MDD and 
         var AgentIndexesWaitingToCheckTheirConflictsForCardinality = new Queue<int>(Enumerable.Range(0, this.singleAgentPlans.Length)); // Initially go over all conflicting agents.
-                                                                                                                                            // TODO: this will also go over non-conflicting agents harmlessly. Is there an easy way to get a list of agents that have conflicts?
+                                                                                                                                        // TODO: this will also go over non-conflicting agents harmlessly. Is there an easy way to get a list of agents that have conflicts?
         // Positively cardinal conflicts are just yielded immediately
         // Conflicting agents are only entered into a queue once. Only if the conflicting agent with the larger index
         // can have an MDD built and the one with the lower can't, a pair of conflicting agents is entered in reverse.
 
         bool allowAgentOrderFlip = true; // Needed when rechecking agents to signal that we shouldn't 
-                                            // rely on the other end to check a conflict
+                                         // rely on the other end to check a conflict
 
         // Incrementally scan conflicts and build MDDs
         while (true)
@@ -1271,7 +1271,7 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
                             continue;  // Already taken care of
                     }
                     bool otherHasMDD = this.mddNarrownessValues[conflictingAgentIndex] != null ||
-                        this.CopyAppropriateMddFromParent(conflictingAgentIndex);  // If no ancestor has an appropriate MDD, this might be checked multiple times :(
+                        this.CopyAppropriateMddFromParent(conflictingAgentIndex);  // FIXME: If no ancestor has an appropriate MDD, this might be checked multiple times :(
 
                     // Reaching here means either i < conflictingAgentIndex,
                     // or the i'th agent can build an MDD and the conflictingAgentIndex'th can't.
