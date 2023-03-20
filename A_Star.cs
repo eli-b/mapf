@@ -3,6 +3,7 @@ using System.Linq;
 using System.Collections.Generic;
 using System.IO;
 using System.Diagnostics;
+using ExtensionMethods;
 
 namespace mapf;
    
@@ -578,16 +579,9 @@ public class A_Star : ICbsSolver, IMStarSolver, IHeuristicSolver<WorldState>, II
         {
             // Reverse Path-Max (operators are invertible) - BPMX (Felner et al. 2005)
             WorldState parent = node;
-            int maxChildH = -1;
-            int deltaGOfChildWithMaxH = 0;
-            foreach (var child in finalGeneratedNodes)
-            {
-                if (child.h > maxChildH)
-                {
-                    maxChildH = child.h;
-                    deltaGOfChildWithMaxH = child.g - parent.g;
-                }
-            }
+            var childWithMaxH = finalGeneratedNodes.MaxByKeyFunc(child => child.h);
+            int maxChildH = childWithMaxH.h;
+            int deltaGOfChildWithMaxH = childWithMaxH.g - parent.g;
             if (parent.h < maxChildH - deltaGOfChildWithMaxH)
             {
                 int newParentH = maxChildH - deltaGOfChildWithMaxH;

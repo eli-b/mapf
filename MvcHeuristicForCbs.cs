@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -64,7 +64,7 @@ class MvcHeuristicForCbs : ILazyHeuristic<CbsNode>
     /// </summary>
     /// <param name="s"></param>
     /// <param name="target"></param>
-    /// <returns></returns>
+    /// <returns>The heuristic estimate</returns>
     public uint h(CbsNode s, int target)
     {
         Debug.WriteLine($"Computing heuristic estimate for node hash {s.GetHashCode()}");

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Linq;
 
@@ -120,6 +120,8 @@ class MaxIndividualCosts : PDB
         uint maxHeuristic = 0;
         int agentIndexWithMaxEstimate = 0;
         int i = 0;
+        // TODO: Consider adding another extension function like IndexOfMax that also returns the max
+        //       to replace the loop below. Though, it would make debugging less convenient.
         foreach (AgentState state in s.allAgentsState)
         {
             uint heuristic = (uint)instance.GetSingleAgentOptimalCost(state);
