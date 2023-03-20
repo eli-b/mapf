@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Diagnostics;
 using System.Linq;
+using ExtensionMethods;
 
 namespace mapf;
 
@@ -1496,14 +1497,7 @@ public class CBS : ICbsSolver, IHeuristicSolver<CbsNode>, IIndependenceDetection
 
         // Path-Max stage
         // Reverse Path-Max (Mero, 1984) - operators aren't invertible, so we can only take min(h(Ci) + dist(P, Ci)) for h(P) (if it's higher)
-        int minChildSumHAndOperatorCost = int.MaxValue;
-        foreach (var child in children)
-        {
-            if (minChildSumHAndOperatorCost > child.h + (child.g - node.g))
-            {
-                minChildSumHAndOperatorCost = child.h + (child.g - node.g);
-            }
-        }
+        int minChildSumHAndOperatorCost = children.Max(child => child.h + (child.g - node.g));
         if (node.h < minChildSumHAndOperatorCost)
         {
             node.hBonus += minChildSumHAndOperatorCost - node.h;
