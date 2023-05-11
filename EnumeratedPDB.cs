@@ -1,8 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Runtime.Serialization.Formatters.Binary;
-using System.Diagnostics;
+using System.Collections.Generic;  // For List
+using System.IO;  // For BinaryWriter, FileStream
+using System.Diagnostics;  // For Trace.Assert
 
 namespace mapf;
 
@@ -65,7 +64,7 @@ class EnumeratedPDB : PDB
         string next;
         public ulong nextNodesCount;
         public FileStream fsNext;
-        public BinaryFormatter binaryFormatter;
+        public BinaryWriter binaryWriter;
 
         public void Initialize(string q1, string q2)
         {
@@ -79,8 +78,7 @@ class EnumeratedPDB : PDB
             if (fsNext != null)
                 fsNext.Close();
             fsNext = new FileStream(next, FileMode.Create);
-
-            binaryFormatter = new BinaryFormatter();
+            binaryWriter = new BinaryWriter(fsNext);
         }
 
         /// <summary>
@@ -101,25 +99,31 @@ class EnumeratedPDB : PDB
             if (fsQueue != null)
                 fsQueue.Close();
             if (fsNext != null)
+            {
+                binaryWriter.Close();
                 fsNext.Close();
+            }
 
             fsQueue = new FileStream(queue, FileMode.Open, FileAccess.Read);
             fsNext = new FileStream(next, FileMode.Create, FileAccess.Write);
+            binaryWriter = new BinaryWriter(fsNext);
         }
         public void Write(WorldState tws)
         {
-            binaryFormatter.Serialize(fsNext, tws);
+            //binaryWriter.Write(tws);  // TODO: Adapt from BinaryFormatter to BinaryWriter
             nextNodesCount++;
         }
         public void Clear()
         {
             fsQueue.Close();
+            binaryWriter.Close();
             fsNext.Close();
         }
 
         public void Dispose()
         {
             this.fsQueue.Dispose();
+            this.binaryWriter.Dispose();
             this.fsNext.Dispose();
         }
     };
@@ -199,10 +203,12 @@ class EnumeratedPDB : PDB
                 // for this particular domain, this is not true.
 
                 List<WorldState> vChildren = new List<WorldState>();
-                WorldState tws = (WorldState)c.binaryFormatter.Deserialize(c.fsQueue);
+                /*
+                WorldState tws = (WorldState)c.binaryWriter.Deserialize(c.fsQueue);  // TODO: Adapt from BinaryFormatter to BinaryWriter
                 UInt32 nHashParent = hash(tws);
 
                 this.Expand(tws, vChildren);
+                */
 
                 foreach (WorldState i in vChildren)
                 {
