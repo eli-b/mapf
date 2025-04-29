@@ -162,8 +162,8 @@ public class Run : IDisposable
         // Preparing the solvers:
         solvers = new List<ISolver>();
         solvers.Add(new IndependenceDetection(astar, epea, IndependenceDetection.ConflictChoice.FIRST, true, ConflictAvoidanceTable.AvoidanceGoal.MINIMIZE_CONFLICTS)); // EPEA* + ID
-        solvers.Add(new IndependenceDetection(astar, epea, IndependenceDetection.ConflictChoice.SMALLEST_RESULTING_GROUP, true, ConflictAvoidanceTable.AvoidanceGoal.MINIMIZE_LARGEST_CONFLICTING_GROUP_THEN_NUMBER_OF_SUCH_GROUPS)); // EPEA* + ID
-        solvers.Add(new IndependenceDetection(astar, epea, IndependenceDetection.ConflictChoice.LARGEST_RESULTING_GROUP, true, ConflictAvoidanceTable.AvoidanceGoal.MINIMIZE_CONFLICTS)); // EPEA* + ID
+        solvers.Add(new IndependenceDetection(astar, epea, IndependenceDetection.ConflictChoice.MOST_CONFLICTING_SMALLEST_RESULTING_GROUP, true, ConflictAvoidanceTable.AvoidanceGoal.MINIMIZE_LARGEST_CONFLICTING_GROUP_THEN_NUMBER_OF_SUCH_GROUPS)); // EPEA* + ID
+        solvers.Add(new IndependenceDetection(astar, epea, IndependenceDetection.ConflictChoice.LEAST_CONFLICTING_LARGEST_RESULTING_GROUP, true, ConflictAvoidanceTable.AvoidanceGoal.MINIMIZE_CONFLICTS)); // EPEA* + ID
 
         //solvers.Add(new MACBS_WholeTreeThreshold(astar, epea)); // CBS/EPEA*
         //solvers.Add(new MACBS_WholeTreeThreshold(
