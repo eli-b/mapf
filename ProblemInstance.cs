@@ -26,7 +26,7 @@ public class ProblemInstance
     /// <summary>
     /// Contains true at [x][y] if cell (x,y) is an obstacle
     /// </summary>
-    public bool[][] grid;
+    public BitMatrix grid;
 
     /// <summary>
     /// We keep a reference to the array of agents in the original problem.
@@ -92,7 +92,7 @@ public class ProblemInstance
     {
         // Notice selected agents may actually be a completely different set of agents.
         // Not copying instance id. This isn't the same problem.
-        ProblemInstance subproblemInstance = new ProblemInstance(this.parameters);
+        ProblemInstance subproblemInstance = new(this.parameters);
         subproblemInstance.Init(selectedAgents, this.grid, (int)this.numObstacles, (int)this.numLocations, this.cardinality);
         subproblemInstance.singleAgentOptimalCosts = this.singleAgentOptimalCosts; // Each subproblem knows every agent's single shortest paths so this.singleAgentOptimalCosts[agent_num] would easily work
         subproblemInstance.singleAgentOptimalMoves = this.singleAgentOptimalMoves;
@@ -110,19 +110,26 @@ public class ProblemInstance
     /// <param name="nObstacles"></param>
     /// <param name="nLocations"></param>
     /// <param name="cardinality"></param>
-    public void Init(AgentState[] agentStartStates, bool[][] grid, int nObstacles=-1,
+    public void Init(AgentState[] agentStartStates, BitMatrix grid, int nObstacles=-1,
                         int nLocations=-1, int[,] cardinality=null)
     {
         agents = agentStartStates;
         this.grid = grid;
-            
+
         if (nObstacles == -1)
-            numObstacles = (uint)grid.Sum(row => row.Count(x => x));
+        {
+            for (int i = 0; i < grid.ColumnsCount; i++)
+            for (int j = 0; j < grid.RowsCount; j++)
+            {
+                if (grid[i, j])
+                    numObstacles++;
+            }
+        }
         else
             numObstacles = (uint)nObstacles;
 
         if (nLocations == -1)
-            numLocations = ((uint)(grid.Length * grid[0].Length)) - numObstacles;
+            numLocations = ((uint)(grid.ColumnsCount * grid.RowsCount)) - numObstacles;
         else
             numLocations = (uint)nLocations;
             
@@ -287,20 +294,14 @@ public class ProblemInstance
     /// <summary>
     /// Utility function that returns the x dimension of the grid
     /// </summary>
-    public int GetMaxX()
-    {
-        return this.grid.Length;
-    }
+    public int GetMaxX() => grid.ColumnsCount;
 
     /// <summary>
     /// Utility function that returns the y dimension of the grid
     /// </summary>
-    public int GetMaxY()
-    {
-        return this.grid[0].Length;
-    }
+    public int GetMaxY() => grid.RowsCount;
 
-    private static bool[][] readMapFile(string mapFilePath)
+    private static BitMatrix readMapFile(string mapFilePath)
     {
         using (TextReader input = new StreamReader(mapFilePath))
         {
@@ -313,9 +314,9 @@ public class ProblemInstance
         }
     }
 
-    private static bool[][] readBenchmarkMap(TextReader input, string line)
+    private static BitMatrix readBenchmarkMap(TextReader input, string line)
     {
-        bool[][] grid;
+        
         string[] lineParts;
         int maxX, maxY;
         // Read grid dimensions
@@ -329,7 +330,7 @@ public class ProblemInstance
         Trace.Assert(lineParts.Length == 2);
         Trace.Assert(lineParts[0].Equals("width"));
         maxX = int.Parse(lineParts[1]);  // The width is the number of columns
-        grid = new bool[maxY][];
+        BitMatrix grid = new(maxY, maxX);
 
         line = input.ReadLine();
         Trace.Assert(line.StartsWith("map"));
@@ -338,40 +339,38 @@ public class ProblemInstance
         // Read grid
         for (int i = 0; i < maxY; i++)
         {
-            grid[i] = new bool[maxX];
             line = input.ReadLine();
             for (int j = 0; j < maxX; j++)
             {
                 cell = line[j];
                 if (cell == '@' || cell == 'O' || cell == 'T' || cell == 'W' /* Water isn't traversable from land */)
-                    grid[i][j] = true;
+                    grid[i, j] = true;
                 else
-                    grid[i][j] = false;
+                    grid[i, j] = false;
             }
         }
         return grid;
     }
 
 
-    private static bool[][] readLironMap(TextReader input, string line) {
+    private static BitMatrix readLironMap(TextReader input, string line) {
         string[] lineParts;
         lineParts = line.Split(',');
         int maxX = int.Parse(lineParts[0]);
         int maxY = int.Parse(lineParts[1]);
-        bool[][] grid = new bool[maxX][];
+        BitMatrix grid = new(maxX, maxY);
         char cell;
         // Read grid
         for (int i = 0; i < maxX; i++)
         {
-            grid[i] = new bool[maxY];
             line = input.ReadLine();
             for (int j = 0; j < maxY; j++)
             {
                 cell = line[j];
                 if (cell == '1')
-                    grid[i][j] = true;
+                    grid[i, j] = true;
                 else
-                    grid[i][j] = false;
+                    grid[i, j] = false;
             }
         }
         return grid;
@@ -407,7 +406,7 @@ public class ProblemInstance
                 mapfileNameWithoutExtension = Path.GetFileNameWithoutExtension(mapFilePath);
             }
 
-            bool[][] grid = readMapFile(mapFilePath);
+            BitMatrix grid = readMapFile(mapFilePath);
 
             string line;
             string[] lineParts;
@@ -446,7 +445,7 @@ public class ProblemInstance
             }
 
             // Generate the problem instance
-            ProblemInstance instance = new ProblemInstance();
+            ProblemInstance instance = new();
             instance.Init(states, grid);
             instance.instanceId = instanceId;
             instance.gridName = mapfileNameWithoutExtension;
@@ -484,11 +483,11 @@ public class ProblemInstance
                 mapfileName = Path.GetFileNameWithoutExtension(mapFilePath);
 
 
-            bool[][] grid = readMapFile(mapFilePath);
+            BitMatrix grid = readMapFile(mapFilePath);
 
             string line;
             string[] lineParts;
-            List<AgentState> stateList = new List<AgentState>();
+            List<AgentState> stateList = [];
             using (TextReader input = new StreamReader(filePath))
             {
                 // Read the format version number
@@ -521,9 +520,9 @@ public class ProblemInstance
                     mapFileNameRow = lineParts[1];
                     Trace.Assert((mapfileName == mapFileNameRow) || (mapfileName == mapFileNameRow + ".map"), "Row's map name doesn't match map's name");  // Second option is for Omri's scenarios
                     mapRows = int.Parse(lineParts[3]);
-                    Trace.Assert(mapRows == grid.Length, "Row's number of grid rows doesn't match map's");
+                    Trace.Assert(mapRows == grid.ColumnsCount, "Column's number of grid rows doesn't match map's");
                     mapCols = int.Parse(lineParts[2]);
-                    Trace.Assert(mapCols == grid[0].Length, "Row's number of grid columns doesn't match map's");
+                    Trace.Assert(mapCols == grid.RowsCount, "Row's number of grid columns doesn't match map's");
 
                     // Read in the start and goal coordinates.
                     // Note that at first glance, https://movingai.com/benchmarks/formats.html seems to indicate a reverse order of for Y,X,
@@ -531,11 +530,11 @@ public class ProblemInstance
                     // as (column,row) and we invert it.
                     startY = int.Parse(lineParts[4]);
                     startX = int.Parse(lineParts[5]);
-                    if (grid[startX][startY])
+                    if (grid[startX,startY])
                         throw new Exception($"Agent {agentNum} start location ({startX},{startY}) is on an obstacle");
                     goalY = int.Parse(lineParts[6]);
                     goalX = int.Parse(lineParts[7]);
-                    if (grid[goalX][goalY])
+                    if (grid[goalX,goalY])
                         throw new Exception($"Agent {agentNum} goal location ({goalX},{goalY}) is on an obstacle");
                     optimalCost = double.Parse(lineParts[8]);
                     agent = new Agent(goalX, goalY, agentNum);
@@ -546,8 +545,8 @@ public class ProblemInstance
             }
 
             // Generate the problem instance
-            ProblemInstance instance = new ProblemInstance();
-            instance.Init(stateList.ToArray(), grid);
+            ProblemInstance instance = new();
+            instance.Init([.. stateList], grid);
             instance.instanceId = instanceId;
             instance.gridName = mapfileName;
             instance.instanceName = Path.GetFileName(filePath);
@@ -581,20 +580,19 @@ public class ProblemInstance
                 lineParts = line.Split(',');
                 int maxX = int.Parse(lineParts[0]);
                 int maxY = int.Parse(lineParts[1]);
-                bool[][] grid = new bool[maxX][];
+                BitMatrix grid = new(maxX, maxY);
                 // Read grid
                 char cell;
                 for (int i = 0; i < maxX; i++)
                 {
-                    grid[i] = new bool[maxY];
                     line = input.ReadLine();
                     for (int j = 0; j < maxY; j++)
                     {
                         cell = line[j];
                         if (cell == '@' || cell == 'O' || cell == 'T' || cell == 'W' /* Water isn't traversable from land */)
-                            grid[i][j] = true;
+                            grid[i, j] = true;
                         else
-                            grid[i][j] = false;
+                            grid[i, j] = false;
                     }
                 }
 
@@ -660,7 +658,7 @@ public class ProblemInstance
             foreach (var agentState in this.agents)
             {
                 // Output all agent as block 1, with optimal cost -1
-                output.WriteLine($"{1}\t{mapFileName}\t{grid[0].Length}\t{grid.Length}\t{agentState.lastMove.Y}\t{agentState.lastMove.X}\t{agentState.agent.Goal.Y}\t{agentState.agent.Goal.X}\t{-1}");
+                output.WriteLine($"{1}\t{mapFileName}\t{grid.RowsCount}\t{grid.ColumnsCount}\t{agentState.lastMove.Y}\t{agentState.lastMove.X}\t{agentState.agent.Goal.Y}\t{agentState.agent.Goal.X}\t{-1}");
             }
         }
         else if (fileName.EndsWith(".agents"))
@@ -679,13 +677,13 @@ public class ProblemInstance
 
             // Output the grid
             output.WriteLine("Grid:");
-            output.WriteLine($"{this.grid.Length},{this.grid[0].Length}");
+            output.WriteLine($"{this.grid.ColumnsCount},{this.grid.RowsCount}");
 
-            for (int i = 0; i < this.grid.Length; i++)
+            for (int i = 0; i < this.grid.ColumnsCount; i++)
             {
-                for (int j = 0; j < this.grid[0].Length; j++)
+                for (int j = 0; j < this.grid.RowsCount; j++)
                 {
-                    if (this.grid[i][j] == true)
+                    if (this.grid[i, j] == true)
                         output.Write('@');
                     else
                         output.Write('.');
@@ -721,23 +719,22 @@ public class ProblemInstance
         
     private void PrecomputeCardinality()
     {
-        cardinality = new int[grid.Length, grid[0].Length];
+        cardinality = new int[grid.ColumnsCount, grid.RowsCount];
         int maxCardinality = 0;
-        for (uint i = 0; i < grid.Length; ++i)
-            for (uint j = 0; j < grid[i].Length; ++j)
-            {
-                if (grid[i][j])
-                    cardinality[i, j] = -1;
-                else
-                    cardinality[i, j] = maxCardinality++;
-            }
+        for (int i = 0; i < grid.ColumnsCount; ++i)
+        for (int j = 0; j < grid.RowsCount; ++j)
+        {
+            if (grid[i,j])
+                cardinality[i, j] = -1;
+            else
+                cardinality[i, j] = maxCardinality++;
+        }
     }
 
     /// <summary>
     /// Check if the tile is valid, i.e. in the grid and without an obstacle.
     /// NOT checking the direction. A Move could be declared valid even if it came to an edge tile from outside the grid!
     /// </summary>
-    /// <param name="aMove"></param>
     /// <returns>True if the given location is a valid grid location with no obstacles</returns>
     public bool IsValid(Move aMove)
     {
@@ -747,8 +744,6 @@ public class ProblemInstance
     /// <summary>
     /// Also checks if the move is illegal
     /// </summary>
-    /// <param name="toCheck"></param>
-    /// <returns></returns>
     public bool IsValid(TimedMove toCheck)
     {
         if (IsValidTile(toCheck.X, toCheck.Y) == false)
@@ -763,7 +758,7 @@ public class ProblemInstance
             return false;
         if (y < 0 || y >= GetMaxY())
             return false;
-        return !grid[x][y];
+        return !grid[x, y];
     }
 
     public override string ToString()

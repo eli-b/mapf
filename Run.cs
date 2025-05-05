@@ -621,22 +621,21 @@ public class Run : IDisposable
         int y;
         Agent[] aGoals = new Agent[agentsNum];
         AgentState[] aStart = new AgentState[agentsNum];
-        bool[][] grid = new bool[gridSize][];
+        BitMatrix grid = new(gridSize, gridSize);
         bool[][] goals = new bool[gridSize][];
 
         // Generate a random grid
         for (int i = 0; i < gridSize; i++)
         {
-            grid[i] = new bool[gridSize];
             goals[i] = new bool[gridSize];
         }
         for (int i = 0; i < obstaclesNum; i++)
         {
             x = rand.Next(gridSize);
             y = rand.Next(gridSize);
-            if (grid[x][y]) // Already an obstacle
+            if (grid[x, y]) // Already an obstacle
                 i--;
-            grid[x][y] = true;
+            grid[x, y] = true;
         }
 
         // Choose random goal locations
@@ -644,7 +643,7 @@ public class Run : IDisposable
         {
             x = rand.Next(gridSize);
             y = rand.Next(gridSize);
-            if (goals[x][y] || grid[x][y])
+            if (goals[x][y] || grid[x, y])
                 i--;
             else
             {
@@ -723,19 +722,18 @@ public class Run : IDisposable
             int maxY = int.Parse(lineParts[1]);
             line = input.ReadLine();
             Trace.Assert(line.StartsWith("map"));
-            bool[][] grid = new bool[maxX][];
+            BitMatrix grid = new(maxX, maxY);
             char cell;
             for (int i = 0; i < maxX; i++)
             {
-                grid[i] = new bool[maxY];
                 line = input.ReadLine();
                 for (int j = 0; j < maxY; j++)
                 {
                     cell = line[j];
                     if (cell == '@' || cell == 'O' || cell == 'T' || cell == 'W' /* Water isn't traversable from land */)
-                        grid[i][j] = true;
+                        grid[i, j] = true;
                     else
-                        grid[i][j] = false;
+                        grid[i, j] = false;
                 }
             }
 
@@ -753,7 +751,7 @@ public class Run : IDisposable
             {
                 x = rand.Next(maxX);
                 y = rand.Next(maxY);
-                if (goals[x][y] || grid[x][y])
+                if (goals[x][y] || grid[x, y])
                     i--;
                 else
                 {
@@ -768,7 +766,7 @@ public class Run : IDisposable
                 agentStates[i] = new AgentState(agentGoals[i].Goal.X, agentGoals[i].Goal.Y, agentGoals[i]);
             }
 
-            ProblemInstance problem = new ProblemInstance();
+            ProblemInstance problem = new();
             problem.gridName = Path.GetFileNameWithoutExtension(mapFilePath);
             problem.Init(agentStates, grid);
 
@@ -1099,9 +1097,9 @@ public class Run : IDisposable
         // Grid Name col:
         this.resultsWriter.Write(instance.gridName + RESULTS_DELIMITER);
         // Grid Rows col:
-        this.resultsWriter.Write(instance.grid.Length + RESULTS_DELIMITER);
+        this.resultsWriter.Write(instance.grid.ColumnsCount + RESULTS_DELIMITER);
         // Grid Columns col:
-        this.resultsWriter.Write(instance.grid[0].Length + RESULTS_DELIMITER);
+        this.resultsWriter.Write(instance.grid.RowsCount + RESULTS_DELIMITER);
         // Scenario/instance Name col:
         this.resultsWriter.Write(instance.instanceName + RESULTS_DELIMITER);
         // Num Of Agents col:
