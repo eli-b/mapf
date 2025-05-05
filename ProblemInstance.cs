@@ -158,7 +158,7 @@ public class ProblemInstance
             // Create initial state
             var agentStartState = this.agents[agentId];
             var agent = agentStartState.agent;
-            var goalState = new AgentState(agent.Goal.x, agent.Goal.y, -1, -1, agentId);
+            var goalState = new AgentState(agent.Goal.X, agent.Goal.Y, -1, -1, agentId);
             int goalIndex = this.GetCardinality(goalState.lastMove);
             shortestPathLengths[goalIndex] = 0;
             optimalMoves[goalIndex] = new Move(goalState.lastMove);
@@ -173,7 +173,7 @@ public class ProblemInstance
                 {
                     if (IsValid(aMove))
                     {
-                        int entry = cardinality[aMove.x, aMove.y];
+                        int entry = cardinality[aMove.X, aMove.Y];
                         // If move will generate a new or better state - add it to the queue
                         if ((shortestPathLengths[entry] == -1) || (shortestPathLengths[entry] > state.g + 1))
                         {
@@ -223,7 +223,7 @@ public class ProblemInstance
     /// <returns>The length of the shortest path from x,y to the goal of the agent.</returns>
     public int GetSingleAgentOptimalCost(int agentNum, Move move)
     {
-        return this.singleAgentOptimalCosts[agentNum][this.cardinality[move.x, move.y]];
+        return this.singleAgentOptimalCosts[agentNum][this.cardinality[move.X, move.Y]];
     }
 
     /// <summary>
@@ -233,7 +233,7 @@ public class ProblemInstance
     /// <returns>The length of the shortest path between a given agent's location and the goal of that agent</returns>
     public int GetSingleAgentOptimalCost(AgentState agentState)
     {
-        int locationCardinality = this.cardinality[agentState.lastMove.x, agentState.lastMove.y];
+        int locationCardinality = this.cardinality[agentState.lastMove.X, agentState.lastMove.Y];
         return this.singleAgentOptimalCosts[agentState.agent.agentNum][locationCardinality];
     }
 
@@ -244,7 +244,7 @@ public class ProblemInstance
     /// <returns></returns>
     public Move GetSingleAgentOptimalMove(AgentState agentState)
     {
-        int locationCardinality = this.cardinality[agentState.lastMove.x, agentState.lastMove.y];
+        int locationCardinality = this.cardinality[agentState.lastMove.X, agentState.lastMove.Y];
         return this.singleAgentOptimalMoves[agentState.agent.agentNum][locationCardinality];
     }
 
@@ -660,7 +660,7 @@ public class ProblemInstance
             foreach (var agentState in this.agents)
             {
                 // Output all agent as block 1, with optimal cost -1
-                output.WriteLine($"{1}\t{mapFileName}\t{grid[0].Length}\t{grid.Length}\t{agentState.lastMove.y}\t{agentState.lastMove.x}\t{agentState.agent.Goal.y}\t{agentState.agent.Goal.x}\t{-1}");
+                output.WriteLine($"{1}\t{mapFileName}\t{grid[0].Length}\t{grid.Length}\t{agentState.lastMove.Y}\t{agentState.lastMove.X}\t{agentState.agent.Goal.Y}\t{agentState.agent.Goal.X}\t{-1}");
             }
         }
         else if (fileName.EndsWith(".agents"))
@@ -669,7 +669,7 @@ public class ProblemInstance
 
             foreach (var agentState in this.agents)
             {
-                output.WriteLine($"{agentState.agent.Goal.x},{agentState.agent.Goal.y},{agentState.lastMove.x},{agentState.lastMove.x}");
+                output.WriteLine($"{agentState.agent.Goal.X},{agentState.agent.Goal.Y},{agentState.lastMove.X},{agentState.lastMove.X}");
             }
         }
         else
@@ -700,7 +700,7 @@ public class ProblemInstance
             for (int i = 0; i < this.agents.Length; i++)
             {
                 state = this.agents[i];
-                output.WriteLine($"{state.agent.agentNum}{EXPORT_DELIMITER}{state.agent.Goal.x}{EXPORT_DELIMITER}{state.agent.Goal.y}{EXPORT_DELIMITER}{state.lastMove.x}{EXPORT_DELIMITER}{state.lastMove.y}");
+                output.WriteLine($"{state.agent.agentNum}{EXPORT_DELIMITER}{state.agent.Goal.X}{EXPORT_DELIMITER}{state.agent.Goal.Y}{EXPORT_DELIMITER}{state.lastMove.X}{EXPORT_DELIMITER}{state.lastMove.Y}");
             }
         }
         output.Flush();
@@ -716,7 +716,7 @@ public class ProblemInstance
     /// location in our grid.</returns>
     public int GetCardinality(Move move)
     {
-        return cardinality[move.x, move.y];
+        return cardinality[move.X, move.Y];
     }
         
     private void PrecomputeCardinality()
@@ -741,7 +741,7 @@ public class ProblemInstance
     /// <returns>True if the given location is a valid grid location with no obstacles</returns>
     public bool IsValid(Move aMove)
     {
-        return IsValidTile(aMove.x, aMove.y);
+        return IsValidTile(aMove.X, aMove.Y);
     }
 
     /// <summary>
@@ -751,7 +751,7 @@ public class ProblemInstance
     /// <returns></returns>
     public bool IsValid(TimedMove toCheck)
     {
-        if (IsValidTile(toCheck.x, toCheck.y) == false)
+        if (IsValidTile(toCheck.X, toCheck.Y) == false)
             return false;
 
         return true;

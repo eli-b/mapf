@@ -118,7 +118,7 @@ class MddMatchAndPrune
             {
                 ((CostTreeSearchWithEdgesMatrix)this.nodeSolver.solver).edgesMatrix[i,
                                                     parent.allPositions[i].getVertexIndex(),
-                                                    (int) Move.Direction.Wait] =
+                                                    (int) Direction.Wait] =
                     ((CostTreeSearchWithEdgesMatrix)this.nodeSolver.solver).edgesMatrixCounter + 1;
             }
             if (closedList.ContainsKey(parent) == false)
@@ -153,7 +153,7 @@ class MddMatchAndPrune
                     //if not legal
                     int edge = ((CostTreeSearchWithEdgesMatrix)this.nodeSolver.solver).edgesMatrix[i,
                                                                     parent.getVertexIndex(),
-                                                                    (int)node.move.direction /*or parent.move.direction, I'm not sure*/];
+                                                                    (int)node.move.Direction /*or parent.move.direction, I'm not sure*/];
                     if (edge != ((CostTreeSearchWithEdgesMatrix)this.nodeSolver.solver).edgesMatrixCounter + 1)
                     {
                         parentsToDelete[parentI] = parent;

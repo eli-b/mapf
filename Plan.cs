@@ -12,7 +12,7 @@ namespace mapf;
 /// </summary>
 public class Plan
 {
-    private LinkedList<List<Move>> locationsAtTimes;
+    private LinkedList<List<Move>> _locationsAtTimes = [];
 
     /// <summary>
     /// Reconstructs the plan by goind backwards from the goal.
@@ -21,11 +21,11 @@ public class Plan
     public Plan(WorldState goalState)
     {
         WorldState currentNode = goalState;
-        this.locationsAtTimes = new LinkedList<List<Move>>(); // TODO: Initialize list with #agents
+        // TODO: Initialize list with #agents
         while (currentNode != null)
         {
             List<Move> agentMoves = currentNode.GetAgentsMoves();
-            this.locationsAtTimes.AddFirst(agentMoves);
+            _locationsAtTimes.AddFirst(agentMoves);
             currentNode = currentNode.prevStep;
         }
     }
@@ -37,12 +37,12 @@ public class Plan
     public Plan(AgentState goalState)
     {
         AgentState currentNode = goalState;
-        this.locationsAtTimes = new LinkedList<List<Move>>(); // TODO: Initialize list with #agents
+        // TODO: Initialize list with #agents
         while (currentNode != null)
         {
-            var l = new List<Move>();
+            List<Move> l = [];
             l.Add(currentNode.GetMove());
-            this.locationsAtTimes.AddFirst(l);
+            _locationsAtTimes.AddFirst(l);
             currentNode = currentNode.prev;
         }
     }
@@ -50,18 +50,16 @@ public class Plan
     /// <summary>
     /// Assumes all routes are of the same length.
     /// </summary>
-    /// <param name="routePerAgent"></param>
     public Plan(LinkedList<Move>[] routePerAgent)
     {
-        this.locationsAtTimes = new LinkedList<List<Move>>();
         for (int i = 0; i < routePerAgent[0].Count; i++)
         {
-            locationsAtTimes.AddLast(new List<Move>());
+            _locationsAtTimes.AddLast([]);
         }
             
         foreach (LinkedList<Move> agentRoute in routePerAgent)
         {
-            LinkedListNode<List<Move>> locationsAtTime = this.locationsAtTimes.First;
+            LinkedListNode<List<Move>> locationsAtTime = _locationsAtTimes.First;
             foreach (Move agentLocation in agentRoute)
             {
                 locationsAtTime.Value.Add(agentLocation);
@@ -73,51 +71,46 @@ public class Plan
     /// <summary>
     /// Generates a big plan from a collection of smaller plans.
     /// </summary>
-    /// <param name="subplans"></param>
     public Plan(IEnumerable<Plan> subplans)
     {
         int maxSize = subplans.Max(plan => plan.GetSize());
-        this.locationsAtTimes = new LinkedList<List<Move>>();
+        _locationsAtTimes = [];
 
         for (int time = 0; time < maxSize; time++)
         {
-            var allMoves = new List<Move>();
+            List<Move> allMoves = [];
             foreach (Plan plan in subplans)
                 foreach (Move move in plan.GetLocationsAt(time))
                     allMoves.Add(move);
 
-            this.locationsAtTimes.AddLast(allMoves);
+            _locationsAtTimes.AddLast(allMoves);
         }
     }
 
     public Plan(IEnumerable<SinglePlan> subplans) // FIXME: Almost fully duplicates the previous method
     {
         int maxSize = subplans.Max(plan => plan.GetSize());
-        this.locationsAtTimes = new LinkedList<List<Move>>();
 
         for (int time = 0; time < maxSize; time++)
         {
-            var allMoves = new List<Move>();
+            List<Move> allMoves = [];
             foreach (SinglePlan plan in subplans)
             {
                 allMoves.Add(plan.GetLocationAt(time));
             }
 
-            this.locationsAtTimes.AddLast(allMoves);
+            _locationsAtTimes.AddLast(allMoves);
         }
     }
 
     /// <summary>
     /// Medium-depth copy constructor - uses same Move objects.
     /// </summary>
-    /// <param name="cpy"></param>
     public Plan(Plan cpy)
     {
-        this.locationsAtTimes = new LinkedList<List<Move>>();
-
-        foreach (List<Move> cpyStep in cpy.locationsAtTimes)
+        foreach (List<Move> cpyStep in cpy._locationsAtTimes)
         {
-            this.locationsAtTimes.AddLast(cpyStep.ToList<Move>());
+            _locationsAtTimes.AddLast([.. cpyStep]);
         }
     }
 
@@ -126,36 +119,35 @@ public class Plan
     /// If this plan ends where the other starts,
     /// the first timestep of the other plan is skipped.
     /// </summary>
-    /// <param name="other"></param>
     public void ContinueWith(Plan other)
     {
         bool first = true;
-        foreach (List<Move> newLocationsAtTime in other.locationsAtTimes)
+        foreach (List<Move> newLocationsAtTime in other._locationsAtTimes)
         {
             if (first)
             {
                 first = false;
-                if (newLocationsAtTime.SequenceEqual<Move>(this.locationsAtTimes.Last.Value))
+                if (newLocationsAtTime.SequenceEqual<Move>(_locationsAtTimes.Last.Value))
                     continue;
                 else
                     Trace.Assert(false, "Continuing a plan doesn't start from the same state");
             }
-            this.locationsAtTimes.AddLast(newLocationsAtTime);
+            _locationsAtTimes.AddLast(newLocationsAtTime);
         }
     }
 
     public void Check(ProblemInstance problem)
     {
-        SinglePlan[] singles = new SinglePlan[this.locationsAtTimes.First().Count];
+        SinglePlan[] singles = new SinglePlan[_locationsAtTimes.First().Count];
         for (int i = 0; i < singles.Length; i++)
         {
             singles[i] = new SinglePlan(this, i, problem.agents[i].agent.agentNum);
-            foreach ((int time, var move) in singles[i].locationAtTimes.Enumerate())
+            foreach ((int time, var move) in singles[i].LocationAtTimes.Enumerate())
                 Trace.Assert(problem.IsValid(move), $"Plan of agent {i} uses an invalid location {move} at time {time}!");
         }
 
         // Check in every time step that the plans do not collide
-        for (int time = 1; time < this.locationsAtTimes.Count; time++) // Assuming no conflicts exist in time zero.
+        for (int time = 1; time < _locationsAtTimes.Count; time++) // Assuming no conflicts exist in time zero.
         {
             // Check all pairs of agents for a collision at the given time step
             foreach ((int i1, var plan1) in singles.Enumerate())
@@ -180,24 +172,21 @@ public class Plan
     /// <returns>A list of Moves that are the locations of the different agents at the requested time</returns>
     public List<Move> GetLocationsAt(int time)
     {
-        if (time < this.locationsAtTimes.Count)
-            return this.locationsAtTimes.ElementAt(time); // FIXME: Expensive!
+        if (time < _locationsAtTimes.Count)
+            return _locationsAtTimes.ElementAt(time); // FIXME: Expensive!
         else
         {
-            var toCopy = this.locationsAtTimes.Last.Value;
-            var atRest = toCopy.ToList();
+            List<Move> toCopy = _locationsAtTimes.Last.Value;
+            List<Move> atRest = [.. toCopy];
             for (int i = 0; i < atRest.Count; i++)
             {
-                atRest[i] = new Move(atRest[i].x, atRest[i].y, Move.Direction.Wait);
+                atRest[i] = new Move(atRest[i].X, atRest[i].Y, Direction.Wait);
             }
             return atRest;
         }
     }
 
-    public LinkedList<List<Move>> GetLocations()
-    {
-        return this.locationsAtTimes;
-    }
+    public LinkedList<List<Move>> GetLocations() => _locationsAtTimes;
 
     /// <summary>
     /// NOT the cost, which:
@@ -207,10 +196,7 @@ public class Plan
     /// Useful only for iteration over the relevant part of the plan.
     /// </summary>
     /// <returns>The size of the plan, assuming is doesn't end with steps where all agents WAIT at the goal (which should be discounted).</returns>
-    public int GetSize()
-    {
-        return this.locationsAtTimes.Count;
-    }
+    public int GetSize() => _locationsAtTimes.Count;
 
     /// <summary>
     /// Check if this plan collides with another plan at a given time
@@ -219,7 +205,7 @@ public class Plan
     /// <param name="otherPlan">The plan to check against</param>
     public bool IsColliding(int time, Plan otherPlan)
     {
-        List<Move> thisLocations = this.GetLocationsAt(time);
+        List<Move> thisLocations = GetLocationsAt(time);
         List<Move> otherLocations = otherPlan.GetLocationsAt(time);
 
         // TODO: Think of a better implementation of this
@@ -237,7 +223,7 @@ public class Plan
     public void PrintPlanIfShort()
     {
         var planSize = GetSize();
-        var numAgents = this.locationsAtTimes.First.Value.Count;
+        var numAgents = _locationsAtTimes.First.Value.Count;
         if (planSize < 200 && numAgents < 30)
             PrintPlan();
         else if (planSize >= 200)
@@ -252,7 +238,7 @@ public class Plan
     /// </summary>
     public void PrintPlan()
     {
-        foreach (List<Move> locationsAtTime in this.locationsAtTimes)
+        foreach (List<Move> locationsAtTime in _locationsAtTimes)
         {
             Console.Write("|");
             foreach (Move aMove in locationsAtTime)
@@ -265,8 +251,8 @@ public class Plan
 
     public override string ToString()
     {
-        var s = new StringBuilder();
-        foreach (List<Move> locationsAtTime in this.locationsAtTimes)
+        StringBuilder s = new();
+        foreach (List<Move> locationsAtTime in _locationsAtTimes)
         {
             s.Append($"|{String.Join("|", locationsAtTime)}|\n");
         }
@@ -277,7 +263,7 @@ public class Plan
     {
         for (int i = 1; i < until; i++)  // i = 1 because we assume start positions don't overlap
         {
-            List<Move> step = this.GetLocationsAt(i);
+            List<Move> step = GetLocationsAt(i);
             foreach (Move move in step)
             {
                 addTo.Add(new TimedMove(move,i));
@@ -290,8 +276,8 @@ public class Plan
 
 public class SinglePlan
 {
-    public List<Move> locationAtTimes { get; private set; }
-    public int agentNum;
+    public List<Move> LocationAtTimes { get; private set; }
+    public int AgentNum { get; set; }
 
     /// <summary>
     /// Not used
@@ -300,15 +286,15 @@ public class SinglePlan
     /// <param name="agentIndex"></param>
     public SinglePlan(WorldState goalState, int agentIndex)
     {
-        this.agentNum = goalState.allAgentsState[agentIndex].agent.agentNum;
+        AgentNum = goalState.allAgentsState[agentIndex].agent.agentNum;
         WorldState currentNode = goalState;
-        LinkedList<Move> locations = new LinkedList<Move>();
+        LinkedList<Move> locations = [];
         while (currentNode != null)
         {
             locations.AddFirst(currentNode.GetSingleAgentMove(agentIndex));
             currentNode = currentNode.prevStep;
         }
-        this.locationAtTimes = locations.ToList<Move>();
+        LocationAtTimes = [.. locations];
     }
 
     /// <summary>
@@ -319,37 +305,37 @@ public class SinglePlan
     /// <param name="agentNum">To put in the returned SinglePlan</param>
     public SinglePlan(Plan plan, int agentIndex, int agentNum)
     {
-        this.agentNum = agentNum;
-        this.locationAtTimes = new List<Move>();
+        AgentNum = agentNum;
+        LocationAtTimes = [];
         foreach (List<Move> movesAtTimestep in plan.GetLocations())
         {
-            this.locationAtTimes.Add(movesAtTimestep[agentIndex]);
+            LocationAtTimes.Add(movesAtTimestep[agentIndex]);
         }
     }
 
     public SinglePlan(AgentState goalState)
     {
-        this.agentNum = goalState.agent.agentNum;
+        AgentNum = goalState.agent.agentNum;
         AgentState currentNode = goalState;
-        LinkedList<Move> locations = new LinkedList<Move>();
+        LinkedList<Move> locations = [];
         while (currentNode != null)
         {
             locations.AddFirst(currentNode.GetMove());
             currentNode = currentNode.prev;
         }
-        this.locationAtTimes = locations.ToList<Move>();
+        LocationAtTimes = locations.ToList<Move>();
     }
 
     public SinglePlan(LinkedList<Move> route, int agentNum)
     {
-        this.agentNum = agentNum;
-        locationAtTimes = route.ToList<Move>();
+        AgentNum = agentNum;
+        LocationAtTimes = [.. route];
     }
 
     public SinglePlan(SinglePlan cpy)
     {
-        this.locationAtTimes = cpy.locationAtTimes.ToList<Move>(); // Behavior change: used to do a deep copy, with cloned moves.
-        this.agentNum = cpy.agentNum;
+        LocationAtTimes = [.. cpy.LocationAtTimes]; // Behavior change: used to do a deep copy, with cloned moves.
+        AgentNum = cpy.AgentNum;
     }
 
     /// <summary>
@@ -359,12 +345,12 @@ public class SinglePlan
     /// <returns></returns>
     public Move GetLocationAt(int time)
     {
-        if (time < this.locationAtTimes.Count)
-            return this.locationAtTimes[time];
+        if (time < LocationAtTimes.Count)
+            return LocationAtTimes[time];
         else
         {
-            var rest = new TimedMove(this.locationAtTimes[this.locationAtTimes.Count - 1], time);
-            rest.direction = Move.Direction.Wait;
+            var rest = new TimedMove(LocationAtTimes[LocationAtTimes.Count - 1], time);
+            rest.Direction = Direction.Wait;
             return rest;
         }
     }
@@ -374,7 +360,7 @@ public class SinglePlan
         if (obj == null)
             return false;
         SinglePlan other = (SinglePlan)obj;
-        return this.agentNum == other.agentNum && this.locationAtTimes.SequenceEqual<Move>(other.locationAtTimes);
+        return AgentNum == other.AgentNum && LocationAtTimes.SequenceEqual<Move>(other.LocationAtTimes);
     }
 
     public override int GetHashCode()
@@ -382,11 +368,11 @@ public class SinglePlan
         int ret;
         unchecked // wrap-around is fine in hash functions
         {
-            ret = Constants.PRIMES_FOR_HASHING[0] * this.agentNum.GetHashCode();
+            ret = Constants.PRIMES_FOR_HASHING[0] * AgentNum.GetHashCode();
 
             // Hash the contents and order of locationsAtTimes
             int i = 0;
-            foreach (var move in this.locationAtTimes)
+            foreach (var move in LocationAtTimes)
             {
                 ret += Constants.PRIMES_FOR_HASHING[1] * i + Constants.PRIMES_FOR_HASHING[2] * move.GetHashCode();
                 i++;
@@ -404,17 +390,17 @@ public class SinglePlan
     public void ContinueWith(SinglePlan other)
     {
         bool first = true;
-        foreach (Move newLocationAtTime in other.locationAtTimes)
+        foreach (Move newLocationAtTime in other.LocationAtTimes)
         {
             if (first)
             {
                 first = false;
-                if (this.locationAtTimes[this.locationAtTimes.Count - 1].Equals(newLocationAtTime))
+                if (LocationAtTimes[^1].Equals(newLocationAtTime))
                     continue;
                 else
                     Trace.Assert(false, "Continuing a plan doesn't start from the same state");
             }
-            this.locationAtTimes.Add(newLocationAtTime);
+            LocationAtTimes.Add(newLocationAtTime);
         }
     }
 
@@ -427,8 +413,8 @@ public class SinglePlan
     /// <returns>The size of the plan, excluding WAITs at the goal</returns>
     public int GetSize()
     {
-        int lastNonWaitIndex = this.locationAtTimes.Count - 1;
-        while (lastNonWaitIndex != 0 && locationAtTimes[lastNonWaitIndex].direction == Move.Direction.Wait)
+        int lastNonWaitIndex = LocationAtTimes.Count - 1;
+        while (lastNonWaitIndex != 0 && LocationAtTimes[lastNonWaitIndex].Direction == Direction.Wait)
             lastNonWaitIndex--;
         return lastNonWaitIndex + 1;
     }
@@ -443,18 +429,18 @@ public class SinglePlan
         {
             if (Constants.sumOfCostsVariant == Constants.SumOfCostsVariant.ORIG)
             {
-                return this.GetSize() - 1;
+                return GetSize() - 1;
             }
             else if (Constants.sumOfCostsVariant == Constants.SumOfCostsVariant.WAITING_AT_GOAL_ALWAYS_FREE)
             {
                 int cost = 0;
-                Move goal = this.locationAtTimes.Last<Move>(); // Assuming the plan ends at the goal
-                for (int i = 1; i < this.locationAtTimes.Count; i++) // The beginning position isn't a move
+                Move goal = LocationAtTimes.Last<Move>(); // Assuming the plan ends at the goal
+                for (int i = 1; i < LocationAtTimes.Count; i++) // The beginning position isn't a move
                 {
-                    Move move = this.locationAtTimes[i];
-                    if (move.x == goal.x &&
-                        move.y == goal.y &&
-                        move.direction == Move.Direction.Wait) // Waiting at the goal is free
+                    Move move = LocationAtTimes[i];
+                    if (move.X == goal.X &&
+                        move.Y == goal.Y &&
+                        move.Direction == Direction.Wait) // Waiting at the goal is free
                         continue;
                     cost += 1;
                 }
@@ -463,7 +449,7 @@ public class SinglePlan
         }
         else if (Constants.costFunction == Constants.CostFunction.MAKESPAN_THEN_SUM_OF_COSTS)
         {
-            return this.GetSize() - 1;
+            return GetSize() - 1;
         }
         return 0; // To quiet the compiler
     }
@@ -475,7 +461,7 @@ public class SinglePlan
     /// <param name="otherPlan">The plan to check against</param>
     public bool IsColliding(int time, SinglePlan otherPlan)
     {
-        Move thisLocation = this.GetLocationAt(time);
+        Move thisLocation = GetLocationAt(time);
         Move otherLocation = otherPlan.GetLocationAt(time);
 
         if (thisLocation.IsColliding(otherLocation) == true) // IsColliding isn't virtual,
@@ -492,18 +478,18 @@ public class SinglePlan
     /// </summary>
     public void DebugPrint()
     {
-        for (int time = 0; time < this.locationAtTimes.Count; time++)
+        for (int time = 0; time < LocationAtTimes.Count; time++)
         {
-            Debug.WriteLine($"|{this.GetLocationAt(time)}|");
+            Debug.WriteLine($"|{GetLocationAt(time)}|");
         }
     }
 
     public override string ToString()
     {
         string s = "";
-        for (int time = 0; time < this.locationAtTimes.Count; time++)
+        for (int time = 0; time < LocationAtTimes.Count; time++)
         {
-            s += $"|{this.GetLocationAt(time)}|\n";
+            s += $"|{GetLocationAt(time)}|\n";
         }
         return s;
     }

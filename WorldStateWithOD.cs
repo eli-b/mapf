@@ -137,8 +137,8 @@ public class WorldStateWithOD : WorldState
                 bool mightCollideLater = false;
                 for (int j = this.agentTurn; j < this.allAgentsState.Length; j++)
                 {
-                    if (this.allAgentsState[i].lastMove.x == this.allAgentsState[j].lastMove.x &&
-                        this.allAgentsState[i].lastMove.y == this.allAgentsState[j].lastMove.y) // Can't just remove the direction and use IsColliding since the moves' time is different, so they'll never collide
+                    if (this.allAgentsState[i].lastMove.X == this.allAgentsState[j].lastMove.X &&
+                        this.allAgentsState[i].lastMove.Y == this.allAgentsState[j].lastMove.Y) // Can't just remove the direction and use IsColliding since the moves' time is different, so they'll never collide
                     {
                         mightCollideLater = true;
                         break;
@@ -147,9 +147,9 @@ public class WorldStateWithOD : WorldState
 
                 if (mightCollideLater == true) // Then check the direction too
                 {
-                    if (this.allAgentsState[i].lastMove.direction != Move.Direction.NO_DIRECTION &&
-                            that.allAgentsState[i].lastMove.direction != Move.Direction.NO_DIRECTION &&
-                            this.allAgentsState[i].lastMove.direction != that.allAgentsState[i].lastMove.direction) // Can't just use this.allAgentsState[i].lastMove.Equals(that.allAgentsState[i].lastMove) because TimedMoves don't ignore the time.
+                    if (this.allAgentsState[i].lastMove.Direction != Direction.NO_DIRECTION &&
+                            that.allAgentsState[i].lastMove.Direction != Direction.NO_DIRECTION &&
+                            this.allAgentsState[i].lastMove.Direction != that.allAgentsState[i].lastMove.Direction) // Can't just use this.allAgentsState[i].lastMove.Equals(that.allAgentsState[i].lastMove) because TimedMoves don't ignore the time.
                         return false;
                 }
             }

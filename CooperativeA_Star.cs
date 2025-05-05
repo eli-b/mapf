@@ -171,7 +171,7 @@ class CooperativeAStar : IStatisticsCsvWriter, ISolver
                 bool valid = true;
                 for (int i = node.lastMove.time ; i <= maxPathCostSoFar; i++)
                 {
-                    queryTimedMove.setup(node.lastMove.x, node.lastMove.y, Move.Direction.NO_DIRECTION, i);
+                    queryTimedMove.setup(node.lastMove.X, node.lastMove.Y, Direction.NO_DIRECTION, i);
                     if (reservationTable.Contains(queryTimedMove))
                         valid = false;
                 }
@@ -180,7 +180,7 @@ class CooperativeAStar : IStatisticsCsvWriter, ISolver
                     this.paths[agent.agent.agentNum] = new SinglePlan(node);
                     reservePath(node);
                     totalcost += node.lastMove.time;
-                    parked.Add(new Move(node.lastMove.x, node.lastMove.y, Move.Direction.NO_DIRECTION), node.lastMove.time);
+                    parked.Add(new Move(node.lastMove.X, node.lastMove.Y, Direction.NO_DIRECTION), node.lastMove.time);
                     return true;
                 }
             }
@@ -232,7 +232,7 @@ class CooperativeAStar : IStatisticsCsvWriter, ISolver
             return false;
         if (move.IsColliding(this.reservationTable))
             return false;
-        this.queryMove.setup(move.x, move.y, Move.Direction.NO_DIRECTION);
+        this.queryMove.Setup(move.X, move.Y, Direction.NO_DIRECTION);
         if (parked.ContainsKey(this.queryMove) && parked[this.queryMove] <= move.time)
             return false;
         return true;

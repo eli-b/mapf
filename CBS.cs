@@ -334,7 +334,7 @@ public class CBS : ICbsSolver, IHeuristicSolver<CbsNode>, IIndependenceDetection
 
         this.SetGlobals();
 
-        CbsNode root = new CbsNode(instance.agents.Length, this.solver, this.singleAgentSolver, this);  // Problem instance and various strategy data is all passed under 'this'.
+        CbsNode root = new(instance.agents.Length, this.solver, this.singleAgentSolver, this);  // Problem instance and various strategy data is all passed under 'this'.
         // Solve the root node
         bool solved = root.Solve(minSolutionTimeStep);
 

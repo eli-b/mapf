@@ -128,7 +128,7 @@ class WorldStateForPartialExpansion : WorldState
             {
                 if (isValid(check, noMoves, this.makespan + 1, i, this, this) == false)  // Is this move by itself invalid because of constraints or obstacles
                 {
-                        singleAgentDeltaFs[i][(int)check.direction] = byte.MaxValue;
+                        singleAgentDeltaFs[i][(int)check.Direction] = byte.MaxValue;
                 }
                 else
                 {
@@ -137,20 +137,20 @@ class WorldStateForPartialExpansion : WorldState
                     if (Constants.sumOfCostsVariant == Constants.SumOfCostsVariant.ORIG)
                     {
                         if (hBefore != 0)
-                            singleAgentDeltaFs[i][(int)check.direction] = (byte)(hAfter - hBefore + 1); // h difference + g difference in this specific domain
+                            singleAgentDeltaFs[i][(int)check.Direction] = (byte)(hAfter - hBefore + 1); // h difference + g difference in this specific domain
                         else if (hAfter != 0) // If agent moved from its goal we must count and add all the steps it was stationed at the goal, since they're now part of its g difference
-                            singleAgentDeltaFs[i][(int)check.direction] = (byte)(hAfter - hBefore + makespan - allAgentsState[i].arrivalTime + 1);
+                            singleAgentDeltaFs[i][(int)check.Direction] = (byte)(hAfter - hBefore + makespan - allAgentsState[i].arrivalTime + 1);
                         else
-                            singleAgentDeltaFs[i][(int)check.direction] = 0; // This is a WAIT move at the goal.
+                            singleAgentDeltaFs[i][(int)check.Direction] = 0; // This is a WAIT move at the goal.
                     }
                     else if (Constants.sumOfCostsVariant == Constants.SumOfCostsVariant.WAITING_AT_GOAL_ALWAYS_FREE)
                     {
                         if (hBefore == 0 && hAfter == 0)
-                            singleAgentDeltaFs[i][(int)check.direction] = 0; // This is a WAIT move at the goal.
+                            singleAgentDeltaFs[i][(int)check.Direction] = 0; // This is a WAIT move at the goal.
                         else
-                            singleAgentDeltaFs[i][(int)check.direction] = (byte)(hAfter - hBefore + 1); // h difference + g difference in this specific domain
+                            singleAgentDeltaFs[i][(int)check.Direction] = (byte)(hAfter - hBefore + 1); // h difference + g difference in this specific domain
                     }
-                    singleAgentMaxLegalDeltaF = Math.Max(singleAgentMaxLegalDeltaF, singleAgentDeltaFs[i][(int)check.direction]);
+                    singleAgentMaxLegalDeltaF = Math.Max(singleAgentMaxLegalDeltaF, singleAgentDeltaFs[i][(int)check.Direction]);
                 }
             }
 
@@ -245,7 +245,7 @@ class WorldStateForPartialExpansion : WorldState
             Trace.Assert(false,
                             $"Remaining deltaF is ushort.MaxValue, a reserved value with special meaning. agentIndex={agentIndex}");
 
-        byte lastMoveDeltaF = this.singleAgentDeltaFs[agentIndex][(int)this.allAgentsState[agentIndex].lastMove.direction];
+        byte lastMoveDeltaF = this.singleAgentDeltaFs[agentIndex][(int)this.allAgentsState[agentIndex].lastMove.Direction];
         if (lastMoveDeltaF != byte.MaxValue && this.remainingDeltaF >= lastMoveDeltaF)
             this.remainingDeltaF -= lastMoveDeltaF;
         else

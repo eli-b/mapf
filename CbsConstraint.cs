@@ -11,7 +11,7 @@ public class CbsConstraint : IComparable
     public TimedMove move {get; protected set;}
     public bool queryInstance = false;
 
-    public CbsConstraint(int agentNum, int posX, int posY, Move.Direction direction, int timeStep)
+    public CbsConstraint(int agentNum, int posX, int posY, Direction direction, int timeStep)
     {
         this.Init(agentNum, posX, posY, direction, timeStep);
     }
@@ -21,7 +21,7 @@ public class CbsConstraint : IComparable
         this.Init(agentNum, move);
     }
 
-    public CbsConstraint() : this(-1, -1, -1, Move.Direction.NO_DIRECTION, -1) {} // Nonsense values until Init, just allocate move
+    public CbsConstraint() : this(-1, -1, -1, Direction.NO_DIRECTION, -1) {} // Nonsense values until Init, just allocate move
 
     public CbsConstraint(CbsConflict conflict, ProblemInstance instance, bool agentA)
     {
@@ -43,10 +43,10 @@ public class CbsConstraint : IComparable
         this.move = new TimedMove(move, conflict.timeStep);
 
         if (conflict.isVertexConflict)
-            this.move.direction = Move.Direction.NO_DIRECTION;
+            this.move.Direction = Direction.NO_DIRECTION;
     }
 
-    public void Init(int agentNum, int posX, int posY, Move.Direction direction, int timeStep)
+    public void Init(int agentNum, int posX, int posY, Direction direction, int timeStep)
     {
         this.Init(agentNum, new TimedMove(posX, posY, direction, timeStep));
     }
@@ -81,8 +81,8 @@ public class CbsConstraint : IComparable
             return false;
 
         Trace.Assert(this.queryInstance == false || other.queryInstance == false); // At most one of the instances is a query
-        Trace.Assert(this.queryInstance == false || this.move.direction != Move.Direction.NO_DIRECTION); // Must query regarding a specific direction
-        Trace.Assert(other.queryInstance == false || other.move.direction != Move.Direction.NO_DIRECTION); // Must query regarding a specific direction
+        Trace.Assert(this.queryInstance == false || this.move.Direction != Direction.NO_DIRECTION); // Must query regarding a specific direction
+        Trace.Assert(other.queryInstance == false || other.move.Direction != Direction.NO_DIRECTION); // Must query regarding a specific direction
         if (this.queryInstance || other.queryInstance) // This way if the constraint is a vertex constraint than it will be equal to a query containing a move from any direction to that position,
                                                         // and if it is an edge constraint than it will only be equal to queries containing a move from that specific direction to that position.
             return this.move.Equals(other.move);
@@ -90,7 +90,7 @@ public class CbsConstraint : IComparable
                 // Must check the direction explicitly because vertex constraints have no direction and moves with no direction
                 // compare equal to moves with any direction
                 // TODO: Get rid of all of this using Nathan's advice.
-            return this.move.Equals(other.move) && this.move.direction == other.move.direction; 
+            return this.move.Equals(other.move) && this.move.Direction == other.move.Direction; 
     }
 
     /// <summary>
@@ -108,17 +108,11 @@ public class CbsConstraint : IComparable
         }
     }
 
-    public int GetTimeStep() { return this.move.time; } // FIXME: Make this into a property
+    public int GetTimeStep()  => move.time; // FIXME: Make this into a property
 
-    public Move.Direction GetDirection()
-    {
-        return this.move.direction;
-    }
+    public Direction GetDirection() => move.Direction;
         
-    public override string ToString()
-    {
-        return $"{move}-{move.direction,-12} time={move.time} agentNum {agentNum}";
-    }
+    public override string ToString() => "{move}-{move.Direction,-12} time={move.time} agentNum {agentNum}";
 
     /// <summary>
     /// Kind of the opposite of Equals: checks that the moves are unequal or that not one of the other's agents appears in this.agents.

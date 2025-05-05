@@ -61,15 +61,15 @@ public class ConflictAvoidanceTable
             {
                 if (ReferenceEquals(step, queryTimedMove))  // Need a separate object that would serve as the key
                     step = new TimedMove(step);
-                this.timedMovesToAgentNumList[step] = new List<int>() { plan.agentNum };
+                this.timedMovesToAgentNumList[step] = new List<int>() { plan.AgentNum };
             }
             else
-                this.timedMovesToAgentNumList[step].Add(plan.agentNum);
+                this.timedMovesToAgentNumList[step].Add(plan.AgentNum);
         }
 
         Move lastMove = plan.GetLocationAt(planSize - 1);
-        var goal = new Move(lastMove.x, lastMove.y, Move.Direction.Wait);
-        this.atGoalWaitsToTimeAndAgentNum[goal] = (planSize, plan.agentNum);
+        var goal = new Move(lastMove.X, lastMove.Y, Direction.Wait);
+        this.atGoalWaitsToTimeAndAgentNum[goal] = (planSize, plan.AgentNum);
         ++NumPlans;
     }
 
@@ -87,12 +87,12 @@ public class ConflictAvoidanceTable
                 queryTimedMove.setup(temp, i);
                 step = queryTimedMove;
             }
-            this.timedMovesToAgentNumList[step].Remove(plan.agentNum);
+            this.timedMovesToAgentNumList[step].Remove(plan.AgentNum);
             // TODO: Add asserts that check the plan was indeed in the CAT
         }
 
         Move lastMove = plan.GetLocationAt(planSize - 1);
-        queryMove.setup(lastMove.x, lastMove.y, Move.Direction.Wait);
+        queryMove.Setup(lastMove.X, lastMove.Y, Direction.Wait);
         this.atGoalWaitsToTimeAndAgentNum.Remove(queryMove);
         --NumPlans;
     }
@@ -115,7 +115,7 @@ public class ConflictAvoidanceTable
                 ans.AddRange(this.timedMovesToAgentNumList[key]);
             }
                 
-            queryMove.setup(key);
+            queryMove.Setup(key);
             if (this.atGoalWaitsToTimeAndAgentNum.ContainsKey(queryMove))
             {
                 var timeAndAgentNum = this.atGoalWaitsToTimeAndAgentNum[queryMove];
@@ -135,10 +135,10 @@ public class ConflictAvoidanceTable
         }
     }
 
-    private static readonly List<int> emptyList = new List<int>(0);
+    private static readonly List<int> emptyList = [];
 
-    private Move queryMove = new Move();
-    private TimedMove queryTimedMove = new TimedMove();
+    private Move queryMove = new();
+    private TimedMove queryTimedMove = new();
 
     /// <summary>
     /// Determines whether the read-only dictionary contains an element that has
@@ -153,7 +153,7 @@ public class ConflictAvoidanceTable
         if (this.timedMovesToAgentNumList.ContainsKey(key))
             return true;
 
-        queryMove.setup(key);
+        queryMove.Setup(key);
         if (this.atGoalWaitsToTimeAndAgentNum.ContainsKey(queryMove))
         {
             var timeAndAgentNum = this.atGoalWaitsToTimeAndAgentNum[queryMove];

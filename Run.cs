@@ -656,7 +656,7 @@ public class Run : IDisposable
         // Select random start/goal locations for every agent by performing a random walk
         for (int i = 0; i < agentsNum; i++)
         {
-            aStart[i] = new AgentState(aGoals[i].Goal.x, aGoals[i].Goal.y, aGoals[i]);
+            aStart[i] = new AgentState(aGoals[i].Goal.X, aGoals[i].Goal.Y, aGoals[i]);
         }
 
         // Initialized here only for the IsValid() call. TODO: Think how this can be sidestepped elegantly.
@@ -667,18 +667,18 @@ public class Run : IDisposable
         {
             for (int i = 0; i < agentsNum; i++)
             {
-                goals[aStart[i].lastMove.x][aStart[i].lastMove.y] = false; // We're going to move the goal somewhere else
+                goals[aStart[i].lastMove.X][aStart[i].lastMove.Y] = false; // We're going to move the goal somewhere else
                 while (true)
                 {
-                    Move.Direction op = (Move.Direction)rand.Next(0, 5); // TODO: fixme
+                    Direction op = (Direction)rand.Next(0, 5); // TODO: fixme
                     aStart[i].lastMove.Update(op);
                     if (problem.IsValid(aStart[i].lastMove) &&
-                        !goals[aStart[i].lastMove.x][aStart[i].lastMove.y]) // this spot isn't another agent's goal
+                        !goals[aStart[i].lastMove.X][aStart[i].lastMove.Y]) // this spot isn't another agent's goal
                         break;
                     else
                         aStart[i].lastMove.setOppositeMove(); // Rollback
                 }
-                goals[aStart[i].lastMove.x][aStart[i].lastMove.y] = true; // Claim agent's new goal
+                goals[aStart[i].lastMove.X][aStart[i].lastMove.Y] = true; // Claim agent's new goal
             }
         }
 
@@ -765,7 +765,7 @@ public class Run : IDisposable
             // Select random start/goal locations for every agent by performing a random walk
             for (int i = 0; i < agentsNum; i++)
             {
-                agentStates[i] = new AgentState(agentGoals[i].Goal.x, agentGoals[i].Goal.y, agentGoals[i]);
+                agentStates[i] = new AgentState(agentGoals[i].Goal.X, agentGoals[i].Goal.Y, agentGoals[i]);
             }
 
             ProblemInstance problem = new ProblemInstance();
@@ -776,19 +776,19 @@ public class Run : IDisposable
             {
                 for (int i = 0; i < agentsNum; i++)
                 {
-                    goals[agentStates[i].lastMove.x][agentStates[i].lastMove.y] = false; // We're going to move the goal somewhere else.
+                    goals[agentStates[i].lastMove.X][agentStates[i].lastMove.Y] = false; // We're going to move the goal somewhere else.
                     // Move in a random legal direction:
                     while (true)
                     {
-                        Move.Direction op = (Move.Direction)rand.Next(0, 5); // TODO: fixme
+                        Direction op = (Direction)rand.Next(0, 5); // TODO: fixme
                         agentStates[i].lastMove.Update(op);
                         if (problem.IsValid(agentStates[i].lastMove) &&
-                            !goals[agentStates[i].lastMove.x][agentStates[i].lastMove.y]) // This spot isn't another agent's goal
+                            !goals[agentStates[i].lastMove.X][agentStates[i].lastMove.Y]) // This spot isn't another agent's goal
                             break;
                         else
                             agentStates[i].lastMove.setOppositeMove(); // Rollback
                     }
-                    goals[agentStates[i].lastMove.x][agentStates[i].lastMove.y] = true; // Claim agent's new goal
+                    goals[agentStates[i].lastMove.X][agentStates[i].lastMove.Y] = true; // Claim agent's new goal
                 }
             }
 

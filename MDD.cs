@@ -580,7 +580,7 @@ public class MDDNode
         
     public int getVertexIndex()
     {
-        return move.x * this.mdd.problem.GetMaxY() + move.y;
+        return move.X * this.mdd.problem.GetMaxY() + move.Y;
     }
         
     /// <summary>

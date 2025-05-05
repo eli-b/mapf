@@ -952,7 +952,7 @@ class IndependenceDetection : ISolver
     {
         for (int i = 0; i < group.allAgentsState.Length; ++i)
         {
-            var afterGoal = new TimedMove(group.allAgentsState[i].agent.Goal.x, group.allAgentsState[i].agent.Goal.y, Move.Direction.Wait, time: 0);
+            var afterGoal = new TimedMove(group.allAgentsState[i].agent.Goal.X, group.allAgentsState[i].agent.Goal.Y, Direction.Wait, time: 0);
             for (int time = group.GetPlan().GetSize(); time < CAT.GetMaxPlanSize(); time++)
             {
                 afterGoal.time = time;
