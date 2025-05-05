@@ -12,7 +12,7 @@ namespace mapf;
 /// </summary>
 public class Plan
 {
-    private LinkedList<List<Move>> _locationsAtTimes = [];
+    private readonly List<List<Move>> _locationsAtTimes = [];
 
     /// <summary>
     /// Reconstructs the plan by goind backwards from the goal.
@@ -25,9 +25,10 @@ public class Plan
         while (currentNode != null)
         {
             List<Move> agentMoves = currentNode.GetAgentsMoves();
-            _locationsAtTimes.AddFirst(agentMoves);
+            _locationsAtTimes.Add(agentMoves);
             currentNode = currentNode.prevStep;
         }
+        _locationsAtTimes.Reverse();
     }
 
     /// <summary>
@@ -42,9 +43,10 @@ public class Plan
         {
             List<Move> l = [];
             l.Add(currentNode.GetMove());
-            _locationsAtTimes.AddFirst(l);
+            _locationsAtTimes.Add(l);
             currentNode = currentNode.prev;
         }
+        _locationsAtTimes.Reverse();
     }
 
     /// <summary>
@@ -54,16 +56,17 @@ public class Plan
     {
         for (int i = 0; i < routePerAgent[0].Count; i++)
         {
-            _locationsAtTimes.AddLast([]);
+            _locationsAtTimes.Add([]);
         }
-            
+
+        int index = 0;
         foreach (LinkedList<Move> agentRoute in routePerAgent)
         {
-            LinkedListNode<List<Move>> locationsAtTime = _locationsAtTimes.First;
+            List<Move> locationsAtTime = _locationsAtTimes[index];
             foreach (Move agentLocation in agentRoute)
             {
-                locationsAtTime.Value.Add(agentLocation);
-                locationsAtTime = locationsAtTime.Next;
+                locationsAtTime.Add(agentLocation);
+                index++;
             }
         }
     }
@@ -83,7 +86,7 @@ public class Plan
                 foreach (Move move in plan.GetLocationsAt(time))
                     allMoves.Add(move);
 
-            _locationsAtTimes.AddLast(allMoves);
+            _locationsAtTimes.Add(allMoves);
         }
     }
 
@@ -99,7 +102,7 @@ public class Plan
                 allMoves.Add(plan.GetLocationAt(time));
             }
 
-            _locationsAtTimes.AddLast(allMoves);
+            _locationsAtTimes.Add(allMoves);
         }
     }
 
@@ -110,7 +113,7 @@ public class Plan
     {
         foreach (List<Move> cpyStep in cpy._locationsAtTimes)
         {
-            _locationsAtTimes.AddLast([.. cpyStep]);
+            _locationsAtTimes.Add([.. cpyStep]);
         }
     }
 
@@ -127,12 +130,12 @@ public class Plan
             if (first)
             {
                 first = false;
-                if (newLocationsAtTime.SequenceEqual<Move>(_locationsAtTimes.Last.Value))
+                if (newLocationsAtTime.SequenceEqual<Move>(_locationsAtTimes.Last()))
                     continue;
                 else
                     Trace.Assert(false, "Continuing a plan doesn't start from the same state");
             }
-            _locationsAtTimes.AddLast(newLocationsAtTime);
+            _locationsAtTimes.Add(newLocationsAtTime);
         }
     }
 
@@ -176,7 +179,7 @@ public class Plan
             return _locationsAtTimes.ElementAt(time); // FIXME: Expensive!
         else
         {
-            List<Move> toCopy = _locationsAtTimes.Last.Value;
+            List<Move> toCopy = _locationsAtTimes.Last();
             List<Move> atRest = [.. toCopy];
             for (int i = 0; i < atRest.Count; i++)
             {
@@ -186,7 +189,7 @@ public class Plan
         }
     }
 
-    public LinkedList<List<Move>> GetLocations() => _locationsAtTimes;
+    public List<List<Move>> GetLocations() => _locationsAtTimes;
 
     /// <summary>
     /// NOT the cost, which:
@@ -223,7 +226,7 @@ public class Plan
     public void PrintPlanIfShort()
     {
         var planSize = GetSize();
-        var numAgents = _locationsAtTimes.First.Value.Count;
+        var numAgents = _locationsAtTimes.First().Count;
         if (planSize < 200 && numAgents < 30)
             PrintPlan();
         else if (planSize >= 200)
