@@ -72,7 +72,7 @@ class CbsHeuristicForAStar : IHeuristicCalculator<WorldState>
             throw new NotImplementedException($"Unsupported cost function {Constants.costFunction}");
         if (sicEstimate == 0)  // Only the goal has an estimate of zero
             return 0;
-        int targetCost = s.g + sicEstimate + this.minAboveSic; // Ariel's idea - using SIC directly here to calc the target
+        int targetCost = s.G + sicEstimate + this.minAboveSic; // Ariel's idea - using SIC directly here to calc the target
         // CBS gets an explicitly partially solved state - the agents' g may be greater than zero.
         // So the cost CBS is going to calc is not of this node but of the initial problem instance,
         // this is accounted for later too.
@@ -108,7 +108,7 @@ class CbsHeuristicForAStar : IHeuristicCalculator<WorldState>
                                     s.minGoalTimeStep), // No point in finding shallower goal nodes
                             this.runner, null, null, positiveConstraints);
                 
-            if (this.cbs.openList.Count > 0 && this.cbs.externalCAT == null)
+            if (this.cbs.OpenList.Count > 0 && this.cbs.ExternalCAT == null)
             {
                 if (sicEstimate == -1)
                 {
@@ -120,7 +120,7 @@ class CbsHeuristicForAStar : IHeuristicCalculator<WorldState>
                         throw new NotImplementedException($"Unsupported cost function {Constants.costFunction}");
                 }
 
-                Trace.Assert(((CbsNode)this.cbs.openList.Peek()).g - s.g == (int)sicEstimate,
+                Trace.Assert(((CbsNode)this.cbs.OpenList.Peek()).G - s.G == (int)sicEstimate,
                                 "Total cost of CBS root not same as SIC + g");
                 // Notice we're subtracting s.g, not sAsProblemInstance.g.
                 // Must constraints we put may have forced some moves,
@@ -137,9 +137,9 @@ class CbsHeuristicForAStar : IHeuristicCalculator<WorldState>
         }
 
         // Calc the h:
-        this.cbs.targetF = targetCost;
-        this.cbs.milliCap = milliCap;
-        this.cbs.lowLevelGeneratedCap = lowLevelGeneratedCap;
+        this.cbs.TargetF = targetCost;
+        this.cbs.MilliCap = milliCap;
+        this.cbs.LowLevelGeneratedCap = lowLevelGeneratedCap;
 
         bool solved = this.cbs.Solve();
 
@@ -147,7 +147,7 @@ class CbsHeuristicForAStar : IHeuristicCalculator<WorldState>
         {
             // We're always going to find a proper goal since we respected the node's minDepth
             s.SetSolution(this.cbs.GetSinglePlans());
-            s.SetGoalCost(this.cbs.solutionCost); // We have to do it explicitly.
+            s.SetGoalCost(this.cbs.SolutionCost); // We have to do it explicitly.
             // We can't just change the node's g to g + cbs.g and its h to zero
             // because approaches like BPMX or maximazing PDBs might "fix" the h back.
             // So instead h is bumped to its maximum value when this method returns.
@@ -162,7 +162,7 @@ class CbsHeuristicForAStar : IHeuristicCalculator<WorldState>
         this.cbs.AccumulateStatistics();
         this.cbs.ClearStatistics();
 
-        if (this.cbs.solutionCost < 0) // A timeout is legitimately possible if very little time was left to begin with,
+        if (this.cbs.SolutionCost < 0) // A timeout is legitimately possible if very little time was left to begin with,
                                         // and a no solution failure may theoretically be possible too.
         {
             if (Constants.costFunction == Constants.CostFunction.SUM_OF_COSTS)
@@ -173,16 +173,16 @@ class CbsHeuristicForAStar : IHeuristicCalculator<WorldState>
                 throw new NotImplementedException($"Unsupported cost function {Constants.costFunction}");
         }
 
-        Trace.Assert(this.cbs.solutionCost >= s.g,
-                        $"CBS total cost {this.cbs.solutionCost} is smaller than starting problem's initial cost {s.g}."); // = is allowed since even though this isn't a goal node (otherwise this function won't be called),
+        Trace.Assert(this.cbs.SolutionCost >= s.G,
+                        $"CBS total cost {this.cbs.SolutionCost} is smaller than starting problem's initial cost {s.G}."); // = is allowed since even though this isn't a goal node (otherwise this function won't be called),
                                                                                                                         // a non-goal node can have h==0 if a minimum depth is specified, and all agents have reached their
                                                                                                                         // goal in this node, but the depth isn't large enough.
 
-        uint cbsEstimate = (uint)(this.cbs.solutionCost - s.g);
+        uint cbsEstimate = (uint)(this.cbs.SolutionCost - s.G);
         // Discounting the moves the agents did before we started solving
         // (This is easier than making a copy of each AgentState just to zero its lastMove.time)
 
-        this.totalImprovement += (int)(cbsEstimate - s.h); // Not computing difference from SIC to not over-count, since a node can be improved twice.
+        this.totalImprovement += (int)(cbsEstimate - s.H); // Not computing difference from SIC to not over-count, since a node can be improved twice.
                                                             // Can be negative if the base heuristic was improved by:
                                                             // - Partial expansion
                                                             // - BPMX
@@ -203,7 +203,7 @@ class CbsHeuristicForAStar : IHeuristicCalculator<WorldState>
             epeastarsic.Setup(sAsProblemInstance, s.makespan, runner);
             bool epeastarsicSolved = epeastarsic.Solve();
             if (epeastarsicSolved)
-                Trace.Assert(epeastarsic.totalCost - s.g >= this.cbs.solutionCost - s.g, "Inadmissible!!");
+                Trace.Assert(epeastarsic.totalCost - s.G >= this.cbs.SolutionCost - s.G, "Inadmissible!!");
         }
 
         return cbsEstimate;
@@ -394,7 +394,7 @@ class DyanamicLazyCbsHeuristicForAStar : CbsHeuristicForAStar, IBoundedLazyHeuri
         // No need to check if SIC is zero because this heuristic is run after SIC was already computed, not instead of it.
         int lowLevelGeneratedCap = (int) Math.Round(effectiveBranchingFactor * this.instance.agents.Length); // Cap of B_of_AStar * K,
                                                                                                                 // because CBS low level nodes are of one agent only so they're about k times cheaper to work with
-        return base.h(s, s.g + targetH, -1, lowLevelGeneratedCap);
+        return base.h(s, s.G + targetH, -1, lowLevelGeneratedCap);
     }
 
     /// <summary>
@@ -409,7 +409,7 @@ class DyanamicLazyCbsHeuristicForAStar : CbsHeuristicForAStar, IBoundedLazyHeuri
     public uint h(WorldState s, int targetH, float effectiveBranchingFactor, int millisCap, bool resume)
     {
         // No need to check if SIC is zero because this heuristic is run after SIC was already computed, not instead of it.
-        return this.h(s, s.g + targetH, -1, int.MaxValue, millisCap, resume);
+        return this.h(s, s.G + targetH, -1, int.MaxValue, millisCap, resume);
     }
 
     public override string ToString()

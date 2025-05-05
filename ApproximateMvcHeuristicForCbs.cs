@@ -75,7 +75,7 @@ namespace mapf
         public uint h(CbsNode s, int target)
         {
             Debug.WriteLine($"Computing heuristic estimate for node hash {s.GetHashCode()}");
-            if (target != int.MaxValue && target > s.totalInternalAgentsThatConflict)
+            if (target != int.MaxValue && target > s.TotalInternalAgentsThatConflict)
             {
                 Debug.WriteLine($"Target estimate {target} was too high!");
                 this.targetClearlyTooHigh++;
@@ -87,24 +87,24 @@ namespace mapf
             int targetTimes2 = 2 * target;
 
             // Populate the cardinal conflict graph
-            foreach (var agentIndex in Enumerable.Range(0, s.singleAgentPlans.Length))
+            foreach (var agentIndex in Enumerable.Range(0, s.SingleAgentPlans.Length))
             {
-                if (s.conflictTimesPerAgent[agentIndex].Count == 0)
+                if (s.ConflictTimesPerAgent[agentIndex].Count == 0)
                     continue;  // Agent has no conflicts
                 if (vertexCover.Contains(agentIndex))  // All its edges are already covered
                     continue;
-                bool hasMdd = s.mddNarrownessValues[agentIndex] != null;
+                bool hasMdd = s.MDDNarrownessValues[agentIndex] != null;
 
                 bool largeEnough = false;
-                foreach (int conflictingAgentNum in s.conflictTimesPerAgent[agentIndex].Keys)
+                foreach (int conflictingAgentNum in s.ConflictTimesPerAgent[agentIndex].Keys)
                 {
-                    int conflictingAgentIndex = s.agentNumToIndex[conflictingAgentNum];
+                    int conflictingAgentIndex = s.AgentNumToIndex[conflictingAgentNum];
                     if (conflictingAgentIndex < agentIndex) // check later
                         continue;
-                    bool otherHasMdd = s.mddNarrownessValues[conflictingAgentIndex] != null;
+                    bool otherHasMdd = s.MDDNarrownessValues[conflictingAgentIndex] != null;
 
                     bool addedToVC = false;
-                    foreach (int conflictTime in s.conflictTimesPerAgent[agentIndex][conflictingAgentNum])
+                    foreach (int conflictTime in s.ConflictTimesPerAgent[agentIndex][conflictingAgentNum])
                     {
                         if (hasMdd == false)
                         {
@@ -141,11 +141,11 @@ namespace mapf
                     break;
             }
 
-            s.minimumVertexCover = vertexCover.Count / 2;  // The approximation is always even.
+            s.MinimumVertexCover = vertexCover.Count / 2;  // The approximation is always even.
 
             if (target != int.MaxValue)
             {
-                if (s.minimumVertexCover >= target)
+                if (s.MinimumVertexCover >= target)
                 {
                     Debug.WriteLine($"Target estimate {target} reached");
                     this.targetReached++;
@@ -157,7 +157,7 @@ namespace mapf
                 }
             }
 
-            return (uint)s.minimumVertexCover;
+            return (uint)s.MinimumVertexCover;
         }
 
         public void Init(ProblemInstance pi, List<uint> agents)

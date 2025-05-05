@@ -269,12 +269,12 @@ class WorldStateForPartialExpansion : WorldState
         //this.hBonus = 0;
     }
 
-    public override int f
+    public override int F
     {
         get
         {
-            return Math.Max(this.g + this.h,
-                            this.g + this.sic + this.targetDeltaF);
+            return Math.Max(this.G + this.H,
+                            this.G + this.sic + this.targetDeltaF);
         }
     }
 }

@@ -50,7 +50,7 @@ public class DynamicLazyOpenList<Item> : OpenList<Item> where Item: IBinaryHeapI
             // No need to run the expensive heuristic - it can't push back a node over another.
             Debug.WriteLine("Fewer than 2 nodes in the open list - not applying the heuristic");
             node = base.Remove(); // Throws if Count == 0
-            this.lastF = node.f;
+            this.lastF = node.F;
             return node;
         }
         // There are alternatives to the lowest cost node in the open list, try to postpone expansion of it:
@@ -60,17 +60,17 @@ public class DynamicLazyOpenList<Item> : OpenList<Item> where Item: IBinaryHeapI
             node = base.Remove();
 
             if (node.GoalTest() == true || // Can't improve the h of the goal
-                node.hBonus > 0 || // Already computed the expensive heuristic
+                node.HBonus > 0 || // Already computed the expensive heuristic
                 this.runner.ElapsedMilliseconds() > Constants.MAX_TIME) // No time to continue improving H.
                 break;
 
             var next = base.Peek();
-            int targetH = node.GetTargetH(next.f + 1);  // Don't assume f = g + h (but do assume integer costs)
+            int targetH = node.GetTargetH(next.F + 1);  // Don't assume f = g + h (but do assume integer costs)
             int expensiveEstimate = (int)this.expensive.h(node, targetH);
-            if (node.h < expensiveEstimate) // Node may have inherited a better estimate from its parent
+            if (node.H < expensiveEstimate) // Node may have inherited a better estimate from its parent
             {
-                node.hBonus += expensiveEstimate - node.h;
-                node.h = expensiveEstimate;
+                node.HBonus += expensiveEstimate - node.H;
+                node.H = expensiveEstimate;
             }
                 
             if (node.CompareTo(next) == 1) // node is not the smallest F anymore - re-insert into open list
@@ -91,7 +91,7 @@ public class DynamicLazyOpenList<Item> : OpenList<Item> where Item: IBinaryHeapI
                 break;
             }
         }
-        this.lastF = node.f;
+        this.lastF = node.F;
         return node;
     }
 

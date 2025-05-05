@@ -839,12 +839,12 @@ public class Run : IDisposable
                 //    ((CBS)((IndependenceDetection)solvers[i]).groupSolver).debug = true;
                 if (solvers[i].GetType() == typeof(CBS) || solvers[i].GetType() == typeof(MACBS_WholeTreeThreshold))
                 {
-                    if (((CBS)solvers[i]).mergeThreshold == 314159) // MAGIC NUMBER WHICH MAKES US ADJUST B according to map
+                    if (((CBS)solvers[i]).MergeThreshold == 314159) // MAGIC NUMBER WHICH MAKES US ADJUST B according to map
                     {
                         if (instance.gridName.StartsWith("den"))
-                            ((CBS)solvers[i]).mergeThreshold = 10;
+                            ((CBS)solvers[i]).MergeThreshold = 10;
                         else if (instance.gridName.StartsWith("brc") || instance.gridName.StartsWith("ost"))
-                            ((CBS)solvers[i]).mergeThreshold = 100;
+                            ((CBS)solvers[i]).MergeThreshold = 100;
                     }
                 }
 
@@ -856,12 +856,12 @@ public class Run : IDisposable
                         ((IndependenceDetection)solvers[i]).groupSolver.GetType() == typeof(MACBS_WholeTreeThreshold))
                     )
                 {
-                    if (((CBS)((IndependenceDetection)solvers[i]).groupSolver).mergeThreshold == 314159) // MAGIC NUMBER SEE ABOVE
+                    if (((CBS)solvers[i]).MergeThreshold == 314159) // MAGIC NUMBER SEE ABOVE
                     {
                         if (instance.gridName.StartsWith("den"))
-                            ((CBS)((IndependenceDetection)solvers[i]).groupSolver).mergeThreshold = 10;
+                            ((CBS)solvers[i]).MergeThreshold = 10;
                         else if (instance.gridName.StartsWith("brc") || instance.gridName.StartsWith("ost"))
-                            ((CBS)((IndependenceDetection)solvers[i]).groupSolver).mergeThreshold = 100;
+                            ((CBS)solvers[i]).MergeThreshold = 100;
                     }
                 }
 

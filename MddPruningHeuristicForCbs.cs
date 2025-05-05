@@ -86,8 +86,8 @@ class MddPruningHeuristicForCbs : ILazyHeuristic<CbsNode>
     /// </returns>
     public uint h(CbsNode s)
     {
-        var agentIndicesAndCosts = (s.conflict.agentAIndex, s.conflict.agentBIndex,
-                s.singleAgentCosts[s.conflict.agentAIndex], s.singleAgentCosts[s.conflict.agentBIndex]);
+        var agentIndicesAndCosts = (s.Conflict.agentAIndex, s.Conflict.agentBIndex,
+                s.SingleAgentCosts[s.Conflict.agentAIndex], s.SingleAgentCosts[s.Conflict.agentBIndex]);
         if (this.ignoreConstraints)
         {
             if (this.cache.ContainsKey(agentIndicesAndCosts))
@@ -103,29 +103,29 @@ class MddPruningHeuristicForCbs : ILazyHeuristic<CbsNode>
             return 0;
         }
 
-        if (s.h > 1)
+        if (s.H > 1)
         {
             return 1;  // We can't raise the heuristic more than that
         }
 
-        if (s.GetGroupSize(s.conflict.agentAIndex) > 1 || s.GetGroupSize(s.conflict.agentBIndex) > 1)
+        if (s.GetGroupSize(s.Conflict.agentAIndex) > 1 || s.GetGroupSize(s.Conflict.agentBIndex) > 1)
         {
             return 0; // Without saving the result, as it's just a cop-out
         }
 
-        int maxCost = Math.Max(s.singleAgentCosts[s.conflict.agentAIndex],
-                                s.singleAgentCosts[s.conflict.agentBIndex]);
+        int maxCost = Math.Max(s.SingleAgentCosts[s.Conflict.agentAIndex],
+                                s.SingleAgentCosts[s.Conflict.agentBIndex]);
         // Building MDDs for the conflicting agents. We can't keep them because we're
         // destructively syncing them later (the first one, at least).
-        var mddA = new MDD(s.conflict.agentAIndex, this.instance.agents[s.conflict.agentAIndex].agent.agentNum,
-                            this.instance.agents[s.conflict.agentAIndex].lastMove,
-                            s.singleAgentCosts[s.conflict.agentAIndex], maxCost,
+        var mddA = new MDD(s.Conflict.agentAIndex, this.instance.agents[s.Conflict.agentAIndex].agent.agentNum,
+                            this.instance.agents[s.Conflict.agentAIndex].lastMove,
+                            s.SingleAgentCosts[s.Conflict.agentAIndex], maxCost,
                             this.instance.GetNumOfAgents(), this.instance, this.ignoreConstraints);
-        var mddB = new MDD(s.conflict.agentBIndex, this.instance.agents[s.conflict.agentBIndex].agent.agentNum,
-                            this.instance.agents[s.conflict.agentBIndex].lastMove,
-                            s.singleAgentCosts[s.conflict.agentBIndex], maxCost,
+        var mddB = new MDD(s.Conflict.agentBIndex, this.instance.agents[s.Conflict.agentBIndex].agent.agentNum,
+                            this.instance.agents[s.Conflict.agentBIndex].lastMove,
+                            s.SingleAgentCosts[s.Conflict.agentBIndex], maxCost,
                             this.instance.GetNumOfAgents(), this.instance, this.ignoreConstraints);
-        s.cbs.mddsBuilt += 2;
+        s.CBS.MDDsBuilt += 2;
         (MDD.PruningDone ans, int stat) = mddA.SyncMDDs(mddB, checkTriples: false);
         if (ans == MDD.PruningDone.EVERYTHING)
         {
@@ -151,7 +151,7 @@ class MddPruningHeuristicForCbs : ILazyHeuristic<CbsNode>
     /// <returns></returns>
     public uint h(CbsNode s, int target)
     {
-        if (s.g + 1 < target)
+        if (s.G + 1 < target)
         {
             this.targetTooHigh++;
             return 0;  // Currently we can only give an estimate of 1

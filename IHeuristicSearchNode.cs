@@ -8,13 +8,13 @@ namespace mapf;
 
 public interface IHeuristicSearchNode
 {
-    int g { get; set; }
-    int h { get; set; }
+    int G { get; set; }
+    int H { get; set; }
     /// <summary>
     /// Used to mark that heuristic estimate was improved already
     /// </summary>
-    int hBonus { get; set; }
-    int f { get; }
+    int HBonus { get; set; }
+    int F { get; }
 
     bool GoalTest();
 

@@ -93,16 +93,16 @@ public class DynamicRationalLazyOpenList : OpenList<WorldState>
             if (node.GoalTest() == true || // Can't improve the h of the goal
                 this.runner.ElapsedMilliseconds() > Constants.MAX_TIME) // No time to continue improving H.
             {
-                if (node.g + node.h < this.lastF) // This can happen if the last removed node had many runs of the expensive heuristic, which this node didn't yet have.
+                if (node.G + node.H < this.lastF) // This can happen if the last removed node had many runs of the expensive heuristic, which this node didn't yet have.
                 {
-                    int newH = this.lastF - node.g;
-                    node.hBonus += newH - node.h;
-                    node.h = newH; // Just so we don't throw an inconsistency exception
+                    int newH = this.lastF - node.G;
+                    node.HBonus += newH - node.H;
+                    node.H = newH; // Just so we don't throw an inconsistency exception
                 }
                 break;
             }
 
-            if (node.hBonus > 0) // Improving the h will be more difficult than usual - don't try
+            if (node.HBonus > 0) // Improving the h will be more difficult than usual - don't try
             {
                 this.skips++; // TODO: Separate statistic?
                 break;
@@ -216,14 +216,14 @@ public class DynamicRationalLazyOpenList : OpenList<WorldState>
             //for (int i = 0; i < NUM_CAPS; ++i)
                 //Console.WriteLine("Expected regret for cap {0}:{1}", ((double)(1 << i)) / 1000, expectedRegret[i]/1000.0);
 
-            if (node.g + node.h < lastF) // Must improve the heuristic estimate to be consistent
+            if (node.G + node.H < lastF) // Must improve the heuristic estimate to be consistent
                 millisCap = Double.MaxValue;
 
             bool success = false;
             if (millisCap > overhead)  // Worth running the expensive heuristic
             {
                 next = this.Peek();
-                int targetH = node.GetTargetH(next.f + 1);
+                int targetH = node.GetTargetH(next.F + 1);
 
                 double expensiveCallStartTime = this.runner.ElapsedMilliseconds();
                 int expensiveEstimate = (int)this.expensive.h(node, targetH, -1, (int)(expensiveCallStartTime + millisCap), false);
@@ -231,11 +231,11 @@ public class DynamicRationalLazyOpenList : OpenList<WorldState>
 
                 bool nodeSolved = node.GoalTest();
 
-                if (expensiveEstimate > node.h) // Node may have inherited a better estimate from
+                if (expensiveEstimate > node.H) // Node may have inherited a better estimate from
                                                 // its parent so this check is necessary for failures
                 {
-                    node.hBonus += expensiveEstimate - node.h;
-                    node.h = expensiveEstimate; // If this wasn't a success, the assignment here serves to force the next heuristic call
+                    node.HBonus += expensiveEstimate - node.H;
+                    node.H = expensiveEstimate; // If this wasn't a success, the assignment here serves to force the next heuristic call
                                                 // to search deeper, since we're always consistent.
                 }
 
@@ -276,7 +276,7 @@ public class DynamicRationalLazyOpenList : OpenList<WorldState>
             else
                 this.skips++;
 
-            if (success || node.g + node.h < lastF) // Never be inconsistent - don't return nodes with lower F than before. Try searching the node again.
+            if (success || node.G + node.H < lastF) // Never be inconsistent - don't return nodes with lower F than before. Try searching the node again.
             {
                 this.Add(node);
             }
@@ -292,7 +292,7 @@ public class DynamicRationalLazyOpenList : OpenList<WorldState>
         }
 
         finish:
-        this.lastF = node.g + node.h;
+        this.lastF = node.G + node.H;
         this.expandStartTime = this.runner.ElapsedMilliseconds();
         return node;
     }

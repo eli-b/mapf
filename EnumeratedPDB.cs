@@ -226,15 +226,15 @@ class EnumeratedPDB : PDB
                         int nSingleAgentShortestPath = 0;
                         foreach (var a in i.allAgentsState)
                             nSingleAgentShortestPath += this.problem.GetSingleAgentOptimalCost(a);
-                        int nDifference = i.g - nSingleAgentShortestPath;
+                        int nDifference = i.G - nSingleAgentShortestPath;
                         Trace.Assert(nDifference >= 0);
                         Trace.Assert(nDifference < Byte.MaxValue);
                         nCandidateValue = (Byte)nDifference;
                     }
                     else
                     {
-                        Trace.Assert(i.g < Byte.MaxValue);
-                        nCandidateValue = (Byte)i.g;
+                        Trace.Assert(i.G < Byte.MaxValue);
+                        nCandidateValue = (Byte)i.G;
                     }
                     if (nCandidateValue < table[nHash])
                     {

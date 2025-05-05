@@ -12,7 +12,7 @@ public class CbsCacheEntry
     {
         this.cbsNode = cbsNode;
         this.agentIndex = agentIndex;
-        Trace.Assert(cbsNode.cbs.mergeThreshold == -1, "When agents are merged it affects their paths without explicit constraints");
+        Trace.Assert(cbsNode.CBS.MergeThreshold == -1, "When agents are merged it affects their paths without explicit constraints");
     }
 
     public override int GetHashCode()

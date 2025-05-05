@@ -109,9 +109,9 @@ public class A_Star : ICbsSolver, IMStarSolver, IHeuristicSolver<WorldState>, II
             mddRoot = mdd.levels[0].First.Value;
         }
         WorldState root = this.CreateSearchRoot(minDepth, minCost, mddRoot);
-        root.h = (int)this.heuristic.h(root); // g was already set in the constructor
-        if (root.f < minCost)
-            root.h = minCost - root.g;  // Will be propagated to children with BPMX as needed
+        root.H = (int)this.heuristic.h(root); // g was already set in the constructor
+        if (root.F < minCost)
+            root.H = minCost - root.G;  // Will be propagated to children with BPMX as needed
         this.openList.Add(root);
         this.closedList.Add(root, root);
         this.ClearPrivateStatistics();
@@ -410,14 +410,14 @@ public class A_Star : ICbsSolver, IMStarSolver, IHeuristicSolver<WorldState>, II
             {
                 totalCost = (int) Constants.SpecialCosts.TIMEOUT_COST;
                 Console.WriteLine("Out of time");
-                this.solutionDepth = openList.Peek().g + openList.Peek().h - initialEstimate; // A minimum estimate, assuming h is admissible
+                this.solutionDepth = openList.Peek().G + openList.Peek().H - initialEstimate; // A minimum estimate, assuming h is admissible
                 this.Clear();
                 return false;
             }
 
             WorldState currentNode = openList.Remove();
 
-            if (currentNode.f > this.maxSolutionCost)  // A late heuristic application may have increased the node's cost
+            if (currentNode.F > this.maxSolutionCost)  // A late heuristic application may have increased the node's cost
             {
                 continue;
                 // This will exhaust the open list, assuming Fs of nodes chosen for expansions
@@ -460,13 +460,13 @@ public class A_Star : ICbsSolver, IMStarSolver, IHeuristicSolver<WorldState>, II
                 (this.openList is DynamicRationalLazyOpenList) == false &&
                 currentNode.minGoalCost == -1  // If we were given a minGoalCost (by ID, for example), then at some point we're going to use up the boost to the h-value we gave the root
                 )
-                if (currentNode.f < lastF)
-                    Trace.Assert(false, $"A* node with decreasing F: {currentNode.f} < {lastF}.");
+                if (currentNode.F < lastF)
+                    Trace.Assert(false, $"A* node with decreasing F: {currentNode.F} < {lastF}.");
             else
             {
                 // TODO: Record the max F. Assert that the goal's F isn't smaller than it.
             }
-            lastF = currentNode.f;
+            lastF = currentNode.F;
             lastNode = currentNode;
 
             // Calculate expansion delay
@@ -556,16 +556,16 @@ public class A_Star : ICbsSolver, IMStarSolver, IHeuristicSolver<WorldState>, II
                 return;
             currentNode.makespan++;
             currentNode.CalculateG();
-            currentNode.h = (int)this.heuristic.h(currentNode);
+            currentNode.H = (int)this.heuristic.h(currentNode);
 
             // Boost h based on minGoalCost
-            if (currentNode.g < currentNode.minGoalCost)
+            if (currentNode.G < currentNode.minGoalCost)
             {
-                if (currentNode.h == 0)  // Agent is at the goal, only too early
-                    currentNode.h = 2; // Otherwise waiting at goal would expand to waiting at the goal for the same too low cost,
+                if (currentNode.H == 0)  // Agent is at the goal, only too early
+                    currentNode.H = 2; // Otherwise waiting at goal would expand to waiting at the goal for the same too low cost,
                                        // which would expand to waiting at the goal, etc.
                                        // +2 because you need a step out of the goal and another step into it.
-                currentNode.h = Math.Max(currentNode.h, currentNode.minGoalCost - currentNode.g);  // Like a Manhattan Distance on the time dimension
+                currentNode.H = Math.Max(currentNode.H, currentNode.minGoalCost - currentNode.G);  // Like a Manhattan Distance on the time dimension
                 // TODO: Add a statistic for when the H was increased thanks to the minGoalCost
             }
 
@@ -579,14 +579,14 @@ public class A_Star : ICbsSolver, IMStarSolver, IHeuristicSolver<WorldState>, II
         {
             // Reverse Path-Max (operators are invertible) - BPMX (Felner et al. 2005)
             WorldState parent = node;
-            var childWithMaxH = finalGeneratedNodes.MaxByKeyFunc(child => child.h);
-            int maxChildH = childWithMaxH.h;
-            int deltaGOfChildWithMaxH = childWithMaxH.g - parent.g;
-            if (parent.h < maxChildH - deltaGOfChildWithMaxH)
+            var childWithMaxH = finalGeneratedNodes.MaxByKeyFunc(child => child.H);
+            int maxChildH = childWithMaxH.H;
+            int deltaGOfChildWithMaxH = childWithMaxH.G - parent.G;
+            if (parent.H < maxChildH - deltaGOfChildWithMaxH)
             {
                 int newParentH = maxChildH - deltaGOfChildWithMaxH;
-                parent.hBonus += newParentH - parent.h;
-                parent.h = newParentH; // Also good for partial expansion algs that reinsert the expanded node into the open list
+                parent.HBonus += newParentH - parent.H;
+                parent.H = newParentH; // Also good for partial expansion algs that reinsert the expanded node into the open list
                                         // (in addition to aiding the forward Path-Max).
                 ++bpmxBoosts;
                 // FIXME: Code duplication with Forward Path-Max
@@ -594,12 +594,12 @@ public class A_Star : ICbsSolver, IMStarSolver, IHeuristicSolver<WorldState>, II
             // Forward Path-Max
             foreach (var child in finalGeneratedNodes)
             {
-                int deltaG = child.g - parent.g; // == (parent.g + c(parent, current)) - parent.g == c(parent, current)
-                if (child.h < parent.h - deltaG)
+                int deltaG = child.G - parent.G; // == (parent.g + c(parent, current)) - parent.g == c(parent, current)
+                if (child.H < parent.H - deltaG)
                 {
-                    int newChildH = parent.h - deltaG;
-                    child.hBonus += newChildH - child.h;
-                    child.h = newChildH;
+                    int newChildH = parent.H - deltaG;
+                    child.HBonus += newChildH - child.H;
+                    child.H = newChildH;
                     ++bpmxBoosts;
                 }
             }
@@ -1067,7 +1067,7 @@ public class A_Star : ICbsSolver, IMStarSolver, IHeuristicSolver<WorldState>, II
     /// <returns>Returns whether the node was inserted into the open list.</returns>
     protected virtual bool ProcessGeneratedNode(WorldState currentNode)
     {
-        if (currentNode.f <= this.maxSolutionCost)
+        if (currentNode.F <= this.maxSolutionCost)
         // Assuming h is an admissible heuristic, no need to generate nodes that won't get us to the goal
         // within the budget
         {
@@ -1109,7 +1109,7 @@ public class A_Star : ICbsSolver, IMStarSolver, IHeuristicSolver<WorldState>, II
 
                 if (this.mstar)
                 {
-                    if (currentNode.g == inClosedList.g)
+                    if (currentNode.G == inClosedList.G)
                     {
                         // Unite backpropagation sets and collision sets of inClosedList and currentNode.
                         // Notice only only of them is going to survive this method.
@@ -1139,16 +1139,16 @@ public class A_Star : ICbsSolver, IMStarSolver, IHeuristicSolver<WorldState>, II
                 // Since the nodes are equal, give them both the max of their H
                 bool improvedHOfThisNode = false;
                 bool improvedHOfOldNode = false;
-                if (currentNode.h < inClosedList.h)
+                if (currentNode.H < inClosedList.H)
                 {
-                    currentNode.hBonus += inClosedList.h - currentNode.h;
-                    currentNode.h = inClosedList.h;
+                    currentNode.HBonus += inClosedList.H - currentNode.H;
+                    currentNode.H = inClosedList.H;
                     improvedHOfThisNode = true;
                 }
-                if (inClosedList.h < currentNode.h)
+                if (inClosedList.H < currentNode.H)
                 {
-                    inClosedList.hBonus += currentNode.h - inClosedList.h;
-                    inClosedList.h = currentNode.h;
+                    inClosedList.HBonus += currentNode.H - inClosedList.H;
+                    inClosedList.H = currentNode.H;
                     improvedHOfOldNode = true;
                 }
 
@@ -1174,7 +1174,7 @@ public class A_Star : ICbsSolver, IMStarSolver, IHeuristicSolver<WorldState>, II
 
                 if (compareVal == -1 || // This node has smaller f, or preferred due to another consideration.
                                         // Since we equalised their h, a smaller f means smaller g.
-                    (this.mstar && this.doMstarShuffle && currentNode.g == inClosedList.g)) // Enables re-trying a node with different paths for the agents
+                    (this.mstar && this.doMstarShuffle && currentNode.G == inClosedList.G)) // Enables re-trying a node with different paths for the agents
                 {
                     this.reopened++;
                     this.closedList.Remove(inClosedList);

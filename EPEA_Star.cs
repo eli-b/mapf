@@ -105,9 +105,9 @@ class EPEA_Star : A_Star
                 node.targetDeltaF++;
                 node.remainingDeltaF = node.targetDeltaF; // Just for the following hasChildrenForCurrentDeltaF call.
             } while (node.hasMoreChildren() && node.hasChildrenForCurrentDeltaF() == false);
-        } while (node.hasMoreChildren() && node.g + node.sic + node.targetDeltaF <= node.minGoalCost);  // Generate more children immediately if we have a lower bound on the solution depth
+        } while (node.hasMoreChildren() && node.G + node.sic + node.targetDeltaF <= node.minGoalCost);  // Generate more children immediately if we have a lower bound on the solution depth
 
-        if (node.hasMoreChildren() && node.hasChildrenForCurrentDeltaF() && node.g + node.sic + node.targetDeltaF <= this.maxSolutionCost)
+        if (node.hasMoreChildren() && node.hasChildrenForCurrentDeltaF() && node.G + node.sic + node.targetDeltaF <= this.maxSolutionCost)
         {
             // Assuming the heuristic used doesn't give a lower estimate than SIC for each and every one of the node's children,
             // (an ok assumption since SIC is quite basic, no heuristic we use is ever worse than it)

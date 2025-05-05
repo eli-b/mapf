@@ -60,13 +60,13 @@ class PEA_Star : A_Star
 
         hasMoreSuccessors = false;
         this.nextFvalue = int.MaxValue;
-        this.currentFTarget = node.g + node.h;
+        this.currentFTarget = node.G + node.H;
 
         base.Expand(node);
 
         if (hasMoreSuccessors && this.nextFvalue <= this.maxSolutionCost)
         {
-            node.h = this.nextFvalue - node.g; // Just to update this node's f value to the desired value.
+            node.H = this.nextFvalue - node.G; // Just to update this node's f value to the desired value.
                                                 // Although you could say that since we exhausted the current F value, if we get to this node again it means the heuristic was off by at least 1
             this.openList.Add(node); // Re-insert to open list with updated F
         }
@@ -79,14 +79,14 @@ class PEA_Star : A_Star
     /// <returns></returns>
     protected override bool ProcessGeneratedNode(WorldState currentNode)
     {
-        if (currentNode.h + currentNode.g == this.currentFTarget)
+        if (currentNode.H + currentNode.G == this.currentFTarget)
             return base.ProcessGeneratedNode(currentNode);
         else generatedAndDiscarded++; // Notice we don't count the discarded nodes in the genereted count, only here
 
-        if (currentNode.h + currentNode.g > this.currentFTarget)
+        if (currentNode.H + currentNode.G > this.currentFTarget)
         {
             this.hasMoreSuccessors = true;
-            this.nextFvalue = (byte)Math.Min(this.nextFvalue, currentNode.h + currentNode.g);
+            this.nextFvalue = (byte)Math.Min(this.nextFvalue, currentNode.H + currentNode.G);
         }
         return false;
     }
