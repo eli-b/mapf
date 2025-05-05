@@ -270,23 +270,26 @@ class A_Star_MDDs : IConflictReporting
     private SinglePlan[] GetAnswer(A_Star_MDDs_Node finish)
     {
         // TODO: Move the construction of the SinglePlans to a static method in SinglePlan
-        var routes = new LinkedList<Move>[problem.Length];
+        List<Move>[] routes = new List<Move>[problem.Length];
         for (int i = 0; i < routes.Length; i++)
-            routes[i] = new LinkedList<Move>();
+            routes[i] = [];
 
         A_Star_MDDs_Node current = finish;
         while (current != null)
         {
             for (int i = 0; i < problem.Length; i++)
             {
-                routes[i].AddFirst(new Move(current.allSteps[i].move));
+                routes[i].Add(new Move(current.allSteps[i].move));
             }
             current = current.prev;
         }
 
         var ans = new SinglePlan[problem.Length];
         for (int i = 0; i < ans.Length; i++)
+        {
+            routes[i].Reverse();
             ans[i] = new SinglePlan(routes[i], i);
+        }
         return ans;
     }
         

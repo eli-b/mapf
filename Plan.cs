@@ -317,19 +317,20 @@ public class SinglePlan
     {
         AgentNum = goalState.agent.agentNum;
         AgentState currentNode = goalState;
-        LinkedList<Move> locations = [];
+        List<Move> locations = [];
         while (currentNode != null)
         {
-            locations.AddFirst(currentNode.GetMove());
+            locations.Add(currentNode.GetMove());
             currentNode = currentNode.prev;
         }
-        LocationAtTimes = locations.ToList<Move>();
+        locations.Reverse();
+        LocationAtTimes = locations;
     }
 
-    public SinglePlan(LinkedList<Move> route, int agentNum)
+    public SinglePlan(List<Move> route, int agentNum)
     {
         AgentNum = agentNum;
-        LocationAtTimes = [.. route];
+        LocationAtTimes = route;
     }
 
     public SinglePlan(SinglePlan cpy)
@@ -341,8 +342,6 @@ public class SinglePlan
     /// <summary>
     /// TODO: Get rid of the else
     /// </summary>
-    /// <param name="time"></param>
-    /// <returns></returns>
     public Move GetLocationAt(int time)
     {
         if (time < LocationAtTimes.Count)
@@ -496,21 +495,22 @@ public class SinglePlan
 
     public static SinglePlan[] GetSinglePlans(WorldState goalState) // FIXME: Duplication with other methods.
     {
-        LinkedList<Move>[] allroutes = new LinkedList<Move>[goalState.allAgentsState.Length];
+        List<Move>[] allroutes = new List<Move>[goalState.allAgentsState.Length];
         for (int i = 0; i < allroutes.Length; i++)
-            allroutes[i] = new LinkedList<Move>();
+            allroutes[i] = [];
 
         WorldState currentNode = goalState;
         while (currentNode != null)
         {
             for (int i = 0; i < allroutes.Length; i++)
-                allroutes[i].AddFirst(currentNode.GetSingleAgentMove(i));
+                allroutes[i].Add(currentNode.GetSingleAgentMove(i));
             currentNode = currentNode.prevStep;
         }
 
         SinglePlan[] ans = new SinglePlan[goalState.allAgentsState.Length];
         for (int i = 0; i < ans.Length; i++)
         {
+            allroutes[i].Reverse();
             ans[i] = new SinglePlan(allroutes[i], goalState.allAgentsState[i].agent.agentNum);
         }
         return ans;
@@ -521,7 +521,7 @@ public class SinglePlan
     /// </summary>
     /// <param name="allRoutes"></param>
     /// <returns></returns>
-    public static SinglePlan[] GetSinglePlans(LinkedList<Move>[] allRoutes)
+    public static SinglePlan[] GetSinglePlans(List<Move>[] allRoutes)
     {
         SinglePlan[] ans = new SinglePlan[allRoutes.Length];
         for (int i = 0; i < ans.Length; i++)
