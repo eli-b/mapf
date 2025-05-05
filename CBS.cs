@@ -269,7 +269,7 @@ public class CBS : ICbsSolver, IHeuristicSolver<CbsNode>, IIndependenceDetection
                 constraints.Add(new CbsConstraint(agentState.agent.agentNum, illegalMove));
             }
         }
-        this.Setup(problemInstance, illegalMoves.Max(move => move.time), runner, CAT, constraints, null, targetCost, targetCost);
+        this.Setup(problemInstance, illegalMoves.Max(move => move.Time), runner, CAT, constraints, null, targetCost, targetCost);
     }
 
     /// <summary>

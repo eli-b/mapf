@@ -54,7 +54,7 @@ public class ConflictAvoidanceTable
                 step = (TimedMove)temp;
             else  // It's a Move object
             {
-                queryTimedMove.setup(temp, i);
+                queryTimedMove.Setup(temp, i);
                 step = queryTimedMove;
             }
             if (this.timedMovesToAgentNumList.ContainsKey(step) == false)
@@ -84,7 +84,7 @@ public class ConflictAvoidanceTable
                 step = (TimedMove)temp;
             else  // It's a Move object
             {
-                queryTimedMove.setup(temp, i);
+                queryTimedMove.Setup(temp, i);
                 step = queryTimedMove;
             }
             this.timedMovesToAgentNumList[step].Remove(plan.AgentNum);
@@ -119,7 +119,7 @@ public class ConflictAvoidanceTable
             if (this.atGoalWaitsToTimeAndAgentNum.ContainsKey(queryMove))
             {
                 var timeAndAgentNum = this.atGoalWaitsToTimeAndAgentNum[queryMove];
-                if (key.time >= timeAndAgentNum.time)
+                if (key.Time >= timeAndAgentNum.time)
                 {
                     if (ans == null)
                         ans = new List<int>() { timeAndAgentNum.agentNum };
@@ -157,7 +157,7 @@ public class ConflictAvoidanceTable
         if (this.atGoalWaitsToTimeAndAgentNum.ContainsKey(queryMove))
         {
             var timeAndAgentNum = this.atGoalWaitsToTimeAndAgentNum[queryMove];
-            if (key.time >= timeAndAgentNum.time)
+            if (key.Time >= timeAndAgentNum.time)
                 return true;
         }
         return false;

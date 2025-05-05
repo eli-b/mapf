@@ -150,7 +150,7 @@ public class MDD
 
     public MDD(MDD other, ISet<TimedMove> reserved) : this(other)
     {
-        ISet<int> times_of_reservations = reserved.Select(move => move.time).ToHashSet();
+        ISet<int> times_of_reservations = reserved.Select(move => move.Time).ToHashSet();
         var toDelete = new List<MDDNode>();
         foreach (int time in times_of_reservations)
         {
@@ -264,12 +264,12 @@ public class MDD
                         continue;
                 }
 
-                if (mustConstraints != null && move.time < mustConstraints.Length && // There may be a constraint on the timestep
+                if (mustConstraints != null && move.Time < mustConstraints.Length && // There may be a constraint on the timestep
                                                                                         // of the generated node
-                    mustConstraints[move.time] != null &&
-                    mustConstraints[move.time].ContainsKey(this.agentNum)) // This agent has a must constraint for this time step
+                    mustConstraints[move.Time] != null &&
+                    mustConstraints[move.Time].ContainsKey(this.agentNum)) // This agent has a must constraint for this time step
                 {
-                    if (mustConstraints[move.time][this.agentNum].Equals(move) == false)
+                    if (mustConstraints[move.Time][this.agentNum].Equals(move) == false)
                         continue;
                 }
 

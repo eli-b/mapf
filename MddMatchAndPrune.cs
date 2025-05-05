@@ -218,7 +218,7 @@ class MddMatchAndPruneState
     public MddMatchAndPruneState(MDDNode[] allPositions)
     {
         this.allPositions = allPositions;
-        this.stateLevel = allPositions[0].move.time;
+        this.stateLevel = allPositions[0].move.Time;
         this.parents = new LinkedList<MddMatchAndPruneState>();
         this.childrens = new LinkedList<MddMatchAndPruneState>();
     }
@@ -230,7 +230,7 @@ class MddMatchAndPruneState
         {
             allPositions[i] = allSuccessors[i].Value;
         }
-        this.stateLevel = allPositions[0].move.time;
+        this.stateLevel = allPositions[0].move.Time;
         this.parents = new LinkedList<MddMatchAndPruneState>();
         this.childrens = new LinkedList<MddMatchAndPruneState>();
     }

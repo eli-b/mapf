@@ -169,9 +169,9 @@ class CooperativeAStar : IStatisticsCsvWriter, ISolver
             if (node.h == 0)
             {
                 bool valid = true;
-                for (int i = node.lastMove.time ; i <= maxPathCostSoFar; i++)
+                for (int i = node.lastMove.Time ; i <= maxPathCostSoFar; i++)
                 {
-                    queryTimedMove.setup(node.lastMove.X, node.lastMove.Y, Direction.NO_DIRECTION, i);
+                    queryTimedMove.Setup(node.lastMove.X, node.lastMove.Y, Direction.NO_DIRECTION, i);
                     if (reservationTable.Contains(queryTimedMove))
                         valid = false;
                 }
@@ -179,8 +179,8 @@ class CooperativeAStar : IStatisticsCsvWriter, ISolver
                 {
                     this.paths[agent.agent.agentNum] = new SinglePlan(node);
                     reservePath(node);
-                    totalcost += node.lastMove.time;
-                    parked.Add(new Move(node.lastMove.X, node.lastMove.Y, Direction.NO_DIRECTION), node.lastMove.time);
+                    totalcost += node.lastMove.Time;
+                    parked.Add(new Move(node.lastMove.X, node.lastMove.Y, Direction.NO_DIRECTION), node.lastMove.Time);
                     return true;
                 }
             }
@@ -233,7 +233,7 @@ class CooperativeAStar : IStatisticsCsvWriter, ISolver
         if (move.IsColliding(this.reservationTable))
             return false;
         this.queryMove.Setup(move.X, move.Y, Direction.NO_DIRECTION);
-        if (parked.ContainsKey(this.queryMove) && parked[this.queryMove] <= move.time)
+        if (parked.ContainsKey(this.queryMove) && parked[this.queryMove] <= move.Time)
             return false;
         return true;
     }

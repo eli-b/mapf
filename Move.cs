@@ -177,7 +177,7 @@ public class Move
     /// <summary>
     /// Changes this move to represent its opposite. Warning: Changes the hash. Not safe after the object is put in a hash table!
     /// </summary>
-    public void setOppositeMove()
+    public void SetOppositeMove()
     {
         X += directionToOppositeDeltas[(int)Direction, 0];
         Y += directionToOppositeDeltas[(int)Direction, 1];

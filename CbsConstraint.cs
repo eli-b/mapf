@@ -61,7 +61,7 @@ public class CbsConstraint : IComparable
     {
         get
         {
-            return this.move.time;
+            return this.move.Time;
         }
     }
 
@@ -108,7 +108,7 @@ public class CbsConstraint : IComparable
         }
     }
 
-    public int GetTimeStep()  => move.time; // FIXME: Make this into a property
+    public int GetTimeStep()  => move.Time; // FIXME: Make this into a property
 
     public Direction GetDirection() => move.Direction;
         
@@ -132,7 +132,7 @@ public class CbsConstraint : IComparable
     {
         CbsConstraint other = (CbsConstraint)item;
 
-        return this.move.time.CompareTo(other.move.time);
+        return this.move.Time.CompareTo(other.move.Time);
     }
 
     public bool ViolatesMustConstraint(byte agent, TimedMove move)

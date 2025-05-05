@@ -955,7 +955,7 @@ class IndependenceDetection : ISolver
             var afterGoal = new TimedMove(group.allAgentsState[i].agent.Goal.X, group.allAgentsState[i].agent.Goal.Y, Direction.Wait, time: 0);
             for (int time = group.GetPlan().GetSize(); time < CAT.GetMaxPlanSize(); time++)
             {
-                afterGoal.time = time;
+                afterGoal.Time = time;
                 afterGoal.IncrementConflictCounts(CAT,
                                                     this.conflictCountsPerGroup[group.groupNum],
                                                     this.conflictTimesPerGroup[group.groupNum]);

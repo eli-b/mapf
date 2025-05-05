@@ -75,14 +75,14 @@ namespace mapf;
 
         // If performed a non WAIT move and reached the agent's goal - store the arrival time
         if (atGoal && (isWait == false))
-            this.arrivalTime = move.time;
+            this.arrivalTime = move.Time;
 
         if (Constants.sumOfCostsVariant == Constants.SumOfCostsVariant.ORIG)
         {
             if (this.AtGoal())
                 this.g = this.arrivalTime;
             else
-                this.g = this.lastMove.time;
+                this.g = this.lastMove.Time;
         }
         else if (Constants.sumOfCostsVariant == Constants.SumOfCostsVariant.WAITING_AT_GOAL_ALWAYS_FREE)
         {
@@ -139,7 +139,7 @@ namespace mapf;
             return this.agent.Equals(that.agent) &&
                     this.lastMove.X == that.lastMove.X &&
                     this.lastMove.Y == that.lastMove.Y &&
-                    this.lastMove.time == that.lastMove.time; // Ignoring the direction
+                    this.lastMove.Time == that.lastMove.Time; // Ignoring the direction
         }
     }
 
@@ -172,9 +172,9 @@ namespace mapf;
     public int CompareTo(IBinaryHeapItem other)
     {
         AgentState that = (AgentState)other;
-        if (this.h + this.lastMove.time < that.h + that.lastMove.time)
+        if (this.h + this.lastMove.Time < that.h + that.lastMove.Time)
             return -1;
-        if (this.h + this.lastMove.time > that.h + that.lastMove.time)
+        if (this.h + this.lastMove.Time > that.h + that.lastMove.Time)
             return 1;
 
         if (this.potentialConflictsID < that.potentialConflictsID)
@@ -190,15 +190,15 @@ namespace mapf;
         // TODO: Prefer goal nodes.
 
         // Prefer larger g:
-        if (this.lastMove.time < that.lastMove.time)
+        if (this.lastMove.Time < that.lastMove.Time)
             return 1;
-        if (this.lastMove.time > that.lastMove.time)
+        if (this.lastMove.Time > that.lastMove.Time)
             return -1;
         return 0;
     }
 
     public override string ToString()
     {
-        return $"step-{lastMove.time} position {this.lastMove}";
+        return $"step-{lastMove.Time} position {this.lastMove}";
     }
 }

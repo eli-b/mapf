@@ -76,7 +76,7 @@ public class WorldState : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuris
     public WorldState(AgentState[] allAgentsState, int minDepth = -1, int minCost = -1, MDDNode mddNode = null)
     {
         this.allAgentsState = allAgentsState.ToArray();
-        this.makespan = allAgentsState.Max(state => state.lastMove.time); // We expect to only find at most two G values within the agent group
+        this.makespan = allAgentsState.Max(state => state.lastMove.Time); // We expect to only find at most two G values within the agent group
         this.CalculateG(); // G not necessarily zero when solving a partially solved problem.
         this.primaryTieBreaker = 0;
         this.secondaryTieBreaker = 0;

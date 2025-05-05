@@ -591,7 +591,7 @@ class A_Star_MDDs_Node : IComparable<IBinaryHeapItem>, IBinaryHeapItem
         }
     }
 
-    public int GetDepth() { return allSteps[0].move.time; }
+    public int GetDepth() { return allSteps[0].move.Time; }
 
     /// <summary>
     /// Updates the conflictCount member according to given CATs. Table may be null.

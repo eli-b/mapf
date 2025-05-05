@@ -7,14 +7,12 @@ namespace mapf;
 /// </summary>
 public class TimedMove  : Move
 {
-    public int time;
-
-//        public static const int FOREVER_AFTER = int.MaxValue
+    public int Time { get; set; }
 
     public TimedMove(int x, int y, Direction direction, int time)
         : base(x, y, direction)
     {
-        this.time = time;
+        Time = time;
     }
 
     /// <summary>
@@ -31,7 +29,7 @@ public class TimedMove  : Move
         foreach (Direction op in directions)
         {
             yield return new TimedMove(this.X + Move.directionToDeltas[(int)op, 0],
-                                        this.Y + Move.directionToDeltas[(int)op, 1], op, this.time + 1);
+                                        this.Y + Move.directionToDeltas[(int)op, 1], op, this.Time + 1);
         }
     }
 
@@ -42,36 +40,36 @@ public class TimedMove  : Move
     public override void Update(Direction direction)
     {
         base.Update(direction);
-        this.time += 1;
+        Time += 1;
     }
 
     public TimedMove(Move cpy, int time)
         : base(cpy)
     {
-        this.time = time;
+        Time = time;
     }
 
     public TimedMove() { }
 
     public TimedMove(TimedMove cpy) : base(cpy)
     {
-        this.time = cpy.time;
+        Time = cpy.Time;
     }
 
     public override bool Equals(object obj)
     {
         if (obj == null)
             return false;
-        if (this.time != ((TimedMove)obj).time)
+        if (Time != ((TimedMove)obj).Time)
             return false;
 
         //return base.Equals(obj);
 
         // Begin copied code of base to avoid a method call
         Move that = (Move)obj;
-        return (this.X == that.X && this.Y == that.Y &&
-                ((this.Direction == Direction.NO_DIRECTION) || (that.Direction == Direction.NO_DIRECTION) ||
-                    (this.Direction == that.Direction)));
+        return (X == that.X && Y == that.Y &&
+                ((Direction == Direction.NO_DIRECTION) || (that.Direction == Direction.NO_DIRECTION) ||
+                    (Direction == that.Direction)));
         // End copied code of base
     }
 
@@ -86,13 +84,13 @@ public class TimedMove  : Move
             hash = 23 * hash + X;
             hash = 23 * hash + Y;
             // End copied code of base
-            return hash * 3 + this.time;
+            return hash * 3 + Time;
         }
     }
 
     public new TimedMove GetMoveWithoutDirection()
     {
-        TimedMove copy = new TimedMove(this);
+        TimedMove copy = new(this);
         copy.Direction = Direction.NO_DIRECTION;
         return copy;
     }
@@ -104,16 +102,11 @@ public class TimedMove  : Move
     /// 1. Head on collision
     /// 2. When other moves target the same location.
     /// </summary>
-    /// <param name="other"></param>
-    /// <returns></returns>
-    public bool IsColliding(TimedMove other)
-    {
-        return IsColliding(other.X, other.Y, other.Direction, other.time);
-    }
+    public bool IsColliding(TimedMove other) => IsColliding(other.X, other.Y, other.Direction, other.Time);
 
     public bool IsColliding(int other_x, int other_y, Direction other_direction, int time)
     {
-        if (this.time != time)
+        if (Time != time)
             return false;
 
         return base.IsColliding(other_x, other_y, other_direction);
@@ -122,48 +115,41 @@ public class TimedMove  : Move
     /// <summary>
     /// Reimplemented to avoid creating temporary Move objects
     /// </summary>
-    /// <returns></returns>
     public new TimedMove GetOppositeMove()
     {
         if (Direction == Direction.Wait || Direction == Direction.NO_DIRECTION)
             return this;
-        return new TimedMove(this.X + Move.directionToOppositeDeltas[(int)Direction, 0],
-                        this.Y + directionToOppositeDeltas[(int)Direction, 1],
-                        directionToOppositeDirection[(int)Direction], this.time);
+        return new TimedMove(X + Move.directionToOppositeDeltas[(int)Direction, 0],
+                        Y + directionToOppositeDeltas[(int)Direction, 1],
+                        directionToOppositeDirection[(int)Direction], Time);
     }
 
     /// <summary>
     /// Isn't used anywhere
     /// </summary>
-    /// <param name="cpy"></param>
-    /// <param name="time"></param>
-    public void setup(Move cpy, int time)
+    public void Setup(Move cpy, int time)
     {
         base.Setup(cpy);
-        this.time = time;
+        Time = time;
     }
 
     /// <summary>
     /// 
     /// </summary>
     /// <param name="cpy"></param>
-    public void setup(TimedMove cpy)
+    public void Setup(TimedMove cpy)
     {
         base.Setup(cpy);
-        this.time = cpy.time;
+        Time = cpy.Time;
     }
 
     /// <summary>
     /// Almost isn't used anywhere
     /// </summary>
-    /// <param name="x"></param>
-    /// <param name="y"></param>
-    /// <param name="direction"></param>
-    /// <param name="time"></param>
-    public void setup(int x, int y, Direction direction, int time)
+    public void Setup(int x, int y, Direction direction, int time)
     {
         base.Setup(x, y, direction);
-        this.time = time;
+        Time = time;
     }
 
     public bool IsColliding(ICollection<TimedMove> moves)
@@ -179,13 +165,13 @@ public class TimedMove  : Move
 
         if (Constants.ALLOW_HEAD_ON_COLLISION == false)
         {
-            this.setOppositeMove();
+            SetOppositeMove();
             if (moves.Contains(this)) // Check direction too now
             {
-                this.setOppositeMove();
+                SetOppositeMove();
                 return true;
             }
-            this.setOppositeMove();
+            SetOppositeMove();
         }
 
         return false;
@@ -206,13 +192,13 @@ public class TimedMove  : Move
 
         if (Constants.ALLOW_HEAD_ON_COLLISION == false)
         {
-            this.setOppositeMove();
+            SetOppositeMove();
             if (timedMovesToAgentID.ContainsKey(this)) // Check direction too now
             {
-                this.setOppositeMove();
+                SetOppositeMove();
                 return true;
             }
-            this.setOppositeMove();
+            SetOppositeMove();
         }
 
         return false;
@@ -238,8 +224,7 @@ public class TimedMove  : Move
             this.Direction = direction;
             if (timedMovesToAgentIndex.ContainsKey(this))
             {
-                if (ans == null)
-                    ans = new List<int>(4);
+                ans ??= new List<int>(4);
                 ans.Add(timedMovesToAgentIndex[this]);
             }
         }
@@ -247,14 +232,13 @@ public class TimedMove  : Move
 
         if (Constants.ALLOW_HEAD_ON_COLLISION == false)
         {
-            this.setOppositeMove();
+            this.SetOppositeMove();
             if (timedMovesToAgentIndex.ContainsKey(this)) // Check direction too now
             {
-                if (ans == null)
-                    ans = new List<int>(1);
+                ans ??= new List<int>(1);
                 ans.Add(timedMovesToAgentIndex[this]);
             }
-            this.setOppositeMove();
+            this.SetOppositeMove();
         }
 
         if (ans != null)
@@ -263,7 +247,7 @@ public class TimedMove  : Move
             return TimedMove.emptyList;
     }
 
-    private static readonly List<int> emptyList = new List<int>(0);
+    private static readonly List<int> emptyList = [];
 
     /// <summary>
     /// Gets a dictionary mapping TimedMoves to the agents that already made them
@@ -286,7 +270,7 @@ public class TimedMove  : Move
             if (CAT.ContainsKey(this))
             {
                 if (ans == null)
-                    ans = new List<int>(CAT[this]);
+                    ans = [.. CAT[this]];
                 else
                     ans.AddRange(CAT[this]);
             }
@@ -295,15 +279,15 @@ public class TimedMove  : Move
 
         if (Constants.ALLOW_HEAD_ON_COLLISION == false)
         {
-            this.setOppositeMove();
+            SetOppositeMove();
             if (CAT.ContainsKey(this)) // Check direction too now
             {
                 if (ans == null)
-                    ans = new List<int>(CAT[this]);
+                    ans = [.. CAT[this]];
                 else
                     ans.AddRange(CAT[this]);
             }
-            this.setOppositeMove();
+            SetOppositeMove();
         }
 
         if (ans != null)
@@ -315,7 +299,7 @@ public class TimedMove  : Move
     public void IncrementConflictCounts(ConflictAvoidanceTable conflictAvoidance,
                                         Dictionary<int, int> conflictCounts, Dictionary<int, List<int>> conflictTimes)
     {
-        IReadOnlyList<int> colliding = this.GetColliding(conflictAvoidance);
+        IReadOnlyList<int> colliding = GetColliding(conflictAvoidance);
         foreach (int agentNum in colliding)
         {
             if (conflictCounts.ContainsKey(agentNum) == false)
@@ -323,9 +307,9 @@ public class TimedMove  : Move
             else
                 conflictCounts[agentNum] += 1;
             if (conflictTimes.ContainsKey(agentNum) == false)
-                conflictTimes[agentNum] = new List<int>(4) { this.time };
+                conflictTimes[agentNum] = new List<int>(4) { Time };
             else
-                conflictTimes[agentNum].Add(this.time);
+                conflictTimes[agentNum].Add(Time);
         }
     }
 }

@@ -800,7 +800,7 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
             Direction.Wait, time: 0);
         for (int time = singleAgentPlans[agentIndex].GetSize(); time < CAT.GetMaxPlanSize(); time++)
         {
-            afterGoal.time = time;
+            afterGoal.Time = time;
             afterGoal.IncrementConflictCounts(CAT,
                                             this.conflictCountsPerAgent[this.agentsGroupAssignment[agentIndex]],
                                             this.conflictTimesPerAgent[this.agentsGroupAssignment[agentIndex]]);
@@ -1974,7 +1974,7 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
                                 out specificConflictingAgentA, out specificConflictingAgentB,
                                 groups);
         ProblemInstance problem = this.cbs.GetProblemInstance();
-        int initialTimeStep = problem.agents[0].lastMove.time; // To account for solving partially solved problems.
+        int initialTimeStep = problem.agents[0].lastMove.Time; // To account for solving partially solved problems.
         // This assumes the makespan of all the agents is the same.
         Move first = singleAgentPlans[specificConflictingAgentA].GetLocationAt(time);
         Move second = singleAgentPlans[specificConflictingAgentB].GetLocationAt(time);

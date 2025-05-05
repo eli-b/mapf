@@ -258,7 +258,7 @@ public class ProblemInstance
         LinkedList<Move> moves = new LinkedList<Move>();
         int agentNum = agentState.agent.agentNum;
         TimedMove current = agentState.lastMove; // The starting position
-        int time = current.time;
+        int time = current.Time;
 
         while (true)
         {
