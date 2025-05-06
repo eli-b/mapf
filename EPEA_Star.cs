@@ -37,12 +37,12 @@ class EPEA_Star : A_Star
 
     override public string GetName() { return "EPE" + base.GetName(); }
 
-    public override void Setup(ProblemInstance problemInstance, int minDepth, Run runner,
+    public override void Setup(ProblemInstance problemInstance, int minDepth, Stopwatch stopwatch,
                                 ConflictAvoidanceTable CAT = null,
                                 ISet<CbsConstraint> constraints = null, ISet<CbsConstraint> positiveConstraints = null,
                                 int minCost = -1, int maxCost = int.MaxValue, MDD mdd = null)
     {
-        base.Setup(problemInstance, minDepth, runner, CAT, constraints, positiveConstraints,
+        base.Setup(problemInstance, minDepth, stopwatch, CAT, constraints, positiveConstraints,
                     minCost, maxCost, mdd);
         this.expandedFullStates = 0;
     }
@@ -51,14 +51,11 @@ class EPEA_Star : A_Star
     {
         var node = (WorldStateForPartialExpansion)nodeP;
 
-        bool wasAlreadyExpanded = true;
-
         if (node.IsAlreadyExpanded() == false)
         {
             node.calcSingleAgentDeltaFs(instance, this.IsValid);
             expandedFullStates++;
             node.alreadyExpanded = true;
-            wasAlreadyExpanded = false;
             //node.hBonus = 0; // Locking any hbonus that doesn't come from partial expansion
             node.targetDeltaF = 0; // Assuming a consistent heuristic (as done in the paper), the min delta F is zero.
             node.remainingDeltaF = node.targetDeltaF; // Just for the following hasChildrenForCurrentDeltaF call.

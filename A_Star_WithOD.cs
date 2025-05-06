@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 
 namespace mapf;
@@ -30,12 +31,12 @@ public class A_Star_WithOD : A_Star
 
     public override string GetName() { return base.GetName() + "+OD"; }
 
-    public override void Setup(ProblemInstance problemInstance, int minDepth, Run runner,
+    public override void Setup(ProblemInstance problemInstance, int minDepth, Stopwatch stopwatch,
                                 ConflictAvoidanceTable CAT = null,
                                 ISet<CbsConstraint> constraints = null, ISet<CbsConstraint> positiveConstraints = null,
                                 int minCost = -1, int maxCost = int.MaxValue, MDD mdd = null)
     {
-        base.Setup(problemInstance, minDepth, runner, CAT, constraints, positiveConstraints,
+        base.Setup(problemInstance, minDepth, stopwatch, CAT, constraints, positiveConstraints,
                     minCost, maxCost, mdd);
         this.expandedFullStates = 0;
         this.generatedFullStates = 0;
@@ -121,13 +122,7 @@ public class A_Star_WithOD : A_Star
         output.Write(this.generatedFullStates + Run.RESULTS_DELIMITER);
     }
 
-    public override int NumStatsColumns
-    {
-        get
-        {
-            return 2 + base.NumStatsColumns;
-        }
-    }
+    public override int NumStatsColumns => 2 + base.NumStatsColumns;
 
     public override void ClearAccumulatedStatistics()
     {

@@ -356,8 +356,8 @@ class Program
                 Console.WriteLine(e.StackTrace);
                 return;
             }
-            Run runner = new Run();  // instantiates stuff unnecessarily
-            runner.startTime = runner.ElapsedMillisecondsTotal();
+            Run runner = new();  // instantiates stuff unnecessarily
+            runner.watch.Restart();
                 
             IHeuristicCalculator<WorldState> lowLevelHeuristic = new SumIndividualCosts();
             List<uint> agentList = Enumerable.Range(0, instance.agents.Length).Select(x=> (uint)x).ToList(); // FIXME: Must the heuristics really receive a list of uints?
@@ -376,7 +376,7 @@ class Program
             //ISolver solver = new IndependenceDetection(lowLevel, new EPEA_Star(lowLevelHeuristic));
             //ISolver solver = new IndependenceDetection(lowLevel, new CostTreeSearchSolverOldMatching(3));
             ISolver solver = new IndependenceDetection(lowLevel, new A_Star_WithOD(lowLevelHeuristic));
-            solver.Setup(instance, runner);
+            solver.Setup(instance, runner.watch);
             bool solved = solver.Solve();
             if (solved == false)
             {

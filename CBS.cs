@@ -95,7 +95,7 @@ public class CBS : ICbsSolver, IHeuristicSolver<CbsNode>, IIndependenceDetection
     /// Notice root.g != 0 in CBS.
     /// </summary>
     private int _solutionDepth;
-    public Run _runner; // TODO: remove this dependency
+    public Stopwatch _stopwatch;
     private CbsNode _goalNode;
     private Plan _solution;
 
@@ -228,10 +228,10 @@ public class CBS : ICbsSolver, IHeuristicSolver<CbsNode>, IIndependenceDetection
     /// <summary>
     /// Implements IIndependenceDetection.Setup for new groups
     /// </summary>
-    public void Setup(ProblemInstance problemInstance, Run runner, ConflictAvoidanceTable CAT,
+    public void Setup(ProblemInstance problemInstance, Stopwatch stopwatch, ConflictAvoidanceTable CAT,
                         int parentGroup1Cost, int parentGroup2Cost, int parentGroup1Size)
     {
-        Setup(problemInstance, -1, runner, CAT, null, null, parentGroup1Cost + parentGroup2Cost);  // TODO: Support a makespan cost function
+        Setup(problemInstance, -1, stopwatch, CAT, null, null, parentGroup1Cost + parentGroup2Cost);  // TODO: Support a makespan cost function
         // I think we don't want to merge the agents in each group. We'd be left with two large meta-agents,
         // and in CBS one conflict isn't a reason to merge agents. The groups are arbitrarily large so we can't
         // even increment their conflict counts toward the merge threshold.
@@ -240,7 +240,7 @@ public class CBS : ICbsSolver, IHeuristicSolver<CbsNode>, IIndependenceDetection
     /// <summary>
     /// Implements IIndependenceDetection.Setup for replanning groups to resolve a conflict
     /// </summary>
-    public void Setup(ProblemInstance problemInstance, Run runner, ConflictAvoidanceTable CAT,
+    public void Setup(ProblemInstance problemInstance, Stopwatch stopwatch, ConflictAvoidanceTable CAT,
                         int targetCost, ISet<TimedMove> illegalMoves)
     {
         // Turn the set of reserved/illegal moves into constraints for every agent. Not the prettiest solution.
@@ -255,7 +255,7 @@ public class CBS : ICbsSolver, IHeuristicSolver<CbsNode>, IIndependenceDetection
                 constraints.Add(new CbsConstraint(agentState.agent.agentNum, illegalMove));
             }
         }
-        Setup(problemInstance, illegalMoves.Max(move => move.Time), runner, CAT, constraints, null, targetCost, targetCost);
+        Setup(problemInstance, illegalMoves.Max(move => move.Time), stopwatch, CAT, constraints, null, targetCost, targetCost);
     }
 
     /// <summary>
@@ -267,15 +267,15 @@ public class CBS : ICbsSolver, IHeuristicSolver<CbsNode>, IIndependenceDetection
     /// <param name="minSolutionCost"></param>
     /// <param name="maxSolutionCost"></param>
     /// <param name="mdd">Currently ignored. FIXME: Need to convert to array of MDDs to use.</param>
-    public virtual void Setup(ProblemInstance problemInstance, int minSolutionTimeStep, Run runner,
+    public virtual void Setup(ProblemInstance problemInstance, int minSolutionTimeStep, Stopwatch stopwatch,
         ConflictAvoidanceTable externalCAT, ISet<CbsConstraint> externalConstraints,
         ISet<CbsConstraint> externalPositiveConstraints,
         int minSolutionCost = -1, int maxSolutionCost = int.MaxValue, MDD mdd = null)
     {
         _instance = problemInstance;
-        _runner = runner;
+        _stopwatch = stopwatch;
         if (OpenList is DynamicLazyOpenList<CbsNode> list)
-            list.runner = runner;
+            list.stopwatch = stopwatch;
 
         ClearPrivateStatistics();
         SolutionCost = 0;
@@ -345,7 +345,7 @@ public class CBS : ICbsSolver, IHeuristicSolver<CbsNode>, IIndependenceDetection
     /// </summary>
     /// <param name="problemInstance"></param>
     /// <param name="runner"></param>
-    public virtual void Setup(ProblemInstance problemInstance, Run runner) => Setup(problemInstance, 0, runner, null, null, null);
+    public virtual void Setup(ProblemInstance problemInstance, Stopwatch stopwatch) => Setup(problemInstance, 0, stopwatch, null, null, null);
 
     public IHeuristicCalculator<CbsNode> GetHeuristic() => _heuristic;
 
@@ -755,7 +755,7 @@ public class CBS : ICbsSolver, IHeuristicSolver<CbsNode>, IIndependenceDetection
         while (OpenList.Count > 0)
         {
             // Check if max time has been exceeded
-            if (_runner.ElapsedMilliseconds() > Constants.MAX_TIME)
+            if (_stopwatch.ElapsedMilliseconds > Constants.MAX_TIME)
             {
                 SolutionCost = (int) Constants.SpecialCosts.TIMEOUT_COST;
                 Console.WriteLine("Out of time");
@@ -849,7 +849,7 @@ public class CBS : ICbsSolver, IHeuristicSolver<CbsNode>, IIndependenceDetection
                                                     // We're looking at _generated_ low level nodes since that's an indication to the amount of work done,
                                                     // while expanded nodes is an indication of the amount of good work done.
                 (MilliCap != int.MaxValue && // (This check is much cheaper than the method call)
-                    _runner.ElapsedMilliseconds() > MilliCap)) // Search is taking too long.
+                    _stopwatch.ElapsedMilliseconds > MilliCap)) // Search is taking too long.
             {
                 Debug.WriteLine("-----------------");
                 SolutionCost = maxExpandedNodeF; // This is the min possible cost so far.
@@ -871,7 +871,7 @@ public class CBS : ICbsSolver, IHeuristicSolver<CbsNode>, IIndependenceDetection
         }
 
         // Check if max time has been exceeded
-        if (_runner.ElapsedMilliseconds() > Constants.MAX_TIME)
+        if (_stopwatch.ElapsedMilliseconds > Constants.MAX_TIME)
         {
             SolutionCost = (int)Constants.SpecialCosts.TIMEOUT_COST;
             Console.WriteLine("Out of time");
@@ -989,7 +989,7 @@ public class CBS : ICbsSolver, IHeuristicSolver<CbsNode>, IIndependenceDetection
                 leftSameCost = closedListHitChildCost == node.G;
         }
 
-        if (_runner.ElapsedMilliseconds() > Constants.MAX_TIME)
+        if (_stopwatch.ElapsedMilliseconds > Constants.MAX_TIME)
             return (adopted: false, children, reinsertParent);
 
         // Generate right child:
@@ -1077,7 +1077,7 @@ public class CBS : ICbsSolver, IHeuristicSolver<CbsNode>, IIndependenceDetection
                         break;
                     }
 
-                    if (_runner.ElapsedMilliseconds() > Constants.MAX_TIME)
+                    if (_stopwatch.ElapsedMilliseconds > Constants.MAX_TIME)
                         return;
 
                     CbsNode lookAheadNode = lookAheadOpenList.Remove();
@@ -1200,7 +1200,7 @@ public class CBS : ICbsSolver, IHeuristicSolver<CbsNode>, IIndependenceDetection
                 CbsNode lookAheadNode = lookAheadOpenList.Remove();
                 lookAheadNode.ChooseConflict();
 
-                if (_runner.ElapsedMilliseconds() > Constants.MAX_TIME)
+                if (_stopwatch.ElapsedMilliseconds > Constants.MAX_TIME)
                     return;
 
                 Debug.WriteLine($"Looking ahead from node hash: {lookAheadNode.GetHashCode()}.");
@@ -1848,10 +1848,10 @@ public class MACBS_WholeTreeThreshold : CBS
     /// </summary>
     /// <param name="problemInstance"></param>
     /// <param name="runner"></param>
-    public override void Setup(ProblemInstance problemInstance, Run runner)
+    public override void Setup(ProblemInstance problemInstance, Stopwatch stopwatch)
     {
         MakeConflictMatrix(problemInstance);
-        base.Setup(problemInstance, runner);
+        base.Setup(problemInstance, stopwatch);
     }
 
     private void MakeConflictMatrix(ProblemInstance problemInstance)

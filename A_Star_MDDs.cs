@@ -12,24 +12,22 @@ namespace mapf;
 class A_Star_MDDs : IConflictReporting
 {
     MDD[] problem;
-    Dictionary<A_Star_MDDs_Node, A_Star_MDDs_Node> closedList;
-    Run runner;
-    BinaryHeap<A_Star_MDDs_Node> openList;
+    readonly Dictionary<A_Star_MDDs_Node, A_Star_MDDs_Node> closedList = [];
+    readonly Stopwatch stopwatch;
+    readonly BinaryHeap<A_Star_MDDs_Node> openList = new();
     public int expanded;
     public int generated;
     public int conflictCount;
-    ConflictAvoidanceTable CAT;
+    readonly ConflictAvoidanceTable CAT;
 
-    public A_Star_MDDs(MDD[] problem, Run runner, ConflictAvoidanceTable CAT)
+    public A_Star_MDDs(MDD[] problem, Stopwatch stopwatch, ConflictAvoidanceTable CAT)
     {
         this.expanded = 0;
         this.generated = 0;
         A_Star_MDDs_Node root;
         this.problem = problem;
-        this.runner = runner;
+        this.stopwatch = stopwatch;
         this.CAT = CAT;
-        this.closedList = new Dictionary<A_Star_MDDs_Node, A_Star_MDDs_Node>();
-        this.openList = new BinaryHeap<A_Star_MDDs_Node>();
         MDDNode[] sRoot = new MDDNode[problem.Length];
         for (int i = 0; i < problem.Length; i++)
         {
@@ -48,7 +46,7 @@ class A_Star_MDDs : IConflictReporting
 
         while (openList.Count > 0)
         {
-            if (runner.ElapsedMilliseconds() > Constants.MAX_TIME)
+            if (stopwatch.ElapsedMilliseconds > Constants.MAX_TIME)
             {
                 return null;
             }
@@ -95,7 +93,7 @@ class A_Star_MDDs : IConflictReporting
 
         for (int mddIndex = 0; mddIndex < this.problem.Length && intermediateNodes.Count != 0; ++mddIndex)
         {
-            if (runner.ElapsedMilliseconds() > Constants.MAX_TIME)
+            if (stopwatch.ElapsedMilliseconds > Constants.MAX_TIME)
                 return;
 
             intermediateNodes = ExpandOneAgent(intermediateNodes, mddIndex);
@@ -110,9 +108,9 @@ class A_Star_MDDs : IConflictReporting
             // Accumulating the conflicts count from parent to child
             // We're counting conflicts along the entire path, so the parent's conflicts count is added to the child's:
             child.conflictCounts = new Dictionary<int, int>(child.prev.conflictCounts);
-            child.conflictTimes = new Dictionary<int, List<int>>();
+            child.conflictTimes = [];
             foreach (var kvp in child.prev.conflictTimes)
-                child.conflictTimes[kvp.Key] = new List<int>(kvp.Value);
+                child.conflictTimes[kvp.Key] = [.. kvp.Value];
             child.IncrementConflictCounts(this.CAT);  // We're counting conflicts along the entire path, so the parent's conflicts count
                                                     // is added to the child's.
 
@@ -164,7 +162,7 @@ class A_Star_MDDs : IConflictReporting
 
     protected List<A_Star_MDDs_Node> ExpandOneAgent(List<A_Star_MDDs_Node> intermediateNodes, int mddIndex)
     {
-        var generated = new List<A_Star_MDDs_Node>();
+        List<A_Star_MDDs_Node> generated = [];
 
         // Expand the mdd node
         foreach (A_Star_MDDs_Node node in intermediateNodes)
@@ -175,7 +173,7 @@ class A_Star_MDDs : IConflictReporting
                 if (node.currentMoves != null && childMddNode.move.IsColliding(node.currentMoves))  // Can happen. We only prune partially, we don't build the full k-agent MDD.
                     continue;
 
-                var childNode = new A_Star_MDDs_Node(node, mddIndex != node.allSteps.Length - 1);
+                A_Star_MDDs_Node childNode = new(node, mddIndex != node.allSteps.Length - 1);
                 childNode.allSteps[mddIndex] = childMddNode;
 
                 // Update target conflict count and prune nodes that can't get to the target conflict count
@@ -208,19 +206,13 @@ class A_Star_MDDs : IConflictReporting
     /// <summary>
     /// </summary>
     /// <returns>Map each external agent to the number of conflicts with their path the solution has</returns>
-    public Dictionary<int, int> GetExternalConflictCounts()
-    {
-        return this.conflictCounts;
-    }
+    public Dictionary<int, int> GetExternalConflictCounts() => this.conflictCounts;
 
     /// <summary>
     /// </summary>
     /// <returns>Map each external agent to a list of times the solution has a conflict with theirs</returns>
-    public Dictionary<int, List<int>> GetConflictTimes()
-    {
-        return this.conflictTimes;
-    }
-
+    public Dictionary<int, List<int>> GetConflictTimes() => this.conflictTimes;
+    
     public void Expand(A_Star_MDDs_Expander currentNode)
     {
         while (true)
@@ -256,9 +248,9 @@ class A_Star_MDDs : IConflictReporting
         }
     }
 
-    public int GetGenerated() { return this.generated; }
+    public int GetGenerated() => this.generated;
         
-    public int GetExpanded() { return this.expanded; }
+    public int GetExpanded() => this.expanded;
         
     private bool GoalTest(A_Star_MDDs_Node toCheck)
     {
@@ -293,10 +285,7 @@ class A_Star_MDDs : IConflictReporting
         return ans;
     }
         
-    private bool CheckIfLegal(MDDNode to1, MDDNode to2)
-    {
-        return to1.move.IsColliding(to2.move) == false;
-    }
+    private bool CheckIfLegal(MDDNode to1, MDDNode to2) => to1.move.IsColliding(to2.move) == false;
         
     private bool IsLegalMove(A_Star_MDDs_Node to)
     {
@@ -383,20 +372,11 @@ class A_Star_MDDs_Node : IComparable<IBinaryHeapItem>, IBinaryHeapItem
     /// Returns whether all possible f values were generated from this node already
     /// </summary>
     /// <returns></returns>
-    public bool hasMoreChildren()
-    {
-        return this.targetDeltaConflictCount <= this.maxDeltaConflictCount;
-    }
+    public bool hasMoreChildren() => this.targetDeltaConflictCount <= this.maxDeltaConflictCount;
 
-    public bool IsAlreadyExpanded()
-    {
-        return alreadyExpanded;
-    }
+    public bool IsAlreadyExpanded() => alreadyExpanded;
 
-    public bool hasChildrenForCurrentDeltaConflictCount(int agentNum = 0)
-    {
-        return existsChildForConflictCount(agentNum, this.remainingDeltaConflictCount);
-    }
+    public bool hasChildrenForCurrentDeltaConflictCount(int agentNum = 0) => existsChildForConflictCount(agentNum, this.remainingDeltaConflictCount);
 
     /// <summary>
     /// An MDD child node was chosen between calculating the singleAgentDeltaConflictCounts and this call.

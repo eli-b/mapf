@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Diagnostics;
 
 namespace mapf;
 
@@ -19,9 +20,7 @@ public interface ISolver : IStatisticsCsvWriter
     /// <summary>
     /// Setup the relevant data structures for a run.
     /// </summary>
-    /// <param name="problemInstance"></param>
-    /// <param name="runner"></param>
-    void Setup(ProblemInstance problemInstance, Run runner);
+    void Setup(ProblemInstance problemInstance, Stopwatch stopwatch);
 
     /// <summary>
     /// Clears the relevant data structures and variables to free memory usage.
@@ -31,7 +30,6 @@ public interface ISolver : IStatisticsCsvWriter
     /// <summary>
     /// Returns the found plan, or null if no plan was found.
     /// </summary>
-    /// <returns></returns>
     Plan GetPlan();
 
     /// <summary>
@@ -68,24 +66,13 @@ public interface IIndependenceDetectionSolver : ISolver, IConflictReporting, IAc
     /// <summary>
     /// For new groups
     /// </summary>
-    /// <param name="problemInstance"></param>
-    /// <param name="runner"></param>
-    /// <param name="CAT"></param>
-    /// <param name="parentGroup1Cost"></param>
-    /// <param name="parentGroup2Cost"></param>
-    /// <param name="parentGroup1Size"></param>
-    void Setup(ProblemInstance problemInstance, Run runner, ConflictAvoidanceTable CAT,
+    void Setup(ProblemInstance problemInstance, Stopwatch stopwatch, ConflictAvoidanceTable CAT,
                 int parentGroup1Cost, int parentGroup2Cost, int parentGroup1Size);
 
     /// <summary>
     /// For replanning groups to resolve a conflict
     /// </summary>
-    /// <param name="problemInstance"></param>
-    /// <param name="runner"></param>
-    /// <param name="CAT"></param>
-    /// <param name="targetCost">/// </param>
-    /// <param name="illegalMoves"></param>
-    void Setup(ProblemInstance problemInstance, Run runner, ConflictAvoidanceTable CAT,
+    void Setup(ProblemInstance problemInstance, Stopwatch stopwatch, ConflictAvoidanceTable CAT,
                 int targetCost, ISet<TimedMove> illegalMoves);
     int[] GetSingleCosts();
 
@@ -110,7 +97,7 @@ public interface ICbsSolver : ISolver, IConflictReporting, IAccumulatingStatisti
     /// </param>
     /// <param name="maxCost">If known, can speed up the search (no surplus nodes would be generated)</param>
     /// <param name="mdd">Optional MDD of cost minCost=maxCost</param>
-    void Setup(ProblemInstance problemInstance, int minTimeStep, Run runner,
+    void Setup(ProblemInstance problemInstance, int minTimeStep, Stopwatch stopwatch,
                 ConflictAvoidanceTable CAT, ISet<CbsConstraint> constraints, ISet<CbsConstraint> positiveConstraints,
                 int minCost, int maxCost, MDD mdd);
     SinglePlan[] GetSinglePlans();

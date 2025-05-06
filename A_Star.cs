@@ -16,7 +16,7 @@ public class A_Star : ICbsSolver, IMStarSolver, IHeuristicSolver<WorldState>, II
     protected ProblemInstance instance;
     protected IHeuristicCalculator<WorldState> heuristic;
     public OpenList<WorldState> openList;
-    public Dictionary<WorldState, WorldState> closedList;
+    public Dictionary<WorldState, WorldState> closedList = [];
     /// <summary>
     /// How much more expensive the solution was than the heuristic's initial estimate
     /// </summary>
@@ -69,7 +69,7 @@ public class A_Star : ICbsSolver, IMStarSolver, IHeuristicSolver<WorldState>, II
     //protected Dictionary<WorldState, SinglePlan[]> mstarPlanBasesToTheirPlans;
     protected Dictionary<WorldState, HashSet<CbsConstraint>[]> mstarPlanBasesToTheirConstraints; // Most nodes won't have constraints so I don't want to make their memory footprint needlessly large.
     protected List<CbsConflict> mstarBackPropagationConflictList;
-    protected Run runner;
+    protected Stopwatch stopwatch;
     protected Plan solution;
     //// <summary>
     //// For CBS/A*
@@ -81,13 +81,9 @@ public class A_Star : ICbsSolver, IMStarSolver, IHeuristicSolver<WorldState>, II
     /// </summary>
     public A_Star(IHeuristicCalculator<WorldState> heuristic = null, bool mStar = false, bool mStarShuffle = false)
     {
-        this.closedList = new Dictionary<WorldState, WorldState>();
         this.openList = new OpenList<WorldState>(this);
         this.heuristic = heuristic;
             
-        this.queryConstraint = new CbsConstraint();
-        this.queryConstraint.queryInstance = true;
-
         this.mstar = mStar;
         this.doMstarShuffle = mStarShuffle;
     }
@@ -95,13 +91,13 @@ public class A_Star : ICbsSolver, IMStarSolver, IHeuristicSolver<WorldState>, II
     /// <summary>
     /// Setup the relevant data structures for a run under CBS.
     /// </summary>
-    public virtual void Setup(ProblemInstance problemInstance, int minDepth, Run runner,
+    public virtual void Setup(ProblemInstance problemInstance, int minDepth, Stopwatch stopwatch,
                                 ConflictAvoidanceTable CAT = null,
                                 ISet<CbsConstraint> constraints = null, ISet<CbsConstraint> positiveConstraints = null,
                                 int minCost = -1, int maxCost = int.MaxValue, MDD mdd = null)
     {
         this.instance = problemInstance;
-        this.runner = runner;
+        this.stopwatch = stopwatch;
         MDDNode mddRoot = null;
         if (mdd != null)
         {
@@ -136,7 +132,7 @@ public class A_Star : ICbsSolver, IMStarSolver, IHeuristicSolver<WorldState>, II
                 {
                     int timeStep = con.GetTimeStep();
                     if (this.mustConstraints[timeStep] == null)
-                        this.mustConstraints[timeStep] = new Dictionary<int, TimedMove>();
+                        this.mustConstraints[timeStep] = [];
                     this.mustConstraints[timeStep][con.agentNum] = con.move;
                 }
         }
@@ -146,7 +142,7 @@ public class A_Star : ICbsSolver, IMStarSolver, IHeuristicSolver<WorldState>, II
             root.backPropagationSet = new HashSet<WorldState>();
             root.collisionSets = new DisjointSets<int>();
 
-            this.mstarBackPropagationConflictList = new List<CbsConflict>();
+            this.mstarBackPropagationConflictList = [];
         }
     }
 
@@ -182,9 +178,9 @@ public class A_Star : ICbsSolver, IMStarSolver, IHeuristicSolver<WorldState>, II
 
     public virtual String GetName()
     {
-        if (this.mstar == false)
+        if (!this.mstar)
             return "A*";
-        else if (this.doMstarShuffle == false)
+        else if (!this.doMstarShuffle)
             return "rM*";
         else
             return "rM*+shuffle";
@@ -406,7 +402,7 @@ public class A_Star : ICbsSolver, IMStarSolver, IHeuristicSolver<WorldState>, II
         while (openList.Count > 0)
         {
             // Check if max time has been exceeded
-            if (runner.ElapsedMilliseconds() > Constants.MAX_TIME)
+            if (stopwatch.ElapsedMilliseconds > Constants.MAX_TIME)
             {
                 totalCost = (int) Constants.SpecialCosts.TIMEOUT_COST;
                 Console.WriteLine("Out of time");
@@ -453,11 +449,11 @@ public class A_Star : ICbsSolver, IMStarSolver, IHeuristicSolver<WorldState>, II
             //    }
             //}
 
-            if (this.mstar == false && // Backpropagation can cause the root to be re-expanded after many more expensive nodes were expanded.
-                (this.openList is DynamicLazyOpenList<WorldState>) == false && // When the open list has just one node,
+            if (!this.mstar && // Backpropagation can cause the root to be re-expanded after many more expensive nodes were expanded.
+                this.openList is not DynamicLazyOpenList<WorldState> && // When the open list has just one node,
                                                                                 // application of the expensive heuristic is skipped altogether.
                                                                                 // This can cause decreasing F values.
-                (this.openList is DynamicRationalLazyOpenList) == false &&
+                this.openList is not DynamicRationalLazyOpenList &&
                 currentNode.minGoalCost == -1  // If we were given a minGoalCost (by ID, for example), then at some point we're going to use up the boost to the h-value we gave the root
                 )
                 if (currentNode.F < lastF)
@@ -488,7 +484,7 @@ public class A_Star : ICbsSolver, IMStarSolver, IHeuristicSolver<WorldState>, II
             }
 
             // Expand
-            if (this.mstar == false)
+            if (!this.mstar)
             {
                 //Expand(currentNode);
             }
@@ -543,7 +539,7 @@ public class A_Star : ICbsSolver, IMStarSolver, IHeuristicSolver<WorldState>, II
 
         for (int agentIndex = 0; agentIndex < this.instance.agents.Length ; ++agentIndex)
         {
-            if (runner.ElapsedMilliseconds() > Constants.MAX_TIME)
+            if (stopwatch.ElapsedMilliseconds > Constants.MAX_TIME)
                 return;
 
             intermediateNodes = ExpandOneAgent(intermediateNodes, agentIndex);
@@ -552,7 +548,7 @@ public class A_Star : ICbsSolver, IMStarSolver, IHeuristicSolver<WorldState>, II
 
         foreach (var currentNode in finalGeneratedNodes)
         {
-            if (runner.ElapsedMilliseconds() > Constants.MAX_TIME)
+            if (stopwatch.ElapsedMilliseconds > Constants.MAX_TIME)
                 return;
             currentNode.makespan++;
             currentNode.CalculateG();
@@ -629,7 +625,7 @@ public class A_Star : ICbsSolver, IMStarSolver, IHeuristicSolver<WorldState>, II
 
         foreach (var currentNode in intermediateNodes)
         {
-            if (runner.ElapsedMilliseconds() > Constants.MAX_TIME)
+            if (stopwatch.ElapsedMilliseconds > Constants.MAX_TIME)
                 break;
 
             if (currentNode.mddNode == null)
@@ -672,12 +668,12 @@ public class A_Star : ICbsSolver, IMStarSolver, IHeuristicSolver<WorldState>, II
                         this.mustConstraints[makespan] != null &&
                         this.mustConstraints[makespan].ContainsKey(agentNum)) // This agent has a must constraint for this time step
                     {
-                        if (this.mustConstraints[makespan][agentNum].Equals(possibleMove) == false)
+                        if (!this.mustConstraints[makespan][agentNum].Equals(possibleMove))
                             continue;
                     }
 
                     // Check if the tile is not free (out of the grid or with an obstacle)
-                    if (this.instance.IsValid(possibleMove) == false)
+                    if (!this.instance.IsValid(possibleMove))
                         continue;
 
                     // Check against all the agents that have already moved to see if current move collides with their move
@@ -687,14 +683,14 @@ public class A_Star : ICbsSolver, IMStarSolver, IHeuristicSolver<WorldState>, II
                     {
                         bool agentInCollisionSet = fromNode.collisionSets.IsSingle(agentIndex);
 
-                        if (agentInCollisionSet == false) // Only one move allowed
+                        if (!agentInCollisionSet) // Only one move allowed
                         {
                             bool hasPlan = true;
 
                             if (hasPlan)
                             {
                                 // If this move isn't its individually optimal one according to its planned route, return false.
-                                if (this.instance.GetSingleAgentOptimalMove(fromNode.allAgentsState[agentIndex]).Equals(possibleMove) == false)
+                                if (!this.instance.GetSingleAgentOptimalMove(fromNode.allAgentsState[agentIndex]).Equals(possibleMove))
                                     continue;
                             }
                         }
@@ -715,8 +711,7 @@ public class A_Star : ICbsSolver, IMStarSolver, IHeuristicSolver<WorldState>, II
                             bool otherAgentInColSet = fromNode.collisionSets.IsSingle(collidingAgentIndex);
 
                             // Check if one of the colliding agents isn't in the collision set yet
-                            if (agentInCollisionSet == false ||
-                                otherAgentInColSet == false)
+                            if (!agentInCollisionSet || !otherAgentInColSet)
                             {
                                 if (this.debug)
                                     Debug.WriteLine("Agent planned route collides with another move!");
@@ -726,7 +721,7 @@ public class A_Star : ICbsSolver, IMStarSolver, IHeuristicSolver<WorldState>, II
                                         intermediateMode.allAgentsState[collidingAgentIndex].lastMove, makespan);
                                 if (this.debug)
                                     Debug.WriteLine(conflict.ToString());
-                                if (success == false)
+                                if (!success)
                                 {
                                     this.mstarBackPropagationConflictList.Add(conflict);
                                 }
@@ -788,7 +783,7 @@ public class A_Star : ICbsSolver, IMStarSolver, IHeuristicSolver<WorldState>, II
     /// <summary>
     /// Just an optimization
     /// </summary>
-    private CbsConstraint queryConstraint;
+    private readonly CbsConstraint queryConstraint = new() { queryInstance = true };
 
     /// <summary>
     /// Check if the move is valid, i.e. not colliding into walls or other agents.
@@ -830,12 +825,12 @@ public class A_Star : ICbsSolver, IMStarSolver, IHeuristicSolver<WorldState>, II
             this.mustConstraints[makespan] != null &&
             this.mustConstraints[makespan].ContainsKey(agentNum)) // This agent has a must constraint for this time step
         {
-            if (this.mustConstraints[makespan][agentNum].Equals(possibleMove) == false)
+            if (!this.mustConstraints[makespan][agentNum].Equals(possibleMove))
                 return false;
         }
 
         // Check if the tile is not free (out of the grid or with an obstacle)
-        if (this.instance.IsValid(possibleMove) == false)
+        if (!this.instance.IsValid(possibleMove))
             return false;
 
         // Check against all the agents that have already moved to see if current move collides with their move
@@ -848,7 +843,7 @@ public class A_Star : ICbsSolver, IMStarSolver, IHeuristicSolver<WorldState>, II
                                         //(fromNode.individualMStarPlanBases[agentIndex] != null &&
                                         // this.mstarPlanBasesToTheirPlans[fromNode.individualMStarPlanBases[agentIndex]][agentIndex] == null); // Parent plan was abandoned. Imagine a backpropagation happened.
                 
-            if (agentInCollisionSet == false) // Only one move allowed
+            if (!agentInCollisionSet) // Only one move allowed
             {
                 bool hasPlan = true;
                 //// if the agent doesn't have a planned route, give it a planned route, 
@@ -884,7 +879,7 @@ public class A_Star : ICbsSolver, IMStarSolver, IHeuristicSolver<WorldState>, II
                     //Move allowed = plan.GetLocationAt(fromNode.individualMStarBookmarks[agentIndex] + 1);
                     //if (possibleMove.Equals(allowed) == false)
                     //    return false;
-                    if (this.instance.GetSingleAgentOptimalMove(fromNode.allAgentsState[agentIndex]).Equals(possibleMove) == false)
+                    if (!this.instance.GetSingleAgentOptimalMove(fromNode.allAgentsState[agentIndex]).Equals(possibleMove))
                         return false;
                 }
             }
@@ -907,8 +902,8 @@ public class A_Star : ICbsSolver, IMStarSolver, IHeuristicSolver<WorldState>, II
                                             //this.mstarPlanBasesToTheirPlans[fromNode.individualMStarPlanBases[collidingAgentIndex]][collidingAgentIndex] == null); // Parent plan was abandoned;
 
                 // Check if one of the colliding agents isn't in the collision set yet
-                if (agentInCollisionSet == false || 
-                    otherAgentInColSet == false)
+                if (!agentInCollisionSet || 
+                    !otherAgentInColSet)
                 {
                     if (this.debug)
                         Debug.WriteLine("Agent planned route collides with another move!");
@@ -962,7 +957,7 @@ public class A_Star : ICbsSolver, IMStarSolver, IHeuristicSolver<WorldState>, II
                     //            Debug.WriteLine("Replanning Agent {0} for the same cost failed", collidingAgentIndex);
                     //    }
                     //}
-                    if (success == false)
+                    if (!success)
                     {
                         this.mstarBackPropagationConflictList.Add(conflict);
                     }
@@ -975,7 +970,7 @@ public class A_Star : ICbsSolver, IMStarSolver, IHeuristicSolver<WorldState>, II
             collision = possibleMove.IsColliding(currentMoves);
         }
                 
-        return collision == false;
+        return !collision;
     }
 
     /// <summary>
@@ -1006,21 +1001,15 @@ public class A_Star : ICbsSolver, IMStarSolver, IHeuristicSolver<WorldState>, II
     public int GetSolutionDepth() { return this.solutionDepth; }
     public long GetMemoryUsed() { return Process.GetCurrentProcess().VirtualMemorySize64; }
 
-    public void Setup(ProblemInstance problemInstance, Run runner)
+    public void Setup(ProblemInstance problemInstance, Stopwatch stopwatch)
     {
-        this.Setup(problemInstance, -1, runner);
+        this.Setup(problemInstance, -1, stopwatch);
     }
 
     /// <summary>
     /// For new ID groups
     /// </summary>
-    /// <param name="problemInstance"></param>
-    /// <param name="runner"></param>
-    /// <param name="CAT"></param>
-    /// <param name="parentGroup1Cost"></param>
-    /// <param name="parentGroup2Cost"></param>
-    /// <param name="parentGroup1Size"></param>
-    public void Setup(ProblemInstance problemInstance, Run runner, ConflictAvoidanceTable CAT,
+    public void Setup(ProblemInstance problemInstance, Stopwatch stopwatch, ConflictAvoidanceTable CAT,
                         int parentGroup1Cost, int parentGroup2Cost, int parentGroup1Size)
     {
         // Use the solutions of previously solved subproblems as a lower bound
@@ -1030,12 +1019,12 @@ public class A_Star : ICbsSolver, IMStarSolver, IHeuristicSolver<WorldState>, II
 
         if (Constants.costFunction == Constants.CostFunction.SUM_OF_COSTS)
         {
-            this.Setup(problemInstance, -1, runner, CAT,
+            Setup(problemInstance, -1, stopwatch, CAT,
                        minCost: parentGroup1Cost + parentGroup2Cost);
         }
         else if (Constants.costFunction == Constants.CostFunction.MAKESPAN || Constants.costFunction == Constants.CostFunction.MAKESPAN_THEN_SUM_OF_COSTS)
         {
-            this.Setup(problemInstance, -1, runner, CAT,
+            Setup(problemInstance, -1, stopwatch, CAT,
                         minCost: Math.Max(parentGroup1Cost, parentGroup2Cost));
         }
         else
@@ -1047,16 +1036,11 @@ public class A_Star : ICbsSolver, IMStarSolver, IHeuristicSolver<WorldState>, II
     /// <summary>
     /// For replanning ID groups to resolve a conflict
     /// </summary>
-    /// <param name="problemInstance"></param>
-    /// <param name="runner"></param>
-    /// <param name="CAT"></param>
-    /// <param name="targetCost">/// </param>
-    /// <param name="illegalMoves"></param>
-    public void Setup(ProblemInstance problemInstance, Run runner, ConflictAvoidanceTable CAT,
+    public void Setup(ProblemInstance problemInstance, Stopwatch stopwatch, ConflictAvoidanceTable CAT,
                         int targetCost, ISet<TimedMove> illegalMoves)
     {
         this.illegalMoves = illegalMoves;
-        this.Setup(problemInstance, -1, runner, CAT, minCost: targetCost, maxCost: targetCost);
+        Setup(problemInstance, -1, stopwatch, CAT, minCost: targetCost, maxCost: targetCost);
     }
 
     /// <summary>
@@ -1076,9 +1060,9 @@ public class A_Star : ICbsSolver, IMStarSolver, IHeuristicSolver<WorldState>, II
                 // Accumulating the conflicts count from parent to child
                 // We're counting conflicts along the entire path, so the parent's conflicts count is added to the child's:
                 currentNode.conflictCounts = new Dictionary<int, int>(currentNode.prevStep.conflictCounts);
-                currentNode.conflictTimes = new Dictionary<int, List<int>>();
+                currentNode.conflictTimes = [];
                 foreach (var kvp in currentNode.prevStep.conflictTimes)
-                    currentNode.conflictTimes[kvp.Key] = new List<int>(kvp.Value);
+                    currentNode.conflictTimes[kvp.Key] = [.. kvp.Value];
 
                 currentNode.IncrementConflictCounts(this.CAT);  // We're counting conflicts along the entire path, so the parent's conflicts count
                                                                 // is added to the child's.
@@ -1088,8 +1072,10 @@ public class A_Star : ICbsSolver, IMStarSolver, IHeuristicSolver<WorldState>, II
             {
                 //currentNode.currentCollisionSet = null; // Clear expansion data
 
-                currentNode.backPropagationSet = new HashSet<WorldState>();
-                currentNode.backPropagationSet.Add(currentNode.prevStep);
+                currentNode.backPropagationSet = new HashSet<WorldState>
+                {
+                    currentNode.prevStep
+                };
 
                 currentNode.collisionSets = new DisjointSets<int>();
 
@@ -1200,7 +1186,7 @@ public class A_Star : ICbsSolver, IMStarSolver, IHeuristicSolver<WorldState>, II
                 }
             }
 
-            if (wasInClosedList == false || removedFromClosedList)
+            if (!wasInClosedList || removedFromClosedList)
             {
                 this.closedList.Add(currentNode, currentNode);
                 this.generated++; // Reopened nodes are also recounted here.

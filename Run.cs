@@ -11,10 +11,6 @@ namespace mapf;
 /// </summary>
 public class Run : IDisposable
 {
-    ////////debug
-    // public static TextWriter resultsWriterdd;
-    /////////////
-
     /// <summary>
     /// Delimiter character used when writing the results of the runs to the output file.
     /// </summary>
@@ -45,7 +41,9 @@ public class Run : IDisposable
     /// EH: I introduced this variable so that debugging and experiments
     /// can have deterministic results.
     /// </summary>
-    static public Random rand = new Random();
+    static public Random rand = new();
+
+    public readonly Stopwatch watch = new();
 
     /// <summary>
     /// Calls resultsWriter.Dispose()
@@ -105,8 +103,6 @@ public class Run : IDisposable
     /// </summary>
     public Run()
     {
-        this.watch = Stopwatch.StartNew();
-
         // Preparing the heuristics:
         astar_heuristics = new List<IHeuristicCalculator<WorldState>>();
         IHeuristicCalculator<WorldState> simple = null;
@@ -933,10 +929,9 @@ public class Run : IDisposable
         // Preparing a list of agent indices (not agent nums) for the heuristics' Init() method
         List<uint> agentList = Enumerable.Range(0, instance.agents.Length).Select(x => (uint)x).ToList(); // FIXME: Must the heuristics really receive a list of uints?
 
-        CooperativeAStar cooperativeAStar = new CooperativeAStar();
-        cooperativeAStar.Setup(instance, this);
-        this.startTime = this.ElapsedMillisecondsTotal();
-        double handlingStartTime = this.ElapsedMillisecondsTotal();
+        CooperativeAStar cooperativeAStar = new();
+        cooperativeAStar.Setup(instance, watch);
+
         double elapsedTime = 0;
 
         foreach (var agentIndex in Enumerable.Range(0, instance.agents.Length))
@@ -948,10 +943,10 @@ public class Run : IDisposable
             GC.Collect();
             GC.WaitForPendingFinalizers();
 
-            this.startTime += this.ElapsedMillisecondsTotal() - handlingStartTime;
+            watch.Restart();
             bool solved = cooperativeAStar.AddOneAgent(agentIndex);
-            elapsedTime = this.ElapsedMilliseconds();
-            handlingStartTime = this.ElapsedMillisecondsTotal();
+            elapsedTime = watch.ElapsedMilliseconds;
+
             if (solved)
             {
                 Console.WriteLine("Total cost: {0}", cooperativeAStar.GetSolutionCost());
@@ -999,10 +994,10 @@ public class Run : IDisposable
         // Run the algorithm
         bool solved;
         Console.WriteLine($"-----------------{solver}-----------------");
-        this.startTime = this.ElapsedMillisecondsTotal();
-        solver.Setup(instance, this);
+        watch.Restart();
+        solver.Setup(instance, watch);
         solved = solver.Solve();
-        double elapsedTime = this.ElapsedMilliseconds();
+        double elapsedTime = watch.ElapsedMilliseconds;
         if (solved)
         {
             Console.WriteLine("Total cost: {0}", solver.GetSolutionCost());
@@ -1137,30 +1132,5 @@ public class Run : IDisposable
         {
             outOfTimeCounters[i] = 0;
         }
-    }
-
-    private Stopwatch watch;
-    public double ElapsedMillisecondsTotal()
-    {
-        return this.watch.Elapsed.TotalMilliseconds;
-    }
-
-    public double ElapsedMilliseconds()
-    {
-        return ElapsedMillisecondsTotal() - this.startTime;
-    }
-
-    public void StartOracle()
-    {
-        this.watch.Stop();
-        // NOTE: This allows the algorithm with the oracle to solve harder problems without timing out.
-        // Care must be taken when comparing average runtimes of algorithms, to avoid the average
-        // runtime of algorithms with an oracle appearing longer since they managed to solve
-        // harder problems.
-    }
-
-    public void StopOracle()
-    {
-        this.watch.Start();
     }
 }

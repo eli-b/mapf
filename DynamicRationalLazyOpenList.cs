@@ -8,7 +8,7 @@ namespace mapf;
 
 public class DynamicRationalLazyOpenList : OpenList<WorldState>
 {
-    public Run runner;
+    public Stopwatch stopwatch;
     public IBoundedLazyHeuristic<WorldState> expensive;
     protected int lastF;
     protected int skips;
@@ -68,7 +68,7 @@ public class DynamicRationalLazyOpenList : OpenList<WorldState>
         if (this.lastF != -1)
         {
             this.numExpands++;
-            double expandFinishTime = this.runner.ElapsedMilliseconds();
+            double expandFinishTime = this.stopwatch.ElapsedMilliseconds;
             this.sumExpandTimes += expandFinishTime - this.expandStartTime;
         }
 
@@ -91,7 +91,7 @@ public class DynamicRationalLazyOpenList : OpenList<WorldState>
             node = base.Remove();
 
             if (node.GoalTest() == true || // Can't improve the h of the goal
-                this.runner.ElapsedMilliseconds() > Constants.MAX_TIME) // No time to continue improving H.
+                this.stopwatch.ElapsedMilliseconds > Constants.MAX_TIME) // No time to continue improving H.
             {
                 if (node.G + node.H < this.lastF) // This can happen if the last removed node had many runs of the expensive heuristic, which this node didn't yet have.
                 {
@@ -225,9 +225,9 @@ public class DynamicRationalLazyOpenList : OpenList<WorldState>
                 next = this.Peek();
                 int targetH = node.GetTargetH(next.F + 1);
 
-                double expensiveCallStartTime = this.runner.ElapsedMilliseconds();
+                double expensiveCallStartTime = this.stopwatch.ElapsedMilliseconds;
                 int expensiveEstimate = (int)this.expensive.h(node, targetH, -1, (int)(expensiveCallStartTime + millisCap), false);
-                double expensiveCallTotalTime = this.runner.ElapsedMilliseconds() - expensiveCallStartTime;
+                double expensiveCallTotalTime = this.stopwatch.ElapsedMilliseconds - expensiveCallStartTime;
 
                 bool nodeSolved = node.GoalTest();
 
@@ -293,7 +293,7 @@ public class DynamicRationalLazyOpenList : OpenList<WorldState>
 
         finish:
         this.lastF = node.G + node.H;
-        this.expandStartTime = this.runner.ElapsedMilliseconds();
+        this.expandStartTime = this.stopwatch.ElapsedMilliseconds;
         return node;
     }
 

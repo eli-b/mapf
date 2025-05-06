@@ -15,13 +15,13 @@ class CooperativeAStar : IStatisticsCsvWriter, ISolver
     /// <summary>
     /// The Reservation Table
     /// </summary>
-    HashSet<TimedMove> reservationTable;
+    HashSet<TimedMove> reservationTable = [];
     AgentState[] allAgentsState;
     /// <summary>
     /// Maps locations (moves) to the time an agent parked there. From that point on they're
     /// blocked.
     /// </summary>
-    Dictionary<Move, int> parked;
+    Dictionary<Move, int> parked = [];
     int[] pathCosts;
     SinglePlan[] paths;
     int maxPathCostSoFar;
@@ -29,19 +29,12 @@ class CooperativeAStar : IStatisticsCsvWriter, ISolver
     public int generated;
     public int totalcost;
     private ProblemInstance problem;
-    private Run runner;
+    private Stopwatch stopwatch;
     private int initialEstimate;
 
-    public CooperativeAStar()
-    {
-        reservationTable = new HashSet<TimedMove>();
-        parked = new Dictionary<Move, int>();
-    }
+    public CooperativeAStar() {}
 
-    public string GetName()
-    {
-        return "CA*";
-    }
+    public string GetName() => "CA*";
 
     public void Clear()
     {
@@ -60,22 +53,13 @@ class CooperativeAStar : IStatisticsCsvWriter, ISolver
         this.generated = 0;
     }
 
-    public int GetExpanded()
-    {
-        return this.expanded;
-    }
+    public int GetExpanded() => this.expanded;
 
-    public int GetGenerated()
-    {
-        return this.generated;
-    }
+    public int GetGenerated() => this.generated;
 
-    public long GetMemoryUsed()
-    {
-        return Process.GetCurrentProcess().VirtualMemorySize64;
-    }
+    public long GetMemoryUsed() => Process.GetCurrentProcess().VirtualMemorySize64;
 
-    public void Setup(ProblemInstance instance, Run runner)
+    public void Setup(ProblemInstance instance, Stopwatch stopwatch)
     {
         this.Clear();
         this.ClearStatistics();
@@ -83,12 +67,12 @@ class CooperativeAStar : IStatisticsCsvWriter, ISolver
         this.allAgentsState = instance.agents;
         this.pathCosts = new int[this.allAgentsState.Length];
         this.paths = new SinglePlan[this.allAgentsState.Length];
-        this.runner = runner;
+        this.stopwatch = stopwatch;
     }
 
-    public Plan GetPlan() { return new Plan(this.paths.TakeWhile(plan => plan != null)); }
+    public Plan GetPlan() => new Plan(this.paths.TakeWhile(plan => plan != null));
 
-    public int GetSolutionCost() { return this.totalcost; }
+    public int GetSolutionCost() => this.totalcost;
 
     public void OutputStatisticsHeader(TextWriter output)
     {
@@ -96,15 +80,9 @@ class CooperativeAStar : IStatisticsCsvWriter, ISolver
         output.Write(this.ToString() + " generated" + Run.RESULTS_DELIMITER);
     }
 
-    public override string ToString()
-    {
-        return GetName();
-    }
+    public override string ToString() => GetName();
 
-    public int GetSolutionDepth()
-    {
-        return this.totalcost - this.initialEstimate;
-    }
+    public int GetSolutionDepth() => this.totalcost - this.initialEstimate;
         
     /// <summary>
     /// Prints statistics of a single run to the given output. 
@@ -117,13 +95,7 @@ class CooperativeAStar : IStatisticsCsvWriter, ISolver
         output.Write(this.generated + Run.RESULTS_DELIMITER);
     }
 
-    public int NumStatsColumns
-    {
-        get
-        {
-            return 2;
-        }
-    }
+    public int NumStatsColumns => 2;
 
     public bool Solve()
     {
@@ -151,17 +123,17 @@ class CooperativeAStar : IStatisticsCsvWriter, ISolver
     private bool singleAgentAStar(AgentState agent)
     {
         AgentState.EquivalenceOverDifferentTimes = false;
-        BinaryHeap<AgentState> openList = new BinaryHeap<AgentState>(); // TODO: Safe to use OpenList here instead?
-        HashSet<AgentState> closedList = new HashSet<AgentState>();
+        BinaryHeap<AgentState> openList = new(); // TODO: Safe to use OpenList here instead?
+        HashSet<AgentState> closedList = [];
         agent.h = this.problem.GetSingleAgentOptimalCost(agent);
         openList.Add(agent);
         AgentState node;
         this.initialEstimate += agent.h;
-        TimedMove queryTimedMove = new TimedMove();
+        TimedMove queryTimedMove = new();
 
         while (openList.Count > 0)
         {
-            if (this.runner.ElapsedMilliseconds() > Constants.MAX_TIME)
+            if (this.stopwatch.ElapsedMilliseconds > Constants.MAX_TIME)
             {
                 return false;
             }

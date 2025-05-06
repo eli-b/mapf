@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.IO;
 using System.Diagnostics;
 
@@ -17,11 +15,11 @@ namespace mapf;
 public class DynamicLazyOpenList<Item> : OpenList<Item> where Item: IBinaryHeapItem, IHeuristicSearchNode
 {
     public ILazyHeuristic<Item> expensive;
-    public Run runner;
+    public Stopwatch stopwatch;
     protected int lastF;
     protected int nodesPushedBack;
     protected int accNodesPushedBack;
-    public bool debug;
+    private bool _debug;
 
     public DynamicLazyOpenList(ISolver user, ILazyHeuristic<Item> expensive)
         : base(user)
@@ -29,7 +27,7 @@ public class DynamicLazyOpenList<Item> : OpenList<Item> where Item: IBinaryHeapI
         this.expensive = expensive;
         this.ClearStatistics();
         this.accNodesPushedBack = 0;
-        this.debug = false;
+        this._debug = false;
     }
 
     public override string GetName()
@@ -61,7 +59,7 @@ public class DynamicLazyOpenList<Item> : OpenList<Item> where Item: IBinaryHeapI
 
             if (node.GoalTest() == true || // Can't improve the h of the goal
                 node.HBonus > 0 || // Already computed the expensive heuristic
-                this.runner.ElapsedMilliseconds() > Constants.MAX_TIME) // No time to continue improving H.
+                this.stopwatch.ElapsedMilliseconds > Constants.MAX_TIME) // No time to continue improving H.
                 break;
 
             var next = base.Peek();
@@ -77,7 +75,7 @@ public class DynamicLazyOpenList<Item> : OpenList<Item> where Item: IBinaryHeapI
             {
                 this.Add(node);
                 this.nodesPushedBack++;
-                if (this.debug)
+                if (this._debug)
                     Debug.Print("Pushing back the node into the open list with an increased h.");
             }
             else

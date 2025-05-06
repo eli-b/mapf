@@ -16,7 +16,7 @@ class CbsHeuristicForAStar : IHeuristicCalculator<WorldState>
     protected CBS cbs;
     protected ProblemInstance instance;
     protected List<uint> agentsToConsider;
-    protected Run runner;
+    protected Stopwatch stopwatch;
     protected bool validate;
 
     protected bool reportSolution;
@@ -43,11 +43,11 @@ class CbsHeuristicForAStar : IHeuristicCalculator<WorldState>
     /// Larger values would cause each call to the heuristic to take longer, but make it return better estimates.
     /// </param>
     /// <param name="validate"></param>
-    public CbsHeuristicForAStar(CBS cbs, Run runner, bool reportSolution = false,
+    public CbsHeuristicForAStar(CBS cbs, Stopwatch stopwatch, bool reportSolution = false,
                         int minAboveSic = 1, bool validate = false)
     {
         this.cbs = cbs;
-        this.runner = runner;
+        this.stopwatch = stopwatch;
 
         this.reportSolution = reportSolution;
         this.minAboveSic = Math.Max(minAboveSic, 1);
@@ -94,7 +94,7 @@ class CbsHeuristicForAStar : IHeuristicCalculator<WorldState>
     protected uint h(WorldState s, int targetCost, int sicEstimate=-1, int lowLevelGeneratedCap=-1,
                         int milliCap=int.MaxValue, bool resume=false)
     {
-        double start = this.runner.ElapsedMilliseconds();
+        double start = this.stopwatch.ElapsedMilliseconds;
 
         ProblemInstance sAsProblemInstance;
         if (resume == false)
@@ -106,7 +106,7 @@ class CbsHeuristicForAStar : IHeuristicCalculator<WorldState>
                             Math.Max(s.makespan,  // This forces must-constraints to be upheld when dealing with A*+OD nodes,
                                                     // at the cost of forcing every agent to move when a goal could be found earlier with all must constraints upheld.
                                     s.minGoalTimeStep), // No point in finding shallower goal nodes
-                            this.runner, null, null, positiveConstraints);
+                            this.stopwatch, null, null, positiveConstraints);
                 
             if (this.cbs.OpenList.Count > 0 && this.cbs.ExternalCAT == null)
             {
@@ -155,7 +155,7 @@ class CbsHeuristicForAStar : IHeuristicCalculator<WorldState>
             this.nodesSolved++;
         }
 
-        double end = this.runner.ElapsedMilliseconds();
+        double end = this.stopwatch.ElapsedMilliseconds;
         this.totalRuntime += end - start;
         this.nCalls++;
 
@@ -200,7 +200,7 @@ class CbsHeuristicForAStar : IHeuristicCalculator<WorldState>
                 
             heuristic.Init(this.instance, this.agentsToConsider);
             var epeastarsic = new EPEA_Star(heuristic);
-            epeastarsic.Setup(sAsProblemInstance, s.makespan, runner);
+            epeastarsic.Setup(sAsProblemInstance, s.makespan, stopwatch);
             bool epeastarsicSolved = epeastarsic.Solve();
             if (epeastarsicSolved)
                 Trace.Assert(epeastarsic.totalCost - s.G >= this.cbs.SolutionCost - s.G, "Inadmissible!!");
@@ -379,16 +379,12 @@ class CbsHeuristicForAStar : IHeuristicCalculator<WorldState>
 
 class DyanamicLazyCbsHeuristicForAStar : CbsHeuristicForAStar, IBoundedLazyHeuristic<WorldState>
 {
-    public DyanamicLazyCbsHeuristicForAStar(CBS cbs, Run runner, bool reportSolution = false, bool validate = false)
-        : base(cbs, runner, reportSolution, -1, validate) {}
+    public DyanamicLazyCbsHeuristicForAStar(CBS cbs, Stopwatch stopwatch, bool reportSolution = false, bool validate = false)
+        : base(cbs, stopwatch, reportSolution, -1, validate) {}
 
     /// <summary>
     /// Assumes g of node was already calculated.
     /// </summary>
-    /// <param name="s"></param>
-    /// <param name="targetH"></param>
-    /// <param name="effectiveBranchingFactor"></param>
-    /// <returns></returns>
     public uint h(WorldState s, int targetH, float effectiveBranchingFactor)
     {
         // No need to check if SIC is zero because this heuristic is run after SIC was already computed, not instead of it.

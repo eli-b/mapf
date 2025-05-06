@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.IO;
 using System;
+using System.Diagnostics;
 
 namespace mapf;
 
@@ -37,11 +38,11 @@ class PEA_Star : A_Star
         return new WorldStateForPartialExpansion((WorldStateForPartialExpansion)from);
     }
 
-    public override void Setup(ProblemInstance problemInstance, int minTimeStep, Run runner,
+    public override void Setup(ProblemInstance problemInstance, int minTimeStep, Stopwatch stopwatch,
                                 ConflictAvoidanceTable CAT, ISet<CbsConstraint> constraints, ISet<CbsConstraint> positiveConstraints,
                                 int minCost, int maxCost, MDD mdd)
     { 
-        base.Setup(problemInstance, minTimeStep, runner, CAT, constraints, positiveConstraints, minCost, maxCost, mdd);
+        base.Setup(problemInstance, minTimeStep, stopwatch, CAT, constraints, positiveConstraints, minCost, maxCost, mdd);
         this.generatedAndDiscarded = 0;
         this.expandedFullStates = 0;
     }

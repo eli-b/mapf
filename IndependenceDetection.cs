@@ -39,7 +39,7 @@ class IndependenceDetection : ISolver
     protected int accMerges;
     public bool provideGroupCostsToSolver;
     public int totalCost;
-    protected Run runner;
+    protected Stopwatch stopwatch;
 
     /// <summary>
     /// The complete plan for all the agents that was found.
@@ -87,10 +87,10 @@ class IndependenceDetection : ISolver
         this.maxSolutionCostFound = -1;
     }
 
-    public void Setup(ProblemInstance instance, Run runner)
+    public void Setup(ProblemInstance instance, Stopwatch stopwatch)
     {
         this.instance = instance;
-        this.runner = runner;
+        this.stopwatch = stopwatch;
         this.totalCost = 0;
         this.ClearStatistics();
         this.conflictAvoidanceTable = new ConflictAvoidanceTable();
@@ -102,7 +102,7 @@ class IndependenceDetection : ISolver
         foreach (AgentState agentStartState in instance.agents)
         {
             this.allGroups.AddLast(new IndependenceDetectionAgentsGroup(
-                                        this.instance, new AgentState[1] { agentStartState },
+                                        this.instance,[ agentStartState ],
                                         this.singleAgentSolver, this.groupSolver, this)
             );
             this.conflictAvoidanceTable.agentSizes[agentStartState.agent.agentNum] = 1;
@@ -112,8 +112,8 @@ class IndependenceDetection : ISolver
         conflictTimesPerGroup = new Dictionary<int, List<int>>[instance.GetNumOfAgents()];
         for (int i = 0; i < instance.GetNumOfAgents(); i++)
         {
-            conflictCountsPerGroup[i] = new Dictionary<int, int>();
-            conflictTimesPerGroup[i] = new Dictionary<int, List<int>>();
+            conflictCountsPerGroup[i] = [];
+            conflictTimesPerGroup[i] = [];
         }
         countsOfGroupsThatConflict = new int[instance.GetNumOfAgents()];
     }
@@ -626,7 +626,7 @@ class IndependenceDetection : ISolver
     /// </summary>
     /// <param name="runner"></param>
     /// <returns></returns>
-    public bool SimpleID(Run runner)
+    public bool SimpleID(Stopwatch stopwatch)
     {
         while (true)
         {
@@ -640,7 +640,7 @@ class IndependenceDetection : ISolver
             ++merges;
                 
             // Solve composite group with the subsolver
-            bool solved = compositeGroup.Solve(runner, conflictAvoidanceTable);
+            bool solved = compositeGroup.Solve(stopwatch, conflictAvoidanceTable);
             if (solved == false)
             {
                 this.totalCost = compositeGroup.solutionCost;
@@ -660,7 +660,7 @@ class IndependenceDetection : ISolver
     /// </summary>
     /// <param name="runner"></param>
     /// <returns></returns>
-    public bool ImprovedID(Run runner)
+    public bool ImprovedID(Stopwatch stopwatch)
     {
         while (true)
         {
@@ -722,7 +722,7 @@ class IndependenceDetection : ISolver
                         //Debug.WriteLine($"Old plan:\n{conflict.group1.GetPlan()}");
                     }
                     conflict.group1.removeGroupFromCAT(conflictAvoidanceTable);
-                    bool resolved = conflict.group1.ReplanUnderConstraints(conflict.group2.GetPlan(), runner, this.conflictAvoidanceTable);
+                    bool resolved = conflict.group1.ReplanUnderConstraints(conflict.group2.GetPlan(), stopwatch, this.conflictAvoidanceTable);
                     ++resolutionAttempts;
                     this.expanded += conflict.group1.expanded;
                     this.generated += conflict.group1.generated;
@@ -791,7 +791,7 @@ class IndependenceDetection : ISolver
                         //Debug.WriteLine($"Old plan: {conflict.group2.GetPlan()}");
                     }
                     conflict.group2.removeGroupFromCAT(conflictAvoidanceTable);
-                    bool resolved = conflict.group2.ReplanUnderConstraints(conflict.group1.GetPlan(), runner, this.conflictAvoidanceTable);
+                    bool resolved = conflict.group2.ReplanUnderConstraints(conflict.group1.GetPlan(), stopwatch, this.conflictAvoidanceTable);
                     ++resolutionAttempts;
                     this.expanded += conflict.group2.expanded;
                     this.generated += conflict.group2.generated;
@@ -881,7 +881,7 @@ class IndependenceDetection : ISolver
             ++merges;
 
             // Solve composite group with the underlying group solver
-            bool solved = compositeGroup.Solve(runner, conflictAvoidanceTable,
+            bool solved = compositeGroup.Solve(stopwatch, conflictAvoidanceTable,
                                                 group1Cost, group2Cost, group1Size);
 
             if (compositeGroup.solutionCost > maxSolutionCostFound)
@@ -988,7 +988,7 @@ class IndependenceDetection : ISolver
 
         foreach (var group in this.allGroups)
         {
-            solved = group.Solve(runner, this.conflictAvoidanceTable);
+            solved = group.Solve(stopwatch, this.conflictAvoidanceTable);
 
             // Check if max time has been exceeded or search failed for another reason
             if (solved == false)
@@ -1033,9 +1033,9 @@ class IndependenceDetection : ISolver
         CountConflicts();
 
         if (this.simple == false)
-            solved = this.ImprovedID(runner);
+            solved = this.ImprovedID(stopwatch);
         else
-            solved = this.SimpleID(runner);  // TODO: it doesn't manage all the stats. Just add flags to ImprovedID instead
+            solved = this.SimpleID(stopwatch);  // TODO: it doesn't manage all the stats. Just add flags to ImprovedID instead
         // Record found solution
         if (solved == true)
         {

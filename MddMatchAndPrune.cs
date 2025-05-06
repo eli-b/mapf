@@ -11,24 +11,21 @@ namespace mapf;
 class MddMatchAndPrune
 {
     MDD[] allMDDs;
-    Queue<MddMatchAndPruneState> openList;
-    Dictionary<MddMatchAndPruneState, MddMatchAndPruneState> closedList;
+    readonly Queue<MddMatchAndPruneState> openList = new();
+    readonly Dictionary<MddMatchAndPruneState, MddMatchAndPruneState> closedList = [];
     int solutionDepth; // The depth is the cost + 1 because the root also counts as a level
     MddMatchAndPruneState goal; // This will contain the goal node if such was found
     bool legal; //indicates if all single MDDs are legal
-    public bool[] conflicted; //indicates if the matching process found any illegal nodes/edges and pruned any of the MDDs
-    Run runner;
-    CostTreeNodeSolver nodeSolver;
+    public bool[] conflicted = new bool[4]; //indicates if the matching process found any illegal nodes/edges and pruned any of the MDDs
+    readonly Stopwatch stopwatch;
+    readonly CostTreeNodeSolver nodeSolver;
 
     /// <summary>
     /// constructor
     /// </summary>
-    public MddMatchAndPrune(Run runner, CostTreeNodeSolver nodeSolver)
+    public MddMatchAndPrune(Stopwatch stopwatch, CostTreeNodeSolver nodeSolver)
     {
-        this.openList = new Queue<MddMatchAndPruneState>();
-        this.closedList = new Dictionary<MddMatchAndPruneState, MddMatchAndPruneState>();
-        conflicted = new bool[4];
-        this.runner = runner;
+        this.stopwatch = stopwatch;
         this.nodeSolver = nodeSolver;
     }
 
@@ -61,7 +58,7 @@ class MddMatchAndPrune
     private bool buildGeneralMDD()
     {
         MddMatchAndPruneState current = openList.Dequeue();
-        successorIterator allChildren = new successorIterator(allMDDs.Length);
+        successorIterator allChildren = new(allMDDs.Length);
         int currentLevel = current.stateLevel;
 
         while (current.stateLevel + 1 != this.solutionDepth) // while not goal
@@ -75,7 +72,7 @@ class MddMatchAndPrune
                 closedList.Clear();
                 currentLevel++;
             }
-            if (runner.ElapsedMilliseconds() > Constants.MAX_TIME)
+            if (stopwatch.ElapsedMilliseconds > Constants.MAX_TIME)
                 return false;
         }
         return true;
@@ -189,7 +186,7 @@ class MddMatchAndPrune
    
         while (current.stateLevel > 0) // while not root
         {
-            if (runner.ElapsedMilliseconds() > Constants.MAX_TIME)
+            if (stopwatch.ElapsedMilliseconds > Constants.MAX_TIME)
                 return false;
    
             if (current.stateLevel < currentLevel)

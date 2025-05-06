@@ -179,10 +179,10 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
                 newConstraint.move.Direction != Direction.NO_DIRECTION)))
         {
             // We have an MDD and same cost can still be achieved - adapt the existing MDD
-            double startTime = CBS._runner.ElapsedMilliseconds();
+            double startTime = CBS._stopwatch.ElapsedMilliseconds;
             _mdds[agentToReplan] = new MDD(_mdds[agentToReplan], newConstraint);
             MDDNarrownessValues[agentToReplan] = _mdds[agentToReplan].getLevelNarrownessValues();
-            double endTime = CBS._runner.ElapsedMilliseconds();
+            double endTime = CBS._stopwatch.ElapsedMilliseconds;
             CBS.MDDsAdapted++;
             CBS.TimeBuildingMdds += endTime - startTime;
         }
@@ -545,11 +545,11 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
         if (CBS.ReplanSameCostWithMdd)
             mdd = _mdds[agentToReplan];
 
-        double startTime = CBS._runner.ElapsedMilliseconds();
-        relevantSolver.Setup(subProblem, minPathTimeStep, CBS._runner, CAT, constraints, positiveConstraints,
+        double startTime = CBS._stopwatch.ElapsedMilliseconds;
+        relevantSolver.Setup(subProblem, minPathTimeStep, CBS._stopwatch, CAT, constraints, positiveConstraints,
                                 minPathCost, maxPathCost, mdd);
         bool solved = relevantSolver.Solve();
-        double endTime = CBS._runner.ElapsedMilliseconds();
+        double endTime = CBS._stopwatch.ElapsedMilliseconds;
         CBS.TimePlanningPaths += endTime - startTime;
 
         relevantSolver.AccumulateStatistics();
@@ -2079,15 +2079,15 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
                 if (nodeToGiveAnMdd._constraint != null &&
                     AgentNumToIndex[nodeToGiveAnMdd._constraint.agentNum] == agentIndex)
                 {
-                    double startTime = CBS._runner.ElapsedMilliseconds();
+                    double startTime = CBS._stopwatch.ElapsedMilliseconds;
                     mdd = new MDD(mdd, nodeToGiveAnMdd._constraint);
                     mddValues = mdd.getLevelNarrownessValues();
-                    double endTime = CBS._runner.ElapsedMilliseconds();
+                    double endTime = CBS._stopwatch.ElapsedMilliseconds;
                     CBS.TimeBuildingMdds += endTime - startTime;
                     CBS.MDDsAdapted++;
                     if (CBS.CacheMdds)
                     {
-                        CbsCacheEntry entry = new CbsCacheEntry(nodeToGiveAnMdd, agentIndex);
+                        CbsCacheEntry entry = new(nodeToGiveAnMdd, agentIndex);
                         CBS.MDDCache[agentIndex][entry] = mdd;
                         CBS.MDDNarrownessValuesCache[agentIndex][entry] = mddValues;
                     }
@@ -2112,7 +2112,7 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
         if (MDDNarrownessValues[agentIndex] != null)  // Already have an MDD with the current cost (they're nulled when the cost increases)
             return false;
 
-        if (CBS.CacheMdds == false || CBS.MDDCache[agentIndex].ContainsKey(new CbsCacheEntry(this, agentIndex)) == false)
+        if (!CBS.CacheMdds || !CBS.MDDCache[agentIndex].ContainsKey(new CbsCacheEntry(this, agentIndex)))
         {
             // Caching not enabled or no cache hit
             if (CopyAppropriateMddFromParent(agentIndex))
@@ -2170,18 +2170,18 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
 
             Debug.WriteLine($"Building MDD for agent index {agentIndex} of cost {SingleAgentCosts[agentIndex]} and depth {depth}");
 
-            double startTime = CBS._runner.ElapsedMilliseconds();
+            double startTime = CBS._stopwatch.ElapsedMilliseconds;
             _mdds[agentIndex] = new MDD(agentIndex, problem.agents[agentIndex].agent.agentNum,
                                             problem.agents[agentIndex].GetMove(), SingleAgentCosts[agentIndex],
                                             depth, problem.GetNumOfAgents(), problem,
                                             ignoreConstraints: false, supportPruning: false,
                                             constraints: constraints, positiveConstraints: positiveConstraints);
             MDDNarrownessValues[agentIndex] = _mdds[agentIndex].getLevelNarrownessValues();
-            double endTime = CBS._runner.ElapsedMilliseconds();
+            double endTime = CBS._stopwatch.ElapsedMilliseconds;
             CBS.TimeBuildingMdds += endTime - startTime;
             if (CBS.CacheMdds)
             {
-                CbsCacheEntry entry = new CbsCacheEntry(this, agentIndex);
+                CbsCacheEntry entry = new(this, agentIndex);
                 CBS.MDDCache[agentIndex][entry] = _mdds[agentIndex];
                 CBS.MDDNarrownessValuesCache[agentIndex][entry] = MDDNarrownessValues[agentIndex];
             }
@@ -2190,7 +2190,7 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
         else
         {
             // The MDD is in the cache!
-            CbsCacheEntry entry = new CbsCacheEntry(this, agentIndex);
+            CbsCacheEntry entry = new(this, agentIndex);
             _mdds[agentIndex] = CBS.MDDCache[agentIndex][entry];
             MDDNarrownessValues[agentIndex] = CBS.MDDNarrownessValuesCache[agentIndex][entry];
             CBS.MDDCacheHits++;
@@ -2994,11 +2994,11 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
         MDD mdd = null;
         if (CBS.ReplanSameCostWithMdd)
             mdd = _mdds[agentToReplan];
-        double startTime = CBS._runner.ElapsedMilliseconds();
-        relevantSolver.Setup(subProblem, depthToReplan, CBS._runner, CAT, constraints, positiveConstraints,
+        double startTime = CBS._stopwatch.ElapsedMilliseconds;
+        relevantSolver.Setup(subProblem, depthToReplan, CBS._stopwatch, CAT, constraints, positiveConstraints,
                                 minPathCost, maxPathCost, mdd);
         bool solved = relevantSolver.Solve();
-        double endTime = CBS._runner.ElapsedMilliseconds();
+        double endTime = CBS._stopwatch.ElapsedMilliseconds;
         CBS.TimePlanningPaths += endTime - startTime;
 
         relevantSolver.AccumulateStatistics();
