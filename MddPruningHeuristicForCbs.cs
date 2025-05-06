@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 
 namespace mapf;
 
@@ -9,34 +8,26 @@ class MddPruningHeuristicForCbs : ILazyHeuristic<CbsNode>
 {
     public MddPruningHeuristicForCbs(bool ignoreConstraints = false)
     {
-        this.ignoreConstraints = ignoreConstraints;
+        _ignoreConstraints = ignoreConstraints;
     }
 
-    protected int pruningSuccesses;
-    protected int pruningFailures;
-    protected int cacheHits;
-    protected int targetTooHigh;
-    protected int accPruningSuccesses;
-    protected int accPruningFailures;
-    protected int accCacheHits;
-    protected int accTargetTooHigh;
+    private int _pruningSuccesses;
+    private int _pruningFailures;
+    private int _cacheHits;
+    private int _targetTooHigh;
+    private int _accPruningSuccesses;
+    private int _accPruningFailures;
+    private int _accCacheHits;
+    private int _accTargetTooHigh;
 
-    protected bool ignoreConstraints;
-    protected ProblemInstance instance;
+    private bool _ignoreConstraints;
+    private ProblemInstance _instance;
 
     /// <summary>
     /// Maps a pair of agents and their costs to whether there's a solution with those costs
     /// </summary>
     public Dictionary<(int agentAIndex, int agentBIndex, int agentACost, int agentBCost), ushort> cache;
-
-    public int NumStatsColumns
-    {
-        get
-        {
-            return 4;
-        }
-    }
-
+    public int NumStatsColumns => 4;
     public string GetName()
     {
         return "MDD Pruning Heuristic";
@@ -44,26 +35,26 @@ class MddPruningHeuristicForCbs : ILazyHeuristic<CbsNode>
 
     public void AccumulateStatistics()
     {
-        this.accPruningSuccesses += this.pruningSuccesses;
-        this.accPruningFailures += this.pruningFailures;
-        this.accCacheHits += this.cacheHits;
-        this.accTargetTooHigh += this.targetTooHigh;
+        _accPruningSuccesses += _pruningSuccesses;
+        _accPruningFailures += _pruningFailures;
+        _accCacheHits += _cacheHits;
+        _accTargetTooHigh += _targetTooHigh;
     }
 
     public void ClearAccumulatedStatistics()
     {
-        this.accPruningSuccesses = 0;
-        this.accPruningFailures = 0;
-        this.accCacheHits = 0;
-        this.accTargetTooHigh = 0;
+        _accPruningSuccesses = 0;
+        _accPruningFailures = 0;
+        _accCacheHits = 0;
+        _accTargetTooHigh = 0;
     }
 
     public void ClearStatistics()
     {
-        this.pruningSuccesses = 0;
-        this.pruningFailures = 0;
-        this.cacheHits = 0;
-        this.targetTooHigh = 0;
+        _pruningSuccesses = 0;
+        _pruningFailures = 0;
+        _cacheHits = 0;
+        _targetTooHigh = 0;
     }
 
     /// <summary>
@@ -88,12 +79,12 @@ class MddPruningHeuristicForCbs : ILazyHeuristic<CbsNode>
     {
         var agentIndicesAndCosts = (s.Conflict.agentAIndex, s.Conflict.agentBIndex,
                 s.SingleAgentCosts[s.Conflict.agentAIndex], s.SingleAgentCosts[s.Conflict.agentBIndex]);
-        if (this.ignoreConstraints)
+        if (_ignoreConstraints)
         {
-            if (this.cache.ContainsKey(agentIndicesAndCosts))
+            if (cache.ContainsKey(agentIndicesAndCosts))
             {
-                this.cacheHits++;
-                return this.cache[agentIndicesAndCosts];
+                _cacheHits++;
+                return cache[agentIndicesAndCosts];
             }
         }
         // TODO
@@ -117,28 +108,28 @@ class MddPruningHeuristicForCbs : ILazyHeuristic<CbsNode>
                                 s.SingleAgentCosts[s.Conflict.agentBIndex]);
         // Building MDDs for the conflicting agents. We can't keep them because we're
         // destructively syncing them later (the first one, at least).
-        var mddA = new MDD(s.Conflict.agentAIndex, this.instance.agents[s.Conflict.agentAIndex].agent.agentNum,
-                            this.instance.agents[s.Conflict.agentAIndex].lastMove,
+        var mddA = new MDD(s.Conflict.agentAIndex, _instance.agents[s.Conflict.agentAIndex].agent.agentNum,
+                            _instance.agents[s.Conflict.agentAIndex].lastMove,
                             s.SingleAgentCosts[s.Conflict.agentAIndex], maxCost,
-                            this.instance.GetNumOfAgents(), this.instance, this.ignoreConstraints);
-        var mddB = new MDD(s.Conflict.agentBIndex, this.instance.agents[s.Conflict.agentBIndex].agent.agentNum,
-                            this.instance.agents[s.Conflict.agentBIndex].lastMove,
+                            _instance.GetNumOfAgents(), _instance, _ignoreConstraints);
+        var mddB = new MDD(s.Conflict.agentBIndex, _instance.agents[s.Conflict.agentBIndex].agent.agentNum,
+                            _instance.agents[s.Conflict.agentBIndex].lastMove,
                             s.SingleAgentCosts[s.Conflict.agentBIndex], maxCost,
-                            this.instance.GetNumOfAgents(), this.instance, this.ignoreConstraints);
+                            _instance.GetNumOfAgents(), _instance, _ignoreConstraints);
         s.CBS.MDDsBuilt += 2;
-        (MDD.PruningDone ans, int stat) = mddA.SyncMDDs(mddB, checkTriples: false);
+        MDD.PruningDone ans = mddA.SyncMDDs(mddB, checkTriples: false).Item1;
         if (ans == MDD.PruningDone.EVERYTHING)
         {
-            if (this.ignoreConstraints)
-                this.cache.Add(agentIndicesAndCosts, 1);
-            this.pruningSuccesses++;
+            if (_ignoreConstraints)
+                cache.Add(agentIndicesAndCosts, 1);
+            _pruningSuccesses++;
             return 1;
         }
         else
         {
-            if (this.ignoreConstraints)
-                this.cache.Add(agentIndicesAndCosts, 0);
-            this.pruningFailures++;
+            if (_ignoreConstraints)
+                cache.Add(agentIndicesAndCosts, 0);
+            _pruningFailures++;
             return 0;
         }
     }
@@ -153,48 +144,48 @@ class MddPruningHeuristicForCbs : ILazyHeuristic<CbsNode>
     {
         if (s.G + 1 < target)
         {
-            this.targetTooHigh++;
+            _targetTooHigh++;
             return 0;  // Currently we can only give an estimate of 1
         }
-        return this.h(s);
+        return h(s);
     }
 
     public void Init(ProblemInstance pi, List<uint> agentsToConsider)
     {
-        this.instance = pi;
+        _instance = pi;
     }
 
     public void OutputAccumulatedStatistics(TextWriter output)
     {
-        string name = this.GetName();
-        Console.WriteLine($"{name} Accumulated Pruning Successes (High-Level): {this.accPruningSuccesses}");
-        Console.WriteLine($"{name} Accumulated Pruning Failures (High-Level): {this.accPruningFailures}");
-        Console.WriteLine($"{name} Accumulated Cache Hits (High-Level): {this.accCacheHits}");
-        Console.WriteLine($"{name} Accumulated Times Target Estimate Was Too High (High-Level): {this.accTargetTooHigh}");
+        string name = GetName();
+        Console.WriteLine($"{name} Accumulated Pruning Successes (High-Level): {_accPruningSuccesses}");
+        Console.WriteLine($"{name} Accumulated Pruning Failures (High-Level): {_accPruningFailures}");
+        Console.WriteLine($"{name} Accumulated Cache Hits (High-Level): {_accCacheHits}");
+        Console.WriteLine($"{name} Accumulated Times Target Estimate Was Too High (High-Level): {_accTargetTooHigh}");
 
-        output.Write(this.accPruningSuccesses + Run.RESULTS_DELIMITER);
-        output.Write(this.accPruningFailures + Run.RESULTS_DELIMITER);
-        output.Write(this.accCacheHits + Run.RESULTS_DELIMITER);
-        output.Write(this.accTargetTooHigh + Run.RESULTS_DELIMITER);
+        output.Write(_accPruningSuccesses + Run.RESULTS_DELIMITER);
+        output.Write(_accPruningFailures + Run.RESULTS_DELIMITER);
+        output.Write(_accCacheHits + Run.RESULTS_DELIMITER);
+        output.Write(_accTargetTooHigh + Run.RESULTS_DELIMITER);
     }
 
     public void OutputStatistics(TextWriter output)
     {
-        string name = this.GetName();
-        Console.WriteLine($"{name} Pruning successes (High-Level): {this.pruningSuccesses}");
-        Console.WriteLine($"{name} Pruning failures (High-Level): {this.pruningFailures}");
-        Console.WriteLine($"{name} Cache hits (High-Level): {this.cacheHits}");
-        Console.WriteLine($"{name} Times Target Estimate was Too High (High-Level): {this.targetTooHigh}");
+        string name = GetName();
+        Console.WriteLine($"{name} Pruning successes (High-Level): {_pruningSuccesses}");
+        Console.WriteLine($"{name} Pruning failures (High-Level): {_pruningFailures}");
+        Console.WriteLine($"{name} Cache hits (High-Level): {_cacheHits}");
+        Console.WriteLine($"{name} Times Target Estimate was Too High (High-Level): {_targetTooHigh}");
 
-        output.Write(this.pruningSuccesses + Run.RESULTS_DELIMITER);
-        output.Write(this.pruningFailures + Run.RESULTS_DELIMITER);
-        output.Write(this.cacheHits + Run.RESULTS_DELIMITER);
-        output.Write(this.targetTooHigh + Run.RESULTS_DELIMITER);
+        output.Write(_pruningSuccesses + Run.RESULTS_DELIMITER);
+        output.Write(_pruningFailures + Run.RESULTS_DELIMITER);
+        output.Write(_cacheHits + Run.RESULTS_DELIMITER);
+        output.Write(_targetTooHigh + Run.RESULTS_DELIMITER);
     }
 
     public void OutputStatisticsHeader(TextWriter output)
     {
-        string name = this.GetName();
+        string name = GetName();
         output.Write($"{name} Pruning Successes (HL)");
         output.Write(Run.RESULTS_DELIMITER);
         output.Write($"{name} Pruning Failures (HL)");
