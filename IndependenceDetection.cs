@@ -99,7 +99,7 @@ class IndependenceDetection : ISolver
         this.resolutionAttemptedSecondGroup = new HashSet<IndependenceDetectionConflict>();
         this.allGroups = new LinkedList<IndependenceDetectionAgentsGroup>();
         // Initialize the agent group collection with a group for every agent
-        foreach (AgentState agentStartState in instance.agents)
+        foreach (AgentState agentStartState in instance.Agents)
         {
             this.allGroups.AddLast(new IndependenceDetectionAgentsGroup(
                                         this.instance,[ agentStartState ],
@@ -207,7 +207,7 @@ class IndependenceDetection : ISolver
         this.expanded = 0;
         this.generated = 0;
         this.maxGroupSize = 1;
-        this.minGroupSize = instance.agents.Length;
+        this.minGroupSize = instance.Agents.Length;
         this.resolutionAttempts = 0;
         this.resolutionSuccesses = 0;
         this.merges = 0;
@@ -218,7 +218,7 @@ class IndependenceDetection : ISolver
         this.accExpanded = 0;
         this.accGenerated = 0;
         this.accMaxGroupSize = 1;
-        this.accMinGroupSize = this.instance.agents.Length;
+        this.accMinGroupSize = this.instance.Agents.Length;
         this.accResolutionAttempts = 0;
         this.accResolutionSuccesses = 0;
         this.accMerges = 0;
@@ -374,7 +374,7 @@ class IndependenceDetection : ISolver
                                             this.countsOfGroupsThatConflict[i] / ((double)(1 << (this.GetGroupSize(i) - 1)))
                                             : -1;
 
-        int chosenGroupNum = Enumerable.Range(0, this.instance.agents.Length).MaxByKeyFunc(formula);
+        int chosenGroupNum = Enumerable.Range(0, this.instance.Agents.Length).MaxByKeyFunc(formula);
 
         // We could just look for any of this agent's conflicts,
         // but the best choice among the agents it conflicts with is the one which maximizes the formula itself.
@@ -503,7 +503,7 @@ class IndependenceDetection : ISolver
     private IndependenceDetectionConflict ChooseConflictOfMostConflictingSmallestResultingGroup()
     {
         Dictionary<int, int> groupSizes = this.allGroups.ToDictionary(group => group.groupNum, group => group.Size());
-        int minResultingGroupSize = this.instance.agents.Length + 1;
+        int minResultingGroupSize = this.instance.Agents.Length + 1;
         int maxGroupsTheyWereInConflictWith = -1;
         int minTime = int.MaxValue;
         IndependenceDetectionAgentsGroup groupA = null;  // The must be at least one conflict

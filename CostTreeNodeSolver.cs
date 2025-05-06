@@ -69,7 +69,7 @@ abstract class CostTreeNodeSolver : IConflictReporting
 
     public virtual void Setup(CostTreeNode costsNode, ISet<TimedMove> reserved)
     {
-        this.startingPos = problem.agents;
+        this.startingPos = problem.Agents;
         this.totalCost = costsNode.costs.Sum();
         this.maxCost = costsNode.costs.Max();
 
@@ -89,9 +89,9 @@ abstract class CostTreeNodeSolver : IConflictReporting
         int index = 0;
         foreach (var agentNum in agentNums)
         {
-            while (problem.agents[index].agent.agentNum != agentNum)
+            while (problem.Agents[index].agent.agentNum != agentNum)
                 ++index;
-            this.startingPos[index] = this.problem.agents[index];
+            this.startingPos[index] = this.problem.Agents[index];
         }
         this.totalCost = costsNode.costs.Sum();
         this.maxCost = costsNode.costs.Max();

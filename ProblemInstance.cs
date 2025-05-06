@@ -21,12 +21,12 @@ public class ProblemInstance
     /// <summary>
     /// This contains extra data of this problem instance (used for special problem instances, e.g. subproblems of a bigger problem instance).
     /// </summary>
-    public IDictionary<string, object> parameters;
+    public Dictionary<string, object> Parameters { get; set; }
 
     /// <summary>
     /// Contains true at [x][y] if cell (x,y) is an obstacle
     /// </summary>
-    public BitMatrix grid;
+    public BitMatrix Grid { get; private set; }
 
     /// <summary>
     /// We keep a reference to the array of agents in the original problem.
@@ -34,34 +34,34 @@ public class ProblemInstance
     /// iteration that a new set of agents must be jointly planned due
     /// to their mutual conflicts.
     /// </summary>
-    public AgentState[] agents;
+    public AgentState[] Agents { get; private set; }
 
     /// <summary>
     /// This is a matrix that contains the cost of the optimal path to the goal of every agent from any point in the grid.
     /// The first dimension of the matrix is the number of agents.
     /// The second dimension of the matrix is the cardinality of the location from which we want the shortest path.
     /// </summary>
-    public int[][] singleAgentOptimalCosts;
+    private int[][] _singleAgentOptimalCosts;
 
     /// <summary>
     /// The time it took to compute the shortest paths.
     /// </summary>
-    public double shortestPathComputeTime;
+    public double ShortestPathComputeTime { get; private set; }
 
     /// <summary>
     /// This is a matrix that contains the best move towards the goal of every agent from any point in the grid.
     /// The first dimension of the matrix is the number of agents.
     /// The second dimension of the matrix is the cardinality of the location from which we want the shortest path.
     /// </summary>
-    public Move[][] singleAgentOptimalMoves;
+    private Move[][] _singleAgentOptimalMoves;
 
-    public uint numObstacles;
-    public uint numLocations;
+    public uint NumObstacles { get; private set; }
+    public uint NumLocations { get; private set; }
         
     /// <summary>
     /// This field is used to identify an instance when running a set of experiments
     /// </summary>
-    public int instanceId;
+    public int InstanceId { get; set; }
         
     /// <summary>
     /// Enumerates all of the empty spots in the grid. The indices
@@ -70,17 +70,17 @@ public class ProblemInstance
     /// the y-axis. If there are obstacles, it's more space-efficient to store
     /// data for each non-empty spot.
     /// </summary>
-    public int[,] cardinality;
+    private int[,] _cardinality;
 
-    public string gridName;
-    public string instanceName;
+    public string GridName { get; set; }
+    public string InstanceName { get; set; }
 
-    public ProblemInstance(IDictionary<string, object> parameters = null)
+    public ProblemInstance(Dictionary<string, object> parameters = null)
     {
         if (parameters != null)
-            this.parameters = parameters;
+            Parameters = parameters;
         else
-            this.parameters = new Dictionary<string, object>();
+            Parameters = [];
     }
 
     /// <summary>
@@ -92,13 +92,13 @@ public class ProblemInstance
     {
         // Notice selected agents may actually be a completely different set of agents.
         // Not copying instance id. This isn't the same problem.
-        ProblemInstance subproblemInstance = new(this.parameters);
-        subproblemInstance.Init(selectedAgents, this.grid, (int)this.numObstacles, (int)this.numLocations, this.cardinality);
-        subproblemInstance.singleAgentOptimalCosts = this.singleAgentOptimalCosts; // Each subproblem knows every agent's single shortest paths so this.singleAgentOptimalCosts[agent_num] would easily work
-        subproblemInstance.singleAgentOptimalMoves = this.singleAgentOptimalMoves;
-        subproblemInstance.gridName = this.gridName;
-        subproblemInstance.instanceName = this.instanceName;
-        subproblemInstance.instanceId = this.instanceId;
+        ProblemInstance subproblemInstance = new(Parameters);
+        subproblemInstance.Init(selectedAgents, Grid, (int)NumObstacles, (int)NumLocations, _cardinality);
+        subproblemInstance._singleAgentOptimalCosts = _singleAgentOptimalCosts; // Each subproblem knows every agent's single shortest paths so singleAgentOptimalCosts[agent_num] would easily work
+        subproblemInstance._singleAgentOptimalMoves = _singleAgentOptimalMoves;
+        subproblemInstance.GridName = GridName;
+        subproblemInstance.InstanceName = InstanceName;
+        subproblemInstance.InstanceId = InstanceId;
         return subproblemInstance;
     }
 
@@ -113,8 +113,8 @@ public class ProblemInstance
     public void Init(AgentState[] agentStartStates, BitMatrix grid, int nObstacles=-1,
                         int nLocations=-1, int[,] cardinality=null)
     {
-        agents = agentStartStates;
-        this.grid = grid;
+        Agents = agentStartStates;
+        Grid = grid;
 
         if (nObstacles == -1)
         {
@@ -122,21 +122,21 @@ public class ProblemInstance
             for (int j = 0; j < grid.RowsCount; j++)
             {
                 if (grid[i, j])
-                    numObstacles++;
+                    NumObstacles++;
             }
         }
         else
-            numObstacles = (uint)nObstacles;
+            NumObstacles = (uint)nObstacles;
 
         if (nLocations == -1)
-            numLocations = ((uint)(grid.ColumnsCount * grid.RowsCount)) - numObstacles;
+            NumLocations = ((uint)(grid.ColumnsCount * grid.RowsCount)) - NumObstacles;
         else
-            numLocations = (uint)nLocations;
+            NumLocations = (uint)nLocations;
             
         if (cardinality == null)
             PrecomputeCardinality();
         else
-            this.cardinality = cardinality;
+            _cardinality = cardinality;
     }
         
     /// <summary>
@@ -150,23 +150,23 @@ public class ProblemInstance
         double startTime = watch.Elapsed.TotalMilliseconds;
         //return; // Add for generator
 
-        this.singleAgentOptimalCosts = new int[this.GetNumOfAgents()][];
-        this.singleAgentOptimalMoves = new Move[this.GetNumOfAgents()][];
+        _singleAgentOptimalCosts = new int[GetNumOfAgents()][];
+        _singleAgentOptimalMoves = new Move[GetNumOfAgents()][];
 
-        for (int agentId = 0; agentId < this.GetNumOfAgents(); agentId++)
+        for (int agentId = 0; agentId < GetNumOfAgents(); agentId++)
         {
             // Run a single source shortest path algorithm from the _goal_ of the agent
-            var shortestPathLengths = new int[this.numLocations];
-            var optimalMoves = new Move[this.numLocations];
-            for (int i = 0; i < numLocations; i++)
+            var shortestPathLengths = new int[NumLocations];
+            var optimalMoves = new Move[NumLocations];
+            for (int i = 0; i < NumLocations; i++)
                 shortestPathLengths[i] = -1;
             var openlist = new Queue<AgentState>();
 
             // Create initial state
-            var agentStartState = this.agents[agentId];
+            var agentStartState = Agents[agentId];
             var agent = agentStartState.agent;
             var goalState = new AgentState(agent.Goal.X, agent.Goal.Y, -1, -1, agentId);
-            int goalIndex = this.GetCardinality(goalState.lastMove);
+            int goalIndex = GetCardinality(goalState.lastMove);
             shortestPathLengths[goalIndex] = 0;
             optimalMoves[goalIndex] = new Move(goalState.lastMove);
             openlist.Enqueue(goalState);
@@ -180,7 +180,7 @@ public class ProblemInstance
                 {
                     if (IsValid(aMove))
                     {
-                        int entry = cardinality[aMove.X, aMove.Y];
+                        int entry = _cardinality[aMove.X, aMove.Y];
                         // If move will generate a new or better state - add it to the queue
                         if ((shortestPathLengths[entry] == -1) || (shortestPathLengths[entry] > state.g + 1))
                         {
@@ -195,7 +195,7 @@ public class ProblemInstance
 
             }
 
-            int start = this.GetCardinality(agentStartState.lastMove);
+            int start = GetCardinality(agentStartState.lastMove);
             if (shortestPathLengths[start] == -1)
             {
                 throw new Exception($"Unsolvable instance! Agent {agentId} cannot reach its goal");
@@ -203,62 +203,47 @@ public class ProblemInstance
                 // s1-g2-g1-s2
             }
 
-            this.singleAgentOptimalCosts[agentId] = shortestPathLengths;
-            this.singleAgentOptimalMoves[agentId] = optimalMoves;
+            _singleAgentOptimalCosts[agentId] = shortestPathLengths;
+            _singleAgentOptimalMoves[agentId] = optimalMoves;
         }
         double endTime = watch.Elapsed.TotalMilliseconds;
-        this.shortestPathComputeTime = endTime - startTime;
+        ShortestPathComputeTime = endTime - startTime;
     }
 
     /// <summary>
     /// Returns the length of the shortest path between a given coordinate and the goal location of the given agent.
     /// </summary>
-    /// <param name="agentNum"></param>
-    /// <param name="x"></param>
-    /// <param name="y"></param>
     /// <returns>The length of the shortest path from x,y to the goal of the agent.</returns>
-    public int GetSingleAgentOptimalCost(int agentNum, int x, int y)
-    {
-        return this.singleAgentOptimalCosts[agentNum][this.cardinality[x, y]];
-    }
+    public int GetSingleAgentOptimalCost(int agentNum, int x, int y) => _singleAgentOptimalCosts[agentNum][_cardinality[x, y]];
 
     /// <summary>
     /// Returns the length of the shortest path between a given coordinate and the goal location of the given agent.
     /// </summary>
-    /// <param name="agentNum"></param>
-    /// <param name="move"></param>
     /// <returns>The length of the shortest path from x,y to the goal of the agent.</returns>
-    public int GetSingleAgentOptimalCost(int agentNum, Move move)
-    {
-        return this.singleAgentOptimalCosts[agentNum][this.cardinality[move.X, move.Y]];
-    }
+    public int GetSingleAgentOptimalCost(int agentNum, Move move) => _singleAgentOptimalCosts[agentNum][_cardinality[move.X, move.Y]];
 
     /// <summary>
     /// Returns the length of the shortest path between a given agent's location and the goal of that agent.
     /// </summary>
-    /// <param name="agentState"></param>
     /// <returns>The length of the shortest path between a given agent's location and the goal of that agent</returns>
     public int GetSingleAgentOptimalCost(AgentState agentState)
     {
-        int locationCardinality = this.cardinality[agentState.lastMove.X, agentState.lastMove.Y];
-        return this.singleAgentOptimalCosts[agentState.agent.agentNum][locationCardinality];
+        int locationCardinality = _cardinality[agentState.lastMove.X, agentState.lastMove.Y];
+        return _singleAgentOptimalCosts[agentState.agent.agentNum][locationCardinality];
     }
 
     /// <summary>
     /// Returns the optimal move towards the goal of the given agent. Move isn't necessarily unique.
     /// </summary>
-    /// <param name="agentState"></param>
-    /// <returns></returns>
     public Move GetSingleAgentOptimalMove(AgentState agentState)
     {
-        int locationCardinality = this.cardinality[agentState.lastMove.X, agentState.lastMove.Y];
-        return this.singleAgentOptimalMoves[agentState.agent.agentNum][locationCardinality];
+        int locationCardinality = _cardinality[agentState.lastMove.X, agentState.lastMove.Y];
+        return _singleAgentOptimalMoves[agentState.agent.agentNum][locationCardinality];
     }
 
     /// <summary>
     /// Note: The returned plan wasn't constructed considering a CAT, so it's possible there's an alternative plan with the same cost and less collisions.
     /// </summary>
-    /// <param name="agentState"></param>
     /// <returns>An optimal plan for the agent, ignoring all others</returns>
     public SinglePlan GetSingleAgentOptimalPlan(AgentState agentState)
     {
@@ -276,7 +261,7 @@ public class ProblemInstance
 
             // Get next optimal move
             time++;
-            Move optimal = this.singleAgentOptimalMoves[agentNum][this.GetCardinality(current)];
+            Move optimal = _singleAgentOptimalMoves[agentNum][GetCardinality(current)];
             current = new TimedMove(optimal, time);
         }
 
@@ -288,18 +273,18 @@ public class ProblemInstance
     /// </summary>
     public int GetNumOfAgents()
     {
-        return this.agents.Length;
+        return Agents.Length;
     }
 
     /// <summary>
     /// Utility function that returns the x dimension of the grid
     /// </summary>
-    public int GetMaxX() => grid.ColumnsCount;
+    public int GetMaxX() => Grid.ColumnsCount;
 
     /// <summary>
     /// Utility function that returns the y dimension of the grid
     /// </summary>
-    public int GetMaxY() => grid.RowsCount;
+    public int GetMaxY() => Grid.RowsCount;
 
     private static BitMatrix readMapFile(string mapFilePath)
     {
@@ -353,7 +338,8 @@ public class ProblemInstance
     }
 
 
-    private static BitMatrix readLironMap(TextReader input, string line) {
+    private static BitMatrix readLironMap(TextReader input, string line)
+    {
         string[] lineParts;
         lineParts = line.Split(',');
         int maxX = int.Parse(lineParts[0]);
@@ -447,9 +433,9 @@ public class ProblemInstance
             // Generate the problem instance
             ProblemInstance instance = new();
             instance.Init(states, grid);
-            instance.instanceId = instanceId;
-            instance.gridName = mapfileNameWithoutExtension;
-            instance.instanceName = fileNameWithoutExtension + ".agents";
+            instance.InstanceId = instanceId;
+            instance.GridName = mapfileNameWithoutExtension;
+            instance.InstanceName = fileNameWithoutExtension + ".agents";
             instance.ComputeSingleAgentShortestPaths();
             return instance;
         }
@@ -547,9 +533,9 @@ public class ProblemInstance
             // Generate the problem instance
             ProblemInstance instance = new();
             instance.Init([.. stateList], grid);
-            instance.instanceId = instanceId;
-            instance.gridName = mapfileName;
-            instance.instanceName = Path.GetFileName(filePath);
+            instance.InstanceId = instanceId;
+            instance.GridName = mapfileName;
+            instance.InstanceName = Path.GetFileName(filePath);
             //instance.ComputeSingleAgentShortestPaths();  // FIXME: Uncomment this hack later
             return instance;
         }
@@ -630,9 +616,9 @@ public class ProblemInstance
                 // Generate the problem instance
                 ProblemInstance instance = new ProblemInstance();
                 instance.Init(states, grid);
-                instance.instanceId = instanceId;
-                instance.gridName = gridName;
-                instance.instanceName = Path.GetFileNameWithoutExtension(filePath);
+                instance.InstanceId = instanceId;
+                instance.GridName = gridName;
+                instance.InstanceName = Path.GetFileNameWithoutExtension(filePath);
                 instance.ComputeSingleAgentShortestPaths();
                 return instance;
             }
@@ -655,17 +641,17 @@ public class ProblemInstance
             if (mapFileName == null)
                 throw new Exception("Map file name needed for .scen format");
 
-            foreach (var agentState in this.agents)
+            foreach (var agentState in Agents)
             {
                 // Output all agent as block 1, with optimal cost -1
-                output.WriteLine($"{1}\t{mapFileName}\t{grid.RowsCount}\t{grid.ColumnsCount}\t{agentState.lastMove.Y}\t{agentState.lastMove.X}\t{agentState.agent.Goal.Y}\t{agentState.agent.Goal.X}\t{-1}");
+                output.WriteLine($"{1}\t{mapFileName}\t{Grid.RowsCount}\t{Grid.ColumnsCount}\t{agentState.lastMove.Y}\t{agentState.lastMove.X}\t{agentState.agent.Goal.Y}\t{agentState.agent.Goal.X}\t{-1}");
             }
         }
         else if (fileName.EndsWith(".agents"))
         {
-            output.WriteLine(this.GetNumOfAgents());
+            output.WriteLine(GetNumOfAgents());
 
-            foreach (var agentState in this.agents)
+            foreach (var agentState in Agents)
             {
                 output.WriteLine($"{agentState.agent.Goal.X},{agentState.agent.Goal.Y},{agentState.lastMove.X},{agentState.lastMove.X}");
             }
@@ -673,17 +659,17 @@ public class ProblemInstance
         else
         {
             // Output the instance ID
-            output.WriteLine($"{this.instanceId},{this.gridName}");
+            output.WriteLine($"{InstanceId},{GridName}");
 
             // Output the grid
             output.WriteLine("Grid:");
-            output.WriteLine($"{this.grid.ColumnsCount},{this.grid.RowsCount}");
+            output.WriteLine($"{Grid.ColumnsCount},{Grid.RowsCount}");
 
-            for (int i = 0; i < this.grid.ColumnsCount; i++)
+            for (int i = 0; i < Grid.ColumnsCount; i++)
             {
-                for (int j = 0; j < this.grid.RowsCount; j++)
+                for (int j = 0; j < Grid.RowsCount; j++)
                 {
-                    if (this.grid[i, j] == true)
+                    if (Grid[i, j] == true)
                         output.Write('@');
                     else
                         output.Write('.');
@@ -693,11 +679,11 @@ public class ProblemInstance
             }
             // Output the agents state
             output.WriteLine("Agents:");
-            output.WriteLine(this.agents.Length);
+            output.WriteLine(Agents.Length);
             AgentState state;
-            for (int i = 0; i < this.agents.Length; i++)
+            for (int i = 0; i < Agents.Length; i++)
             {
-                state = this.agents[i];
+                state = Agents[i];
                 output.WriteLine($"{state.agent.agentNum}{EXPORT_DELIMITER}{state.agent.Goal.X}{EXPORT_DELIMITER}{state.agent.Goal.Y}{EXPORT_DELIMITER}{state.lastMove.X}{EXPORT_DELIMITER}{state.lastMove.Y}");
             }
         }
@@ -712,22 +698,19 @@ public class ProblemInstance
     /// <param name="move">An agent's current location.</param>
     /// <returns>n, where the agent is located at the nth non-obstacle
     /// location in our grid.</returns>
-    public int GetCardinality(Move move)
-    {
-        return cardinality[move.X, move.Y];
-    }
+    public int GetCardinality(Move move) => _cardinality[move.X, move.Y];
         
     private void PrecomputeCardinality()
     {
-        cardinality = new int[grid.ColumnsCount, grid.RowsCount];
+        _cardinality = new int[Grid.ColumnsCount, Grid.RowsCount];
         int maxCardinality = 0;
-        for (int i = 0; i < grid.ColumnsCount; ++i)
-        for (int j = 0; j < grid.RowsCount; ++j)
+        for (int i = 0; i < Grid.ColumnsCount; ++i)
+        for (int j = 0; j < Grid.RowsCount; ++j)
         {
-            if (grid[i,j])
-                cardinality[i, j] = -1;
+            if (Grid[i,j])
+                _cardinality[i, j] = -1;
             else
-                cardinality[i, j] = maxCardinality++;
+                _cardinality[i, j] = maxCardinality++;
         }
     }
 
@@ -758,11 +741,9 @@ public class ProblemInstance
             return false;
         if (y < 0 || y >= GetMaxY())
             return false;
-        return !grid[x, y];
+        return !Grid[x, y];
     }
 
-    public override string ToString()
-    {
-        return $"Problem instance name:{instanceName} #Agents:{agents.Length}, GridCells:{numLocations}, #Obstacles:{numObstacles}";
-    }
+    public override string ToString() =>
+        $"Problem instance name:{InstanceName} #Agents:{Agents.Length}, GridCells:{NumLocations}, #Obstacles:{NumObstacles}";
 }

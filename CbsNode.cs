@@ -142,7 +142,7 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
         AgentNumToIndex = [];
         for (int i = 0; i < numberOfAgents; i++)
         {
-            AgentNumToIndex[CBS.GetProblemInstance().agents[i].agent.agentNum] = i;
+            AgentNumToIndex[CBS.GetProblemInstance().Agents[i].agent.agentNum] = i;
         }
         _depth = 0;
         ReplanSize = 1;
@@ -345,13 +345,13 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
         // layers of CBS/ID solvers, each one adding its own constraints and respecting those of the solvers above it.
 
         // Find all the agents groups:
-        List<AgentState>[] subGroups = new List<AgentState>[problem.agents.Length];
+        List<AgentState>[] subGroups = new List<AgentState>[problem.Agents.Length];
         for (int i = 0; i < AgentsGroupAssignment.Length; i++)
         {
             if (subGroups[AgentsGroupAssignment[i]] == null)
-                subGroups[AgentsGroupAssignment[i]] = [ problem.agents[i] ];
+                subGroups[AgentsGroupAssignment[i]] = [ problem.Agents[i] ];
             else
-                subGroups[AgentsGroupAssignment[i]].Add(problem.agents[i]);
+                subGroups[AgentsGroupAssignment[i]].Add(problem.Agents[i]);
         }
 
         bool success = true;
@@ -370,9 +370,9 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
                 agentGroupHasMustConstraints == false &&
                 subGroup.Count == 1) // No constraints on this agent. Shortcut available (that doesn't consider the CAT, though!).
             {
-                SingleAgentPlans[i] = new SinglePlan(problem.agents[i]); // All moves up to starting pos, if any
-                SingleAgentPlans[i].AgentNum = problem.agents[AgentsGroupAssignment[i]].agent.agentNum; // Use the group's representative
-                SinglePlan optimalPlan = problem.GetSingleAgentOptimalPlan(problem.agents[i]);
+                SingleAgentPlans[i] = new SinglePlan(problem.Agents[i]); // All moves up to starting pos, if any
+                SingleAgentPlans[i].AgentNum = problem.Agents[AgentsGroupAssignment[i]].agent.agentNum; // Use the group's representative
+                SinglePlan optimalPlan = problem.GetSingleAgentOptimalPlan(problem.Agents[i]);
                 // Count conflicts:
                 ConflictCountsPerAgent[i] = [];
                 ConflictTimesPerAgent[i] = [];
@@ -382,7 +382,7 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
                     timedMove.IncrementConflictCounts(CAT, ConflictCountsPerAgent[i], ConflictTimesPerAgent[i]);
                 }
                 SingleAgentPlans[i].ContinueWith(optimalPlan);
-                SingleAgentCosts[i] = problem.agents[i].g + problem.GetSingleAgentOptimalCost(problem.agents[i]);
+                SingleAgentCosts[i] = problem.Agents[i].g + problem.GetSingleAgentOptimalCost(problem.Agents[i]);
                 if (Constants.costFunction == Constants.CostFunction.SUM_OF_COSTS)
                 {
                     G += (ushort)SingleAgentCosts[i];
@@ -424,9 +424,9 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
                     AgentNumToIndex[pair.Key] < i)                                 // Just an optimization. Would also be correct without this check.
                 {
                     ConflictCountsPerAgent[AgentNumToIndex[pair.Key]] // Yes, index here, num there
-                        [problem.agents[i].agent.agentNum] = pair.Value; // Collisions are symmetrical, and agent "key" didn't see the route for agent "i" when planning.
+                        [problem.Agents[i].agent.agentNum] = pair.Value; // Collisions are symmetrical, and agent "key" didn't see the route for agent "i" when planning.
                     ConflictTimesPerAgent[AgentNumToIndex[pair.Key]]
-                        [problem.agents[i].agent.agentNum] = ConflictTimesPerAgent[i][pair.Key];
+                        [problem.Agents[i].agent.agentNum] = ConflictTimesPerAgent[i][pair.Key];
                 }
             }
         }
@@ -474,7 +474,7 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
             for (int i = 0; i < AgentsGroupAssignment.Length; i++)
             {
                 if (AgentsGroupAssignment[i] == groupNum)
-                    subGroup.Add(problem.agents[i]);
+                    subGroup.Add(problem.Agents[i]);
                 else
                     internalCAT.AddPlan(SingleAgentPlans[i]);
             }
@@ -591,7 +591,7 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
             int agentNum = subGroup[i].agent.agentNum;
             int agentIndex = AgentNumToIndex[agentNum];
             SingleAgentPlans[agentIndex] = singlePlans[i];
-            SingleAgentPlans[agentIndex].AgentNum = problem.agents[groupNum].agent.agentNum; // Use the group's representative - that's how the plans will be inserted into the CAT later too.
+            SingleAgentPlans[agentIndex].AgentNum = problem.Agents[groupNum].agent.agentNum; // Use the group's representative - that's how the plans will be inserted into the CAT later too.
             SingleAgentCosts[agentIndex] = singleCosts[i];
             if (i == 0) // This is the group representative
             {
@@ -630,7 +630,7 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
             int representativeAgentNum = subGroup[0].agent.agentNum;
             for (int i = 0; i < ConflictCountsPerAgent.Length; i++)
             {
-                int agentNum = problem.agents[i].agent.agentNum;
+                int agentNum = problem.Agents[i].agent.agentNum;
                 if (perAgent.ContainsKey(agentNum))
                 {
                     ConflictCountsPerAgent[i][representativeAgentNum] = perAgent[agentNum];
@@ -741,7 +741,7 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
         {
             if (ConflictCountsPerAgent[j].Count != 0)
             {
-                Debug.Write($"Agent {problem.agents[j].agent.agentNum} conflict counts: ");
+                Debug.Write($"Agent {problem.Agents[j].agent.agentNum} conflict counts: ");
                 foreach (var pair in ConflictCountsPerAgent[j])
                 {
                     Debug.Write($"{pair.Key}:{pair.Value} ");
@@ -754,7 +754,7 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
         {
             if (ConflictCountsPerAgent[j].Count != 0)
             {
-                Debug.Write($"Agent {problem.agents[j].agent.agentNum} conflict times: ");
+                Debug.Write($"Agent {problem.Agents[j].agent.agentNum} conflict times: ");
                 foreach (var pair in ConflictTimesPerAgent[j])
                 {
                     Debug.Write($"{pair.Key}:[{String.Join(",", pair.Value)}], ");
@@ -792,7 +792,7 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
     {
         ProblemInstance problem = CBS.GetProblemInstance();
         var afterGoal = new TimedMove(
-            problem.agents[agentIndex].agent.Goal.X, problem.agents[agentIndex].agent.Goal.Y,
+            problem.Agents[agentIndex].agent.Goal.X, problem.Agents[agentIndex].agent.Goal.Y,
             Direction.Wait, time: 0);
         for (int time = SingleAgentPlans[agentIndex].GetSize(); time < CAT.GetMaxPlanSize(); time++)
         {
@@ -1967,7 +1967,7 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
                                 out specificConflictingAgentA, out specificConflictingAgentB,
                                 groups);
         ProblemInstance problem = CBS.GetProblemInstance();
-        int initialTimeStep = problem.agents[0].lastMove.Time; // To account for solving partially solved problems.
+        int initialTimeStep = problem.Agents[0].lastMove.Time; // To account for solving partially solved problems.
         // This assumes the makespan of all the agents is the same.
         Move first = SingleAgentPlans[specificConflictingAgentA].GetLocationAt(time);
         Move second = SingleAgentPlans[specificConflictingAgentB].GetLocationAt(time);
@@ -2151,7 +2151,7 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
             int depth = SingleAgentCosts.Max();
 
             IEnumerable<CbsConstraint> myConstraints = constraints.Where(
-                constraint => constraint.agentNum == problem.agents[agentIndex].agent.agentNum);
+                constraint => constraint.agentNum == problem.Agents[agentIndex].agent.agentNum);
             if (myConstraints.Count() != 0)
             {
                 int maxConstraintTimeStep = myConstraints.Max(constraint => constraint.time);
@@ -2160,7 +2160,7 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
             if (positiveConstraints != null && positiveConstraints.Count != 0)
             {
                 IEnumerable<CbsConstraint> myMustConstraints = positiveConstraints.Where(
-                    constraint => constraint.agentNum == problem.agents[agentIndex].agent.agentNum);
+                    constraint => constraint.agentNum == problem.Agents[agentIndex].agent.agentNum);
                 if (myMustConstraints.Count() != 0)
                 {
                     int maxMustConstraintTimeStep = myMustConstraints.Max(constraint => constraint.time);
@@ -2171,8 +2171,8 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
             Debug.WriteLine($"Building MDD for agent index {agentIndex} of cost {SingleAgentCosts[agentIndex]} and depth {depth}");
 
             double startTime = CBS._stopwatch.ElapsedMilliseconds;
-            _mdds[agentIndex] = new MDD(agentIndex, problem.agents[agentIndex].agent.agentNum,
-                                            problem.agents[agentIndex].GetMove(), SingleAgentCosts[agentIndex],
+            _mdds[agentIndex] = new MDD(agentIndex, problem.Agents[agentIndex].agent.agentNum,
+                                            problem.Agents[agentIndex].GetMove(), SingleAgentCosts[agentIndex],
                                             depth, problem.GetNumOfAgents(), problem,
                                             ignoreConstraints: false, supportPruning: false,
                                             constraints: constraints, positiveConstraints: positiveConstraints);
@@ -2265,7 +2265,7 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
 
         ProblemInstance problem = CBS.GetProblemInstance();
         time = ConflictTimesPerAgent[chosenAgentIndex] // Yes, the index of the first and the num of the second
-                                                [problem.agents[chosenConflictingAgentIndex].agent.agentNum][0];
+                                                [problem.Agents[chosenConflictingAgentIndex].agent.agentNum][0];
         return (groupRepA, groupRepB, time);
     }
 
@@ -2825,8 +2825,8 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
             (a, b) = (b, a);
 
         ProblemInstance problem = CBS.GetProblemInstance();
-        int aAgentNum = problem.agents[a].agent.agentNum;
-        int bAgentNum = problem.agents[b].agent.agentNum;
+        int aAgentNum = problem.Agents[a].agent.agentNum;
+        int bAgentNum = problem.Agents[b].agent.agentNum;
 
         for (int i = 0; i < AgentsGroupAssignment.Length; i++)
         {
@@ -2977,7 +2977,7 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
         for (int i = 0; i < AgentsGroupAssignment.Length; i++)
         {
             if (AgentsGroupAssignment[i] == groupNum)
-                subGroup.Add(problem.agents[i]);
+                subGroup.Add(problem.Agents[i]);
             else
                 internalCAT.AddPlan(SingleAgentPlans[i]);
         }
@@ -2989,7 +2989,7 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
             relevantSolver = _singleAgentSolver;
 
         ProblemInstance subProblem = problem.Subproblem(subGroup.ToArray());
-        subProblem.parameters = problem.parameters;
+        subProblem.Parameters = problem.Parameters;
 
         MDD mdd = null;
         if (CBS.ReplanSameCostWithMdd)
@@ -3015,7 +3015,7 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
             if (AgentsGroupAssignment[i] == groupNum)
             {
                 SingleAgentPlans[i] = singlePlans[j];
-                SingleAgentPlans[i].AgentNum = problem.agents[groupNum].agent.agentNum; // Use the group's representative
+                SingleAgentPlans[i].AgentNum = problem.Agents[groupNum].agent.agentNum; // Use the group's representative
                 SingleAgentCosts[i] = singleCosts[j];
                 j++;
             }

@@ -247,10 +247,10 @@ public class CBS : ICbsSolver, IHeuristicSolver<CbsNode>, IIndependenceDetection
         // TODO: Instead, maybe add the agents in the reservation table into the problem instance, and add positive
         //       constraints for them along their entire path. Would require changing IIndependenceDetectionSolver.Setup
         //       to specify the agents the reserved moves belong to.
-        var constraints = new HashSet<CbsConstraint>(illegalMoves.Count * problemInstance.agents.Length);
+        var constraints = new HashSet<CbsConstraint>(illegalMoves.Count * problemInstance.Agents.Length);
         foreach (var illegalMove in illegalMoves)
         {
-            foreach (var agentState in problemInstance.agents)
+            foreach (var agentState in problemInstance.Agents)
             {
                 constraints.Add(new CbsConstraint(agentState.agent.agentNum, illegalMove));
             }
@@ -295,9 +295,9 @@ public class CBS : ICbsSolver, IHeuristicSolver<CbsNode>, IIndependenceDetection
 
         if (CacheMdds)
         {
-            MDDCache = new Dictionary<CbsCacheEntry, MDD>[_instance.agents.Length];
-            MDDNarrownessValuesCache = new Dictionary<CbsCacheEntry, Dictionary<int, MDD.LevelNarrowness>>[_instance.agents.Length];
-            for (int i = 0; i < _instance.agents.Length; i++)
+            MDDCache = new Dictionary<CbsCacheEntry, MDD>[_instance.Agents.Length];
+            MDDNarrownessValuesCache = new Dictionary<CbsCacheEntry, Dictionary<int, MDD.LevelNarrowness>>[_instance.Agents.Length];
+            for (int i = 0; i < _instance.Agents.Length; i++)
             {
                 MDDCache[i] = [];
                 MDDNarrownessValuesCache[i] = [];
@@ -320,7 +320,7 @@ public class CBS : ICbsSolver, IHeuristicSolver<CbsNode>, IIndependenceDetection
 
         SetGlobals();
 
-        CbsNode root = new(_instance.agents.Length, _solver, _singleAgentSolver, this);  // Problem instance and various strategy data is all passed under 'this'.
+        CbsNode root = new(_instance.Agents.Length, _solver, _singleAgentSolver, this);  // Problem instance and various strategy data is all passed under 'this'.
         // Solve the root node
         bool solved = root.Solve(minSolutionTimeStep);
 
@@ -935,7 +935,7 @@ public class CBS : ICbsSolver, IHeuristicSolver<CbsNode>, IIndependenceDetection
                 // cost as the sum of their current paths and no other conflicts exist? Should just
                 // adopt this solution and get a goal node.
                 // TODO: Save the cost of the group in a table, and use it as a heuristic in the future!
-                child = new CbsNode(_instance.agents.Length, _solver,
+                child = new CbsNode(_instance.Agents.Length, _solver,
                                     _singleAgentSolver, this, node.AgentsGroupAssignment);  // This will be the new root node
                 child.MergeGroups(node.AgentsGroupAssignment[conflict.agentAIndex], node.AgentsGroupAssignment[conflict.agentBIndex],
                                   fixCounts: false  // This is a new root node, it doesn't have conflict counts yet
@@ -1856,7 +1856,7 @@ public class MACBS_WholeTreeThreshold : CBS
 
     private void MakeConflictMatrix(ProblemInstance problemInstance)
     {
-        globalConflictsCounter = new int[problemInstance.agents.Length][];
+        globalConflictsCounter = new int[problemInstance.Agents.Length][];
         for (int i = 0; i < globalConflictsCounter.Length; i++)
         {
             globalConflictsCounter[i] = new int[i];

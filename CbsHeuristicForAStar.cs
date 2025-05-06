@@ -133,7 +133,7 @@ class CbsHeuristicForAStar : IHeuristicCalculator<WorldState>
         if (lowLevelGeneratedCap == -1)
         {
             // Rough estimate of the branching factor:
-            lowLevelGeneratedCap = (int) Math.Pow(Constants.NUM_ALLOWED_DIRECTIONS, this.instance.agents.Length);
+            lowLevelGeneratedCap = (int) Math.Pow(Constants.NUM_ALLOWED_DIRECTIONS, this.instance.Agents.Length);
         }
 
         // Calc the h:
@@ -388,7 +388,7 @@ class DyanamicLazyCbsHeuristicForAStar : CbsHeuristicForAStar, IBoundedLazyHeuri
     public uint h(WorldState s, int targetH, float effectiveBranchingFactor)
     {
         // No need to check if SIC is zero because this heuristic is run after SIC was already computed, not instead of it.
-        int lowLevelGeneratedCap = (int) Math.Round(effectiveBranchingFactor * this.instance.agents.Length); // Cap of B_of_AStar * K,
+        int lowLevelGeneratedCap = (int) Math.Round(effectiveBranchingFactor * this.instance.Agents.Length); // Cap of B_of_AStar * K,
                                                                                                                 // because CBS low level nodes are of one agent only so they're about k times cheaper to work with
         return base.h(s, s.G + targetH, -1, lowLevelGeneratedCap);
     }

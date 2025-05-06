@@ -21,7 +21,7 @@ public class A_Star_WithOD : A_Star
 
     override protected WorldState CreateSearchRoot(int minDepth = -1, int minCost = -1, MDDNode mddNode = null)
     {
-        return new WorldStateWithOD(this.instance.agents, minDepth, minCost, mddNode);
+        return new WorldStateWithOD(this.instance.Agents, minDepth, minCost, mddNode);
     }
 
     protected override WorldState CreateSearchNode(WorldState from)
@@ -75,7 +75,7 @@ public class A_Star_WithOD : A_Star
 
         var generated = base.ExpandOneAgent(intermediateNodes, agentIndex);
 
-        int childAgentTurn = ((parent.agentTurn + 1) % (this.instance.agents.Length));
+        int childAgentTurn = ((parent.agentTurn + 1) % (this.instance.Agents.Length));
         foreach (var node in generated)
         {
             WorldStateWithOD childNode = (WorldStateWithOD)node;

@@ -91,7 +91,7 @@ class PDB : IHeuristicCalculator<WorldState>
         {
             prev = currentNode;
         }
-        if (agentIndex == problem.agents.Length) // If all the agents have moved
+        if (agentIndex == problem.Agents.Length) // If all the agents have moved
         {
             currentNode.makespan++;
             currentNode.CalculateG();

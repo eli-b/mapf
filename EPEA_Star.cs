@@ -25,7 +25,7 @@ class EPEA_Star : A_Star
 
     override protected WorldState CreateSearchRoot(int minDepth = -1, int minCost = -1, MDDNode mddNode = null)
     {
-        var root =  new WorldStateForPartialExpansion(this.instance.agents, minDepth, minCost, mddNode);
+        var root =  new WorldStateForPartialExpansion(this.instance.Agents, minDepth, minCost, mddNode);
         root.sic = (int)SumIndividualCosts.h(root, this.instance);
         return root;
     }

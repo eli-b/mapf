@@ -108,12 +108,12 @@ class MddPruningHeuristicForCbs : ILazyHeuristic<CbsNode>
                                 s.SingleAgentCosts[s.Conflict.agentBIndex]);
         // Building MDDs for the conflicting agents. We can't keep them because we're
         // destructively syncing them later (the first one, at least).
-        var mddA = new MDD(s.Conflict.agentAIndex, _instance.agents[s.Conflict.agentAIndex].agent.agentNum,
-                            _instance.agents[s.Conflict.agentAIndex].lastMove,
+        var mddA = new MDD(s.Conflict.agentAIndex, _instance.Agents[s.Conflict.agentAIndex].agent.agentNum,
+                            _instance.Agents[s.Conflict.agentAIndex].lastMove,
                             s.SingleAgentCosts[s.Conflict.agentAIndex], maxCost,
                             _instance.GetNumOfAgents(), _instance, _ignoreConstraints);
-        var mddB = new MDD(s.Conflict.agentBIndex, _instance.agents[s.Conflict.agentBIndex].agent.agentNum,
-                            _instance.agents[s.Conflict.agentBIndex].lastMove,
+        var mddB = new MDD(s.Conflict.agentBIndex, _instance.Agents[s.Conflict.agentBIndex].agent.agentNum,
+                            _instance.Agents[s.Conflict.agentBIndex].lastMove,
                             s.SingleAgentCosts[s.Conflict.agentBIndex], maxCost,
                             _instance.GetNumOfAgents(), _instance, _ignoreConstraints);
         s.CBS.MDDsBuilt += 2;

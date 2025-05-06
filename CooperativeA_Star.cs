@@ -64,7 +64,7 @@ class CooperativeAStar : IStatisticsCsvWriter, ISolver
         this.Clear();
         this.ClearStatistics();
         this.problem = instance;
-        this.allAgentsState = instance.agents;
+        this.allAgentsState = instance.Agents;
         this.pathCosts = new int[this.allAgentsState.Length];
         this.paths = new SinglePlan[this.allAgentsState.Length];
         this.stopwatch = stopwatch;

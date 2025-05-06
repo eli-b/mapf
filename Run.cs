@@ -763,7 +763,7 @@ public class Run : IDisposable
             }
 
             ProblemInstance problem = new();
-            problem.gridName = Path.GetFileNameWithoutExtension(mapFilePath);
+            problem.GridName = Path.GetFileNameWithoutExtension(mapFilePath);
             problem.Init(agentStates, grid);
 
             for (int j = 0; j < RANDOM_WALK_STEPS; j++)
@@ -803,7 +803,7 @@ public class Run : IDisposable
     {
         //return; // add for generator
         // Preparing a list of agent indices (not agent nums) for the heuristics' Init() method
-        List<uint> agentList = Enumerable.Range(0, instance.agents.Length).Select(x=> (uint)x).ToList(); // FIXME: Must the heuristics really receive a list of uints?
+        List<uint> agentList = Enumerable.Range(0, instance.Agents.Length).Select(x=> (uint)x).ToList(); // FIXME: Must the heuristics really receive a list of uints?
             
         // Solve using the different algorithms
         Console.WriteLine($"Solving {instance}");
@@ -837,9 +837,9 @@ public class Run : IDisposable
                 {
                     if (((CBS)solvers[i]).MergeThreshold == 314159) // MAGIC NUMBER WHICH MAKES US ADJUST B according to map
                     {
-                        if (instance.gridName.StartsWith("den"))
+                        if (instance.GridName.StartsWith("den"))
                             ((CBS)solvers[i]).MergeThreshold = 10;
-                        else if (instance.gridName.StartsWith("brc") || instance.gridName.StartsWith("ost"))
+                        else if (instance.GridName.StartsWith("brc") || instance.GridName.StartsWith("ost"))
                             ((CBS)solvers[i]).MergeThreshold = 100;
                     }
                 }
@@ -854,9 +854,9 @@ public class Run : IDisposable
                 {
                     if (((CBS)solvers[i]).MergeThreshold == 314159) // MAGIC NUMBER SEE ABOVE
                     {
-                        if (instance.gridName.StartsWith("den"))
+                        if (instance.GridName.StartsWith("den"))
                             ((CBS)solvers[i]).MergeThreshold = 10;
-                        else if (instance.gridName.StartsWith("brc") || instance.gridName.StartsWith("ost"))
+                        else if (instance.GridName.StartsWith("brc") || instance.GridName.StartsWith("ost"))
                             ((CBS)solvers[i]).MergeThreshold = 100;
                     }
                 }
@@ -927,14 +927,14 @@ public class Run : IDisposable
     public void SolveGivenProblemIncrementally(ProblemInstance instance)
     {
         // Preparing a list of agent indices (not agent nums) for the heuristics' Init() method
-        List<uint> agentList = Enumerable.Range(0, instance.agents.Length).Select(x => (uint)x).ToList(); // FIXME: Must the heuristics really receive a list of uints?
+        List<uint> agentList = Enumerable.Range(0, instance.Agents.Length).Select(x => (uint)x).ToList(); // FIXME: Must the heuristics really receive a list of uints?
 
         CooperativeAStar cooperativeAStar = new();
         cooperativeAStar.Setup(instance, watch);
 
         double elapsedTime = 0;
 
-        foreach (var agentIndex in Enumerable.Range(0, instance.agents.Length))
+        foreach (var agentIndex in Enumerable.Range(0, instance.Agents.Length))
         {
             // Solve using the different algorithms
             Console.WriteLine($"Solving {instance} agent {agentIndex}");
@@ -961,7 +961,7 @@ public class Run : IDisposable
 
             Console.WriteLine("Time In milliseconds: {0}", elapsedTime);
 
-            this.PrintStatistics(instance, cooperativeAStar, elapsedTime + instance.shortestPathComputeTime);
+            this.PrintStatistics(instance, cooperativeAStar, elapsedTime + instance.ShortestPathComputeTime);
 
             Console.WriteLine();
 
@@ -1011,11 +1011,12 @@ public class Run : IDisposable
         }
         Console.WriteLine();
 
-        Console.WriteLine("Time In milliseconds: {0}", elapsedTime + instance.shortestPathComputeTime);
+        Console.WriteLine("Time In milliseconds: {0}", elapsedTime + instance.ShortestPathComputeTime);
+        Console.WriteLine("Of which shortest path compute time in milliseconds: {0}", instance.ShortestPathComputeTime);
         // TODO: Allow solvers to claim they don't use this heuristic and don't add the time to
         //       compute it to their runtime.
 
-        this.PrintStatistics(instance, solver, elapsedTime + instance.shortestPathComputeTime);
+        this.PrintStatistics(instance, solver, elapsedTime + instance.ShortestPathComputeTime);
         // Solver clears itself when it finishes the search.
         solver.ClearStatistics();
     }
@@ -1090,19 +1091,19 @@ public class Run : IDisposable
     private void PrintProblemStatistics(ProblemInstance instance)
     {
         // Grid Name col:
-        this.resultsWriter.Write(instance.gridName + RESULTS_DELIMITER);
+        this.resultsWriter.Write(instance.GridName + RESULTS_DELIMITER);
         // Grid Rows col:
-        this.resultsWriter.Write(instance.grid.ColumnsCount + RESULTS_DELIMITER);
+        this.resultsWriter.Write(instance.Grid.ColumnsCount + RESULTS_DELIMITER);
         // Grid Columns col:
-        this.resultsWriter.Write(instance.grid.RowsCount + RESULTS_DELIMITER);
+        this.resultsWriter.Write(instance.Grid.RowsCount + RESULTS_DELIMITER);
         // Scenario/instance Name col:
-        this.resultsWriter.Write(instance.instanceName + RESULTS_DELIMITER);
+        this.resultsWriter.Write(instance.InstanceName + RESULTS_DELIMITER);
         // Num Of Agents col:
-        this.resultsWriter.Write(instance.agents.Length + RESULTS_DELIMITER);
+        this.resultsWriter.Write(instance.Agents.Length + RESULTS_DELIMITER);
         // Num Of Obstacles col:
-        this.resultsWriter.Write(instance.numObstacles + RESULTS_DELIMITER);
+        this.resultsWriter.Write(instance.NumObstacles + RESULTS_DELIMITER);
         // Instance Id col:
-        this.resultsWriter.Write(instance.instanceId + RESULTS_DELIMITER);
+        this.resultsWriter.Write(instance.InstanceId + RESULTS_DELIMITER);
     }
 
     private void ContinueToNextLine()

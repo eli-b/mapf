@@ -144,7 +144,7 @@ public class Plan
         SinglePlan[] singles = new SinglePlan[_locationsAtTimes.First().Count];
         for (int i = 0; i < singles.Length; i++)
         {
-            singles[i] = new SinglePlan(this, i, problem.agents[i].agent.agentNum);
+            singles[i] = new SinglePlan(this, i, problem.Agents[i].agent.agentNum);
             foreach ((int time, var move) in singles[i].LocationAtTimes.Enumerate())
                 Trace.Assert(problem.IsValid(move), $"Plan of agent {i} uses an invalid location {move} at time {time}!");
         }

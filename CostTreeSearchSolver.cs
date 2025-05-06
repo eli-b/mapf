@@ -122,7 +122,7 @@ abstract class CostTreeSearchSolver : ICbsSolver, IIndependenceDetectionSolver
         int[] costs = new int[problem.GetNumOfAgents()];
         for (int i = 0; i < problem.GetNumOfAgents(); i++)
         {
-            costs[i] = Math.Max(problem.GetSingleAgentOptimalCost(problem.agents[i]), minTimeStep);  // TODO: Use the time of the latest constraint on each agent!
+            costs[i] = Math.Max(problem.GetSingleAgentOptimalCost(problem.Agents[i]), minTimeStep);  // TODO: Use the time of the latest constraint on each agent!
         }
 
         openList.Enqueue(new CostTreeNode(costs)); // The root
@@ -273,7 +273,7 @@ abstract class CostTreeSearchSolver : ICbsSolver, IIndependenceDetectionSolver
     public int GetAccumulatedGenerated() => this.accGeneratedHL;
     public int GetSolutionDepth() => this.solutionDepth;
     public long GetMemoryUsed() => Process.GetCurrentProcess().VirtualMemorySize64;
-    public int GetMaxGroupSize() => problem.agents.Length;
+    public int GetMaxGroupSize() => problem.Agents.Length;
     public SinglePlan[] GetSinglePlans() => solution;
 
     public virtual int[] GetSingleCosts() => costs;
@@ -485,7 +485,7 @@ class CostTreeSearchSolverKMatch : CostTreeSearchWithEdgesMatrix
                                 ISet<CbsConstraint> constraints = null, ISet<CbsConstraint> positiveConstraints = null,
                                 int minCost = -1, int maxCost = int.MaxValue, MDD mdd = null)
     {
-        edgesMatrix = new int[problemInstance.agents.Length, problemInstance.GetMaxX() * problemInstance.GetMaxY() + problemInstance.GetMaxY(), Move.NUM_NON_DIAG_MOVES];
+        edgesMatrix = new int[problemInstance.Agents.Length, problemInstance.GetMaxX() * problemInstance.GetMaxY() + problemInstance.GetMaxY(), Move.NUM_NON_DIAG_MOVES];
         edgesMatrixCounter = 0;
         base.Setup(problemInstance, minTimeStep, stopwatch, CAT, constraints, positiveConstraints, minCost, maxCost, mdd);
     }
@@ -578,7 +578,7 @@ class CostTreeSearchSolverRepeatedMatch : CostTreeSearchWithEdgesMatrix
                                 ISet<CbsConstraint> constraints = null, ISet<CbsConstraint> positiveConstraints = null,
                                 int minCost = -1, int maxCost = int.MaxValue, MDD mdd = null)
     {
-        edgesMatrix = new int[problemInstance.agents.Length, problemInstance.GetMaxX() * problemInstance.GetMaxY() + problemInstance.GetMaxY(), Move.NUM_NON_DIAG_MOVES];
+        edgesMatrix = new int[problemInstance.Agents.Length, problemInstance.GetMaxX() * problemInstance.GetMaxY() + problemInstance.GetMaxY(), Move.NUM_NON_DIAG_MOVES];
         edgesMatrixCounter = 0;
         base.Setup(problemInstance, minTimeStep, stopwatch, CAT, constraints, positiveConstraints, minCost, maxCost, mdd);
     }

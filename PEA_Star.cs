@@ -30,7 +30,7 @@ class PEA_Star : A_Star
 
     override protected WorldState CreateSearchRoot(int minDepth = -1, int minCost = -1, MDDNode mddNode = null)
     {
-        return new WorldStateForPartialExpansion(this.instance.agents, minDepth, minCost, mddNode); // Consider using a WorldStateForBasicPartialExpansion that only has the IsAlreadyExpanded stuff
+        return new WorldStateForPartialExpansion(this.instance.Agents, minDepth, minCost, mddNode); // Consider using a WorldStateForBasicPartialExpansion that only has the IsAlreadyExpanded stuff
     }
 
     protected override WorldState CreateSearchNode(WorldState from)

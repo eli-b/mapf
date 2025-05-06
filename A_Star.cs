@@ -101,7 +101,7 @@ public class A_Star : ICbsSolver, IMStarSolver, IHeuristicSolver<WorldState>, II
         MDDNode mddRoot = null;
         if (mdd != null)
         {
-            Trace.Assert(problemInstance.agents.Length == 1, "Using MDDs to find new paths is currently only supported for single agent search");
+            Trace.Assert(problemInstance.Agents.Length == 1, "Using MDDs to find new paths is currently only supported for single agent search");
             mddRoot = mdd.levels[0].First.Value;
         }
         WorldState root = this.CreateSearchRoot(minDepth, minCost, mddRoot);
@@ -120,7 +120,7 @@ public class A_Star : ICbsSolver, IMStarSolver, IHeuristicSolver<WorldState>, II
         this.conflictCounts = null;
         this.conflictTimes = null;
         this.solutionDepth = -1;
-        this.numOfAgents = problemInstance.agents.Length;
+        this.numOfAgents = problemInstance.Agents.Length;
 
         this.maxSolutionCost = maxCost;
         this.CAT = CAT;
@@ -153,7 +153,7 @@ public class A_Star : ICbsSolver, IMStarSolver, IHeuristicSolver<WorldState>, II
     /// <returns>The root of the search tree</returns>
     protected virtual WorldState CreateSearchRoot(int minDepth = -1, int minCost = -1, MDDNode mddNode = null)
     {
-        return new WorldState(this.instance.agents, minDepth, minCost, mddNode);
+        return new WorldState(this.instance.Agents, minDepth, minCost, mddNode);
     }
 
     /// <summary>
@@ -537,7 +537,7 @@ public class A_Star : ICbsSolver, IMStarSolver, IHeuristicSolver<WorldState>, II
     {
         var intermediateNodes = new List<WorldState>() { node };
 
-        for (int agentIndex = 0; agentIndex < this.instance.agents.Length ; ++agentIndex)
+        for (int agentIndex = 0; agentIndex < this.instance.Agents.Length ; ++agentIndex)
         {
             if (stopwatch.ElapsedMilliseconds > Constants.MAX_TIME)
                 return;

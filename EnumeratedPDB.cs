@@ -138,7 +138,7 @@ class EnumeratedPDB : PDB
     /// pattern database in units of bytes.</returns>
     public override ulong estimateSize()
     {
-        return permutations[0] * problem.numLocations + (ulong) (sizeof(ulong) * permutations.Length);
+        return permutations[0] * problem.NumLocations + (ulong) (sizeof(ulong) * permutations.Length);
     }
 
     /// <summary>
@@ -168,7 +168,7 @@ class EnumeratedPDB : PDB
         // agents data structure, because during the building process 
         // our state already is a projection.
 
-        WorldState goal = new WorldState(problem.agents, agentsToConsider);
+        WorldState goal = new WorldState(problem.Agents, agentsToConsider);
         foreach (AgentState ags in goal.allAgentsState)
             ags.SwapCurrentWithGoal();
         List<uint> vBackup = agentsToConsider;
@@ -183,7 +183,7 @@ class EnumeratedPDB : PDB
         // particular state, which is also the shortest path to that state
         // because we are conducting an uninformed breadth-first search.
 
-        table = new Byte[permutations[0] * (problem.numLocations + 1)];
+        table = new Byte[permutations[0] * (problem.NumLocations + 1)];
         for (int i = 0; i < table.Length; ++i)
             table[i] = Byte.MaxValue;
         Context c = new Context();
@@ -374,6 +374,6 @@ class EnumeratedPDB : PDB
         permutations = new UInt64[agentsToConsider.Count];
         permutations[permutations.Length - 1] = 1;
         for(var i = permutations.Length - 2; i >= 0; --i)
-            permutations[i] = permutations[i + 1] * (UInt64) (problem.numLocations - (i + 1));
+            permutations[i] = permutations[i + 1] * (UInt64) (problem.NumLocations - (i + 1));
     }
 }
