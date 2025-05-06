@@ -478,6 +478,7 @@ public class SinglePlan
     /// Prints the plan to the Console. 
     /// This is used for debugging purposes.
     /// </summary>
+    [Conditional("DEBUG")]
     public void DebugPrint()
     {
         for (int time = 0; time < LocationAtTimes.Count; time++)

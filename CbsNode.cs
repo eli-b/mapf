@@ -669,6 +669,7 @@ public class CbsNode : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristic
         return true;
     }
 
+    [Conditional("DEBUG")]
     public void DebugPrint()
     {
         Debug.WriteLine("");

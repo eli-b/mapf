@@ -369,6 +369,7 @@ public class MDD
         return mddNum;
     }
 
+    [Conditional("DEBUG")]
     public void DebugPrint()
     {
         Debug.WriteLine($"MDD for agent {this.agentNum}, {this.levels.Length} steps, cost {this.cost}:");

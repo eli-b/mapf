@@ -153,6 +153,7 @@ public class ProblemInstance
         _singleAgentOptimalCosts = new int[GetNumOfAgents()][];
         _singleAgentOptimalMoves = new Move[GetNumOfAgents()][];
 
+        // TODO: test on bigger grids and see if Parallel loop can be beneficial.
         for (int agentId = 0; agentId < GetNumOfAgents(); agentId++)
         {
             // Run a single source shortest path algorithm from the _goal_ of the agent
@@ -160,12 +161,12 @@ public class ProblemInstance
             var optimalMoves = new Move[NumLocations];
             for (int i = 0; i < NumLocations; i++)
                 shortestPathLengths[i] = -1;
-            var openlist = new Queue<AgentState>();
+            Queue<AgentState> openlist = new();
 
             // Create initial state
-            var agentStartState = Agents[agentId];
-            var agent = agentStartState.agent;
-            var goalState = new AgentState(agent.Goal.X, agent.Goal.Y, -1, -1, agentId);
+            AgentState agentStartState = Agents[agentId];
+            Agent agent = agentStartState.agent;
+            AgentState goalState = new(agent.Goal.X, agent.Goal.Y, -1, -1, agentId);
             int goalIndex = GetCardinality(goalState.lastMove);
             shortestPathLengths[goalIndex] = 0;
             optimalMoves[goalIndex] = new Move(goalState.lastMove);
