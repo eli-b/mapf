@@ -57,13 +57,13 @@ class IndependenceDetection : ISolver
     private int solutionDepth;
     private ConflictAvoidanceTable conflictAvoidanceTable;
     private int maxSolutionCostFound;  // FIXME: Maintained but not used
-    private ConflictAvoidanceTable.AvoidanceGoal avoidanceGoal;
+    private AvoidanceGoal avoidanceGoal;
     private bool simple;
 
     public IndependenceDetection(IIndependenceDetectionSolver singleAgentSolver, IIndependenceDetectionSolver groupSolver,
                                  ConflictChoice conflictChoice = ConflictChoice.MOST_CONFLICTING_SMALLEST_AGENTS,
                                  bool provideGroupCostsToSolver = true,
-                                 ConflictAvoidanceTable.AvoidanceGoal avoidanceGoal = ConflictAvoidanceTable.AvoidanceGoal.MINIMIZE_CONFLICTING_GROUPS,  // The effect of a conflict between two groups is total in ID - they're either fully merged or try to fully avoid each other's plan
+                                 AvoidanceGoal avoidanceGoal = AvoidanceGoal.MINIMIZE_CONFLICTING_GROUPS,  // The effect of a conflict between two groups is total in ID - they're either fully merged or try to fully avoid each other's plan
                                  bool simple = false
                                  )
     {
@@ -94,7 +94,7 @@ class IndependenceDetection : ISolver
         this.totalCost = 0;
         this.ClearStatistics();
         this.conflictAvoidanceTable = new ConflictAvoidanceTable();
-        this.conflictAvoidanceTable.avoidanceGoal = this.avoidanceGoal;
+        this.conflictAvoidanceTable.AvoidanceGoal = this.avoidanceGoal;
         this.resolutionAttemptedFirstGroup = new HashSet<IndependenceDetectionConflict>();
         this.resolutionAttemptedSecondGroup = new HashSet<IndependenceDetectionConflict>();
         this.allGroups = new LinkedList<IndependenceDetectionAgentsGroup>();
@@ -105,8 +105,8 @@ class IndependenceDetection : ISolver
                                         this.instance,[ agentStartState ],
                                         this.singleAgentSolver, this.groupSolver, this)
             );
-            this.conflictAvoidanceTable.agentSizes[agentStartState.agent.agentNum] = 1;
-            this.conflictAvoidanceTable.agentConflictCounts[agentStartState.agent.agentNum] = 0;
+            this.conflictAvoidanceTable.AgentSizes[agentStartState.agent.agentNum] = 1;
+            this.conflictAvoidanceTable.AgentConflictCounts[agentStartState.agent.agentNum] = 0;
         }
         conflictCountsPerGroup = new Dictionary<int, int>[instance.GetNumOfAgents()];
         conflictTimesPerGroup = new Dictionary<int, List<int>>[instance.GetNumOfAgents()];
@@ -736,7 +736,7 @@ class IndependenceDetection : ISolver
 
                         UpdateConflictCounts(conflict.group1);
                         conflict.group1.addGroupToCAT(conflictAvoidanceTable);
-                        conflictAvoidanceTable.agentConflictCounts[conflict.group1.groupNum] = conflictCountsPerGroup[conflict.group1.groupNum].Count;
+                        conflictAvoidanceTable.AgentConflictCounts[conflict.group1.groupNum] = conflictCountsPerGroup[conflict.group1.groupNum].Count;
                         ++resolutionSuccesses;
 
                         continue;
@@ -805,7 +805,7 @@ class IndependenceDetection : ISolver
 
                         UpdateConflictCounts(conflict.group2);
                         conflict.group2.addGroupToCAT(conflictAvoidanceTable);
-                        conflictAvoidanceTable.agentConflictCounts[conflict.group2.groupNum] = conflictCountsPerGroup[conflict.group2.groupNum].Count;
+                        conflictAvoidanceTable.AgentConflictCounts[conflict.group2.groupNum] = conflictCountsPerGroup[conflict.group2.groupNum].Count;
                         ++resolutionSuccesses;
 
                         continue;
@@ -854,10 +854,10 @@ class IndependenceDetection : ISolver
             // Remove both groups from avoidance table
             conflict.group1.removeGroupFromCAT(conflictAvoidanceTable);
             conflict.group2.removeGroupFromCAT(conflictAvoidanceTable);
-            conflictAvoidanceTable.agentSizes.Remove(conflict.group1.groupNum);
-            conflictAvoidanceTable.agentSizes.Remove(conflict.group2.groupNum);
-            conflictAvoidanceTable.agentConflictCounts.Remove(conflict.group1.groupNum);
-            conflictAvoidanceTable.agentConflictCounts.Remove(conflict.group2.groupNum);
+            conflictAvoidanceTable.AgentSizes.Remove(conflict.group1.groupNum);
+            conflictAvoidanceTable.AgentSizes.Remove(conflict.group2.groupNum);
+            conflictAvoidanceTable.AgentConflictCounts.Remove(conflict.group1.groupNum);
+            conflictAvoidanceTable.AgentConflictCounts.Remove(conflict.group2.groupNum);
             conflictCountsPerGroup[conflict.group1.groupNum] = null;
             conflictTimesPerGroup[conflict.group1.groupNum] = null;
             conflictCountsPerGroup[conflict.group2.groupNum] = null;
@@ -905,8 +905,8 @@ class IndependenceDetection : ISolver
 
             // Add the new group to conflict avoidance table
             compositeGroup.addGroupToCAT(conflictAvoidanceTable);
-            conflictAvoidanceTable.agentSizes[compositeGroup.groupNum] = compositeGroup.Size();
-            conflictAvoidanceTable.agentConflictCounts[compositeGroup.groupNum] = this.conflictCountsPerGroup[compositeGroup.groupNum].Count;
+            conflictAvoidanceTable.AgentSizes[compositeGroup.groupNum] = compositeGroup.Size();
+            conflictAvoidanceTable.AgentConflictCounts[compositeGroup.groupNum] = this.conflictCountsPerGroup[compositeGroup.groupNum].Count;
             allGroups.AddFirst(compositeGroup);
         }
         return true;
@@ -1028,7 +1028,7 @@ class IndependenceDetection : ISolver
 
         // Populate the CAT's agentConflictCounts
         foreach (var group in this.allGroups)
-            this.conflictAvoidanceTable.agentConflictCounts[group.groupNum] = group.conflictCounts.Count;
+            this.conflictAvoidanceTable.AgentConflictCounts[group.groupNum] = group.conflictCounts.Count;
 
         CountConflicts();
 

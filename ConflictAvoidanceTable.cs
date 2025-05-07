@@ -3,43 +3,46 @@ using System.Linq;
 
 namespace mapf;
 
+public enum AvoidanceGoal
+{
+    MINIMIZE_CONFLICTS,
+    MINIMIZE_CONFLICTING_GROUPS_THEN_CONFLICTS,
+    MINIMIZE_CONFLICTING_GROUPS,
+    MINIMIZE_LARGEST_CONFLICTING_GROUP_THEN_NUMBER_OF_SUCH_GROUPS,
+    MINIMIZE_LARGEST_CONFLICTING_GROUP_THEN_MAXIMIZE_CONFLICT_COUNTS_WITH_OTHERS,
+    MINIMIZE_CONFLICTING_GROUP_SIZE_AND_COUNT
+};
+
 public class ConflictAvoidanceTable
 {
-    Dictionary<TimedMove, List<int>> timedMovesToAgentNumList;
-    Dictionary<Move, (int time, int agentNum)> atGoalWaitsToTimeAndAgentNum; // No need for a list of agent nums because goals can't collide :)
-    public Dictionary<int, int> agentSizes;
-    public Dictionary<int, int> agentConflictCounts;
+    private Dictionary<TimedMove, List<int>> _timedMovesToAgentNumList = [];
+    private Dictionary<Move, (int time, int agentNum)> _atGoalWaitsToTimeAndAgentNum = []; // No need for a list of agent nums because goals can't collide :)
 
-    public enum AvoidanceGoal
-    {
-        MINIMIZE_CONFLICTS,
-        MINIMIZE_CONFLICTING_GROUPS_THEN_CONFLICTS,
-        MINIMIZE_CONFLICTING_GROUPS,
-        MINIMIZE_LARGEST_CONFLICTING_GROUP_THEN_NUMBER_OF_SUCH_GROUPS,
-        MINIMIZE_LARGEST_CONFLICTING_GROUP_THEN_MAXIMIZE_CONFLICT_COUNTS_WITH_OTHERS,
-        MINIMIZE_CONFLICTING_GROUP_SIZE_AND_COUNT
-    };
-    public AvoidanceGoal avoidanceGoal = AvoidanceGoal.MINIMIZE_CONFLICTING_GROUPS_THEN_CONFLICTS;  // Better for CBS
+    public Dictionary<int, int> AgentSizes { get; } = [];
+    public Dictionary<int, int> AgentConflictCounts { get; } = [];
+
+    public int NumPlans { get; private set; } = 0;
+
+    public AvoidanceGoal AvoidanceGoal { get; set; } = AvoidanceGoal.MINIMIZE_CONFLICTING_GROUPS_THEN_CONFLICTS;  // Better for CBS
 
     public ConflictAvoidanceTable()
     {
-        this.Clear();
     }
 
     public int GetMaxPlanSize()
     {
-        if (atGoalWaitsToTimeAndAgentNum.Count > 0)
-            return atGoalWaitsToTimeAndAgentNum.Values.Max(tuple => tuple.time) - 1;  // The first WAIT at goal we record is one time step after reaching it
+        if (_atGoalWaitsToTimeAndAgentNum.Count > 0)
+            return _atGoalWaitsToTimeAndAgentNum.Values.Max(tuple => tuple.time) - 1;  // The first WAIT at goal we record is one time step after reaching it
         else
             return 0;
     }
 
     public void Clear()
     {
-        timedMovesToAgentNumList = new Dictionary<TimedMove, List<int>>();
-        atGoalWaitsToTimeAndAgentNum = new Dictionary<Move, (int time, int agentNum)>();
-        agentSizes = new Dictionary<int, int>();
-        agentConflictCounts = new Dictionary<int, int>();
+        _timedMovesToAgentNumList.Clear();
+        _atGoalWaitsToTimeAndAgentNum.Clear();
+        AgentSizes.Clear();
+        AgentConflictCounts.Clear();
         NumPlans = 0;
     }
         
@@ -54,22 +57,19 @@ public class ConflictAvoidanceTable
                 step = (TimedMove)temp;
             else  // It's a Move object
             {
-                queryTimedMove.Setup(temp, i);
-                step = queryTimedMove;
+                step = new TimedMove(temp, i);
             }
-            if (this.timedMovesToAgentNumList.ContainsKey(step) == false)
+            if (_timedMovesToAgentNumList.ContainsKey(step) == false)
             {
-                if (ReferenceEquals(step, queryTimedMove))  // Need a separate object that would serve as the key
-                    step = new TimedMove(step);
-                this.timedMovesToAgentNumList[step] = new List<int>() { plan.AgentNum };
+                _timedMovesToAgentNumList[step] = [ plan.AgentNum ];
             }
             else
-                this.timedMovesToAgentNumList[step].Add(plan.AgentNum);
+                _timedMovesToAgentNumList[step].Add(plan.AgentNum);
         }
 
         Move lastMove = plan.GetLocationAt(planSize - 1);
-        var goal = new Move(lastMove.X, lastMove.Y, Direction.Wait);
-        this.atGoalWaitsToTimeAndAgentNum[goal] = (planSize, plan.AgentNum);
+        Move goal = new(lastMove.X, lastMove.Y, Direction.Wait);
+        _atGoalWaitsToTimeAndAgentNum[goal] = (planSize, plan.AgentNum);
         ++NumPlans;
     }
 
@@ -84,16 +84,15 @@ public class ConflictAvoidanceTable
                 step = (TimedMove)temp;
             else  // It's a Move object
             {
-                queryTimedMove.Setup(temp, i);
-                step = queryTimedMove;
+                step = new TimedMove(temp, i);
             }
-            this.timedMovesToAgentNumList[step].Remove(plan.AgentNum);
+            _timedMovesToAgentNumList[step].Remove(plan.AgentNum);
             // TODO: Add asserts that check the plan was indeed in the CAT
         }
 
         Move lastMove = plan.GetLocationAt(planSize - 1);
-        queryMove.Setup(lastMove.X, lastMove.Y, Direction.Wait);
-        this.atGoalWaitsToTimeAndAgentNum.Remove(queryMove);
+        Move indexMove = new(lastMove.X, lastMove.Y, Direction.Wait);
+        _atGoalWaitsToTimeAndAgentNum.Remove(indexMove);
         --NumPlans;
     }
 
@@ -109,20 +108,19 @@ public class ConflictAvoidanceTable
         get
         {
             List<int> ans = null;
-            if (this.timedMovesToAgentNumList.ContainsKey(key))
+            if (_timedMovesToAgentNumList.TryGetValue(key, out List<int> value))
             {
-                ans = new List<int>(this.timedMovesToAgentNumList[key].Count + 1);
-                ans.AddRange(this.timedMovesToAgentNumList[key]);
+                ans = new List<int>(value.Count + 1);
+                ans.AddRange(value);
             }
                 
-            queryMove.Setup(key);
-            if (this.atGoalWaitsToTimeAndAgentNum.ContainsKey(queryMove))
+            Move indexMove = new(key.X, key.Y, key.Direction);
+            if (_atGoalWaitsToTimeAndAgentNum.TryGetValue(indexMove, out (int time, int agentNum) timeAndAgentNum))
             {
-                var timeAndAgentNum = this.atGoalWaitsToTimeAndAgentNum[queryMove];
                 if (key.Time >= timeAndAgentNum.time)
                 {
                     if (ans == null)
-                        ans = new List<int>() { timeAndAgentNum.agentNum };
+                        ans = [ timeAndAgentNum.agentNum ];
                     else
                         ans.Add(timeAndAgentNum.agentNum);
                 }
@@ -131,14 +129,9 @@ public class ConflictAvoidanceTable
             if (ans != null)
                 return ans;
             else
-                return ConflictAvoidanceTable.emptyList;
+                return [];
         }
     }
-
-    private static readonly List<int> emptyList = [];
-
-    private Move queryMove = new();
-    private TimedMove queryTimedMove = new();
 
     /// <summary>
     /// Determines whether the read-only dictionary contains an element that has
@@ -150,46 +143,15 @@ public class ConflictAvoidanceTable
     /// <exception cref="System.ArgumentNullException">key is null</exception>
     public bool ContainsKey(TimedMove key)
     {
-        if (this.timedMovesToAgentNumList.ContainsKey(key))
+        if (_timedMovesToAgentNumList.ContainsKey(key))
             return true;
 
-        queryMove.Setup(key);
-        if (this.atGoalWaitsToTimeAndAgentNum.ContainsKey(queryMove))
+        Move indexMove = new(key.X, key.Y, key.Direction);
+        if (_atGoalWaitsToTimeAndAgentNum.TryGetValue(indexMove, out (int time, int agentNum) value))
         {
-            var timeAndAgentNum = this.atGoalWaitsToTimeAndAgentNum[queryMove];
-            if (key.Time >= timeAndAgentNum.time)
+            if (key.Time >= value.time)
                 return true;
         }
         return false;
     }
-
-    /// <summary>
-    /// Gets the value that is associated with the specified key.
-    /// </summary>
-    /// <param name="key">The key to locate</param>
-    /// <param name="value">
-    /// When this method returns, the value associated with the specified key, if
-    /// the key is found; otherwise, the default value for the type of the value
-    /// parameter. This parameter is passed uninitialized.
-    /// </param>
-    /// <exception cref="System.ArgumentNullException">key is null</exception>
-    /// <returns>
-    /// true if the object that implements the System.Collections.Generic.IReadOnlyDictionary&lt;TKey,TValue&gt;
-    /// interface contains an element that has the specified key; otherwise, false.
-    /// </returns>
-    public bool TryGetValue(TimedMove key, out IReadOnlyList<int> value)
-    {
-        if (this.ContainsKey(key))
-        {
-            value = this[key];
-            return true;
-        }
-        else
-        {
-            value = null;
-            return false;
-        }
-    }
-
-    public int NumPlans { get; private set; }
 }

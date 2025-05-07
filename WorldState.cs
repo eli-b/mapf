@@ -499,17 +499,17 @@ public class WorldState : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuris
             this.allAgentsState[i].lastMove.IncrementConflictCounts(CAT, this.conflictCounts, this.conflictTimes);
         }
 
-        if (CAT.avoidanceGoal == ConflictAvoidanceTable.AvoidanceGoal.MINIMIZE_CONFLICTS)  // For ID, the original rule
+        if (CAT.AvoidanceGoal == AvoidanceGoal.MINIMIZE_CONFLICTS)  // For ID, the original rule
             this.primaryTieBreaker = this.conflictCounts.Sum(pair => pair.Value);
-        else if (CAT.avoidanceGoal == ConflictAvoidanceTable.AvoidanceGoal.MINIMIZE_CONFLICTING_GROUPS)
+        else if (CAT.AvoidanceGoal == AvoidanceGoal.MINIMIZE_CONFLICTING_GROUPS)
             this.primaryTieBreaker = this.conflictCounts.Keys.Count;
-        else if (CAT.avoidanceGoal == ConflictAvoidanceTable.AvoidanceGoal.MINIMIZE_CONFLICTING_GROUPS_THEN_CONFLICTS)
+        else if (CAT.AvoidanceGoal == AvoidanceGoal.MINIMIZE_CONFLICTING_GROUPS_THEN_CONFLICTS)
             // For CBS, minimizes the number of conflicting groups and then the number of conflicts with them
         {
             this.primaryTieBreaker = this.conflictCounts.Keys.Count;
             this.secondaryTieBreaker = this.conflictCounts.Sum(pair => pair.Value);
         }
-        else if (CAT.avoidanceGoal == ConflictAvoidanceTable.AvoidanceGoal.MINIMIZE_LARGEST_CONFLICTING_GROUP_THEN_NUMBER_OF_SUCH_GROUPS)
+        else if (CAT.AvoidanceGoal == AvoidanceGoal.MINIMIZE_LARGEST_CONFLICTING_GROUP_THEN_NUMBER_OF_SUCH_GROUPS)
             // For ID, minimizes the size of the largest group we conflict with and then 
             // the number of conflicting groups with that size. The idea was to minimize conflicts that matter, and conflicts with
             // non-max-size groups don't.
@@ -517,8 +517,8 @@ public class WorldState : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuris
         {
             if (this.conflictCounts.Count != 0)
             {
-                this.primaryTieBreaker = this.conflictCounts.Max(pair => CAT.agentSizes[pair.Key]);
-                this.secondaryTieBreaker = this.conflictCounts.Where(pair => CAT.agentSizes[pair.Key] == this.primaryTieBreaker).Count();
+                this.primaryTieBreaker = this.conflictCounts.Max(pair => CAT.AgentSizes[pair.Key]);
+                this.secondaryTieBreaker = this.conflictCounts.Where(pair => CAT.AgentSizes[pair.Key] == this.primaryTieBreaker).Count();
             }
             else
             {
@@ -526,15 +526,15 @@ public class WorldState : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuris
                 this.secondaryTieBreaker = 0;
             }
         }
-        else if (CAT.avoidanceGoal == ConflictAvoidanceTable.AvoidanceGoal.MINIMIZE_LARGEST_CONFLICTING_GROUP_THEN_MAXIMIZE_CONFLICT_COUNTS_WITH_OTHERS)
+        else if (CAT.AvoidanceGoal == AvoidanceGoal.MINIMIZE_LARGEST_CONFLICTING_GROUP_THEN_MAXIMIZE_CONFLICT_COUNTS_WITH_OTHERS)
         // For ID, minimizes the size of the largest group we conflict with and then 
         // maximizes the number of conflicts the two groups have with other groups
         {
             if (this.conflictCounts.Count != 0)
             {
-                this.primaryTieBreaker = this.conflictCounts.Max(pair => CAT.agentSizes[pair.Key]);
+                this.primaryTieBreaker = this.conflictCounts.Max(pair => CAT.AgentSizes[pair.Key]);
                 this.secondaryTieBreaker = -(this.conflictCounts.Sum(pair => pair.Value) +
-                    this.conflictCounts.Where(pair => CAT.agentSizes[pair.Key] == this.primaryTieBreaker).Max(pair => CAT.agentConflictCounts[pair.Key]));
+                    this.conflictCounts.Where(pair => CAT.AgentSizes[pair.Key] == this.primaryTieBreaker).Max(pair => CAT.AgentConflictCounts[pair.Key]));
             }
             else
             {
@@ -542,9 +542,9 @@ public class WorldState : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuris
                 this.secondaryTieBreaker = 0;
             }
         }
-        else if (CAT.avoidanceGoal == ConflictAvoidanceTable.AvoidanceGoal.MINIMIZE_CONFLICTING_GROUP_SIZE_AND_COUNT)
+        else if (CAT.AvoidanceGoal == AvoidanceGoal.MINIMIZE_CONFLICTING_GROUP_SIZE_AND_COUNT)
         {
-            this.primaryTieBreaker = this.conflictCounts.Sum(pair => 1 << (CAT.agentSizes[pair.Key] - 1));
+            this.primaryTieBreaker = this.conflictCounts.Sum(pair => 1 << (CAT.AgentSizes[pair.Key] - 1));
         }
     }
 
