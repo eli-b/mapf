@@ -83,7 +83,7 @@ public class DynamicRationalLazyOpenList : OpenList<WorldState>
         const double binaryHeapTau = 0.073359375; // microseconds. From empirical experiments with this infra on my computer.
         double logN = Math.Log(this.heap.Count, 2); // Removals from and insertions to the queue cost practically zero.
         double t0 = binaryHeapTau * logN; // TODO: Measure this directly?
-        double overhead = 0.023 * this.Peek().allAgentsState.Length; // in milliseconds. Empirical lowest estimate. The cost of a zero-timeout CBSH run wasn't simply linear with the number of agents for some reason.
+        double overhead = 0.023 * this.Peek().AllAgentsState.Length; // in milliseconds. Empirical lowest estimate. The cost of a zero-timeout CBSH run wasn't simply linear with the number of agents for some reason.
 
         while (true)
         {

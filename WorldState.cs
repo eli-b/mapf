@@ -10,49 +10,49 @@ namespace mapf;
 /// </summary>
 public class WorldState : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuristicSearchNode
 {
-    public int makespan; // Total time steps passed, max(agent makespans)
+    public int Makespan { get; set; } // Total time steps passed, max(agent makespans)
     public int G { get; set; } // Value depends on Constants.costFunction and Constants.sumOfCostsVariant, Sum of agent makespans until they reach their goal
     public int H { get; set; }
     public int HBonus { get; set; }
-    public AgentState[] allAgentsState;
-    public WorldState prevStep;
-    private int binaryHeapIndex;
-    public MDDNode mddNode;
-    public int generated;
+    public AgentState[] AllAgentsState { get; private set; }
+    public WorldState PrevStep { get; set; }
+    private int _binaryHeapIndex;
+    public MDDNode MDDNode { get; set; }
+    public int Generated { get; set; }
 
-    public int primaryTieBreaker;
-    public int secondaryTieBreaker;
+    protected int _primaryTieBreaker;
+    private int _secondaryTieBreaker;
     /// <summary>
     /// Maps from agent num to the number of times the path up to this node collides with that agent
     /// </summary>
-    public Dictionary<int, int> conflictCounts;
+    public Dictionary<int, int> ConflictCounts { get; set; }
     /// <summary>
     /// Maps from agent num to a list of the conflict times with it
     /// </summary>
-    public Dictionary<int, List<int>> conflictTimes;
+    public Dictionary<int, List<int>> ConflictTimes { get; set; }
     /// <summary>
     /// The min depth (makespan) from which a node may be considered a goal.
     /// TODO: Consider moving out of the node object to a static variable or something.
     ///       It doesn't change between nodes.
     /// </summary>
-    public int minGoalTimeStep;
+    public int MinGoalTimeStep { get; private set; }
     /// <summary>
     /// The min cost (g) from which a node may be considered a goal.
     /// TODO: Consider moving out of the node object to a static variable or something.
     ///       It doesn't change between nodes.
     /// </summary>
-    public int minGoalCost;
+    public int MinGoalCost { get; private set; }
     /// <summary>
     /// The last move of all agents that have already moved in this turn.
     /// Used for making sure the next agent move doesn't collide with moves already made.
     /// Used while generating this node, nullified when done.
     /// </summary>
-    public Dictionary<TimedMove, int> currentMoves;
-    protected static readonly int NOT_SET = -1;
+    public Dictionary<TimedMove, int> CurrentMoves { get; set; }
+    private const int NOT_SET = -1;
     /// <summary>
     /// For computing expansion delay
     /// </summary>
-    public int expandedCountWhenGenerated;
+    public int ExpandedCountWhenGenerated { get; set; }
     ///// <summary>
     ///// For lazy heuristics
     ///// </summary>
@@ -61,10 +61,9 @@ public class WorldState : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuris
     /// For MStar.
     /// Disjoint sets of agent indices, since only internal agents are considered.
     /// </summary>
-    public DisjointSets<int> collisionSets;
+    public DisjointSets<int> CollisionSets { get; set; }
     //public ISet<int> currentCollisionSet;
-    public ISet<WorldState> backPropagationSet;
-    public TimedMove[] plannedMoves;
+    public ISet<WorldState> BackPropagationSet { get; set; }
 
     /// <summary>
     /// Create a state with the given state for every agent.
@@ -75,22 +74,22 @@ public class WorldState : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuris
     /// <param name="mddNode"></param>
     public WorldState(AgentState[] allAgentsState, int minDepth = -1, int minCost = -1, MDDNode mddNode = null)
     {
-        this.allAgentsState = allAgentsState.ToArray();
-        this.makespan = allAgentsState.Max(state => state.lastMove.Time); // We expect to only find at most two G values within the agent group
-        this.CalculateG(); // G not necessarily zero when solving a partially solved problem.
-        this.primaryTieBreaker = 0;
-        this.secondaryTieBreaker = 0;
-        this.conflictCounts = new Dictionary<int, int>();  // Unused if not running under CBS, and we can't tell at this point easily
-        this.conflictTimes = new Dictionary<int, List<int>>();  // Unused if not running under CBS, and we can't tell at this point easily
-        this.minGoalTimeStep = minDepth;
-        this.minGoalCost = minCost;
+        AllAgentsState = [.. allAgentsState];
+        Makespan = allAgentsState.Max(state => state.lastMove.Time); // We expect to only find at most two G values within the agent group
+        CalculateG(); // G not necessarily zero when solving a partially solved problem.
+        _primaryTieBreaker = 0;
+        _secondaryTieBreaker = 0;
+        ConflictCounts = [];  // Unused if not running under CBS, and we can't tell at this point easily
+        ConflictTimes = [];  // Unused if not running under CBS, and we can't tell at this point easily
+        MinGoalTimeStep = minDepth;
+        MinGoalCost = minCost;
         if (mddNode == null)
-            this.currentMoves = new Dictionary<TimedMove, int>();
-        this.goalCost = NOT_SET;
-        this.goalSingleCosts = null;
-        this.singlePlans = null;
-        this.HBonus = 0;
-        this.mddNode = mddNode;
+            CurrentMoves = [];
+        goalCost = NOT_SET;
+        goalSingleCosts = null;
+        singlePlans = null;
+        HBonus = 0;
+        MDDNode = mddNode;
     }
 
     /// <summary>
@@ -99,30 +98,30 @@ public class WorldState : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuris
     /// <param name="cpy"></param>
     public WorldState(WorldState cpy)
     {
-        this.makespan = cpy.makespan;
-        this.G = cpy.G;
-        this.H = cpy.H;
+        Makespan = cpy.Makespan;
+        G = cpy.G;
+        H = cpy.H;
         // The conflictTimes, conflictCounts and sumConflictCounts are only copied later if necessary.
-        this.minGoalTimeStep = cpy.minGoalTimeStep;
-        this.minGoalCost = cpy.minGoalCost;
-        this.allAgentsState = new AgentState[cpy.allAgentsState.Length];
-        for (int i = 0; i < allAgentsState.Length; i++)
+        MinGoalTimeStep = cpy.MinGoalTimeStep;
+        MinGoalCost = cpy.MinGoalCost;
+        AllAgentsState = new AgentState[cpy.AllAgentsState.Length];
+        for (int i = 0; i < AllAgentsState.Length; i++)
         {
-            this.allAgentsState[i] = new AgentState(cpy.allAgentsState[i]);
+            AllAgentsState[i] = new AgentState(cpy.AllAgentsState[i]);
             // Shallow copy - it's still the same lastMove inside the AgentState, until we set a new lastMove there.
         }
-        if (cpy.currentMoves != null)
+        if (cpy.CurrentMoves != null)
             // cpy is an intermediate node
-            this.currentMoves = new Dictionary<TimedMove, int>(dictionary: cpy.currentMoves);
+            CurrentMoves = new Dictionary<TimedMove, int>(dictionary: cpy.CurrentMoves);
         else
             // cpy is a concrete node
-            this.currentMoves = new Dictionary<TimedMove, int>(capacity: cpy.allAgentsState.Length);
-        this.goalCost = NOT_SET;
-        this.goalSingleCosts = null;
-        this.singlePlans = null;
-        this.HBonus = 0;
-        this.mddNode = cpy.mddNode;
-        this.prevStep = cpy;
+            CurrentMoves = new Dictionary<TimedMove, int>(capacity: cpy.AllAgentsState.Length);
+        goalCost = NOT_SET;
+        goalSingleCosts = null;
+        singlePlans = null;
+        HBonus = 0;
+        MDDNode = cpy.MDDNode;
+        PrevStep = cpy;
     }
 
     /// <summary>
@@ -146,19 +145,19 @@ public class WorldState : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuris
     {
         // Check if this is a generalised goal node and its plan is long enough.
         // If we know the optimal solution, it doesn't matter if this is a real goal node or not, we can finish.
-        if (this.singlePlans != null)
+        if (singlePlans != null)
         {
             // Check if plans are long enough and costly enough
-            if (this.singlePlans.All(plan => plan.GetSize() - 1 >= this.minGoalTimeStep))
+            if (singlePlans.All(plan => plan.GetSize() - 1 >= MinGoalTimeStep))
             {
                 if (Constants.costFunction == Constants.CostFunction.SUM_OF_COSTS)
                 {
-	                if (this.singlePlans.Sum(plan => plan.GetCost()) >= this.minGoalCost)
+	                if (singlePlans.Sum(plan => plan.GetCost()) >= MinGoalCost)
                         return true;
                 }
                 else if (Constants.costFunction == Constants.CostFunction.MAKESPAN || Constants.costFunction == Constants.CostFunction.MAKESPAN_THEN_SUM_OF_COSTS)
                 {
-                    if (this.singlePlans.Max(plan => plan.GetCost()) >= this.minGoalCost)
+                    if (singlePlans.Max(plan => plan.GetCost()) >= MinGoalCost)
     	                return true;
                 }
                 else
@@ -166,13 +165,13 @@ public class WorldState : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuris
             }
         }
 
-        if (this.G < this.minGoalCost)
+        if (G < MinGoalCost)
             return false;
 
-        if (this.makespan < this.minGoalTimeStep)
+        if (Makespan < MinGoalTimeStep)
             return false;
 
-        return this.H == 0; // This assumes the heuristic is consistent,
+        return H == 0; // This assumes the heuristic is consistent,
                             // or at least has the property of consistent heuristics that only the goal has h==0.
                             // SIC really is a consistent heuristic, so this is fine for now.
                             // TODO: Implement a proper goal test and use it when h==0.
@@ -187,15 +186,15 @@ public class WorldState : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuris
     /// <param name="solution"></param>
     public virtual void SetSolution(SinglePlan[] solution)
     {
-        this.singlePlans = SinglePlan.GetSinglePlans(this); // This node may be a partial solution itself, need to start from the real root.
+        singlePlans = SinglePlan.GetSinglePlans(this); // This node may be a partial solution itself, need to start from the real root.
         for (int i = 0; i < solution.Length; ++i)
-            this.singlePlans[i].ContinueWith(solution[i]);
+            singlePlans[i].ContinueWith(solution[i]);
     }
 
     public SinglePlan[] GetSinglePlans()
     {
-        if (this.singlePlans != null)
-            return this.singlePlans;
+        if (singlePlans != null)
+            return singlePlans;
         else
             return SinglePlan.GetSinglePlans(this);
     }
@@ -207,8 +206,8 @@ public class WorldState : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuris
     /// <returns></returns>
     public Plan GetPlan()
     {
-        if (this.singlePlans != null)
-            return new Plan(this.singlePlans);
+        if (singlePlans != null)
+            return new Plan(singlePlans);
         else
             return new Plan(this);
     }
@@ -225,23 +224,23 @@ public class WorldState : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuris
     /// <returns></returns>
     public int GetGoalCost()
     {
-        Trace.Assert(this.GoalTest(), "Only call for goal nodes!");
+        Trace.Assert(GoalTest(), "Only call for goal nodes!");
 
         if (goalCost == NOT_SET) // This is just a proper goal
         {
             if (Constants.costFunction == Constants.CostFunction.SUM_OF_COSTS)
             {
-                return this.G;
+                return G;
             }
             else if (Constants.costFunction == Constants.CostFunction.MAKESPAN ||
                 Constants.costFunction == Constants.CostFunction.MAKESPAN_THEN_SUM_OF_COSTS)
             {
-                return this.makespan;
+                return Makespan;
             }
             return 0; // To quiet the compiler
         }
         else                     // This is a generalised goal node - it stores the optimal path to the goal through it
-            return this.goalCost;
+            return goalCost;
     }
 
     /// <summary>
@@ -252,7 +251,7 @@ public class WorldState : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuris
     /// <param name="cost"></param>
     public void SetGoalCost(int cost)
     {
-        this.goalCost = cost;
+        goalCost = cost;
     }
 
     /// <summary>
@@ -262,12 +261,12 @@ public class WorldState : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuris
 
     public int[] GetSingleCosts()
     {
-        Trace.Assert(this.GoalTest(), "Only call for goal nodes!");
+        Trace.Assert(GoalTest(), "Only call for goal nodes!");
 
         if (goalSingleCosts == null) // This is just a proper goal
-            return allAgentsState.Select(agent => agent.g).ToArray();
+            return AllAgentsState.Select(agent => agent.g).ToArray();
         else
-            return this.goalSingleCosts;
+            return goalSingleCosts;
     }
 
     /// <summary>
@@ -278,7 +277,7 @@ public class WorldState : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuris
     /// <param name="costs"></param>
     public void SetSingleCosts(int[] costs)
     {
-        this.goalSingleCosts = costs;
+        goalSingleCosts = costs;
     }
 
     /// <summary>
@@ -289,19 +288,19 @@ public class WorldState : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuris
     public virtual int CompareTo(IBinaryHeapItem other)
     {
         WorldState that = (WorldState)other;
-        int thisF = this.F;
+        int thisF = F;
         int thatF = that.F;
         if (thisF < thatF)
             return -1;
         if (thisF > thatF)
             return 1;
 
-        return this.TieBreak(that);
+        return TieBreak(that);
     }
 
     public int TieBreak(WorldState that)
     {
-        bool thisIsGoal = this.GoalTest();
+        bool thisIsGoal = GoalTest();
         bool thatIsGoal = that.GoalTest();
         if (thisIsGoal == true && thatIsGoal == false) // The elaborate form is necessary to keep the comparison consistent. Otherwise goalA<goalB and goalB<goalA
             return -1;
@@ -321,19 +320,19 @@ public class WorldState : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuris
         //       graph separately and tie-break first according to the number of agents we conflict
         //       with that aren't in the MVC of the conflict graph and then the number of agents
         //       we conflict with that aren't in the cardinal conflict graph
-        if (this.primaryTieBreaker < that.primaryTieBreaker)
+        if (_primaryTieBreaker < that._primaryTieBreaker)
             return -1;
-        if (this.primaryTieBreaker > that.primaryTieBreaker)
+        if (_primaryTieBreaker > that._primaryTieBreaker)
             return 1;
 
         // Prefer nodes with fewer conflicts - the probability that some of them are cardinal is lower
-        if (this.secondaryTieBreaker < that.secondaryTieBreaker)
+        if (_secondaryTieBreaker < that._secondaryTieBreaker)
             return -1;
-        if (this.secondaryTieBreaker > that.secondaryTieBreaker)
+        if (_secondaryTieBreaker > that._secondaryTieBreaker)
             return 1;
 
         // //M-Star: prefer nodes with smaller collision sets:
-        //if (this.collisionSets != null) // than M-Star is running
+        //if (collisionSets != null) // than M-Star is running
         //{
         //    // The collision sets change during collision set backpropagation and closed list hits.
         //    // Backpropagation goes from a node's child to the node, so it's tempting to think
@@ -342,17 +341,17 @@ public class WorldState : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuris
         //    // Closed list hits can also happen while the node is waiting to be expanded.
         //    // So the max rank can change while the node is in the open list - 
         //    // it can't be used for tie breaking :(.
-        //    if (this.collisionSets.maxRank < that.collisionSets.maxRank)
+        //    if (collisionSets.maxRank < that.collisionSets.maxRank)
         //        return -1;
-        //    if (that.collisionSets.maxRank > this.collisionSets.maxRank)
+        //    if (that.collisionSets.maxRank > collisionSets.maxRank)
         //        return 1;
         //}
 
         // f, collision sets, conflicts and internal conflicts being equal, prefer nodes with a larger g
         // - they're closer to the goal so less nodes would probably be generated by them on the way to it.
-        if (this.G < that.G)
+        if (G < that.G)
             return 1;
-        if (this.G > that.G)
+        if (G > that.G)
             return -1;
 
         return 0;
@@ -363,19 +362,12 @@ public class WorldState : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuris
     /// </summary>
     public virtual void CalculateG()
     {
-        if (Constants.costFunction == Constants.CostFunction.SUM_OF_COSTS)
+        G = Constants.costFunction switch
         {
-            G = allAgentsState.Sum<AgentState>(agent => agent.g);
-        }
-        else if (Constants.costFunction == Constants.CostFunction.MAKESPAN ||
-            Constants.costFunction == Constants.CostFunction.MAKESPAN_THEN_SUM_OF_COSTS)
-        {
-            G = makespan;  // Let's hope makespan var is correct
-        }
-        else
-        {
-            throw new Exception($"Unsupported cost function {Constants.costFunction}");
-        }
+            Constants.CostFunction.SUM_OF_COSTS => AllAgentsState.Sum(agent => agent.g),
+            Constants.CostFunction.MAKESPAN or Constants.CostFunction.MAKESPAN_THEN_SUM_OF_COSTS => Makespan,// Let's hope makespan var is correct
+            _ => throw new Exception($"Unsupported cost function {Constants.costFunction}"),
+        };
     }
 
     /// <summary>
@@ -383,20 +375,14 @@ public class WorldState : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuris
     /// </summary>
     public virtual void Clear() { }
 
-    public virtual int F
-    {
-        get
-        {
-            return this.G + this.H;
-        }
-    }
+    public virtual int F => G + H;
 
     public int GetTargetH(int f) => f - G;
 
     public override string ToString()
     {
-        var builder = new System.Text.StringBuilder($"{generated} f:{F} makespan:{makespan} h:{H} g:{G} ");
-        foreach (AgentState temp in allAgentsState)
+        var builder = new System.Text.StringBuilder($"{Generated} f:{F} makespan:{Makespan} h:{H} g:{G} ");
+        foreach (AgentState temp in AllAgentsState)
         {
             builder.Append("|");
             builder.Append(temp.lastMove);
@@ -409,32 +395,26 @@ public class WorldState : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuris
     /// Returns the last move of all the agents in this state.
     /// </summary>
     /// <returns>A list of Moves</returns>
-    public List<Move> GetAgentsMoves()
-    {
-        return this.allAgentsState.Select<AgentState, Move>(state => state.lastMove).ToList<Move>();
-    }
+    public List<Move> GetAgentsMoves() => [.. AllAgentsState.Select<AgentState, Move>(state => state.lastMove)];
 
     /// <summary>
     /// Returns the last move of the requested agent.
     /// </summary>
     /// <param name="index"></param>
     /// <returns></returns>
-    public Move GetSingleAgentMove(int index)
-    {
-        return allAgentsState[index].lastMove;
-    }
+    public Move GetSingleAgentMove(int index) => AllAgentsState[index].lastMove;
 
     /// <summary>
     /// BH_Item implementation
     /// </summary>
     /// <returns></returns>
-    public int GetIndexInHeap() { return binaryHeapIndex; }
+    public int GetIndexInHeap() => _binaryHeapIndex;
 
     /// <summary>
     /// BH_Item implementation
     /// </summary>
     /// <returns></returns>
-    public void SetIndexInHeap(int index) { binaryHeapIndex = index; }
+    public void SetIndexInHeap(int index) { _binaryHeapIndex = index; }
 
     /// <summary>
     /// Checks for internal conflicts
@@ -442,12 +422,12 @@ public class WorldState : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuris
     /// <returns></returns>
     public bool isValid()
     {
-        for (int i = 0; i < this.allAgentsState.Length; i++)
+        for (int i = 0; i < AllAgentsState.Length; i++)
         {
-            for (int j = i+1; j < this.allAgentsState.Length; j++)
+            for (int j = i+1; j < AllAgentsState.Length; j++)
             {
                 // Internal conflict
-                if (this.allAgentsState[i].lastMove.IsColliding(this.allAgentsState[j].lastMove))
+                if (AllAgentsState[i].lastMove.IsColliding(AllAgentsState[j].lastMove))
                     return false;
             }
         }
@@ -464,9 +444,9 @@ public class WorldState : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuris
         int ans = 0;
         unchecked
         {
-            for (int i = 0 ; i < allAgentsState.Length; i++)
+            for (int i = 0 ; i < AllAgentsState.Length; i++)
             {
-                ans += allAgentsState[i].GetHashCode() * Constants.PRIMES_FOR_HASHING[i % Constants.PRIMES_FOR_HASHING.Length];
+                ans += AllAgentsState[i].GetHashCode() * Constants.PRIMES_FOR_HASHING[i % Constants.PRIMES_FOR_HASHING.Length];
             }
         }
         return ans;
@@ -483,7 +463,7 @@ public class WorldState : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuris
         if (obj == null)
             return false;
         WorldState that = (WorldState)obj;
-        return this.allAgentsState.SequenceEqual(that.allAgentsState);
+        return AllAgentsState.SequenceEqual(that.AllAgentsState);
     }
 
     /// <summary>
@@ -494,20 +474,20 @@ public class WorldState : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuris
     /// <returns></returns>
     public virtual void IncrementConflictCounts(ConflictAvoidanceTable CAT)
     {
-        for (int i = 0; i < this.allAgentsState.Length; i++)
+        for (int i = 0; i < AllAgentsState.Length; i++)
         {
-            this.allAgentsState[i].lastMove.IncrementConflictCounts(CAT, this.conflictCounts, this.conflictTimes);
+            AllAgentsState[i].lastMove.IncrementConflictCounts(CAT, ConflictCounts, ConflictTimes);
         }
 
         if (CAT.AvoidanceGoal == AvoidanceGoal.MINIMIZE_CONFLICTS)  // For ID, the original rule
-            this.primaryTieBreaker = this.conflictCounts.Sum(pair => pair.Value);
+            _primaryTieBreaker = ConflictCounts.Sum(pair => pair.Value);
         else if (CAT.AvoidanceGoal == AvoidanceGoal.MINIMIZE_CONFLICTING_GROUPS)
-            this.primaryTieBreaker = this.conflictCounts.Keys.Count;
+            _primaryTieBreaker = ConflictCounts.Keys.Count;
         else if (CAT.AvoidanceGoal == AvoidanceGoal.MINIMIZE_CONFLICTING_GROUPS_THEN_CONFLICTS)
             // For CBS, minimizes the number of conflicting groups and then the number of conflicts with them
         {
-            this.primaryTieBreaker = this.conflictCounts.Keys.Count;
-            this.secondaryTieBreaker = this.conflictCounts.Sum(pair => pair.Value);
+            _primaryTieBreaker = ConflictCounts.Keys.Count;
+            _secondaryTieBreaker = ConflictCounts.Sum(pair => pair.Value);
         }
         else if (CAT.AvoidanceGoal == AvoidanceGoal.MINIMIZE_LARGEST_CONFLICTING_GROUP_THEN_NUMBER_OF_SUCH_GROUPS)
             // For ID, minimizes the size of the largest group we conflict with and then 
@@ -515,36 +495,36 @@ public class WorldState : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuris
             // non-max-size groups don't.
             // Kept mostly for reference.
         {
-            if (this.conflictCounts.Count != 0)
+            if (ConflictCounts.Count != 0)
             {
-                this.primaryTieBreaker = this.conflictCounts.Max(pair => CAT.AgentSizes[pair.Key]);
-                this.secondaryTieBreaker = this.conflictCounts.Where(pair => CAT.AgentSizes[pair.Key] == this.primaryTieBreaker).Count();
+                _primaryTieBreaker = ConflictCounts.Max(pair => CAT.AgentSizes[pair.Key]);
+                _secondaryTieBreaker = ConflictCounts.Where(pair => CAT.AgentSizes[pair.Key] == _primaryTieBreaker).Count();
             }
             else
             {
-                this.primaryTieBreaker = 0;
-                this.secondaryTieBreaker = 0;
+                _primaryTieBreaker = 0;
+                _secondaryTieBreaker = 0;
             }
         }
         else if (CAT.AvoidanceGoal == AvoidanceGoal.MINIMIZE_LARGEST_CONFLICTING_GROUP_THEN_MAXIMIZE_CONFLICT_COUNTS_WITH_OTHERS)
         // For ID, minimizes the size of the largest group we conflict with and then 
         // maximizes the number of conflicts the two groups have with other groups
         {
-            if (this.conflictCounts.Count != 0)
+            if (ConflictCounts.Count != 0)
             {
-                this.primaryTieBreaker = this.conflictCounts.Max(pair => CAT.AgentSizes[pair.Key]);
-                this.secondaryTieBreaker = -(this.conflictCounts.Sum(pair => pair.Value) +
-                    this.conflictCounts.Where(pair => CAT.AgentSizes[pair.Key] == this.primaryTieBreaker).Max(pair => CAT.AgentConflictCounts[pair.Key]));
+                _primaryTieBreaker = ConflictCounts.Max(pair => CAT.AgentSizes[pair.Key]);
+                _secondaryTieBreaker = -(ConflictCounts.Sum(pair => pair.Value) +
+                    ConflictCounts.Where(pair => CAT.AgentSizes[pair.Key] == _primaryTieBreaker).Max(pair => CAT.AgentConflictCounts[pair.Key]));
             }
             else
             {
-                this.primaryTieBreaker = 0;
-                this.secondaryTieBreaker = 0;
+                _primaryTieBreaker = 0;
+                _secondaryTieBreaker = 0;
             }
         }
         else if (CAT.AvoidanceGoal == AvoidanceGoal.MINIMIZE_CONFLICTING_GROUP_SIZE_AND_COUNT)
         {
-            this.primaryTieBreaker = this.conflictCounts.Sum(pair => 1 << (CAT.AgentSizes[pair.Key] - 1));
+            _primaryTieBreaker = ConflictCounts.Sum(pair => 1 << (CAT.AgentSizes[pair.Key] - 1));
         }
     }
 
@@ -559,14 +539,6 @@ public class WorldState : IComparable<IBinaryHeapItem>, IBinaryHeapItem, IHeuris
         // Notice this is not a subproblem in the number of agents but
         // in the steps from the start.
         // It might even be harder if the steps were away from the goal.
-        return (initial.Subproblem(this.allAgentsState), new HashSet<CbsConstraint>());
+        return (initial.Subproblem(AllAgentsState), new HashSet<CbsConstraint>());
     }
-
-    //public WorldState GetPlanStart(int agentIndex)
-    //{
-    //    WorldState node = this;
-    //    while (node.individualMStarBookmarks[agentIndex] != 0)
-    //        node = node.prevStep;
-    //    return node;
-    //}
 }

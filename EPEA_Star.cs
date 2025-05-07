@@ -102,7 +102,7 @@ class EPEA_Star : A_Star
                 node.targetDeltaF++;
                 node.remainingDeltaF = node.targetDeltaF; // Just for the following hasChildrenForCurrentDeltaF call.
             } while (node.hasMoreChildren() && node.hasChildrenForCurrentDeltaF() == false);
-        } while (node.hasMoreChildren() && node.G + node.sic + node.targetDeltaF <= node.minGoalCost);  // Generate more children immediately if we have a lower bound on the solution depth
+        } while (node.hasMoreChildren() && node.G + node.sic + node.targetDeltaF <= node.MinGoalCost);  // Generate more children immediately if we have a lower bound on the solution depth
 
         if (node.hasMoreChildren() && node.hasChildrenForCurrentDeltaF() && node.G + node.sic + node.targetDeltaF <= this.maxSolutionCost)
         {
@@ -118,7 +118,7 @@ class EPEA_Star : A_Star
             openList.Add(node);
             if (this.debug)
             {
-                Debug.WriteLine($"Re-inserting node {node.generated} into the open list (with targetDeltaF: {node.targetDeltaF})");
+                Debug.WriteLine($"Re-inserting node {node.Generated} into the open list (with targetDeltaF: {node.targetDeltaF})");
                 Debug.WriteLine("");
             }
         }

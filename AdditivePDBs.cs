@@ -32,9 +32,9 @@ public class AdditivePDBs : IHeuristicCalculator<WorldState>
             // with the first two, then the second two, etc.
 
         PDBs = new List<PDB>();
-        if (s.allAgentsState.Length > 1)
+        if (s.AllAgentsState.Length > 1)
         {
-            for (uint i = 0; i < s.allAgentsState.Length - 1; i += 2)
+            for (uint i = 0; i < s.AllAgentsState.Length - 1; i += 2)
             {
                     // Make a list of agents we want to include together in the
                     // next additive pattern database. We specify agents by
@@ -50,7 +50,7 @@ public class AdditivePDBs : IHeuristicCalculator<WorldState>
                     // node. This is done by passing into the state copy
                     // constructor our list of important agents.
 
-                WorldState tws = new WorldState(s.allAgentsState, agentsToConsider);
+                WorldState tws = new WorldState(s.AllAgentsState, agentsToConsider);
 
                     // Initialize, build, and save the new pattern database.
 
@@ -65,11 +65,11 @@ public class AdditivePDBs : IHeuristicCalculator<WorldState>
             // Create single shortest path pattern database heuristics for the
             // remaining agents if we have any left over.
 
-        if (s.allAgentsState.Length % 2 == 1)
+        if (s.AllAgentsState.Length % 2 == 1)
         {
             SumIndividualCosts pdb = new SumIndividualCosts();
             List<uint> agentsToConsider = new List<uint>(1);
-            agentsToConsider.Add((uint) s.allAgentsState.Length - 1);
+            agentsToConsider.Add((uint) s.AllAgentsState.Length - 1);
             pdb.Init(pi, agentsToConsider);
             pdb.build();
             PDBs.Add(pdb);

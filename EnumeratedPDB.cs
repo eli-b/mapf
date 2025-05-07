@@ -169,11 +169,11 @@ class EnumeratedPDB : PDB
         // our state already is a projection.
 
         WorldState goal = new WorldState(problem.Agents, agentsToConsider);
-        foreach (AgentState ags in goal.allAgentsState)
+        foreach (AgentState ags in goal.AllAgentsState)
             ags.SwapCurrentWithGoal();
         List<uint> vBackup = agentsToConsider;
-        agentsToConsider = new List<uint>(goal.allAgentsState.Length);
-        for (uint i = 0; i < goal.allAgentsState.Length; ++i)
+        agentsToConsider = new List<uint>(goal.AllAgentsState.Length);
+        for (uint i = 0; i < goal.AllAgentsState.Length; ++i)
             agentsToConsider.Add(i);
 
         // Initialize variables and insert the root node into our queue. We
@@ -224,7 +224,7 @@ class EnumeratedPDB : PDB
                     if (offsetFromSingleShortestPath)
                     {
                         int nSingleAgentShortestPath = 0;
-                        foreach (var a in i.allAgentsState)
+                        foreach (var a in i.AllAgentsState)
                             nSingleAgentShortestPath += this.problem.GetSingleAgentOptimalCost(a);
                         int nDifference = i.G - nSingleAgentShortestPath;
                         Trace.Assert(nDifference >= 0);
@@ -262,7 +262,7 @@ class EnumeratedPDB : PDB
             foreach (var a in agentsToConsider)
             {
                 nSingleAgentShortestPath +=
-                    this.problem.GetSingleAgentOptimalCost(s.allAgentsState[a]);
+                    this.problem.GetSingleAgentOptimalCost(s.AllAgentsState[a]);
             }
         return (table[hash(s)] + (uint) nSingleAgentShortestPath);
     }
@@ -297,11 +297,11 @@ class EnumeratedPDB : PDB
             // us to keep figure out how many other agents have been placed
             // in positions previous to our current position.
 
-            int card1 = problem.GetCardinality(s.allAgentsState[agentsToConsider[i]].lastMove);
+            int card1 = problem.GetCardinality(s.AllAgentsState[agentsToConsider[i]].lastMove);
             int preceding = 0;
             for (int j = 0; j < i; ++j)
             {
-                int nCard2 = problem.GetCardinality(s.allAgentsState[agentsToConsider[j]].lastMove);
+                int nCard2 = problem.GetCardinality(s.AllAgentsState[agentsToConsider[j]].lastMove);
                 if (nCard2 < card1)
                     ++preceding;
             }

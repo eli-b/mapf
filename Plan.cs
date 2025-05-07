@@ -26,7 +26,7 @@ public class Plan
         {
             List<Move> agentMoves = currentNode.GetAgentsMoves();
             _locationsAtTimes.Add(agentMoves);
-            currentNode = currentNode.prevStep;
+            currentNode = currentNode.PrevStep;
         }
         _locationsAtTimes.Reverse();
     }
@@ -289,13 +289,13 @@ public class SinglePlan
     /// <param name="agentIndex"></param>
     public SinglePlan(WorldState goalState, int agentIndex)
     {
-        AgentNum = goalState.allAgentsState[agentIndex].agent.agentNum;
+        AgentNum = goalState.AllAgentsState[agentIndex].agent.agentNum;
         WorldState currentNode = goalState;
         LinkedList<Move> locations = [];
         while (currentNode != null)
         {
             locations.AddFirst(currentNode.GetSingleAgentMove(agentIndex));
-            currentNode = currentNode.prevStep;
+            currentNode = currentNode.PrevStep;
         }
         LocationAtTimes = [.. locations];
     }
@@ -499,7 +499,7 @@ public class SinglePlan
 
     public static SinglePlan[] GetSinglePlans(WorldState goalState) // FIXME: Duplication with other methods.
     {
-        List<Move>[] allroutes = new List<Move>[goalState.allAgentsState.Length];
+        List<Move>[] allroutes = new List<Move>[goalState.AllAgentsState.Length];
         for (int i = 0; i < allroutes.Length; i++)
             allroutes[i] = [];
 
@@ -508,14 +508,14 @@ public class SinglePlan
         {
             for (int i = 0; i < allroutes.Length; i++)
                 allroutes[i].Add(currentNode.GetSingleAgentMove(i));
-            currentNode = currentNode.prevStep;
+            currentNode = currentNode.PrevStep;
         }
 
-        SinglePlan[] ans = new SinglePlan[goalState.allAgentsState.Length];
+        SinglePlan[] ans = new SinglePlan[goalState.AllAgentsState.Length];
         for (int i = 0; i < ans.Length; i++)
         {
             allroutes[i].Reverse();
-            ans[i] = new SinglePlan(allroutes[i], goalState.allAgentsState[i].agent.agentNum);
+            ans[i] = new SinglePlan(allroutes[i], goalState.AllAgentsState[i].agent.agentNum);
         }
         return ans;
     }

@@ -103,9 +103,9 @@ class CbsHeuristicForAStar : IHeuristicCalculator<WorldState>
             (ProblemInstance problemInstance, ISet<CbsConstraint> positiveConstraints) = s.ToProblemInstance(this.instance);
             sAsProblemInstance = problemInstance;
             this.cbs.Setup(sAsProblemInstance,
-                            Math.Max(s.makespan,  // This forces must-constraints to be upheld when dealing with A*+OD nodes,
+                            Math.Max(s.Makespan,  // This forces must-constraints to be upheld when dealing with A*+OD nodes,
                                                     // at the cost of forcing every agent to move when a goal could be found earlier with all must constraints upheld.
-                                    s.minGoalTimeStep), // No point in finding shallower goal nodes
+                                    s.MinGoalTimeStep), // No point in finding shallower goal nodes
                             this.stopwatch, null, null, positiveConstraints);
                 
             if (this.cbs.OpenList.Count > 0 && this.cbs.ExternalCAT == null)
@@ -200,7 +200,7 @@ class CbsHeuristicForAStar : IHeuristicCalculator<WorldState>
                 
             heuristic.Init(this.instance, this.agentsToConsider);
             var epeastarsic = new EPEA_Star(heuristic);
-            epeastarsic.Setup(sAsProblemInstance, s.makespan, stopwatch);
+            epeastarsic.Setup(sAsProblemInstance, s.Makespan, stopwatch);
             bool epeastarsicSolved = epeastarsic.Solve();
             if (epeastarsicSolved)
                 Trace.Assert(epeastarsic.totalCost - s.G >= this.cbs.SolutionCost - s.G, "Inadmissible!!");
