@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.IO;
 using System.Diagnostics;
+using System.Threading.Tasks;
 
 namespace mapf;
 
@@ -153,8 +154,8 @@ public class ProblemInstance
         _singleAgentOptimalCosts = new int[GetNumOfAgents()][];
         _singleAgentOptimalMoves = new Move[GetNumOfAgents()][];
 
-        // TODO: test on bigger grids and see if Parallel loop can be beneficial.
-        for (int agentId = 0; agentId < GetNumOfAgents(); agentId++)
+        // Parallel is only benefitial on bigger grids, but why not.
+        Parallel.For(0, GetNumOfAgents(), agentId =>
         {
             // Run a single source shortest path algorithm from the _goal_ of the agent
             var shortestPathLengths = new int[NumLocations];
@@ -206,7 +207,7 @@ public class ProblemInstance
 
             _singleAgentOptimalCosts[agentId] = shortestPathLengths;
             _singleAgentOptimalMoves[agentId] = optimalMoves;
-        }
+        });
         double endTime = watch.Elapsed.TotalMilliseconds;
         ShortestPathComputeTime = endTime - startTime;
     }
