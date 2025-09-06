@@ -43,24 +43,17 @@ class IndependenceDetectionAgentsGroup
     /// <summary>
     /// Solve the group of agents together.
     /// </summary>
-    /// <param name="runner"></param>
-    /// <param name="CAT"></param>
-    /// <param name="group1Cost"></param>
-    /// <param name="group2Cost"></param>
-    /// <param name="group1Size"></param>
-    /// <param name="reserved"></param>
     /// <returns>true if optimal solution for the group of agents were found, false otherwise</returns>
-    public bool Solve(Run runner, ConflictAvoidanceTable CAT,
-                        int group1Cost = 0, int group2Cost = 0, int group1Size = 1
-                        )
+    public bool Solve(Stopwatch stopwatch, ConflictAvoidanceTable CAT,
+                        int group1Cost = 0, int group2Cost = 0, int group1Size = 1)
     {
         IIndependenceDetectionSolver relevantSolver = this.groupSolver;
         if (this.allAgentsState.Length == 1)
             relevantSolver = this.singleAgentSolver; // TODO: Consider using CBS's root trick to really get single agent paths fast. Though it won't respect illegal moves or avoid conflicts.
         if (this.id.provideGroupCostsToSolver)
-            relevantSolver.Setup(this.instance, runner, CAT, group1Cost, group2Cost, group1Size);
+            relevantSolver.Setup(this.instance, stopwatch, CAT, group1Cost, group2Cost, group1Size);
         else  // For experiments only
-            relevantSolver.Setup(this.instance, runner, CAT, 0, 0, 0);
+            relevantSolver.Setup(this.instance, stopwatch, CAT, 0, 0, 0);
         bool solved = relevantSolver.Solve();
         this.solutionCost = relevantSolver.GetSolutionCost();
         if (solved == false)
@@ -145,7 +138,7 @@ class IndependenceDetectionAgentsGroup
     /// <param name="planToAvoid"></param>
     /// <param name="runner"></param>
     /// <returns></returns>
-    public bool ReplanUnderConstraints(Plan planToAvoid, Run runner, ConflictAvoidanceTable CAT)
+    public bool ReplanUnderConstraints(Plan planToAvoid, Stopwatch stopwatch, ConflictAvoidanceTable CAT)
     {
         int oldCost = this.solutionCost;
         Plan oldPlan = this.plan;
@@ -159,7 +152,7 @@ class IndependenceDetectionAgentsGroup
         IIndependenceDetectionSolver relevantSolver = this.groupSolver;
         if (this.allAgentsState.Length == 1)
             relevantSolver = this.singleAgentSolver;
-        relevantSolver.Setup(this.instance, runner, CAT, oldCost, reserved);
+        relevantSolver.Setup(this.instance, stopwatch, CAT, oldCost, reserved);
         bool solved = relevantSolver.Solve();
         this.solutionCost = relevantSolver.GetSolutionCost();
 
@@ -198,7 +191,7 @@ class IndependenceDetectionAgentsGroup
 
         for (int i = 0; i < this.allAgentsState.Length; i++)
         {
-            var singleAgentPlan = new SinglePlan(this.plan, i, this.groupNum);  // Note all the plans are inserted under the group's identifier
+            SinglePlan singleAgentPlan = new(this.plan, i, this.groupNum);  // Note all the plans are inserted under the group's identifier
             CAT.AddPlan(singleAgentPlan);
         }
     }
@@ -210,7 +203,7 @@ class IndependenceDetectionAgentsGroup
 
         for (int i = 0; i < this.allAgentsState.Length; i++)
         {
-            var singleAgentPlan = new SinglePlan(this.plan, i, this.groupNum);
+            SinglePlan singleAgentPlan = new(this.plan, i, this.groupNum);
             CAT.RemovePlan(singleAgentPlan);
         }
     }

@@ -35,7 +35,7 @@ abstract class CostTreeSearchSolver : ICbsSolver, IIndependenceDetectionSolver
     int accSurvivedPruningHL;
     int accGoalTestSkipped;
     protected ProblemInstance problem;
-    protected Run runner;
+    protected Stopwatch stopwatch;
     public CostTreeNode costTreeNode;
     protected int costParentGroupA;
     protected int costParentGroupB;
@@ -58,32 +58,16 @@ abstract class CostTreeSearchSolver : ICbsSolver, IIndependenceDetectionSolver
     /// Return the name of the solver, useful for outputting results.
     /// </summary>
     /// <returns>The name of the solver</returns>
-    public virtual String GetName()
-    {
-        return "CostTreeSearch+pairsMatch";
-    }
+    public virtual String GetName() => "CostTreeSearch+pairsMatch";
 
-    public override string ToString()
-    {
-        return GetName();
-    }
+    public override string ToString() => GetName();
 
-    public virtual void Setup(ProblemInstance problemInstance, Run runner) {
-            
-            
-        Setup(problemInstance, 0, runner, null);
-    }
+    public virtual void Setup(ProblemInstance problemInstance, Stopwatch stopwatch) => Setup(problemInstance, 0, stopwatch, null);
 
     /// <summary>
     /// For new groups under Independence Detection
     /// </summary>
-    /// <param name="problemInstance"></param>
-    /// <param name="runner"></param>
-    /// <param name="CAT"></param>
-    /// <param name="parentGroup1Cost"></param>
-    /// <param name="parentGroup2Cost"></param>
-    /// <param name="parentGroup1Size"></param>
-    public virtual void Setup(ProblemInstance problemInstance, Run runner, ConflictAvoidanceTable CAT,
+    public virtual void Setup(ProblemInstance problemInstance, Stopwatch stopwatch, ConflictAvoidanceTable CAT,
                 int parentGroup1Cost, int parentGroup2Cost, int parentGroup1Size)
     {
         // Use the solutions of previously solved subproblems as a lower bound
@@ -91,22 +75,17 @@ abstract class CostTreeSearchSolver : ICbsSolver, IIndependenceDetectionSolver
         this.costParentGroupB = parentGroup2Cost;
         this.sizeParentGroupA = parentGroup1Size;
 
-        Setup(problemInstance, 0, runner, CAT, minCost: parentGroup1Cost + parentGroup2Cost, maxCost: int.MaxValue);  // TODO: Support a makespan cost function
+        Setup(problemInstance, 0, stopwatch, CAT, minCost: parentGroup1Cost + parentGroup2Cost, maxCost: int.MaxValue);  // TODO: Support a makespan cost function
     }
 
     /// <summary>
     /// For replanning groups to resolve a conflict under independence Detection
     /// </summary>
-    /// <param name="problemInstance"></param>
-    /// <param name="runner"></param>
-    /// <param name="CAT"></param>
-    /// <param name="targetCost">/// </param>
-    /// <param name="illegalMoves"></param>
-    public virtual void Setup(ProblemInstance problemInstance, Run runner, ConflictAvoidanceTable CAT,
+    public virtual void Setup(ProblemInstance problemInstance, Stopwatch stopwatch, ConflictAvoidanceTable CAT,
                 int targetCost, ISet<TimedMove> reserved)
     {
         this.reserved = reserved;
-        Setup(problemInstance, 0, runner, CAT, minCost: targetCost, maxCost: targetCost);
+        Setup(problemInstance, 0, stopwatch, CAT, minCost: targetCost, maxCost: targetCost);
     }
 
     /// <summary>
@@ -121,7 +100,7 @@ abstract class CostTreeSearchSolver : ICbsSolver, IIndependenceDetectionSolver
     /// <param name="minCost"></param>
     /// <param name="maxCost"></param>
     /// <param name="mdd">FIXME: Not taken into account, just added to comply with ICbsSolver</param>
-    public virtual void Setup(ProblemInstance problemInstance, int minTimeStep, Run runner,
+    public virtual void Setup(ProblemInstance problemInstance, int minTimeStep, Stopwatch stopwatch,
                                 ConflictAvoidanceTable CAT = null,
                                 ISet<CbsConstraint> constraints = null, ISet<CbsConstraint> positiveConstraints = null,
                                 int minCost = -1, int maxCost = int.MaxValue, MDD mdd = null)
@@ -136,14 +115,14 @@ abstract class CostTreeSearchSolver : ICbsSolver, IIndependenceDetectionSolver
         this.totalCost = (int) Constants.SpecialCosts.TIMEOUT_COST;
             
         this.problem = problemInstance;
-        this.runner = runner;
+        this.stopwatch = stopwatch;
 
-        closedList = new HashSet<CostTreeNode>();
+        closedList = [];
         openList = new Queue<CostTreeNode>();
         int[] costs = new int[problem.GetNumOfAgents()];
         for (int i = 0; i < problem.GetNumOfAgents(); i++)
         {
-            costs[i] = Math.Max(problem.GetSingleAgentOptimalCost(problem.agents[i]), minTimeStep);  // TODO: Use the time of the latest constraint on each agent!
+            costs[i] = Math.Max(problem.GetSingleAgentOptimalCost(problem.Agents[i]), minTimeStep);  // TODO: Use the time of the latest constraint on each agent!
         }
 
         openList.Enqueue(new CostTreeNode(costs)); // The root
@@ -177,10 +156,7 @@ abstract class CostTreeSearchSolver : ICbsSolver, IIndependenceDetectionSolver
     /// <summary>
     /// Returns the cost of the solution found, or error codes otherwise.
     /// </summary>
-    public int GetSolutionCost()
-    {
-        return this.totalCost;
-    }
+    public int GetSolutionCost() => this.totalCost;
 
     protected Dictionary<int, int> conflictCounts;
     protected Dictionary<int, List<int>> conflictTimes;
@@ -287,25 +263,22 @@ abstract class CostTreeSearchSolver : ICbsSolver, IIndependenceDetectionSolver
     /// <returns></returns>
     public abstract bool Solve();
 
-    public int GetHighLevelExpanded() { return this.expandedHL; }
-    public int GetHighLevelGenerated() { return this.generatedHL; }
-    public int GetLowLevelExpanded() { return this.expandedLL; }
-    public int GetLowLevelGenerated() { return this.generatedLL; }
-    public int GetExpanded() { return this.expandedHL; }
-    public int GetGenerated() { return this.generatedHL; }
-    public int GetAccumulatedExpanded() { return this.accExpandedHL; }
-    public int GetAccumulatedGenerated() { return this.accGeneratedHL; }
-    public int GetSolutionDepth() { return this.solutionDepth; }
-    public long GetMemoryUsed() { return Process.GetCurrentProcess().VirtualMemorySize64; }
-    public int GetMaxGroupSize() { return problem.agents.Length; }
-    public SinglePlan[] GetSinglePlans() { return solution; }
+    public int GetHighLevelExpanded() => this.expandedHL;
+    public int GetHighLevelGenerated() => this.generatedHL;
+    public int GetLowLevelExpanded() => this.expandedLL;
+    public int GetLowLevelGenerated() => this.generatedLL;
+    public int GetExpanded() => this.expandedHL;
+    public int GetGenerated() => this.generatedHL;
+    public int GetAccumulatedExpanded() => this.accExpandedHL;
+    public int GetAccumulatedGenerated() => this.accGeneratedHL;
+    public int GetSolutionDepth() => this.solutionDepth;
+    public long GetMemoryUsed() => Process.GetCurrentProcess().VirtualMemorySize64;
+    public int GetMaxGroupSize() => problem.Agents.Length;
+    public SinglePlan[] GetSinglePlans() => solution;
 
-    public virtual int[] GetSingleCosts()
-    {
-        return costs;
-    }
+    public virtual int[] GetSingleCosts() => costs;
 
-    public abstract CostTreeNodeSolver CreateNodeSolver(ProblemInstance instance, Run runner);
+    public abstract CostTreeNodeSolver CreateNodeSolver(ProblemInstance instance, Stopwatch stopwatch);
 }
 
 class CostTreeSearchSolverOldMatching : CostTreeSearchSolver
@@ -314,18 +287,18 @@ class CostTreeSearchSolverOldMatching : CostTreeSearchSolver
 
     public CostTreeSearchSolverOldMatching(int syncSize) : base() { this.syncSize = syncSize; }
 
-    public override CostTreeNodeSolver CreateNodeSolver(ProblemInstance instance, Run runner)
+    public override CostTreeNodeSolver CreateNodeSolver(ProblemInstance instance, Stopwatch stopwatch)
     {
-        return new CostTreeNodeSolverOldMatching(problem, runner, this);
+        return new CostTreeNodeSolverOldMatching(problem, stopwatch, this);
     }
 
     public override bool Solve()
     {
-        CostTreeNodeSolver nodeSolver = CreateNodeSolver(this.problem, this.runner);
+        CostTreeNodeSolver nodeSolver = CreateNodeSolver(this.problem, this.stopwatch);
         SinglePlan[] ans = null;
 
         //TODO if no solution found the algorithm will never stop
-        while (runner.ElapsedMilliseconds() < Constants.MAX_TIME)
+        while (stopwatch.ElapsedMilliseconds < Constants.MAX_TIME)
         {
             costTreeNode = openList.Peek();
             int sumSubGroupA = costTreeNode.Sum(from: 0, to: this.sizeParentGroupA);
@@ -414,19 +387,19 @@ class CostTreeSearchSolverOldMatching : CostTreeSearchSolver
 
 class CostTreeSearchSolverNoPruning : CostTreeSearchSolver
 {
-    public override CostTreeNodeSolver CreateNodeSolver(ProblemInstance instance, Run runner)
+    public override CostTreeNodeSolver CreateNodeSolver(ProblemInstance instance, Stopwatch stopwatch)
     {
-        return new CostTreeNodeSolverDDBF(problem, runner, this);
+        return new CostTreeNodeSolverDDBF(problem, stopwatch, this);
     }
 
     public override bool Solve()
     {
-        CostTreeNodeSolver next = CreateNodeSolver(this.problem, this.runner);
+        CostTreeNodeSolver next = CreateNodeSolver(this.problem, this.stopwatch);
         SinglePlan[] ans = null;
         int sumSubGroupA;
         int sumSubGroupB;
         //TODO if no solution found the algorithm will never stop
-        while (runner.ElapsedMilliseconds() < Constants.MAX_TIME)
+        while (stopwatch.ElapsedMilliseconds < Constants.MAX_TIME)
         {
             costTreeNode = openList.Peek();
             sumSubGroupA = costTreeNode.Sum(0, sizeParentGroupA);
@@ -504,32 +477,32 @@ class CostTreeSearchSolverKMatch : CostTreeSearchWithEdgesMatrix
     int maxGroupChecked;
 
     public CostTreeSearchSolverKMatch(int maxGroupChecked) : base() { this.maxGroupChecked = maxGroupChecked; }
-    public override void Setup(ProblemInstance problemInstance, Run runner) {
-        base.Setup(problemInstance, 0, runner);
+    public override void Setup(ProblemInstance problemInstance, Stopwatch stopwatch) {
+        base.Setup(problemInstance, 0, stopwatch);
     }
-    public override void Setup(ProblemInstance problemInstance, int minTimeStep, Run runner,
+    public override void Setup(ProblemInstance problemInstance, int minTimeStep, Stopwatch stopwatch,
                                 ConflictAvoidanceTable CAT,
                                 ISet<CbsConstraint> constraints = null, ISet<CbsConstraint> positiveConstraints = null,
                                 int minCost = -1, int maxCost = int.MaxValue, MDD mdd = null)
     {
-        edgesMatrix = new int[problemInstance.agents.Length, problemInstance.GetMaxX() * problemInstance.GetMaxY() + problemInstance.GetMaxY(), Move.NUM_NON_DIAG_MOVES];
+        edgesMatrix = new int[problemInstance.Agents.Length, problemInstance.GetMaxX() * problemInstance.GetMaxY() + problemInstance.GetMaxY(), Move.NUM_NON_DIAG_MOVES];
         edgesMatrixCounter = 0;
-        base.Setup(problemInstance, minTimeStep, runner, CAT, constraints, positiveConstraints, minCost, maxCost, mdd);
+        base.Setup(problemInstance, minTimeStep, stopwatch, CAT, constraints, positiveConstraints, minCost, maxCost, mdd);
     }
 
-    public override CostTreeNodeSolver CreateNodeSolver(ProblemInstance instance, Run runner)
+    public override CostTreeNodeSolver CreateNodeSolver(ProblemInstance instance, Stopwatch stopwatch)
     {
-        return new CostTreeNodeSolverKSimpleMatching(problem, runner, this);
+        return new CostTreeNodeSolverKSimpleMatching(problem, stopwatch, this);
     }
 
     public override bool Solve()
     {
-        CostTreeNodeSolver next = CreateNodeSolver(problem, runner);
+        CostTreeNodeSolver next = CreateNodeSolver(problem, stopwatch);
         SinglePlan[] ans = null;
         int sumSubGroupA;
         int sumSubGroupB;
         //TODO if no solution found the algorithm will never stop
-        while (runner.ElapsedMilliseconds() < Constants.MAX_TIME)
+        while (stopwatch.ElapsedMilliseconds < Constants.MAX_TIME)
         {
             costTreeNode = openList.Peek();
             sumSubGroupA = costTreeNode.Sum(0, sizeParentGroupA);
@@ -599,32 +572,32 @@ class CostTreeSearchSolverRepeatedMatch : CostTreeSearchWithEdgesMatrix
 {
     int syncSize;
     public CostTreeSearchSolverRepeatedMatch(int syncSize) : base() { this.syncSize = syncSize; }
-    public override void Setup(ProblemInstance problemInstance, Run runner) { Setup(problemInstance, 0, runner); }
-    public override void Setup(ProblemInstance problemInstance, int minTimeStep, Run runner,
+    public override void Setup(ProblemInstance problemInstance, Stopwatch stopwatch) { Setup(problemInstance, 0, stopwatch); }
+    public override void Setup(ProblemInstance problemInstance, int minTimeStep, Stopwatch stopwatch,
                                 ConflictAvoidanceTable CAT = null,
                                 ISet<CbsConstraint> constraints = null, ISet<CbsConstraint> positiveConstraints = null,
                                 int minCost = -1, int maxCost = int.MaxValue, MDD mdd = null)
     {
-        edgesMatrix = new int[problemInstance.agents.Length, problemInstance.GetMaxX() * problemInstance.GetMaxY() + problemInstance.GetMaxY(), Move.NUM_NON_DIAG_MOVES];
+        edgesMatrix = new int[problemInstance.Agents.Length, problemInstance.GetMaxX() * problemInstance.GetMaxY() + problemInstance.GetMaxY(), Move.NUM_NON_DIAG_MOVES];
         edgesMatrixCounter = 0;
-        base.Setup(problemInstance, minTimeStep, runner, CAT, constraints, positiveConstraints, minCost, maxCost, mdd);
+        base.Setup(problemInstance, minTimeStep, stopwatch, CAT, constraints, positiveConstraints, minCost, maxCost, mdd);
     }
 
-    public override CostTreeNodeSolver CreateNodeSolver(ProblemInstance instance, Run runner)
+    public override CostTreeNodeSolver CreateNodeSolver(ProblemInstance instance, Stopwatch stopwatch)
     {
-        return new CostTreeNodeSolverRepeatedMatching(problem, runner, this);
+        return new CostTreeNodeSolverRepeatedMatching(problem, stopwatch, this);
     }
 
     public override bool Solve()
     {
         //int time = 0;
-        CostTreeNodeSolver next = CreateNodeSolver(problem, runner);
+        CostTreeNodeSolver next = CreateNodeSolver(problem, stopwatch);
         SinglePlan[] ans = null;
-        Stopwatch sw = new Stopwatch();
+        Stopwatch sw = new();
         int sumSubGroupA;
         int sumSubGroupB;
         //TODO if no solution found the algorithm will never stop
-        while (runner.ElapsedMilliseconds() < Constants.MAX_TIME)
+        while (stopwatch.ElapsedMilliseconds < Constants.MAX_TIME)
         {
             sw.Reset();
             costTreeNode = openList.Peek();

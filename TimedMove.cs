@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using System.Linq;
 
 namespace mapf;
 
@@ -8,14 +7,12 @@ namespace mapf;
 /// </summary>
 public class TimedMove  : Move
 {
-    public int time;
+    public int Time { get; set; }
 
-//        public static const int FOREVER_AFTER = int.MaxValue
-
-    public TimedMove(int x, int y, Move.Direction direction, int time)
+    public TimedMove(int x, int y, Direction direction, int time)
         : base(x, y, direction)
     {
-        this.time = time;
+        Time = time;
     }
 
     /// <summary>
@@ -31,8 +28,8 @@ public class TimedMove  : Move
             directions = Move.validDirectionsNoDiag;
         foreach (Direction op in directions)
         {
-            yield return new TimedMove(this.x + Move.directionToDeltas[(int)op, 0],
-                                        this.y + Move.directionToDeltas[(int)op, 1], op, this.time + 1);
+            yield return new TimedMove(this.X + Move.directionToDeltas[(int)op, 0],
+                                        this.Y + Move.directionToDeltas[(int)op, 1], op, this.Time + 1);
         }
     }
 
@@ -43,36 +40,36 @@ public class TimedMove  : Move
     public override void Update(Direction direction)
     {
         base.Update(direction);
-        this.time += 1;
+        Time += 1;
     }
 
     public TimedMove(Move cpy, int time)
         : base(cpy)
     {
-        this.time = time;
+        Time = time;
     }
 
     public TimedMove() { }
 
     public TimedMove(TimedMove cpy) : base(cpy)
     {
-        this.time = cpy.time;
+        Time = cpy.Time;
     }
 
     public override bool Equals(object obj)
     {
         if (obj == null)
             return false;
-        if (this.time != ((TimedMove)obj).time)
+        if (Time != ((TimedMove)obj).Time)
             return false;
 
         //return base.Equals(obj);
 
         // Begin copied code of base to avoid a method call
         Move that = (Move)obj;
-        return (this.x == that.x && this.y == that.y &&
-                ((this.direction == Direction.NO_DIRECTION) || (that.direction == Direction.NO_DIRECTION) ||
-                    (this.direction == that.direction)));
+        return (X == that.X && Y == that.Y &&
+                ((Direction == Direction.NO_DIRECTION) || (that.Direction == Direction.NO_DIRECTION) ||
+                    (Direction == that.Direction)));
         // End copied code of base
     }
 
@@ -84,17 +81,17 @@ public class TimedMove  : Move
 
             // Begin copied code of base to avoid a method call:
             int hash = 17;
-            hash = 23 * hash + x;
-            hash = 23 * hash + y;
+            hash = 23 * hash + X;
+            hash = 23 * hash + Y;
             // End copied code of base
-            return hash * 3 + this.time;
+            return hash * 3 + Time;
         }
     }
 
     public new TimedMove GetMoveWithoutDirection()
     {
-        TimedMove copy = new TimedMove(this);
-        copy.direction = Direction.NO_DIRECTION;
+        TimedMove copy = new(this);
+        copy.Direction = Direction.NO_DIRECTION;
         return copy;
     }
 
@@ -105,16 +102,11 @@ public class TimedMove  : Move
     /// 1. Head on collision
     /// 2. When other moves target the same location.
     /// </summary>
-    /// <param name="other"></param>
-    /// <returns></returns>
-    public bool IsColliding(TimedMove other)
-    {
-        return IsColliding(other.x, other.y, other.direction, other.time);
-    }
+    public bool IsColliding(TimedMove other) => IsColliding(other.X, other.Y, other.Direction, other.Time);
 
     public bool IsColliding(int other_x, int other_y, Direction other_direction, int time)
     {
-        if (this.time != time)
+        if (Time != time)
             return false;
 
         return base.IsColliding(other_x, other_y, other_direction);
@@ -123,70 +115,63 @@ public class TimedMove  : Move
     /// <summary>
     /// Reimplemented to avoid creating temporary Move objects
     /// </summary>
-    /// <returns></returns>
     public new TimedMove GetOppositeMove()
     {
-        if (direction == Direction.Wait || direction == Direction.NO_DIRECTION)
+        if (Direction == Direction.Wait || Direction == Direction.NO_DIRECTION)
             return this;
-        return new TimedMove(this.x + Move.directionToOppositeDeltas[(int)direction, 0],
-                        this.y + directionToOppositeDeltas[(int)direction, 1],
-                        directionToOppositeDirection[(int)direction], this.time);
+        return new TimedMove(X + Move.directionToOppositeDeltas[(int)Direction, 0],
+                        Y + directionToOppositeDeltas[(int)Direction, 1],
+                        directionToOppositeDirection[(int)Direction], Time);
     }
 
     /// <summary>
     /// Isn't used anywhere
     /// </summary>
-    /// <param name="cpy"></param>
-    /// <param name="time"></param>
-    public void setup(Move cpy, int time)
+    public void Setup(Move cpy, int time)
     {
-        base.setup(cpy);
-        this.time = time;
+        base.Setup(cpy);
+        Time = time;
     }
 
     /// <summary>
     /// 
     /// </summary>
     /// <param name="cpy"></param>
-    public void setup(TimedMove cpy)
+    public void Setup(TimedMove cpy)
     {
-        base.setup(cpy);
-        this.time = cpy.time;
+        base.Setup(cpy);
+        Time = cpy.Time;
     }
 
     /// <summary>
     /// Almost isn't used anywhere
     /// </summary>
-    /// <param name="x"></param>
-    /// <param name="y"></param>
-    /// <param name="direction"></param>
-    /// <param name="time"></param>
-    public void setup(int x, int y, Move.Direction direction, int time)
+    public void Setup(int x, int y, Direction direction, int time)
     {
-        base.setup(x, y, direction);
-        this.time = time;
+        base.Setup(x, y, direction);
+        Time = time;
     }
 
     public bool IsColliding(ICollection<TimedMove> moves)
     {
-        Move.Direction saveDirection = this.direction;
-        this.direction = Move.Direction.NO_DIRECTION;
+        Direction saveDirection = this.Direction;
+        this.Direction = Direction.NO_DIRECTION;
         if (moves.Contains(this))
         {
-            this.direction = saveDirection;
+            this.Direction = saveDirection;
             return true;
         }
-        this.direction = saveDirection;
+        this.Direction = saveDirection;
 
         if (Constants.ALLOW_HEAD_ON_COLLISION == false)
         {
-            this.setOppositeMove();
+            SetOppositeMove();
             if (moves.Contains(this)) // Check direction too now
             {
-                this.setOppositeMove();
+                SetOppositeMove();
                 return true;
             }
-            this.setOppositeMove();
+            SetOppositeMove();
         }
 
         return false;
@@ -196,24 +181,24 @@ public class TimedMove  : Move
     {
         if (timedMovesToAgentID == null)
             return false;
-        Move.Direction saveDirection = this.direction;
-        this.direction = Move.Direction.NO_DIRECTION;
+        Direction saveDirection = this.Direction;
+        this.Direction = Direction.NO_DIRECTION;
         if (timedMovesToAgentID.ContainsKey(this))
         {
-            this.direction = saveDirection;
+            this.Direction = saveDirection;
             return true;
         }
-        this.direction = saveDirection;
+        this.Direction = saveDirection;
 
         if (Constants.ALLOW_HEAD_ON_COLLISION == false)
         {
-            this.setOppositeMove();
+            SetOppositeMove();
             if (timedMovesToAgentID.ContainsKey(this)) // Check direction too now
             {
-                this.setOppositeMove();
+                SetOppositeMove();
                 return true;
             }
-            this.setOppositeMove();
+            SetOppositeMove();
         }
 
         return false;
@@ -228,7 +213,7 @@ public class TimedMove  : Move
     public List<int> GetColliding(IReadOnlyDictionary<TimedMove, int> timedMovesToAgentIndex)
     {
         List<int> ans = null;
-        Move.Direction saveDirection = this.direction;
+        Direction saveDirection = this.Direction;
         Direction[] directions;
         if (Constants.ALLOW_DIAGONAL_MOVE)
             directions = Move.validDirections;
@@ -236,26 +221,24 @@ public class TimedMove  : Move
             directions = Move.validDirectionsNoDiag;
         foreach (var direction in directions) // TEMP FIX! Need to get rid of the whole NO_DIRECTION SHTICK! It breaks transitivity!
         {
-            this.direction = direction;
+            this.Direction = direction;
             if (timedMovesToAgentIndex.ContainsKey(this))
             {
-                if (ans == null)
-                    ans = new List<int>(4);
+                ans ??= new List<int>(4);
                 ans.Add(timedMovesToAgentIndex[this]);
             }
         }
-        this.direction = saveDirection;
+        this.Direction = saveDirection;
 
         if (Constants.ALLOW_HEAD_ON_COLLISION == false)
         {
-            this.setOppositeMove();
+            this.SetOppositeMove();
             if (timedMovesToAgentIndex.ContainsKey(this)) // Check direction too now
             {
-                if (ans == null)
-                    ans = new List<int>(1);
+                ans ??= new List<int>(1);
                 ans.Add(timedMovesToAgentIndex[this]);
             }
-            this.setOppositeMove();
+            this.SetOppositeMove();
         }
 
         if (ans != null)
@@ -264,7 +247,7 @@ public class TimedMove  : Move
             return TimedMove.emptyList;
     }
 
-    private static readonly List<int> emptyList = new List<int>(0);
+    private static readonly List<int> emptyList = [];
 
     /// <summary>
     /// Gets a dictionary mapping TimedMoves to the agents that already made them
@@ -275,7 +258,7 @@ public class TimedMove  : Move
     public IReadOnlyList<int> GetColliding(ConflictAvoidanceTable CAT)
     {
         List<int> ans = null;
-        Move.Direction saveDirection = this.direction;
+        Direction saveDirection = this.Direction;
         Direction[] directions;
         if (Constants.ALLOW_DIAGONAL_MOVE)
             directions = Move.validDirections;
@@ -283,28 +266,28 @@ public class TimedMove  : Move
             directions = Move.validDirectionsNoDiag;
         foreach (var direction in directions) // TEMP FIX! Need to get rid of the whole NO_DIRECTION SHTICK! It breaks transitivity!
         {
-            this.direction = direction;
+            this.Direction = direction;
             if (CAT.ContainsKey(this))
             {
                 if (ans == null)
-                    ans = new List<int>(CAT[this]);
+                    ans = [.. CAT[this]];
                 else
                     ans.AddRange(CAT[this]);
             }
         }
-        this.direction = saveDirection;
+        this.Direction = saveDirection;
 
         if (Constants.ALLOW_HEAD_ON_COLLISION == false)
         {
-            this.setOppositeMove();
+            SetOppositeMove();
             if (CAT.ContainsKey(this)) // Check direction too now
             {
                 if (ans == null)
-                    ans = new List<int>(CAT[this]);
+                    ans = [.. CAT[this]];
                 else
                     ans.AddRange(CAT[this]);
             }
-            this.setOppositeMove();
+            SetOppositeMove();
         }
 
         if (ans != null)
@@ -316,7 +299,7 @@ public class TimedMove  : Move
     public void IncrementConflictCounts(ConflictAvoidanceTable conflictAvoidance,
                                         Dictionary<int, int> conflictCounts, Dictionary<int, List<int>> conflictTimes)
     {
-        IReadOnlyList<int> colliding = this.GetColliding(conflictAvoidance);
+        IReadOnlyList<int> colliding = GetColliding(conflictAvoidance);
         foreach (int agentNum in colliding)
         {
             if (conflictCounts.ContainsKey(agentNum) == false)
@@ -324,9 +307,9 @@ public class TimedMove  : Move
             else
                 conflictCounts[agentNum] += 1;
             if (conflictTimes.ContainsKey(agentNum) == false)
-                conflictTimes[agentNum] = new List<int>(4) { this.time };
+                conflictTimes[agentNum] = new List<int>(4) { Time };
             else
-                conflictTimes[agentNum].Add(this.time);
+                conflictTimes[agentNum].Add(Time);
         }
     }
 }

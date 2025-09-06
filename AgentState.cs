@@ -32,7 +32,7 @@ namespace mapf;
 
     public AgentState(int pos_X, int pos_Y, Agent agent)
     {
-        this.lastMove = new TimedMove(pos_X, pos_Y, Move.Direction.NO_DIRECTION, 0);
+        this.lastMove = new TimedMove(pos_X, pos_Y, Direction.NO_DIRECTION, 0);
         this.agent = agent;
     }
 
@@ -55,12 +55,12 @@ namespace mapf;
     /// </summary>
     public void SwapCurrentWithGoal()
     {
-        int nTemp = lastMove.x;
-        lastMove.x = agent.Goal.x;
-        agent.Goal.x = nTemp;
-        nTemp = lastMove.y;
-        lastMove.y = agent.Goal.y;
-        agent.Goal.y = nTemp;
+        int nTemp = lastMove.X;
+        lastMove.X = agent.Goal.X;
+        agent.Goal.X = nTemp;
+        nTemp = lastMove.Y;
+        lastMove.Y = agent.Goal.Y;
+        agent.Goal.Y = nTemp;
     }
 
     /// <summary>
@@ -70,19 +70,19 @@ namespace mapf;
     {
         this.lastMove = move;
 
-        bool isWait = move.direction == Move.Direction.Wait;
+        bool isWait = move.Direction == Direction.Wait;
         bool atGoal = this.AtGoal();
 
         // If performed a non WAIT move and reached the agent's goal - store the arrival time
         if (atGoal && (isWait == false))
-            this.arrivalTime = move.time;
+            this.arrivalTime = move.Time;
 
         if (Constants.sumOfCostsVariant == Constants.SumOfCostsVariant.ORIG)
         {
             if (this.AtGoal())
                 this.g = this.arrivalTime;
             else
-                this.g = this.lastMove.time;
+                this.g = this.lastMove.Time;
         }
         else if (Constants.sumOfCostsVariant == Constants.SumOfCostsVariant.WAITING_AT_GOAL_ALWAYS_FREE)
         {
@@ -131,15 +131,15 @@ namespace mapf;
         if (AgentState.EquivalenceOverDifferentTimes)
         {
             return this.agent.Equals(that.agent) &&
-                    this.lastMove.x == that.lastMove.x && 
-                    this.lastMove.y == that.lastMove.y; // Ignoring the time and the direction
+                    this.lastMove.X == that.lastMove.X && 
+                    this.lastMove.Y == that.lastMove.Y; // Ignoring the time and the direction
         }
         else
         {
             return this.agent.Equals(that.agent) &&
-                    this.lastMove.x == that.lastMove.x &&
-                    this.lastMove.y == that.lastMove.y &&
-                    this.lastMove.time == that.lastMove.time; // Ignoring the direction
+                    this.lastMove.X == that.lastMove.X &&
+                    this.lastMove.Y == that.lastMove.Y &&
+                    this.lastMove.Time == that.lastMove.Time; // Ignoring the direction
         }
     }
 
@@ -153,7 +153,7 @@ namespace mapf;
         unchecked
         {
             if (AgentState.EquivalenceOverDifferentTimes)
-                return 3 * this.agent.GetHashCode() + 5 * this.lastMove.x + 7 * this.lastMove.y;
+                return 3 * this.agent.GetHashCode() + 5 * this.lastMove.X + 7 * this.lastMove.Y;
             else
                 return 3 * this.agent.GetHashCode() + 5 * this.lastMove.GetHashCode();
         }
@@ -172,9 +172,9 @@ namespace mapf;
     public int CompareTo(IBinaryHeapItem other)
     {
         AgentState that = (AgentState)other;
-        if (this.h + this.lastMove.time < that.h + that.lastMove.time)
+        if (this.h + this.lastMove.Time < that.h + that.lastMove.Time)
             return -1;
-        if (this.h + this.lastMove.time > that.h + that.lastMove.time)
+        if (this.h + this.lastMove.Time > that.h + that.lastMove.Time)
             return 1;
 
         if (this.potentialConflictsID < that.potentialConflictsID)
@@ -190,15 +190,15 @@ namespace mapf;
         // TODO: Prefer goal nodes.
 
         // Prefer larger g:
-        if (this.lastMove.time < that.lastMove.time)
+        if (this.lastMove.Time < that.lastMove.Time)
             return 1;
-        if (this.lastMove.time > that.lastMove.time)
+        if (this.lastMove.Time > that.lastMove.Time)
             return -1;
         return 0;
     }
 
     public override string ToString()
     {
-        return $"step-{lastMove.time} position {this.lastMove}";
+        return $"step-{lastMove.Time} position {this.lastMove}";
     }
 }

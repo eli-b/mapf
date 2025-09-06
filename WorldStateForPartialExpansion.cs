@@ -107,7 +107,7 @@ class WorldStateForPartialExpansion : WorldState
     public void calcSingleAgentDeltaFs(ProblemInstance problem, ValidityChecker isValid)
     {
         // Init
-        this.singleAgentDeltaFs = new byte[allAgentsState.Length][];
+        this.singleAgentDeltaFs = new byte[AllAgentsState.Length][];
         for (int i = 0; i < singleAgentDeltaFs.Length; i++)
         {
             this.singleAgentDeltaFs[i] = new byte[Constants.NUM_ALLOWED_DIRECTIONS];
@@ -118,39 +118,39 @@ class WorldStateForPartialExpansion : WorldState
         this.maxDeltaF = 0;
 
         // Set values
-        for (int i = 0; i < allAgentsState.Length; i++)
+        for (int i = 0; i < AllAgentsState.Length; i++)
         {
-            hBefore = problem.GetSingleAgentOptimalCost(allAgentsState[i]);
+            hBefore = problem.GetSingleAgentOptimalCost(AllAgentsState[i]);
                 
             int singleAgentMaxLegalDeltaF = -1;
 
-            foreach (TimedMove check in allAgentsState[i].lastMove.GetNextMoves())
+            foreach (TimedMove check in AllAgentsState[i].lastMove.GetNextMoves())
             {
-                if (isValid(check, noMoves, this.makespan + 1, i, this, this) == false)  // Is this move by itself invalid because of constraints or obstacles
+                if (isValid(check, noMoves, this.Makespan + 1, i, this, this) == false)  // Is this move by itself invalid because of constraints or obstacles
                 {
-                        singleAgentDeltaFs[i][(int)check.direction] = byte.MaxValue;
+                        singleAgentDeltaFs[i][(int)check.Direction] = byte.MaxValue;
                 }
                 else
                 {
-                    hAfter = problem.GetSingleAgentOptimalCost(allAgentsState[i].agent.agentNum, check);
+                    hAfter = problem.GetSingleAgentOptimalCost(AllAgentsState[i].agent.agentNum, check);
 
                     if (Constants.sumOfCostsVariant == Constants.SumOfCostsVariant.ORIG)
                     {
                         if (hBefore != 0)
-                            singleAgentDeltaFs[i][(int)check.direction] = (byte)(hAfter - hBefore + 1); // h difference + g difference in this specific domain
+                            singleAgentDeltaFs[i][(int)check.Direction] = (byte)(hAfter - hBefore + 1); // h difference + g difference in this specific domain
                         else if (hAfter != 0) // If agent moved from its goal we must count and add all the steps it was stationed at the goal, since they're now part of its g difference
-                            singleAgentDeltaFs[i][(int)check.direction] = (byte)(hAfter - hBefore + makespan - allAgentsState[i].arrivalTime + 1);
+                            singleAgentDeltaFs[i][(int)check.Direction] = (byte)(hAfter - hBefore + Makespan - AllAgentsState[i].arrivalTime + 1);
                         else
-                            singleAgentDeltaFs[i][(int)check.direction] = 0; // This is a WAIT move at the goal.
+                            singleAgentDeltaFs[i][(int)check.Direction] = 0; // This is a WAIT move at the goal.
                     }
                     else if (Constants.sumOfCostsVariant == Constants.SumOfCostsVariant.WAITING_AT_GOAL_ALWAYS_FREE)
                     {
                         if (hBefore == 0 && hAfter == 0)
-                            singleAgentDeltaFs[i][(int)check.direction] = 0; // This is a WAIT move at the goal.
+                            singleAgentDeltaFs[i][(int)check.Direction] = 0; // This is a WAIT move at the goal.
                         else
-                            singleAgentDeltaFs[i][(int)check.direction] = (byte)(hAfter - hBefore + 1); // h difference + g difference in this specific domain
+                            singleAgentDeltaFs[i][(int)check.Direction] = (byte)(hAfter - hBefore + 1); // h difference + g difference in this specific domain
                     }
-                    singleAgentMaxLegalDeltaF = Math.Max(singleAgentMaxLegalDeltaF, singleAgentDeltaFs[i][(int)check.direction]);
+                    singleAgentMaxLegalDeltaF = Math.Max(singleAgentMaxLegalDeltaF, singleAgentDeltaFs[i][(int)check.Direction]);
                 }
             }
 
@@ -163,7 +163,7 @@ class WorldStateForPartialExpansion : WorldState
             this.maxDeltaF += (byte) singleAgentMaxLegalDeltaF;
         }
 
-        fLookup = new DeltaFAchievable[allAgentsState.Length][];
+        fLookup = new DeltaFAchievable[AllAgentsState.Length][];
         for (int i = 0; i < fLookup.Length; i++)
         {
             fLookup[i] = new DeltaFAchievable[this.maxDeltaF + 1]; // Towards the last agents most of the row will be wasted (the last one can do delta F of 0 or 1),
@@ -205,7 +205,7 @@ class WorldStateForPartialExpansion : WorldState
     protected bool existsChildForF(int agentNum, ushort remainingTargetDeltaF)
     {
         // Stopping conditions:
-        if (agentNum == allAgentsState.Length)
+        if (agentNum == AllAgentsState.Length)
         {
             if (remainingTargetDeltaF == 0)
                 return true;
@@ -245,7 +245,7 @@ class WorldStateForPartialExpansion : WorldState
             Trace.Assert(false,
                             $"Remaining deltaF is ushort.MaxValue, a reserved value with special meaning. agentIndex={agentIndex}");
 
-        byte lastMoveDeltaF = this.singleAgentDeltaFs[agentIndex][(int)this.allAgentsState[agentIndex].lastMove.direction];
+        byte lastMoveDeltaF = this.singleAgentDeltaFs[agentIndex][(int)this.AllAgentsState[agentIndex].lastMove.Direction];
         if (lastMoveDeltaF != byte.MaxValue && this.remainingDeltaF >= lastMoveDeltaF)
             this.remainingDeltaF -= lastMoveDeltaF;
         else
@@ -269,12 +269,12 @@ class WorldStateForPartialExpansion : WorldState
         //this.hBonus = 0;
     }
 
-    public override int f
+    public override int F
     {
         get
         {
-            return Math.Max(this.g + this.h,
-                            this.g + this.sic + this.targetDeltaF);
+            return Math.Max(this.G + this.H,
+                            this.G + this.sic + this.targetDeltaF);
         }
     }
 }

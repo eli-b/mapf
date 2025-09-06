@@ -84,30 +84,30 @@ class PDB : IHeuristicCalculator<WorldState>
     /// <param name="previousMoves">A collection of moves performed by the previous agents in this time step (needed to verify that no collisions occur)</param>
     public void Expand(WorldState currentNode, int agentIndex, ICollection<WorldState> children, ICollection<Move> previousMoves)
     {
-        WorldState prev = currentNode.prevStep;
+        WorldState prev = currentNode.PrevStep;
         WorldState childNode;
 
         if (agentIndex == 0) // If this is the first agent that moves
         {
             prev = currentNode;
         }
-        if (agentIndex == problem.agents.Length) // If all the agents have moved
+        if (agentIndex == problem.Agents.Length) // If all the agents have moved
         {
-            currentNode.makespan++;
+            currentNode.Makespan++;
             currentNode.CalculateG();
             children.Add(currentNode);
             return;
         }
 
         // Try all legal moves of the agent
-        foreach (TimedMove agentLocation in currentNode.allAgentsState[agentIndex].lastMove.GetNextMoves())
+        foreach (TimedMove agentLocation in currentNode.AllAgentsState[agentIndex].lastMove.GetNextMoves())
         {
             if (IsValid(agentLocation, agentIndex, previousMoves))
             {
                 previousMoves.Add(agentLocation);
                 childNode = new WorldState(currentNode);
-                childNode.allAgentsState[agentIndex].MoveTo(agentLocation);
-                childNode.prevStep = prev;
+                childNode.AllAgentsState[agentIndex].MoveTo(agentLocation);
+                childNode.PrevStep = prev;
                 Expand(childNode, agentIndex + 1,children, previousMoves);
                 previousMoves.Remove(agentLocation);
             }

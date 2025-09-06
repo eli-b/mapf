@@ -16,7 +16,7 @@ namespace mapf;
     public Agent(int Goal_X, int Goal_Y, int agentNum)
     {
         this.agentNum = agentNum;
-        Goal = new Move(Goal_X, Goal_Y, Move.Direction.NO_DIRECTION);
+        Goal = new Move(Goal_X, Goal_Y, Direction.NO_DIRECTION);
     }
     public override string ToString()
     {

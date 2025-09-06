@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.IO;
 using System.Diagnostics;
 
@@ -17,11 +15,11 @@ namespace mapf;
 public class DynamicLazyOpenList<Item> : OpenList<Item> where Item: IBinaryHeapItem, IHeuristicSearchNode
 {
     public ILazyHeuristic<Item> expensive;
-    public Run runner;
+    public Stopwatch stopwatch;
     protected int lastF;
     protected int nodesPushedBack;
     protected int accNodesPushedBack;
-    public bool debug;
+    private bool _debug;
 
     public DynamicLazyOpenList(ISolver user, ILazyHeuristic<Item> expensive)
         : base(user)
@@ -29,7 +27,7 @@ public class DynamicLazyOpenList<Item> : OpenList<Item> where Item: IBinaryHeapI
         this.expensive = expensive;
         this.ClearStatistics();
         this.accNodesPushedBack = 0;
-        this.debug = false;
+        this._debug = false;
     }
 
     public override string GetName()
@@ -50,7 +48,7 @@ public class DynamicLazyOpenList<Item> : OpenList<Item> where Item: IBinaryHeapI
             // No need to run the expensive heuristic - it can't push back a node over another.
             Debug.WriteLine("Fewer than 2 nodes in the open list - not applying the heuristic");
             node = base.Remove(); // Throws if Count == 0
-            this.lastF = node.f;
+            this.lastF = node.F;
             return node;
         }
         // There are alternatives to the lowest cost node in the open list, try to postpone expansion of it:
@@ -60,24 +58,24 @@ public class DynamicLazyOpenList<Item> : OpenList<Item> where Item: IBinaryHeapI
             node = base.Remove();
 
             if (node.GoalTest() == true || // Can't improve the h of the goal
-                node.hBonus > 0 || // Already computed the expensive heuristic
-                this.runner.ElapsedMilliseconds() > Constants.MAX_TIME) // No time to continue improving H.
+                node.HBonus > 0 || // Already computed the expensive heuristic
+                this.stopwatch.ElapsedMilliseconds > Constants.MAX_TIME) // No time to continue improving H.
                 break;
 
             var next = base.Peek();
-            int targetH = node.GetTargetH(next.f + 1);  // Don't assume f = g + h (but do assume integer costs)
+            int targetH = node.GetTargetH(next.F + 1);  // Don't assume f = g + h (but do assume integer costs)
             int expensiveEstimate = (int)this.expensive.h(node, targetH);
-            if (node.h < expensiveEstimate) // Node may have inherited a better estimate from its parent
+            if (node.H < expensiveEstimate) // Node may have inherited a better estimate from its parent
             {
-                node.hBonus += expensiveEstimate - node.h;
-                node.h = expensiveEstimate;
+                node.HBonus += expensiveEstimate - node.H;
+                node.H = expensiveEstimate;
             }
                 
             if (node.CompareTo(next) == 1) // node is not the smallest F anymore - re-insert into open list
             {
                 this.Add(node);
                 this.nodesPushedBack++;
-                if (this.debug)
+                if (this._debug)
                     Debug.Print("Pushing back the node into the open list with an increased h.");
             }
             else
@@ -91,7 +89,7 @@ public class DynamicLazyOpenList<Item> : OpenList<Item> where Item: IBinaryHeapI
                 break;
             }
         }
-        this.lastF = node.f;
+        this.lastF = node.F;
         return node;
     }
 

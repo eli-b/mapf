@@ -138,7 +138,7 @@ class EnumeratedPDB : PDB
     /// pattern database in units of bytes.</returns>
     public override ulong estimateSize()
     {
-        return permutations[0] * problem.numLocations + (ulong) (sizeof(ulong) * permutations.Length);
+        return permutations[0] * problem.NumLocations + (ulong) (sizeof(ulong) * permutations.Length);
     }
 
     /// <summary>
@@ -168,12 +168,12 @@ class EnumeratedPDB : PDB
         // agents data structure, because during the building process 
         // our state already is a projection.
 
-        WorldState goal = new WorldState(problem.agents, agentsToConsider);
-        foreach (AgentState ags in goal.allAgentsState)
+        WorldState goal = new WorldState(problem.Agents, agentsToConsider);
+        foreach (AgentState ags in goal.AllAgentsState)
             ags.SwapCurrentWithGoal();
         List<uint> vBackup = agentsToConsider;
-        agentsToConsider = new List<uint>(goal.allAgentsState.Length);
-        for (uint i = 0; i < goal.allAgentsState.Length; ++i)
+        agentsToConsider = new List<uint>(goal.AllAgentsState.Length);
+        for (uint i = 0; i < goal.AllAgentsState.Length; ++i)
             agentsToConsider.Add(i);
 
         // Initialize variables and insert the root node into our queue. We
@@ -183,7 +183,7 @@ class EnumeratedPDB : PDB
         // particular state, which is also the shortest path to that state
         // because we are conducting an uninformed breadth-first search.
 
-        table = new Byte[permutations[0] * (problem.numLocations + 1)];
+        table = new Byte[permutations[0] * (problem.NumLocations + 1)];
         for (int i = 0; i < table.Length; ++i)
             table[i] = Byte.MaxValue;
         Context c = new Context();
@@ -224,17 +224,17 @@ class EnumeratedPDB : PDB
                     if (offsetFromSingleShortestPath)
                     {
                         int nSingleAgentShortestPath = 0;
-                        foreach (var a in i.allAgentsState)
+                        foreach (var a in i.AllAgentsState)
                             nSingleAgentShortestPath += this.problem.GetSingleAgentOptimalCost(a);
-                        int nDifference = i.g - nSingleAgentShortestPath;
+                        int nDifference = i.G - nSingleAgentShortestPath;
                         Trace.Assert(nDifference >= 0);
                         Trace.Assert(nDifference < Byte.MaxValue);
                         nCandidateValue = (Byte)nDifference;
                     }
                     else
                     {
-                        Trace.Assert(i.g < Byte.MaxValue);
-                        nCandidateValue = (Byte)i.g;
+                        Trace.Assert(i.G < Byte.MaxValue);
+                        nCandidateValue = (Byte)i.G;
                     }
                     if (nCandidateValue < table[nHash])
                     {
@@ -262,7 +262,7 @@ class EnumeratedPDB : PDB
             foreach (var a in agentsToConsider)
             {
                 nSingleAgentShortestPath +=
-                    this.problem.GetSingleAgentOptimalCost(s.allAgentsState[a]);
+                    this.problem.GetSingleAgentOptimalCost(s.AllAgentsState[a]);
             }
         return (table[hash(s)] + (uint) nSingleAgentShortestPath);
     }
@@ -297,11 +297,11 @@ class EnumeratedPDB : PDB
             // us to keep figure out how many other agents have been placed
             // in positions previous to our current position.
 
-            int card1 = problem.GetCardinality(s.allAgentsState[agentsToConsider[i]].lastMove);
+            int card1 = problem.GetCardinality(s.AllAgentsState[agentsToConsider[i]].lastMove);
             int preceding = 0;
             for (int j = 0; j < i; ++j)
             {
-                int nCard2 = problem.GetCardinality(s.allAgentsState[agentsToConsider[j]].lastMove);
+                int nCard2 = problem.GetCardinality(s.AllAgentsState[agentsToConsider[j]].lastMove);
                 if (nCard2 < card1)
                     ++preceding;
             }
@@ -374,6 +374,6 @@ class EnumeratedPDB : PDB
         permutations = new UInt64[agentsToConsider.Count];
         permutations[permutations.Length - 1] = 1;
         for(var i = permutations.Length - 2; i >= 0; --i)
-            permutations[i] = permutations[i + 1] * (UInt64) (problem.numLocations - (i + 1));
+            permutations[i] = permutations[i + 1] * (UInt64) (problem.NumLocations - (i + 1));
     }
 }

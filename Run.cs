@@ -11,10 +11,6 @@ namespace mapf;
 /// </summary>
 public class Run : IDisposable
 {
-    ////////debug
-    // public static TextWriter resultsWriterdd;
-    /////////////
-
     /// <summary>
     /// Delimiter character used when writing the results of the runs to the output file.
     /// </summary>
@@ -45,7 +41,9 @@ public class Run : IDisposable
     /// EH: I introduced this variable so that debugging and experiments
     /// can have deterministic results.
     /// </summary>
-    static public Random rand = new Random();
+    static public Random rand = new();
+
+    public readonly Stopwatch watch = new();
 
     /// <summary>
     /// Calls resultsWriter.Dispose()
@@ -105,8 +103,6 @@ public class Run : IDisposable
     /// </summary>
     public Run()
     {
-        this.watch = Stopwatch.StartNew();
-
         // Preparing the heuristics:
         astar_heuristics = new List<IHeuristicCalculator<WorldState>>();
         IHeuristicCalculator<WorldState> simple = null;
@@ -161,9 +157,9 @@ public class Run : IDisposable
 
         // Preparing the solvers:
         solvers = new List<ISolver>();
-        solvers.Add(new IndependenceDetection(astar, epea, IndependenceDetection.ConflictChoice.FIRST, true, ConflictAvoidanceTable.AvoidanceGoal.MINIMIZE_CONFLICTS)); // EPEA* + ID
-        solvers.Add(new IndependenceDetection(astar, epea, IndependenceDetection.ConflictChoice.MOST_CONFLICTING_SMALLEST_RESULTING_GROUP, true, ConflictAvoidanceTable.AvoidanceGoal.MINIMIZE_LARGEST_CONFLICTING_GROUP_THEN_NUMBER_OF_SUCH_GROUPS)); // EPEA* + ID
-        solvers.Add(new IndependenceDetection(astar, epea, IndependenceDetection.ConflictChoice.LEAST_CONFLICTING_LARGEST_RESULTING_GROUP, true, ConflictAvoidanceTable.AvoidanceGoal.MINIMIZE_CONFLICTS)); // EPEA* + ID
+        solvers.Add(new IndependenceDetection(astar, epea, IndependenceDetection.ConflictChoice.FIRST, true, AvoidanceGoal.MINIMIZE_CONFLICTS)); // EPEA* + ID
+        solvers.Add(new IndependenceDetection(astar, epea, IndependenceDetection.ConflictChoice.MOST_CONFLICTING_SMALLEST_RESULTING_GROUP, true, AvoidanceGoal.MINIMIZE_LARGEST_CONFLICTING_GROUP_THEN_NUMBER_OF_SUCH_GROUPS)); // EPEA* + ID
+        solvers.Add(new IndependenceDetection(astar, epea, IndependenceDetection.ConflictChoice.LEAST_CONFLICTING_LARGEST_RESULTING_GROUP, true, AvoidanceGoal.MINIMIZE_CONFLICTS)); // EPEA* + ID
 
         //solvers.Add(new MACBS_WholeTreeThreshold(astar, epea)); // CBS/EPEA*
         //solvers.Add(new MACBS_WholeTreeThreshold(
@@ -621,22 +617,21 @@ public class Run : IDisposable
         int y;
         Agent[] aGoals = new Agent[agentsNum];
         AgentState[] aStart = new AgentState[agentsNum];
-        bool[][] grid = new bool[gridSize][];
+        BitMatrix grid = new(gridSize, gridSize);
         bool[][] goals = new bool[gridSize][];
 
         // Generate a random grid
         for (int i = 0; i < gridSize; i++)
         {
-            grid[i] = new bool[gridSize];
             goals[i] = new bool[gridSize];
         }
         for (int i = 0; i < obstaclesNum; i++)
         {
             x = rand.Next(gridSize);
             y = rand.Next(gridSize);
-            if (grid[x][y]) // Already an obstacle
+            if (grid[x, y]) // Already an obstacle
                 i--;
-            grid[x][y] = true;
+            grid[x, y] = true;
         }
 
         // Choose random goal locations
@@ -644,7 +639,7 @@ public class Run : IDisposable
         {
             x = rand.Next(gridSize);
             y = rand.Next(gridSize);
-            if (goals[x][y] || grid[x][y])
+            if (goals[x][y] || grid[x, y])
                 i--;
             else
             {
@@ -656,7 +651,7 @@ public class Run : IDisposable
         // Select random start/goal locations for every agent by performing a random walk
         for (int i = 0; i < agentsNum; i++)
         {
-            aStart[i] = new AgentState(aGoals[i].Goal.x, aGoals[i].Goal.y, aGoals[i]);
+            aStart[i] = new AgentState(aGoals[i].Goal.X, aGoals[i].Goal.Y, aGoals[i]);
         }
 
         // Initialized here only for the IsValid() call. TODO: Think how this can be sidestepped elegantly.
@@ -667,25 +662,25 @@ public class Run : IDisposable
         {
             for (int i = 0; i < agentsNum; i++)
             {
-                goals[aStart[i].lastMove.x][aStart[i].lastMove.y] = false; // We're going to move the goal somewhere else
+                goals[aStart[i].lastMove.X][aStart[i].lastMove.Y] = false; // We're going to move the goal somewhere else
                 while (true)
                 {
-                    Move.Direction op = (Move.Direction)rand.Next(0, 5); // TODO: fixme
+                    Direction op = (Direction)rand.Next(0, 5); // TODO: fixme
                     aStart[i].lastMove.Update(op);
                     if (problem.IsValid(aStart[i].lastMove) &&
-                        !goals[aStart[i].lastMove.x][aStart[i].lastMove.y]) // this spot isn't another agent's goal
+                        !goals[aStart[i].lastMove.X][aStart[i].lastMove.Y]) // this spot isn't another agent's goal
                         break;
                     else
-                        aStart[i].lastMove.setOppositeMove(); // Rollback
+                        aStart[i].lastMove.SetOppositeMove(); // Rollback
                 }
-                goals[aStart[i].lastMove.x][aStart[i].lastMove.y] = true; // Claim agent's new goal
+                goals[aStart[i].lastMove.X][aStart[i].lastMove.Y] = true; // Claim agent's new goal
             }
         }
 
         // Zero the agents' timesteps
         foreach (AgentState agentStart in aStart) 
         {
-            agentStart.lastMove.time = 0;
+            agentStart.lastMove.Time = 0;
         }
 
         // TODO: There is some repetition here of previous instantiation of ProblemInstance. Think how to elegantly bypass this.
@@ -723,19 +718,18 @@ public class Run : IDisposable
             int maxY = int.Parse(lineParts[1]);
             line = input.ReadLine();
             Trace.Assert(line.StartsWith("map"));
-            bool[][] grid = new bool[maxX][];
+            BitMatrix grid = new(maxX, maxY);
             char cell;
             for (int i = 0; i < maxX; i++)
             {
-                grid[i] = new bool[maxY];
                 line = input.ReadLine();
                 for (int j = 0; j < maxY; j++)
                 {
                     cell = line[j];
                     if (cell == '@' || cell == 'O' || cell == 'T' || cell == 'W' /* Water isn't traversable from land */)
-                        grid[i][j] = true;
+                        grid[i, j] = true;
                     else
-                        grid[i][j] = false;
+                        grid[i, j] = false;
                 }
             }
 
@@ -753,7 +747,7 @@ public class Run : IDisposable
             {
                 x = rand.Next(maxX);
                 y = rand.Next(maxY);
-                if (goals[x][y] || grid[x][y])
+                if (goals[x][y] || grid[x, y])
                     i--;
                 else
                 {
@@ -765,36 +759,36 @@ public class Run : IDisposable
             // Select random start/goal locations for every agent by performing a random walk
             for (int i = 0; i < agentsNum; i++)
             {
-                agentStates[i] = new AgentState(agentGoals[i].Goal.x, agentGoals[i].Goal.y, agentGoals[i]);
+                agentStates[i] = new AgentState(agentGoals[i].Goal.X, agentGoals[i].Goal.Y, agentGoals[i]);
             }
 
-            ProblemInstance problem = new ProblemInstance();
-            problem.gridName = Path.GetFileNameWithoutExtension(mapFilePath);
+            ProblemInstance problem = new();
+            problem.GridName = Path.GetFileNameWithoutExtension(mapFilePath);
             problem.Init(agentStates, grid);
 
             for (int j = 0; j < RANDOM_WALK_STEPS; j++)
             {
                 for (int i = 0; i < agentsNum; i++)
                 {
-                    goals[agentStates[i].lastMove.x][agentStates[i].lastMove.y] = false; // We're going to move the goal somewhere else.
+                    goals[agentStates[i].lastMove.X][agentStates[i].lastMove.Y] = false; // We're going to move the goal somewhere else.
                     // Move in a random legal direction:
                     while (true)
                     {
-                        Move.Direction op = (Move.Direction)rand.Next(0, 5); // TODO: fixme
+                        Direction op = (Direction)rand.Next(0, 5); // TODO: fixme
                         agentStates[i].lastMove.Update(op);
                         if (problem.IsValid(agentStates[i].lastMove) &&
-                            !goals[agentStates[i].lastMove.x][agentStates[i].lastMove.y]) // This spot isn't another agent's goal
+                            !goals[agentStates[i].lastMove.X][agentStates[i].lastMove.Y]) // This spot isn't another agent's goal
                             break;
                         else
-                            agentStates[i].lastMove.setOppositeMove(); // Rollback
+                            agentStates[i].lastMove.SetOppositeMove(); // Rollback
                     }
-                    goals[agentStates[i].lastMove.x][agentStates[i].lastMove.y] = true; // Claim agent's new goal
+                    goals[agentStates[i].lastMove.X][agentStates[i].lastMove.Y] = true; // Claim agent's new goal
                 }
             }
 
             // Zero the agents' timesteps
             foreach (AgentState agentStart in agentStates)
-                agentStart.lastMove.time = 0;
+                agentStart.lastMove.Time = 0;
 
             return problem;
         }
@@ -809,7 +803,7 @@ public class Run : IDisposable
     {
         //return; // add for generator
         // Preparing a list of agent indices (not agent nums) for the heuristics' Init() method
-        List<uint> agentList = Enumerable.Range(0, instance.agents.Length).Select(x=> (uint)x).ToList(); // FIXME: Must the heuristics really receive a list of uints?
+        List<uint> agentList = Enumerable.Range(0, instance.Agents.Length).Select(x=> (uint)x).ToList(); // FIXME: Must the heuristics really receive a list of uints?
             
         // Solve using the different algorithms
         Console.WriteLine($"Solving {instance}");
@@ -841,12 +835,12 @@ public class Run : IDisposable
                 //    ((CBS)((IndependenceDetection)solvers[i]).groupSolver).debug = true;
                 if (solvers[i].GetType() == typeof(CBS) || solvers[i].GetType() == typeof(MACBS_WholeTreeThreshold))
                 {
-                    if (((CBS)solvers[i]).mergeThreshold == 314159) // MAGIC NUMBER WHICH MAKES US ADJUST B according to map
+                    if (((CBS)solvers[i]).MergeThreshold == 314159) // MAGIC NUMBER WHICH MAKES US ADJUST B according to map
                     {
-                        if (instance.gridName.StartsWith("den"))
-                            ((CBS)solvers[i]).mergeThreshold = 10;
-                        else if (instance.gridName.StartsWith("brc") || instance.gridName.StartsWith("ost"))
-                            ((CBS)solvers[i]).mergeThreshold = 100;
+                        if (instance.GridName.StartsWith("den"))
+                            ((CBS)solvers[i]).MergeThreshold = 10;
+                        else if (instance.GridName.StartsWith("brc") || instance.GridName.StartsWith("ost"))
+                            ((CBS)solvers[i]).MergeThreshold = 100;
                     }
                 }
 
@@ -858,12 +852,12 @@ public class Run : IDisposable
                         ((IndependenceDetection)solvers[i]).groupSolver.GetType() == typeof(MACBS_WholeTreeThreshold))
                     )
                 {
-                    if (((CBS)((IndependenceDetection)solvers[i]).groupSolver).mergeThreshold == 314159) // MAGIC NUMBER SEE ABOVE
+                    if (((CBS)solvers[i]).MergeThreshold == 314159) // MAGIC NUMBER SEE ABOVE
                     {
-                        if (instance.gridName.StartsWith("den"))
-                            ((CBS)((IndependenceDetection)solvers[i]).groupSolver).mergeThreshold = 10;
-                        else if (instance.gridName.StartsWith("brc") || instance.gridName.StartsWith("ost"))
-                            ((CBS)((IndependenceDetection)solvers[i]).groupSolver).mergeThreshold = 100;
+                        if (instance.GridName.StartsWith("den"))
+                            ((CBS)solvers[i]).MergeThreshold = 10;
+                        else if (instance.GridName.StartsWith("brc") || instance.GridName.StartsWith("ost"))
+                            ((CBS)solvers[i]).MergeThreshold = 100;
                     }
                 }
 
@@ -933,15 +927,14 @@ public class Run : IDisposable
     public void SolveGivenProblemIncrementally(ProblemInstance instance)
     {
         // Preparing a list of agent indices (not agent nums) for the heuristics' Init() method
-        List<uint> agentList = Enumerable.Range(0, instance.agents.Length).Select(x => (uint)x).ToList(); // FIXME: Must the heuristics really receive a list of uints?
+        List<uint> agentList = Enumerable.Range(0, instance.Agents.Length).Select(x => (uint)x).ToList(); // FIXME: Must the heuristics really receive a list of uints?
 
-        CooperativeAStar cooperativeAStar = new CooperativeAStar();
-        cooperativeAStar.Setup(instance, this);
-        this.startTime = this.ElapsedMillisecondsTotal();
-        double handlingStartTime = this.ElapsedMillisecondsTotal();
+        CooperativeAStar cooperativeAStar = new();
+        cooperativeAStar.Setup(instance, watch);
+
         double elapsedTime = 0;
 
-        foreach (var agentIndex in Enumerable.Range(0, instance.agents.Length))
+        foreach (var agentIndex in Enumerable.Range(0, instance.Agents.Length))
         {
             // Solve using the different algorithms
             Console.WriteLine($"Solving {instance} agent {agentIndex}");
@@ -950,10 +943,10 @@ public class Run : IDisposable
             GC.Collect();
             GC.WaitForPendingFinalizers();
 
-            this.startTime += this.ElapsedMillisecondsTotal() - handlingStartTime;
+            watch.Restart();
             bool solved = cooperativeAStar.AddOneAgent(agentIndex);
-            elapsedTime = this.ElapsedMilliseconds();
-            handlingStartTime = this.ElapsedMillisecondsTotal();
+            elapsedTime = watch.ElapsedMilliseconds;
+
             if (solved)
             {
                 Console.WriteLine("Total cost: {0}", cooperativeAStar.GetSolutionCost());
@@ -968,7 +961,7 @@ public class Run : IDisposable
 
             Console.WriteLine("Time In milliseconds: {0}", elapsedTime);
 
-            this.PrintStatistics(instance, cooperativeAStar, elapsedTime + instance.shortestPathComputeTime);
+            this.PrintStatistics(instance, cooperativeAStar, elapsedTime + instance.ShortestPathComputeTime);
 
             Console.WriteLine();
 
@@ -1001,10 +994,10 @@ public class Run : IDisposable
         // Run the algorithm
         bool solved;
         Console.WriteLine($"-----------------{solver}-----------------");
-        this.startTime = this.ElapsedMillisecondsTotal();
-        solver.Setup(instance, this);
+        watch.Restart();
+        solver.Setup(instance, watch);
         solved = solver.Solve();
-        double elapsedTime = this.ElapsedMilliseconds();
+        double elapsedTime = watch.ElapsedMilliseconds;
         if (solved)
         {
             Console.WriteLine("Total cost: {0}", solver.GetSolutionCost());
@@ -1018,11 +1011,12 @@ public class Run : IDisposable
         }
         Console.WriteLine();
 
-        Console.WriteLine("Time In milliseconds: {0}", elapsedTime + instance.shortestPathComputeTime);
+        Console.WriteLine("Time In milliseconds: {0}", elapsedTime + instance.ShortestPathComputeTime);
+        Console.WriteLine("Of which shortest path compute time in milliseconds: {0}", instance.ShortestPathComputeTime);
         // TODO: Allow solvers to claim they don't use this heuristic and don't add the time to
         //       compute it to their runtime.
 
-        this.PrintStatistics(instance, solver, elapsedTime + instance.shortestPathComputeTime);
+        this.PrintStatistics(instance, solver, elapsedTime + instance.ShortestPathComputeTime);
         // Solver clears itself when it finishes the search.
         solver.ClearStatistics();
     }
@@ -1097,19 +1091,19 @@ public class Run : IDisposable
     private void PrintProblemStatistics(ProblemInstance instance)
     {
         // Grid Name col:
-        this.resultsWriter.Write(instance.gridName + RESULTS_DELIMITER);
+        this.resultsWriter.Write(instance.GridName + RESULTS_DELIMITER);
         // Grid Rows col:
-        this.resultsWriter.Write(instance.grid.Length + RESULTS_DELIMITER);
+        this.resultsWriter.Write(instance.Grid.ColumnsCount + RESULTS_DELIMITER);
         // Grid Columns col:
-        this.resultsWriter.Write(instance.grid[0].Length + RESULTS_DELIMITER);
+        this.resultsWriter.Write(instance.Grid.RowsCount + RESULTS_DELIMITER);
         // Scenario/instance Name col:
-        this.resultsWriter.Write(instance.instanceName + RESULTS_DELIMITER);
+        this.resultsWriter.Write(instance.InstanceName + RESULTS_DELIMITER);
         // Num Of Agents col:
-        this.resultsWriter.Write(instance.agents.Length + RESULTS_DELIMITER);
+        this.resultsWriter.Write(instance.Agents.Length + RESULTS_DELIMITER);
         // Num Of Obstacles col:
-        this.resultsWriter.Write(instance.numObstacles + RESULTS_DELIMITER);
+        this.resultsWriter.Write(instance.NumObstacles + RESULTS_DELIMITER);
         // Instance Id col:
-        this.resultsWriter.Write(instance.instanceId + RESULTS_DELIMITER);
+        this.resultsWriter.Write(instance.InstanceId + RESULTS_DELIMITER);
     }
 
     private void ContinueToNextLine()
@@ -1139,30 +1133,5 @@ public class Run : IDisposable
         {
             outOfTimeCounters[i] = 0;
         }
-    }
-
-    private Stopwatch watch;
-    public double ElapsedMillisecondsTotal()
-    {
-        return this.watch.Elapsed.TotalMilliseconds;
-    }
-
-    public double ElapsedMilliseconds()
-    {
-        return ElapsedMillisecondsTotal() - this.startTime;
-    }
-
-    public void StartOracle()
-    {
-        this.watch.Stop();
-        // NOTE: This allows the algorithm with the oracle to solve harder problems without timing out.
-        // Care must be taken when comparing average runtimes of algorithms, to avoid the average
-        // runtime of algorithms with an oracle appearing longer since they managed to solve
-        // harder problems.
-    }
-
-    public void StopOracle()
-    {
-        this.watch.Start();
     }
 }

@@ -30,7 +30,7 @@ public class CbsConflict
         this.agentAmove = agentAMove;
         this.agentBmove = agentBMove;
         this.timeStep = timeStep;
-        if (agentAMove.x == agentBMove.x && agentAMove.y == agentBMove.y) // Same dest, from any direction
+        if (agentAMove.X == agentBMove.X && agentAMove.Y == agentBMove.Y) // Same dest, from any direction
             this.isVertexConflict = true;
         else
         {
@@ -62,9 +62,9 @@ public class CbsConflict
             return false;
         if (this.isVertexConflict)
         { // Compare dests, ignore directions. Enough to compare one agent's move because the other is colliding with it.
-            if (this.agentAmove.x != other.agentAmove.x)
+            if (this.agentAmove.X != other.agentAmove.X)
                 return false;
-            if (this.agentAmove.y != other.agentAmove.y)
+            if (this.agentAmove.Y != other.agentAmove.Y)
                 return false;
         }
         else

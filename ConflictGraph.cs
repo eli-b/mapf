@@ -5,9 +5,9 @@ namespace mapf;
 
 public class ConflictGraph
 {
-    public bool[,] G;
-    public int numOfNodes;
-    public int numOfEdges;
+    private bool[,] _g;
+    private int _numOfNodes;
+    private int _numOfEdges;
 
     public enum MinVertexCover : sbyte
     {
@@ -16,30 +16,31 @@ public class ConflictGraph
 
     public ConflictGraph(int numOfAgents)
     {
-        this.numOfEdges = 0;
-        this.numOfNodes = 0;
-        this.G = new bool[numOfAgents, numOfAgents];
+        _numOfEdges = 0;
+        _numOfNodes = 0;
+        _g = new bool[numOfAgents, numOfAgents];
         for (int i = 0; i< numOfAgents; i++)  // FIXME: Not necessary.
         {
             for (int j = 0; j < numOfAgents; j++)
-                G[i, j] = false;
+                _g[i, j] = false;
         }
     }
+
     public ConflictGraph(ConflictGraph other)
     {
-        this.numOfEdges = other.numOfEdges;
-        this.numOfNodes = other.numOfNodes;
-        this.G = new bool[other.G.GetLength(0), other.G.GetLength(1)];
-        Array.Copy(other.G, G, G.Length);
+        _numOfEdges = other._numOfEdges;
+        _numOfNodes = other._numOfNodes;
+        _g = new bool[other._g.GetLength(0), other._g.GetLength(1)];
+        Array.Copy(other._g, _g, _g.Length);
     }
 
     public void Add(int agentAId, int agentBId)
     {
-        if (!G[agentAId, agentBId])
+        if (!_g[agentAId, agentBId])
         {
-            G[agentAId, agentBId] = true;
-            G[agentBId, agentAId] = true;
-            numOfEdges++;
+            _g[agentAId, agentBId] = true;
+            _g[agentBId, agentAId] = true;
+            _numOfEdges++;
         }
     }
 
@@ -50,18 +51,18 @@ public class ConflictGraph
     /// <returns>The size of the 2-approximate minimum vertex cover</returns>
     public int ApproximateMinimumVertexCover(int prevMVC = (int)MinVertexCover.NOT_SET)
     {
-        if (this.numOfEdges < 2)
-            return this.numOfEdges;
+        if (_numOfEdges < 2)
+            return _numOfEdges;
 
-        var approximateMinCover = new HashSet<int>();
-        for (int i = 0; i < this.G.GetLength(0) - 1; i++)
+        HashSet<int> approximateMinCover = [];
+        for (int i = 0; i < _g.GetLength(0) - 1; i++)
         {
             if (approximateMinCover.Contains(i)) // Node i already in the cover - all its edges are already covered.
                 continue;
 
-            for (int j = i + 1; j < this.G.GetLength(1); j++)
+            for (int j = i + 1; j < _g.GetLength(1); j++)
             {
-                if (G[i, j])
+                if (_g[i, j])
                 {
                     if (approximateMinCover.Contains(j) == false)
                     {
@@ -83,25 +84,25 @@ public class ConflictGraph
     /// <returns>The size of the minimum vertex cover</returns>
     public int MinimumVertexCover(int prevMVC = (int) MinVertexCover.NOT_SET)
     {
-        if (this.numOfEdges < 2)
-            return this.numOfEdges;
+        if (_numOfEdges < 2)
+            return _numOfEdges;
 
         // compute number of nodes that have edges
-        this.numOfNodes = 0;
-        for (int i = 0; i < this.G.GetLength(0); i++)
+        _numOfNodes = 0;
+        for (int i = 0; i < _g.GetLength(0); i++)
         {
-            for (int j = 0; j < this.G.GetLength(1); j++)
+            for (int j = 0; j < _g.GetLength(1); j++)
             {
-                if (G[i,j])
+                if (_g[i,j])
                 {
-                    this.numOfNodes++;
+                    _numOfNodes++;
                     break;
                 }
             }
         }
 
         if (prevMVC == (int) MinVertexCover.NOT_SET) // root node of CBS tree, or any node on whose parent we decided not to compute this heuristic
-            for (int i = 1; i < this.numOfNodes; i++)
+            for (int i = 1; i < _numOfNodes; i++)
                 if (KVertexCover(this, i))
                     return i;
 
@@ -138,9 +139,9 @@ public class ConflictGraph
     /// </summary>
     private static bool KVertexCover(ConflictGraph CG, int k, int lastEdgeX = 0)
     {
-        if (CG.numOfEdges == 0)
+        if (CG._numOfEdges == 0)
             return true;
-        else if (CG.numOfEdges > k * CG.numOfNodes - k) // |E| > K*(|V|-1), there are more edges
+        else if (CG._numOfEdges > k * CG._numOfNodes - k) // |E| > K*(|V|-1), there are more edges
             // to cover than the maximum number of edges that could be covered with K vertices
             // (if every vertex chosen for the cover is connected to all other vertices in the graph),
             // so a K vertex cover is impossible
@@ -148,13 +149,13 @@ public class ConflictGraph
 
         // Choose an edge (u,v) - (this step is actually O(n^2) but the algorithm assumes is done in constant time)
         // TODO: Measure if this part is significant
-        int[] edge = new int[2];
+        Span<int> edge = stackalloc int[2];
         bool found = false;
-        for (int i = lastEdgeX; i < CG.G.GetLength(0) - 1 && !found; i++)
+        for (int i = lastEdgeX; i < CG._g.GetLength(0) - 1 && !found; i++)
         {
-            for (int j = i + 1; j < CG.G.GetLength(1) && !found; j++)
+            for (int j = i + 1; j < CG._g.GetLength(1) && !found; j++)
             {
-                if (CG.G[i, j])
+                if (CG._g[i, j])
                 {
                     edge[0] = i;
                     edge[1] = j;
@@ -167,20 +168,20 @@ public class ConflictGraph
         // If any are true, return true. Else return false.
         for (int i = 0; i < 2; i++)
         {
-            ConflictGraph CG_copy = new ConflictGraph(CG);  // TODO: This part also costs n^2
-            for (int j = 0; j < CG.G.GetLength(0); j++)
+            ConflictGraph CG_copy = new(CG);  // TODO: This part also costs n^2
+            for (int j = 0; j < CG._g.GetLength(0); j++)
             {
-                if (CG_copy.G[edge[i], j])
+                if (CG_copy._g[edge[i], j])
                 {
-                    CG_copy.G[edge[i], j] = false;
-                    CG_copy.G[j, edge[i]] = false;
-                    CG_copy.numOfEdges--;
+                    CG_copy._g[edge[i], j] = false;
+                    CG_copy._g[j, edge[i]] = false;
+                    CG_copy._numOfEdges--;
                 }
             }
-            CG_copy.numOfNodes--;
+            CG_copy._numOfNodes--;
             if (KVertexCover(CG_copy, k - 1, edge[0]))
                 return true;
         }
         return false;
-        }
+    }
 }

@@ -70,9 +70,9 @@ class MvcHeuristicForCbs : ILazyHeuristic<CbsNode>
         Debug.WriteLine($"Computing heuristic estimate for node hash {s.GetHashCode()}");
         if (target != int.MaxValue &&
             (
-            (s.prev != null && s.prev.minimumVertexCover != (int) ConflictGraph.MinVertexCover.NOT_SET && 
-                                                                    target > s.prev.minimumVertexCover + 1) ||
-            (target > s.totalInternalAgentsThatConflict))
+            (s.Prev != null && s.Prev.MinimumVertexCover != (int) ConflictGraph.MinVertexCover.NOT_SET && 
+                                                                    target > s.Prev.MinimumVertexCover + 1) ||
+            (target > s.TotalInternalAgentsThatConflict))
             )
         {
             Debug.WriteLine($"Target estimate {target} was too high!");
@@ -83,30 +83,30 @@ class MvcHeuristicForCbs : ILazyHeuristic<CbsNode>
                         // 0 just signals we couldn't raise the h enough.
         }
 
-        ConflictGraph CardinallyConflictingAgents = new ConflictGraph(s.singleAgentPlans.Length);
+        ConflictGraph CardinallyConflictingAgents = new ConflictGraph(s.SingleAgentPlans.Length);
         ISet<int>[] groups = s.GetGroups();
 
         // Populate the cardinal conflict graph
-        foreach (var agentIndex in Enumerable.Range(0, s.singleAgentPlans.Length))
+        foreach (var agentIndex in Enumerable.Range(0, s.SingleAgentPlans.Length))
         {
-            if (s.conflictTimesPerAgent[agentIndex].Count == 0)
+            if (s.ConflictTimesPerAgent[agentIndex].Count == 0)
                 continue;  // Agent has no conflicts
-            bool hasMdd = s.mddNarrownessValues[agentIndex] != null;
+            bool hasMdd = s.MDDNarrownessValues[agentIndex] != null;
             bool canBuildMDD = groups[agentIndex].Count == 1;
             if (canBuildMDD == false)
                 continue;  // We aren't going to lookahead just for the heuristic
 
-            foreach (int conflictingAgentNum in s.conflictTimesPerAgent[agentIndex].Keys)
+            foreach (int conflictingAgentNum in s.ConflictTimesPerAgent[agentIndex].Keys)
             {
-                int conflictingAgentIndex = s.agentNumToIndex[conflictingAgentNum];
+                int conflictingAgentIndex = s.AgentNumToIndex[conflictingAgentNum];
                 if (conflictingAgentIndex < agentIndex) // check later
                     continue;
-                bool otherHasMdd = s.mddNarrownessValues[conflictingAgentIndex] != null;
+                bool otherHasMdd = s.MDDNarrownessValues[conflictingAgentIndex] != null;
                 bool otherCanBuildMdd = groups[conflictingAgentIndex].Count == 1;
                 if (otherCanBuildMdd == false)
                     continue;  // We won't lookahead just for the heuristic
 
-                foreach (int conflictTime in s.conflictTimesPerAgent[agentIndex][conflictingAgentNum])
+                foreach (int conflictTime in s.ConflictTimesPerAgent[agentIndex][conflictingAgentNum])
                 {
                     bool otherNarrow;
                     if (otherHasMdd)
@@ -135,15 +135,15 @@ class MvcHeuristicForCbs : ILazyHeuristic<CbsNode>
             }
         }
 
-        if (s.prev == null || s.prev.minimumVertexCover == (int) ConflictGraph.MinVertexCover.NOT_SET)
-            s.minimumVertexCover = CardinallyConflictingAgents.MinimumVertexCover();
+        if (s.Prev == null || s.Prev.MinimumVertexCover == (int) ConflictGraph.MinVertexCover.NOT_SET)
+            s.MinimumVertexCover = CardinallyConflictingAgents.MinimumVertexCover();
         else
-            s.minimumVertexCover = CardinallyConflictingAgents.MinimumVertexCover(s.prev.minimumVertexCover);
+            s.MinimumVertexCover = CardinallyConflictingAgents.MinimumVertexCover(s.Prev.MinimumVertexCover);
         // FIXME: The value might be incorrect after a merge operation which wasn't followed by a restart
 
         if (target != int.MaxValue)
         {
-            if (s.minimumVertexCover >= target)
+            if (s.MinimumVertexCover >= target)
             {
                 Debug.WriteLine($"Target estimate {target} reached");
                 this.targetReached++;
@@ -155,7 +155,7 @@ class MvcHeuristicForCbs : ILazyHeuristic<CbsNode>
             }
         }
 
-        return (uint)s.minimumVertexCover;
+        return (uint)s.MinimumVertexCover;
     }
 
     public void Init(ProblemInstance pi, List<uint> agentsToConsider)

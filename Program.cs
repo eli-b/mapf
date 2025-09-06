@@ -124,7 +124,7 @@ class Program
                             try
                             {
                                 instance = ProblemInstance.Import(Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "..", "Instances", instanceName));
-                                instance.instanceId = i;
+                                instance.InstanceId = i;
                             }
                             catch (Exception importException)
                             {
@@ -136,7 +136,7 @@ class Program
 
                                 instance = runner.GenerateProblemInstance(gridSizes[gridSizeIndex], agentListSizes[numOfAgentsIndex], obstaclesProbs[obstaclePercentageIndex] * gridSizes[gridSizeIndex] * gridSizes[gridSizeIndex] / 100);
                                 instance.ComputeSingleAgentShortestPaths(); // REMOVE FOR GENERATOR
-                                instance.instanceId = i;
+                                instance.InstanceId = i;
                                 instance.Export(instanceName);
                             }
 
@@ -260,7 +260,7 @@ class Program
 
                             instance = runner.GenerateDragonAgeProblemInstance(mapFilePath, agentListSizes[ag]);
                             instance.ComputeSingleAgentShortestPaths(); // Consider just importing the generated problem after exporting it to remove the duplication of this line from Import()
-                            instance.instanceId = i;
+                            instance.InstanceId = i;
                             instance.Export(instanceName);
                         }
 
@@ -356,11 +356,11 @@ class Program
                 Console.WriteLine(e.StackTrace);
                 return;
             }
-            Run runner = new Run();  // instantiates stuff unnecessarily
-            runner.startTime = runner.ElapsedMillisecondsTotal();
+            Run runner = new();  // instantiates stuff unnecessarily
+            runner.watch.Restart();
                 
             IHeuristicCalculator<WorldState> lowLevelHeuristic = new SumIndividualCosts();
-            List<uint> agentList = Enumerable.Range(0, instance.agents.Length).Select(x=> (uint)x).ToList(); // FIXME: Must the heuristics really receive a list of uints?
+            List<uint> agentList = Enumerable.Range(0, instance.Agents.Length).Select(x=> (uint)x).ToList(); // FIXME: Must the heuristics really receive a list of uints?
             lowLevelHeuristic.Init(instance, agentList);
             IIndependenceDetectionSolver lowLevel = new A_Star(lowLevelHeuristic);
             ILazyHeuristic<CbsNode> highLevelHeuristic = new MvcHeuristicForCbs();
@@ -376,7 +376,7 @@ class Program
             //ISolver solver = new IndependenceDetection(lowLevel, new EPEA_Star(lowLevelHeuristic));
             //ISolver solver = new IndependenceDetection(lowLevel, new CostTreeSearchSolverOldMatching(3));
             ISolver solver = new IndependenceDetection(lowLevel, new A_Star_WithOD(lowLevelHeuristic));
-            solver.Setup(instance, runner);
+            solver.Setup(instance, runner.watch);
             bool solved = solver.Solve();
             if (solved == false)
             {
@@ -424,9 +424,9 @@ class Program
                         runner.OpenResultsFile(RESULTS_FILE_NAME);
                         if (resultsFileExisted == false)
                             runner.PrintResultsFileHeader();
-                        foreach (var numAgents in Enumerable.Range(1, problem.agents.Length))
+                        foreach (var numAgents in Enumerable.Range(1, problem.Agents.Length))
                         {
-                            var subProblem = problem.Subproblem(problem.agents.Take(numAgents).ToArray());
+                            var subProblem = problem.Subproblem(problem.Agents.Take(numAgents).ToArray());
                             bool success = runner.SolveGivenProblem(subProblem);
                             if (success == false)
                                 break;

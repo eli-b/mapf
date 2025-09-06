@@ -41,7 +41,7 @@ class SumIndividualCosts : PDB
     public static uint h(WorldState s, ProblemInstance instance)
     {
         uint nHeuristic = 0;
-        foreach (AgentState state in s.allAgentsState)
+        foreach (AgentState state in s.AllAgentsState)
         {
             nHeuristic += (uint)instance.GetSingleAgentOptimalCost(state);
         }
@@ -122,7 +122,7 @@ class MaxIndividualCosts : PDB
         int i = 0;
         // TODO: Consider adding another extension function like IndexOfMax that also returns the max
         //       to replace the loop below. Though, it would make debugging less convenient.
-        foreach (AgentState state in s.allAgentsState)
+        foreach (AgentState state in s.AllAgentsState)
         {
             uint heuristic = (uint)instance.GetSingleAgentOptimalCost(state);
             if (heuristic > maxHeuristic)

@@ -46,16 +46,16 @@ public class WorldStateWithOD : WorldState
         {
             // CBS doesn't handle partially expanded nodes well.
             // Use the last fully expanded node and add the additional moves as must conds:
-            state = this.prevStep; // Points to the last fully expanded node.
+            state = this.PrevStep; // Points to the last fully expanded node.
         }
 
-        ProblemInstance subproblem = initial.Subproblem(state.allAgentsState); // Can't use base's method because we're operating on a different object
+        ProblemInstance subproblem = initial.Subproblem(state.AllAgentsState); // Can't use base's method because we're operating on a different object
         var positiveConstraints = new HashSet<CbsConstraint>();
         if (this.agentTurn != 0)
         {
             for (int i = 0; i < this.agentTurn; ++i)
             {
-                positiveConstraints.Add(new CbsConstraint(this.allAgentsState[i].agent.agentNum, this.allAgentsState[i].lastMove));
+                positiveConstraints.Add(new CbsConstraint(this.AllAgentsState[i].agent.agentNum, this.AllAgentsState[i].lastMove));
             }
         }
 
@@ -71,7 +71,7 @@ public class WorldStateWithOD : WorldState
         if (this.agentTurn == 0)
             this.singlePlans = SinglePlan.GetSinglePlans(this);
         else
-            this.singlePlans = SinglePlan.GetSinglePlans(this.prevStep);
+            this.singlePlans = SinglePlan.GetSinglePlans(this.PrevStep);
             // ToProblemInstance gives the last proper state as the problem to solve,
             // with must constraints to make the solution go through the steps already
             // taken from there.
@@ -124,21 +124,21 @@ public class WorldStateWithOD : WorldState
         if (this.agentTurn == 0) // All agents have moved, safe to ignore direction information.
             return base.Equals(obj);
 
-        if (this.allAgentsState.Length != that.allAgentsState.Length)
+        if (this.AllAgentsState.Length != that.AllAgentsState.Length)
             return false;
 
         // Comparing the agent states:
-        for (int i = 0; i < this.allAgentsState.Length; ++i)
+        for (int i = 0; i < this.AllAgentsState.Length; ++i)
         {
-            if (this.allAgentsState[i].Equals(that.allAgentsState[i]) == false)
+            if (this.AllAgentsState[i].Equals(that.AllAgentsState[i]) == false)
                 return false;
             if (i < this.agentTurn) // Agent has already moved in this step
             {
                 bool mightCollideLater = false;
-                for (int j = this.agentTurn; j < this.allAgentsState.Length; j++)
+                for (int j = this.agentTurn; j < this.AllAgentsState.Length; j++)
                 {
-                    if (this.allAgentsState[i].lastMove.x == this.allAgentsState[j].lastMove.x &&
-                        this.allAgentsState[i].lastMove.y == this.allAgentsState[j].lastMove.y) // Can't just remove the direction and use IsColliding since the moves' time is different, so they'll never collide
+                    if (this.AllAgentsState[i].lastMove.X == this.AllAgentsState[j].lastMove.X &&
+                        this.AllAgentsState[i].lastMove.Y == this.AllAgentsState[j].lastMove.Y) // Can't just remove the direction and use IsColliding since the moves' time is different, so they'll never collide
                     {
                         mightCollideLater = true;
                         break;
@@ -147,9 +147,9 @@ public class WorldStateWithOD : WorldState
 
                 if (mightCollideLater == true) // Then check the direction too
                 {
-                    if (this.allAgentsState[i].lastMove.direction != Move.Direction.NO_DIRECTION &&
-                            that.allAgentsState[i].lastMove.direction != Move.Direction.NO_DIRECTION &&
-                            this.allAgentsState[i].lastMove.direction != that.allAgentsState[i].lastMove.direction) // Can't just use this.allAgentsState[i].lastMove.Equals(that.allAgentsState[i].lastMove) because TimedMoves don't ignore the time.
+                    if (this.AllAgentsState[i].lastMove.Direction != Direction.NO_DIRECTION &&
+                            that.AllAgentsState[i].lastMove.Direction != Direction.NO_DIRECTION &&
+                            this.AllAgentsState[i].lastMove.Direction != that.AllAgentsState[i].lastMove.Direction) // Can't just use this.allAgentsState[i].lastMove.Equals(that.allAgentsState[i].lastMove) because TimedMoves don't ignore the time.
                         return false;
                 }
             }
@@ -196,10 +196,10 @@ public class WorldStateWithOD : WorldState
     {
         int lastAgentToMove = agentTurn - 1;
         if (agentTurn == 0)
-            lastAgentToMove = allAgentsState.Length - 1;
+            lastAgentToMove = AllAgentsState.Length - 1;
 
-        allAgentsState[lastAgentToMove].lastMove.IncrementConflictCounts(conflictAvoidance,
-                                                                        this.conflictCounts, this.conflictTimes);
-        this.primaryTieBreaker = this.conflictCounts.Sum(pair => pair.Value);
+        AllAgentsState[lastAgentToMove].lastMove.IncrementConflictCounts(conflictAvoidance,
+                                                                        this.ConflictCounts, this.ConflictTimes);
+        this._primaryTieBreaker = this.ConflictCounts.Sum(pair => pair.Value);
     }
 }

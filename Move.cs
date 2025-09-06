@@ -1,7 +1,27 @@
 ﻿using System.Collections.Generic;
-using System.Linq;
 
 namespace mapf;
+
+public enum Direction : byte
+{
+    Wait = 0,
+    North,
+    East,
+    South,
+    West,
+    NorthEast,
+    SouthEast,
+    SouthWest,
+    NorthWest,
+    /// <summary>
+    /// This constant is set to the direction field to mark that this move does not hold a direction.
+    /// <remarks> 
+    /// Directionless moves are a poor design choice instead of making a class that represents a 2D point,
+    /// but will probably be more efficient.
+    /// </remarks>
+    /// </summary>
+    NO_DIRECTION = 9,
+};
 
 /// <summary>
 /// This class represents a single move of an agent. 
@@ -10,52 +30,25 @@ namespace mapf;
 /// </summary>
 public class Move
 {
-    public enum Direction : int
-    {
-        Wait = 0,
-        North,
-        East,
-        South,
-        West,
-        NorthEast,
-        SouthEast,
-        SouthWest,
-        NorthWest,
-        /// <summary>
-        /// This constant is set to the direction field to mark that this move does not hold a direction.
-        /// <remarks> 
-        /// Directionless moves are a poor design choice instead of making a class that represents a 2D point,
-        /// but will probably be more efficient.
-        /// </remarks>
-        /// </summary>
-        NO_DIRECTION = 9,
-    }
-
     public const int FIRST_NON_WAIT = (int)Direction.North;
     public const int NUM_NON_DIAG_MOVES = 5;
     public const int NUM_DIRECTIONS = 9;
 
-    public int x;
-    public int y;
-    public Direction direction;
+    public int X {  get; set; }
+    public int Y { get; set; }
+
+    public Direction Direction { get; set; }
 
     public Move() { }
 
     public Move(int x, int y, Direction direction)
     {
-        // TODO: Consider calling Setup(x, y, direction) instead of this duplication
-        this.x = x;
-        this.y = y;
-        this.direction = direction;
+        X = x;
+        Y = y;
+        Direction = direction;
     }
 
-    public Move(Move cpy)
-    {
-        // TODO: Consider calling Setup(cpy) instead of this duplication
-        this.x = cpy.x;
-        this.y = cpy.y;
-        this.direction = cpy.direction;
-    }
+    public Move(Move cpy) : this( cpy.X, cpy.Y, cpy.Direction ) {}
 
     protected static readonly int[,] directionToDeltas = {
         {0,   0, }, // Wait
@@ -139,7 +132,7 @@ public class Move
             directions = Move.validDirectionsNoDiag;
         foreach (Direction op in directions)
         {
-            yield return new Move(this.x + Move.directionToDeltas[(int)op, 0], this.y + Move.directionToDeltas[(int)op, 1], op);
+            yield return new Move(X + Move.directionToDeltas[(int)op, 0], Y + Move.directionToDeltas[(int)op, 1], op);
         }
     }
 
@@ -149,25 +142,25 @@ public class Move
     /// <param name="direction"></param>
     public virtual void Update(Direction direction)
     {
-        this.x += Move.directionToDeltas[(int)direction, 0];
-        this.y += Move.directionToDeltas[(int)direction, 1];
-        this.direction = direction;
+        X += Move.directionToDeltas[(int)direction, 0];
+        Y += Move.directionToDeltas[(int)direction, 1];
+        Direction = direction;
     }
 
     public Move GetSource()
     {
-        var source_x = this.x + directionToOppositeDeltas[(int)direction, 0];
-        var source_y = this.y + directionToOppositeDeltas[(int)direction, 1];
+        var source_x = X + directionToOppositeDeltas[(int)Direction, 0];
+        var source_y = Y + directionToOppositeDeltas[(int)Direction, 1];
         return new Move(source_x, source_y, Direction.NO_DIRECTION);
     }
 
     public Move GetOppositeMove()
     {
-        if (direction == Direction.Wait || direction == Direction.NO_DIRECTION)
+        if (Direction == Direction.Wait || Direction == Direction.NO_DIRECTION)
             return this; // Not Move(this). TODO: Make sure this is correct.
-        return new Move(this.x + directionToOppositeDeltas[(int)direction, 0],
-                        this.y + directionToOppositeDeltas[(int)direction, 1],
-                        directionToOppositeDirection[(int)direction]);
+        return new Move(X + directionToOppositeDeltas[(int)Direction, 0],
+                        Y + directionToOppositeDeltas[(int)Direction, 1],
+                        directionToOppositeDirection[(int)Direction]);
     }
 
     /// <summary>
@@ -176,45 +169,37 @@ public class Move
     /// <returns></returns>
     public Move GetMoveWithoutDirection()
     {
-        Move copy =  new Move(this);
-        copy.direction = Direction.NO_DIRECTION;
+        Move copy =  new(this);
+        copy.Direction = Direction.NO_DIRECTION;
         return copy;
     }
 
     /// <summary>
     /// Changes this move to represent its opposite. Warning: Changes the hash. Not safe after the object is put in a hash table!
     /// </summary>
-    public void setOppositeMove()
+    public void SetOppositeMove()
     {
-        this.x += directionToOppositeDeltas[(int)direction, 0];
-        this.y += directionToOppositeDeltas[(int)direction, 1];
+        X += directionToOppositeDeltas[(int)Direction, 0];
+        Y += directionToOppositeDeltas[(int)Direction, 1];
         // Consider making directionToOppositeDeltas a jagged array,
         // reducing the number of table lookups to one for the above lines
         // since both entries in the sub-array are needed
-        this.direction = directionToOppositeDirection[(int)direction];
+        Direction = directionToOppositeDirection[(int)Direction];
     }
 
-    public void setup(int x, int y, Direction direction)
+    public void Setup(int x, int y, Direction direction)
     {
-        this.x = x;
-        this.y = y;
-        this.direction = direction;
+        X = x;
+        Y = y;
+        Direction = direction;
     }
 
-    public void setup(Move cpy)
-    {
-        this.x = cpy.x;
-        this.y = cpy.y;
-        this.direction = cpy.direction;
-    }
+    public void Setup(Move cpy) => Setup(cpy.X, cpy.Y, cpy.Direction);
 
     /// <summary>
     /// Removes the direction of this Move
     /// </summary>
-    public void RemoveDirection()
-    {
-        this.direction = Direction.NO_DIRECTION;
-    }
+    public void RemoveDirection() => Direction = Direction.NO_DIRECTION;
 
     /// <summary>
     /// Check if the given move collides with this move.
@@ -222,12 +207,7 @@ public class Move
     /// 1. Head on collision
     /// 2. When other move targets the same location.
     /// </summary>
-    /// <param name="other"></param>
-    /// <returns></returns>
-    public bool IsColliding(Move other)
-    {
-        return IsColliding(other.x, other.y, other.direction);
-    }
+    public bool IsColliding(Move other) => IsColliding(other.X, other.Y, other.Direction);
 
     /// <summary>
     /// Check if colliding with an agent moving to the given x,y from the given direction.
@@ -237,23 +217,19 @@ public class Move
     /// TODO: When diagonal moves are allowed, need to also check for diagonal collisions, e.g., (0,0)->(1,1) and (0,1)->(1,0) and such.
     /// No rush, though. We don't currently work with diagonal moves.
     /// </summary>
-    /// <param name="other_x"></param>
-    /// <param name="other_y"></param>
-    /// <param name="other_direction"></param>
-    /// <returns></returns>
     public bool IsColliding(int other_x, int other_y, Direction other_direction)
     {
         // Same target check
-        if (this.x == other_x && this.y == other_y)
+        if (X == other_x && Y == other_y)
             return true;
         // Head-on collision check
         if (Constants.ALLOW_HEAD_ON_COLLISION == false)
         {
-            var source_x = this.x + directionToOppositeDeltas[(int)this.direction, 0];
-            var source_y = this.y + directionToOppositeDeltas[(int)this.direction, 1];
+            var source_x = X + directionToOppositeDeltas[(int)Direction, 0];
+            var source_y = Y + directionToOppositeDeltas[(int)Direction, 1];
             var other_source_x = other_x + directionToOppositeDeltas[(int)other_direction, 0];
             var other_source_y = other_y + directionToOppositeDeltas[(int)other_direction, 1];
-            return this.x == other_source_x && this.y == other_source_y && other_x == source_x && other_y == source_y;
+            return X == other_source_x && Y == other_source_y && other_x == source_x && other_y == source_y;
         }
         else
         {
@@ -294,8 +270,8 @@ public class Move
         unchecked // wrap-around is fine in hash functions
         {
             int hash = 17;
-            hash = 23 * hash + x;
-            hash = 23 * hash + y;
+            hash = 23 * hash + X;
+            hash = 23 * hash + Y;
             // NOT including the direction in the hash.
             // We want moves with no direction to be equal to moves with direction on the same coordinate,
             // so they need to have the same hash. Thus, even if this move has a direction it mustn't use it in the hash.
@@ -315,13 +291,10 @@ public class Move
         if (obj == null)
             return false;
         Move that = (Move) obj;
-        return (this.x == that.x && this.y == that.y &&
-                ((this.direction == Direction.NO_DIRECTION) || (that.direction == Direction.NO_DIRECTION) || 
-                    (this.direction == that.direction)));
+        return (X == that.X && Y == that.Y &&
+                ((Direction == Direction.NO_DIRECTION) || (that.Direction == Direction.NO_DIRECTION) || 
+                    (Direction == that.Direction)));
     }
 
-    public override string ToString()
-    {
-        return $"({this.x},{this.y})"; // not describing the direction
-    }
+    public override string ToString() => $"({X},{Y})"; // not describing the direction
 }    

@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 
 namespace mapf;
@@ -15,7 +17,7 @@ abstract class CostTreeNodeSolver : IConflictReporting
     public int totalCost;
     public int generated;
     public int expanded;
-    protected Run runner;
+    protected Stopwatch stopwatch;
     protected ProblemInstance problem;
     public CostTreeSearchSolver solver;
 
@@ -23,9 +25,9 @@ abstract class CostTreeNodeSolver : IConflictReporting
 
     public int matchCounter; // For debugging
 
-    public CostTreeNodeSolver(ProblemInstance problem, Run runner, CostTreeSearchSolver solver)
+    public CostTreeNodeSolver(ProblemInstance problem, Stopwatch stopwatch, CostTreeSearchSolver solver)
     {
-        this.runner = runner;
+        this.stopwatch = stopwatch;
         this.problem = problem;
         this.solver = solver;
         this.allMDDs = new MDD[problem.GetNumOfAgents()];
@@ -40,10 +42,10 @@ abstract class CostTreeNodeSolver : IConflictReporting
     /// <param name="agentNums"></param>
     /// <param name="costsNode">Of all the agents, not just the ones selected</param>
     /// <param name="reserved"></param>
-    public CostTreeNodeSolver(ProblemInstance problem, Run runner, CostTreeSearchSolver solver,
+    public CostTreeNodeSolver(ProblemInstance problem, Stopwatch stopwatch, CostTreeSearchSolver solver,
                                 int[] agentNums, CostTreeNode costsNode, ISet<TimedMove> reserved)
     {
-        this.runner = runner;
+        this.stopwatch = stopwatch;
         this.problem = problem;
         this.solver = solver;
         this.allMDDs = new MDD[agentNums.Length];
@@ -58,16 +60,16 @@ abstract class CostTreeNodeSolver : IConflictReporting
     /// <param name="costNode">TODO: Maybe just pass the array of costs here?</param>
     /// <param name="runner"></param>
     /// <param name="solver"></param>
-    public CostTreeNodeSolver(ProblemInstance problem, CostTreeNode costNode, Run runner,
+    public CostTreeNodeSolver(ProblemInstance problem, CostTreeNode costNode, Stopwatch stopwatch,
                                 CostTreeSearchSolver solver, ISet<TimedMove> reserved) // Make sure agent numbers are in the correct order
-        : this(problem, runner, solver)
+        : this(problem, stopwatch, solver)
     {
         this.Setup(costNode, reserved);
     }
 
     public virtual void Setup(CostTreeNode costsNode, ISet<TimedMove> reserved)
     {
-        this.startingPos = problem.agents;
+        this.startingPos = problem.Agents;
         this.totalCost = costsNode.costs.Sum();
         this.maxCost = costsNode.costs.Max();
 
@@ -87,9 +89,9 @@ abstract class CostTreeNodeSolver : IConflictReporting
         int index = 0;
         foreach (var agentNum in agentNums)
         {
-            while (problem.agents[index].agent.agentNum != agentNum)
+            while (problem.Agents[index].agent.agentNum != agentNum)
                 ++index;
-            this.startingPos[index] = this.problem.agents[index];
+            this.startingPos[index] = this.problem.Agents[index];
         }
         this.totalCost = costsNode.costs.Sum();
         this.maxCost = costsNode.costs.Max();
@@ -140,9 +142,9 @@ public class CostTreeNode
     {
         for (int j = 0; j < costs.Length; j++)
         {
-            int[] newCosts = this.costs.ToArray<int>();
+            int[] newCosts = [.. this.costs];
             newCosts[j]++;
-            var child = new CostTreeNode(newCosts);
+            CostTreeNode child = new CostTreeNode(newCosts);
             if (!closedList.Contains(child))
             {
                 closedList.Add(child);
@@ -192,11 +194,11 @@ class CostTreeNodeSolverOldMatching : CostTreeNodeSolver
     /// Currently the only supported values are 3 and non-3. This is equivalent to bool checkTriples.
     /// </summary>
     int syncSize;
-    public CostTreeNodeSolverOldMatching(ProblemInstance problem, Run runner, CostTreeSearchSolver solver)
-        : base(problem, runner, solver) { }
-    public CostTreeNodeSolverOldMatching(ProblemInstance problem, CostTreeNode costNode, Run runner, CostTreeSearchSolver solver,
+    public CostTreeNodeSolverOldMatching(ProblemInstance problem, Stopwatch stopwatch, CostTreeSearchSolver solver)
+        : base(problem, stopwatch, solver) { }
+    public CostTreeNodeSolverOldMatching(ProblemInstance problem, CostTreeNode costNode, Stopwatch stopwatch, CostTreeSearchSolver solver,
                                             int syncSize, ISet<TimedMove> reserved)
-        : base(problem, costNode, runner, solver, reserved) { this.syncSize = syncSize; }
+        : base(problem, costNode, stopwatch, solver, reserved) { this.syncSize = syncSize; }
         
     public void Setup(CostTreeNode costNode, int syncSize, ISet<TimedMove> reserved)
     {
@@ -218,7 +220,7 @@ class CostTreeNodeSolverOldMatching : CostTreeNodeSolver
             return null;
 
         this.solver.survivedPruningHL++;
-        A_Star_MDDs findSolution = new A_Star_MDDs(allMDDs, runner, CAT);
+        A_Star_MDDs findSolution = new(allMDDs, stopwatch, CAT);
             
         SinglePlan[] ans = findSolution.Solve();
         this.generated = findSolution.generated;
@@ -254,11 +256,11 @@ class CostTreeNodeSolverOldMatching : CostTreeNodeSolver
 
 class CostTreeNodeSolverDDBF : CostTreeNodeSolver
 {
-    public CostTreeNodeSolverDDBF(ProblemInstance problem, Run runner, CostTreeSearchSolver solver)
-        : base(problem, runner, solver) { }
-    public CostTreeNodeSolverDDBF(ProblemInstance problem, CostTreeNode costNode, Run runner, CostTreeSearchSolver solver,
+    public CostTreeNodeSolverDDBF(ProblemInstance problem, Stopwatch stopwatch, CostTreeSearchSolver solver)
+        : base(problem, stopwatch, solver) { }
+    public CostTreeNodeSolverDDBF(ProblemInstance problem, CostTreeNode costNode, Stopwatch stopwatch, CostTreeSearchSolver solver,
                                     ISet<TimedMove> reserved)
-        : base(problem, costNode, runner, solver, reserved) { }
+        : base(problem, costNode, stopwatch, solver, reserved) { }
     public override void Setup(CostTreeNode costNode, ISet<TimedMove> reserved)
     {
         base.Setup(costNode, reserved);
@@ -268,7 +270,7 @@ class CostTreeNodeSolverDDBF : CostTreeNodeSolver
         for (int i = 0; i < allMDDs.Length; i++)
             if (allMDDs[i].levels == null)
                 return null;
-        A_Star_MDDs findSolution = new A_Star_MDDs(allMDDs, runner, CAT);
+        A_Star_MDDs findSolution = new(allMDDs, stopwatch, CAT);
         SinglePlan[] ans = findSolution.Solve();
         generated = findSolution.generated;
         expanded = findSolution.expanded;
@@ -282,12 +284,12 @@ class CostTreeNodeSolverDDBF : CostTreeNodeSolver
 class CostTreeNodeSolverKSimpleMatching : CostTreeNodeSolver
 {
     int maxGroupChecked;
-    public CostTreeNodeSolverKSimpleMatching(ProblemInstance problem, Run runner, CostTreeSearchSolver solver)
-        : base(problem, runner, solver) { }
+    public CostTreeNodeSolverKSimpleMatching(ProblemInstance problem, Stopwatch stopwatch, CostTreeSearchSolver solver)
+        : base(problem, stopwatch, solver) { }
     public CostTreeNodeSolverKSimpleMatching(ProblemInstance problem, CostTreeNode costNode,
-                                                Run runner, CostTreeSearchSolver solver, int maxGroupChecked,
+                                                Stopwatch stopwatch, CostTreeSearchSolver solver, int maxGroupChecked,
                                                 ISet<TimedMove> reserved)
-        : base(problem, costNode, runner, solver, reserved) { this.maxGroupChecked = maxGroupChecked; }
+        : base(problem, costNode, stopwatch, solver, reserved) { this.maxGroupChecked = maxGroupChecked; }
     public void Setup(CostTreeNode costNode, int maxGroupChecked, ISet<TimedMove> reserved)
     {
         base.Setup(costNode, reserved);
@@ -298,7 +300,7 @@ class CostTreeNodeSolverKSimpleMatching : CostTreeNodeSolver
         A_Star_MDDs findSolution;
         SinglePlan[] subCheck;
         MDD[] match;
-        MddMatchAndPrune matcher = new MddMatchAndPrune(runner, this);
+        MddMatchAndPrune matcher = new(stopwatch, this);
 
         foreach (MDD checkValid in allMDDs)
         {
@@ -318,7 +320,7 @@ class CostTreeNodeSolverKSimpleMatching : CostTreeNodeSolver
                     //matcher.initialize(match);
 
                     //if (matcher.pruneMDDs() == false)
-                    findSolution = new A_Star_MDDs(match, runner, CAT);
+                    findSolution = new A_Star_MDDs(match, stopwatch, CAT);
 
                     subCheck = findSolution.Solve();
                     if (subCheck == null || subCheck[0] == null)
@@ -343,7 +345,7 @@ class CostTreeNodeSolverKSimpleMatching : CostTreeNodeSolver
                         //matcher.initialize(match);
 
                         //if (matcher.pruneMDDs() == false)
-                        findSolution = new A_Star_MDDs(match, runner, CAT);
+                        findSolution = new A_Star_MDDs(match, stopwatch, CAT);
 
                         subCheck = findSolution.Solve();
                         if (subCheck == null || subCheck[0] == null)
@@ -372,7 +374,7 @@ class CostTreeNodeSolverKSimpleMatching : CostTreeNodeSolver
                             //matcher.initialize(match);
 
                             //if (matcher.pruneMDDs() == false)
-                            findSolution = new A_Star_MDDs(match, runner, CAT);
+                            findSolution = new A_Star_MDDs(match, stopwatch, CAT);
 
                             subCheck = findSolution.Solve();
                             if (subCheck == null || subCheck[0] == null)
@@ -389,7 +391,7 @@ class CostTreeNodeSolverKSimpleMatching : CostTreeNodeSolver
         this.solver.survivedPruningHL++;
         if (allMDDs[0].levels == null)
             return null;
-        findSolution = new A_Star_MDDs(allMDDs, runner, CAT);
+        findSolution = new A_Star_MDDs(allMDDs, stopwatch, CAT);
         SinglePlan[] ans = findSolution.Solve();
         generated = findSolution.generated;
         expanded = findSolution.expanded;
@@ -403,12 +405,12 @@ class CostTreeNodeSolverKSimpleMatching : CostTreeNodeSolver
 class CostTreeNodeSolverRepeatedMatching : CostTreeNodeSolver
 {
     int syncSize;
-    public CostTreeNodeSolverRepeatedMatching(ProblemInstance problem, Run runner, CostTreeSearchSolver solver)
-        : base(problem, runner, solver) { }
+    public CostTreeNodeSolverRepeatedMatching(ProblemInstance problem, Stopwatch stopwatch, CostTreeSearchSolver solver)
+        : base(problem, stopwatch, solver) { }
     public CostTreeNodeSolverRepeatedMatching(ProblemInstance problem, CostTreeNode costNode,
-                                                Run runner, CostTreeSearchSolver solver, int syncSize,
+                                                Stopwatch stopwatch, CostTreeSearchSolver solver, int syncSize,
                                                 ISet<TimedMove> reserved)
-        : base(problem, costNode, runner, solver, reserved) { this.syncSize = syncSize; }
+        : base(problem, costNode, stopwatch, solver, reserved) { this.syncSize = syncSize; }
     public void setup(CostTreeNode costNode, int syncSize, ISet<TimedMove> reserved)
     {
         base.Setup(costNode, reserved);
@@ -418,7 +420,7 @@ class CostTreeNodeSolverRepeatedMatching : CostTreeNodeSolver
     {
         MDD[] match = new MDD[2];
         bool Converging = true;
-        int[] changed = new int[allMDDs.Length];
+        Span<int> changed = stackalloc int[allMDDs.Length];
         int currentIteration = 0;
         MDD.PruningDone conflictStatus = MDD.PruningDone.NOTHING;
 
@@ -468,7 +470,7 @@ class CostTreeNodeSolverRepeatedMatching : CostTreeNodeSolver
         this.solver.survivedPruningHL++;
         if (allMDDs[0].levels == null)
             return null;
-        A_Star_MDDs findSolution = new A_Star_MDDs(allMDDs, runner, CAT);
+        A_Star_MDDs findSolution = new(allMDDs, stopwatch, CAT);
         SinglePlan[] ans = findSolution.Solve();
         generated = findSolution.generated;
         expanded = findSolution.expanded;

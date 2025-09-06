@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 
 namespace mapf;
@@ -20,7 +21,7 @@ public class A_Star_WithOD : A_Star
 
     override protected WorldState CreateSearchRoot(int minDepth = -1, int minCost = -1, MDDNode mddNode = null)
     {
-        return new WorldStateWithOD(this.instance.agents, minDepth, minCost, mddNode);
+        return new WorldStateWithOD(this.instance.Agents, minDepth, minCost, mddNode);
     }
 
     protected override WorldState CreateSearchNode(WorldState from)
@@ -30,12 +31,12 @@ public class A_Star_WithOD : A_Star
 
     public override string GetName() { return base.GetName() + "+OD"; }
 
-    public override void Setup(ProblemInstance problemInstance, int minDepth, Run runner,
+    public override void Setup(ProblemInstance problemInstance, int minDepth, Stopwatch stopwatch,
                                 ConflictAvoidanceTable CAT = null,
                                 ISet<CbsConstraint> constraints = null, ISet<CbsConstraint> positiveConstraints = null,
                                 int minCost = -1, int maxCost = int.MaxValue, MDD mdd = null)
     {
-        base.Setup(problemInstance, minDepth, runner, CAT, constraints, positiveConstraints,
+        base.Setup(problemInstance, minDepth, stopwatch, CAT, constraints, positiveConstraints,
                     minCost, maxCost, mdd);
         this.expandedFullStates = 0;
         this.generatedFullStates = 0;
@@ -74,7 +75,7 @@ public class A_Star_WithOD : A_Star
 
         var generated = base.ExpandOneAgent(intermediateNodes, agentIndex);
 
-        int childAgentTurn = ((parent.agentTurn + 1) % (this.instance.agents.Length));
+        int childAgentTurn = ((parent.agentTurn + 1) % (this.instance.Agents.Length));
         foreach (var node in generated)
         {
             WorldStateWithOD childNode = (WorldStateWithOD)node;
@@ -84,7 +85,7 @@ public class A_Star_WithOD : A_Star
             // Makespan increases only if this is the move of the first agent. This makes sure that under a makespan
             // cost function, partial nodes have a correct cost and can even serve as goal nodes.
             if (parent.agentTurn != 0)
-                childNode.makespan--; // Cancel the increment in base
+                childNode.Makespan--; // Cancel the increment in base
         }
 
         this.alreadyExpanded = true;
@@ -121,13 +122,7 @@ public class A_Star_WithOD : A_Star
         output.Write(this.generatedFullStates + Run.RESULTS_DELIMITER);
     }
 
-    public override int NumStatsColumns
-    {
-        get
-        {
-            return 2 + base.NumStatsColumns;
-        }
-    }
+    public override int NumStatsColumns => 2 + base.NumStatsColumns;
 
     public override void ClearAccumulatedStatistics()
     {
